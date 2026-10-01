@@ -199,7 +199,15 @@ To change the **genome**: edit/add `config/genes/<name>.yaml`, bump
 * Do not commit generated data (`runs/`, `exports/`, SQLite, `node_modules`).
 * Work on a branch; `main` is merged by the researcher.
 
+## When you start a session
+
+Read `docs/SESSION_HANDOFF.md` (current state, machine quirks, the
+researcher's working rules, next sessions) and confirm the working directory
+is `C:\CALFLABHOME`.
+
 ## When you finish a session
 
 Update `docs/USER_GUIDE.md` for any user-visible change, add ADRs for new
-assumptions, run `.\calflab.ps1 test`, and list what is real vs. stubbed.
+assumptions, run `.\calflab.ps1 test`, list what is real vs. stubbed, and
+bring `docs/SESSION_HANDOFF.md` up to date (state, verified/unverified, next
+sessions).
