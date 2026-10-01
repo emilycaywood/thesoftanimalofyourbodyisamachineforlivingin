@@ -19,7 +19,7 @@ from calflab import CODE_VERSION
 from calflab import units as u
 from calflab.app.events import EventBus
 from calflab.app.jobs import Job, JobContext, JobManager
-from calflab.app.scene import build_scene
+from calflab.app.scene import build_scene, foot_tracks
 from calflab.components import library
 from calflab.design import EvaluatedDesign
 from calflab.graph import Cache, EvalContext, Evaluator, Graph, NodeResult, node_types, summarize
@@ -376,7 +376,10 @@ class Lab:
         rec = self.registry.get_run(run_id)
         scene_rel = rec.artifacts.get("scene")
         frames = self._frames_payload({"start": 0, "t": r.t, "pos": r.body_pos, "quat": r.body_quat})
+        scene = read_json(self.project.resolve(scene_rel)) if scene_rel else None
+        tracks = foot_tracks(r, scene) if scene else {"foot_pos": [], "support": []}
         return {
+            **tracks,
             "run_id": run_id,
             "body_ids": r.body_ids,
             "dt": r.meta.get("record_dt"),
@@ -387,7 +390,7 @@ class Lab:
             "foot_force": np.round(r.foot_force.astype(float), 2).tolist(),
             "foot_geoms": r.foot_geoms,
             "series": timeseries(r),
-            "scene": read_json(self.project.resolve(scene_rel)) if scene_rel else None,
+            "scene": scene,
             "metrics": rec.metrics,
         }
 

@@ -19,6 +19,7 @@ from pathlib import Path
 from calflab.paths import home_dir, web_dir
 
 SKIP = {"node_modules", "dist", "test-results", "playwright-report", ".vite"}
+COPY_DIRS = {"e2e"}
 
 
 def can_host_node_modules(directory: Path) -> bool:
@@ -86,7 +87,15 @@ def workdir() -> Path:
         if item.name in SKIP:
             continue
         dest = work / item.name
-        if item.is_dir():
+        if item.is_dir() and item.name in COPY_DIRS:
+            # Playwright resolves test files to their real path, so junctioned
+            # tests cannot find node_modules; these small folders are copied.
+            if dest.exists() and _is_link(dest):
+                os.rmdir(dest)
+            elif dest.exists():
+                shutil.rmtree(dest)
+            shutil.copytree(item, dest)
+        elif item.is_dir():
             _junction(dest, item)
         elif not dest.exists() or item.stat().st_mtime > dest.stat().st_mtime or item.stat().st_size != dest.stat().st_size:
             shutil.copy2(item, dest)

@@ -53,6 +53,41 @@ def point_in_hull_margin(hull: list[tuple[float, float]], p: tuple[float, float]
     return best
 
 
+def foot_tracks(rollout: Any, scene: dict[str, Any]) -> dict[str, Any]:
+    """Per-frame foot contact points (mm) and support polygons for playback overlays."""
+    import numpy as np
+
+    from calflab import units as u
+
+    local: dict[str, tuple[int, list[float], float]] = {}
+    for b in scene["bodies"]:
+        for g in b["geoms"]:
+            if g["foot"] and b["id"] in rollout.body_ids:
+                local[g["id"]] = (rollout.body_ids.index(b["id"]), g["pos"], float(g["size"][0]))
+    n = rollout.n_frames
+    pos = np.zeros((n, len(rollout.foot_geoms), 3))
+    for fi, gid in enumerate(rollout.foot_geoms):
+        if gid not in local:
+            continue
+        bi, lp, radius = local[gid]
+        q = rollout.body_quat[:, bi, :].astype(float)
+        w, x, y, z = q[:, 0], q[:, 1], q[:, 2], q[:, 3]
+        v = np.asarray(lp, dtype=float)
+        # rotate v by each quaternion: v + 2w(q x v) + 2 q x (q x v)
+        qv = np.stack([x, y, z], axis=1)
+        t = 2.0 * np.cross(qv, v)
+        rotated = v + w[:, None] * t + np.cross(qv, t)
+        p = u.from_si(rollout.body_pos[:, bi, :].astype(float), "mm") + rotated
+        p[:, 2] -= radius  # contact point under the hoof
+        pos[:, fi, :] = p
+    contact = rollout.foot_force > 1e-6
+    polygons = []
+    for i in range(n):
+        pts = [(float(pos[i, f, 0]), float(pos[i, f, 1])) for f in range(pos.shape[1]) if contact[i, f]]
+        polygons.append([[round(px, 1), round(py, 1)] for px, py in convex_hull(pts)])
+    return {"foot_pos": np.round(pos, 1).tolist(), "support": polygons}
+
+
 def _add(a: Vec3, b: Vec3) -> Vec3:
     return (a[0] + b[0], a[1] + b[1], a[2] + b[2])
 

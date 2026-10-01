@@ -77,7 +77,12 @@ class CalfGenerator(PartGenerator):
 
         gdef = gene_definition_files()["calf"]
 
-        def pv(gene: str, label: str | None = None) -> ParamValue:
+        def pv(
+            gene: str,
+            label: str | None = None,
+            handle: tuple[float, float, float] | None = None,
+            frac: float = 1.0,
+        ) -> ParamValue:
             g = gdef.gene(gene)
             return ParamValue(
                 value=float(genes[gene]),  # type: ignore[arg-type]
@@ -86,6 +91,8 @@ class CalfGenerator(PartGenerator):
                 min=g.min,
                 max=g.max,
                 label=label,
+                handle_axis=handle,
+                handle_frac=frac,
             )
 
         def offsets() -> dict[str, ParamValue]:
@@ -96,20 +103,21 @@ class CalfGenerator(PartGenerator):
 
         out: ElementParams = {
             "trunk": {
-                "length": pv("trunk_length"),
-                "width": pv("trunk_width"),
-                "height": pv("trunk_height"),
+                "length": pv("trunk_length", handle=(1.0, 0.0, 0.0), frac=0.5),
+                "width": pv("trunk_width", handle=(0.0, 1.0, 0.0), frac=0.4),
+                "height": pv("trunk_height", handle=(0.0, 0.0, 1.0), frac=0.4),
             }
         }
+        down = (0.0, 0.0, -1.0)
         for k in LEGS:
             out[f"leg.{k}.hip"] = {"offset": pv("leg_offset", "Leg offset"), **offsets()}
             out[f"leg.{k}.thigh"] = {
-                "length": pv("thigh_length"),
+                "length": pv("thigh_length", handle=down),
                 "radius": pv("leg_radius"),
                 **offsets(),
             }
             out[f"leg.{k}.shank"] = {
-                "length": pv("shank_length"),
+                "length": pv("shank_length", handle=down),
                 "radius": pv("leg_radius"),
                 "hoof_radius": pv("hoof_radius"),
                 **offsets(),

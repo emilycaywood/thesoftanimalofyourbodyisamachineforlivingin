@@ -26,6 +26,10 @@ class ParamValue(BaseModel):
     min: float | None = None
     max: float | None = None
     label: str | None = None
+    #: gumball handle: body-local unit direction along which dragging +1 mm adds 1 to the value
+    handle_axis: tuple[float, float, float] | None = None
+    #: the handle sits at ``handle_axis * value * handle_frac`` in the body frame
+    handle_frac: float = 1.0
     # filled in by apply_overrides
     parametric: float | None = None  # value before the override
     override: str | None = None  # id of the active override
