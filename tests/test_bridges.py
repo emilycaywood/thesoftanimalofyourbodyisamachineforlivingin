@@ -93,7 +93,8 @@ def test_bridge_scripts_are_valid_python_and_stdlib_only(path):
     """Bridge scripts run inside Rhino/Blender: they must not import calflab or third-party packages."""
     tree = ast.parse(path.read_text(encoding="utf-8"))
     allowed_host = {"Rhino", "rhinoscriptsyntax", "scriptcontext", "System", "bpy", "mathutils", "Grasshopper",
-                    "ghpythonlib", "calflab_rhino", "bpy_extras", "bmesh", "calflab_blender"}
+                    "ghpythonlib", "calflab_rhino", "bpy_extras", "bmesh", "calflab_blender",
+                    "clr"}  # clr: pythonnet, part of Rhino's Python
     import sys
 
     for node in ast.walk(tree):

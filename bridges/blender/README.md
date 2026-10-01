@@ -64,5 +64,23 @@ the bridge) with the lab running:
 
 It leaves one clip named `zz-validation` in the project's motion library.
 
-Not yet exercised: the sidebar panel clicked by hand in the Blender UI (the
-operators behind the buttons were run from a script), and Blender 4.2-4.5.
+### The sidebar panel, clicked (2026-10-01, Blender 5.2.2)
+
+```powershell
+.\calflab.ps1 bridge blender --check-ui
+```
+
+starts Blender with its window and sends real mouse events to the installed
+extension (`validate_ui_in_blender.py`; do not touch the mouse while it runs,
+about a minute). It clicked the **CALFLAB** sidebar tab, found all four
+buttons by clicking down the panel, then clicked *Build armature* (19 bones,
+58 meshes), *Import simulation rollout* (321 frames) and *Export action as
+reference clip* (one new 321-frame clip on the server). A screenshot of the
+window is saved next to the report. It leaves a clip named `zz-ui-validation`
+(numbered if repeated) in the motion library.
+
+Known gap seen in that screenshot: in a new Blender file the default 2 m cube
+hides the 0.6 m calf. Delete the cube (or open an empty file) first.
+
+Not yet exercised: posing and keyframing by hand in Pose Mode, typing into the
+Server / Clip name / Run id fields, and Blender 4.2-4.5.

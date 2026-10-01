@@ -1,8 +1,9 @@
 # CALFLAB session handoff
 
 Everything a new Claude Code session (or a new collaborator) needs to pick up
-CALFLAB. Last updated 2026-10-01 on branch `phase-1-vertical-slice` (the
-code was last changed in commit `3853983`; run `git log --oneline -5` for the
+CALFLAB. Last updated 2026-10-01 on branch `phase-1-vertical-slice`, after the session
+that pushed the branch, added the component audit and checked the bridges
+inside Rhino, Grasshopper and Blender (run `git log --oneline -8` for the
 current state).
 
 ---
@@ -96,13 +97,15 @@ Working rules (from the original brief):
 
 ## 4. Current state
 
-**Git:** branch `phase-1-vertical-slice`, clean tree. `main` has
-only the initial commit. **Nothing has been pushed**; the remote is
-`https://github.com/emilycaywood/thesoftanimalofyourbodyisamachineforlivingin.git`.
-Until it is pushed, `C:\CALFLABHOME` is the only copy and there is no backup.
+**Git:** branch `phase-1-vertical-slice`, pushed to GitHub and open as
+pull request #1 into `main`
+(https://github.com/emilycaywood/thesoftanimalofyourbodyisamachineforlivingin/pull/1).
+The repository is **public**. `main` still has only the initial commit; the
+researcher merges.
 
-**Tests:** `calflab test` passes: ruff, 200 pytest tests, mypy, web typecheck
-and eslint, 13 Vitest tests, 1 Playwright smoke test.
+**Tests:** `calflab test` passes: ruff, 209 pytest tests, mypy, web typecheck
+and eslint, 13 Vitest tests, 1 Playwright smoke test. `calflab doctor` is
+clean apart from optional warnings (Graphviz, no CUDA, unverified components).
 
 **Built and working (Phase 1 vertical slice):**
 
@@ -120,9 +123,19 @@ and eslint, 13 Vitest tests, 1 Playwright smoke test.
 * Fabricate / Wire: build123d leg segment with actuator mount and embossed ID
   (STEP/STL/3MF/.3dm), glTF, URDF, MJCF, firmware skeleton, BOM, power budget,
   harness YAML and diagram.
-* Rhino 8: `CalflabPull` verified inside Rhino 8.34.
-* Blender 5.2.2: extension installed and enabled; armature build, clip export
-  and rollout import verified numerically (`calflab bridge blender --check`).
+* Component verification: `calflab components audit` (unverified components,
+  the results that rest on them, actuators at their torque limit) and
+  `docs/component_verification.csv`, a worksheet with one row per recorded
+  spec value and blank columns for the datasheet value.
+* Rhino 8.34 (`calflab bridge rhino --check`): CalflabInstall, CalflabPull,
+  CalflabPush (typed as a command) and CalflabLiveSync verified against a
+  live server.
+* Grasshopper (`calflab bridge rhino --grasshopper`): the five GH Python 3
+  components verified; `bridges/rhino/grasshopper/calflab_example.gh` is
+  generated and committed.
+* Blender 5.2.2: armature build, clip export and rollout import verified
+  numerically (`bridge blender --check`), and the sidebar panel clicked with
+  simulated mouse events (`bridge blender --check-ui`).
 
 **Scaffolded only (interfaces + tests, no behaviour):** PPO training, MJX
 simulator, RemoteSSH and CloudNotebook transports (job bundling is real),
@@ -130,13 +143,17 @@ imitation reward, interactive selection, molds, skin patterns, nesting,
 system ID, touch response, puppeteering blend, ball joints. UI placeholders:
 Behave and Deploy workspaces, reference images, inertia / heat-map /
 range-of-motion overlays, endpoint/midpoint/axis snaps, angle and clearance
-measurement, run comparison, Pareto / parallel coordinates.
+measurement, run comparison, Pareto / parallel coordinates. The component
+audit has no panel in the web lab yet (CLI and `lab.analysis` only).
 
 **Not yet verified on real software:**
 
-* Rhino: `CalflabPush`, `CalflabLiveSync`, `CalflabInstall`, the GH Python
-  components and the Hops endpoints. No `.gh` example file exists yet.
-* Blender: the sidebar panel clicked by hand (operators were run by script);
+* Hops endpoints against Grasshopper: Hops is not installed on this machine
+  (Rhino `PackageManager` > Hops).
+* Rhino and Grasshopper by hand: how the pulled model looks, opening
+  `calflab_example.gh` on the canvas, dragging the slider, pressing the
+  buttons; `CalflabConnect` as a typed command; pushing a Brep or SubD.
+* Blender by hand: posing in Pose Mode, typing in the panel's fields;
   Blender 4.2-4.5.
 * Web viewport by hand: dragging the gumball handle, window/crossing
   selection, four-view, Rendered mode, mouse navigation presets.
@@ -144,13 +161,18 @@ measurement, run comparison, Pareto / parallel coordinates.
 **The researcher must verify:**
 
 * Every component spec (`verified: false`, written from memory of
-  datasheets). The ~$5,253 BOM and ~25 min runtime depend on them.
-* Torque: in the default trot at least one actuator runs at its usable limit.
+  datasheets): fill in `docs/component_verification.csv`, correct the YAML,
+  set `verified: true`. All 14 components the design uses are unverified, so
+  the $5,253 BOM, 5.0 kg mass and ~25 min runtime all rest on them.
+* Torque: in the default trot `act.fr.hip_abd` (XM430-W350) reaches its
+  usable torque (2.46 N*m = stall x 0.6) and the neck pitch servo (STS3215)
+  has 3 % margin. Either the hip-abduction actuator is undersized, the 0.6
+  derating is too cautious, or the gait is too wide: a design decision.
 * Proportions and mass model (ADR-015, ADR-017); skin, servo and thermal
   coefficients (ADR-018, ADR-019); the two-segment leg simplification.
+* Known UX gap: in a new Blender file the default cube hides the calf.
 
 ---
-
 ## 5. Things about this machine that are not obvious
 
 * Windows 11, PowerShell 5.1, AMD GPU (no CUDA): MuJoCo runs on CPU; GPU
@@ -167,6 +189,10 @@ measurement, run comparison, Pareto / parallel coordinates.
 * Rhino 8.34: `C:\Program Files\Rhino 8\System\Rhino.exe`. A script can be run
   with `Rhino.exe /nosplash /runscript="_-ScriptEditor _Run <path without spaces>"`.
 * Blender 5.2.2: `C:\Program Files\Blender Foundation\Blender 5.2\blender.exe`.
+* To re-check a bridge, start the lab on a scratch project
+  (`.\calflab.ps1 lab --project <folder> --no-browser`) and run
+  `bridge rhino --check`, `bridge rhino --grasshopper`, `bridge blender --check`,
+  `bridge blender --check-ui`. Rhino and Blender open a window and close it again.
 * Graphviz is not installed, so harness diagrams use the built-in renderer
   (`winget install Graphviz.Graphviz` enables full WireViz drawings).
 * The web stack is deliberately pinned to older major versions (ADR-020).
@@ -183,8 +209,9 @@ measurement, run comparison, Pareto / parallel coordinates.
 |---|---|
 | `CLAUDE.md` | Conventions for every session (loaded automatically) |
 | `PLAN.md` | Architecture, module boundaries, data flow, phases, risks, status |
-| `DECISIONS.md` | ADR log: every assumption (36 so far) |
+| `DECISIONS.md` | ADR log: every assumption (40 so far) |
 | `docs/USER_GUIDE.md` | How to use the lab |
+| `docs/component_verification.csv` | Datasheet verification worksheet (the researcher fills it in) |
 | `bridges/rhino/README.md`, `bridges/blender/README.md` | Bridge install, conventions, what is verified |
 | `docs/notebooks/quickstart.ipynb` | Driving the lab from Python |
 
@@ -194,21 +221,18 @@ measurement, run comparison, Pareto / parallel coordinates.
 
 Prefix each with the opening message from section 1.
 
-**A. Back up and merge**
-> Push branch `phase-1-vertical-slice` to the GitHub remote, open a pull
-> request into `main` summarising Phase 1, and tell me what to review before
-> merging. Do not merge it yourself.
+**A. Use the verified data**
+> I have filled in docs/component_verification.csv. Read it, list every row
+> where my datasheet value differs from the recorded value, and update
+> config/components/*.yaml to my values (keep `verified` as I set it; do not
+> flip it yourself). Re-run `calflab components audit --simulate` and tell me
+> how the BOM, mass, torque margins and runtime changed. Then resolve the
+> saturated hip-abduction actuator: show me the torque-margin table for the
+> alternatives already in the library and for a narrower gait, and add a
+> Component audit panel to the Wire workspace (schema-driven, no logic in the
+> UI). Update docs/USER_GUIDE.md.
 
-**B. Bridges on real software**
-> In Rhino 8, run CalflabInstall, then exercise CalflabPush (sculpt a head
-> shell and push it) and CalflabLiveSync; fix whatever breaks. Build the
-> Grasshopper example from the recipe in bridges/rhino/README.md, test the
-> Hops endpoints against live Grasshopper, and save the definition as
-> bridges/rhino/grasshopper/calflab_example.gh. In Blender, click through the
-> CALFLAB sidebar panel by hand. Add tests where possible and update both
-> READMEs' status sections.
-
-**C. Viewport and Form polish**
+**B. Viewport and Form polish**
 > Exercise the web viewport by hand: gumball dragging, window/crossing
 > selection, four-view, Rendered mode and all three navigation presets; fix
 > defects. Then implement reference images on view planes (the
@@ -217,7 +241,7 @@ Prefix each with the opening message from section 1.
 > Simulate. Keep all logic in the core, extend the Playwright smoke test, and
 > update docs/USER_GUIDE.md.
 
-**D. Remote compute and PPO (Phase 2 start)**
+**C. Remote compute and PPO (Phase 2 start)**
 > Read core/calflab/compute/remote.py. Implement the RemoteSSH transport
 > (package, scp, run, poll, fetch, with cancel) using the existing bundle
 > format, tested against localhost or a mock. Finish the CloudNotebook flow so
@@ -225,3 +249,10 @@ Prefix each with the opening message from section 1.
 > MJCF and imports the ONNX policy as a Controller plugin. Add domain
 > randomization presets and the imitation reward using motion-library clips
 > exported from Blender.
+
+**D. Hops (after installing it: Rhino `PackageManager` > Hops)**
+> Hops is now installed in Rhino 8. Extend bridges/rhino/grasshopper/
+> build_example.py (or add a sibling script) to place Hops components pointed
+> at the five /hops endpoints, solve them against the live lab like the GH
+> Python components, fix whatever breaks in server/calflab_server/hops.py,
+> and update bridges/rhino/README.md.

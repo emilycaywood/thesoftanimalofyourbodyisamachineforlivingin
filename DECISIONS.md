@@ -262,3 +262,33 @@ as "at its limit" when its torque margin in the chosen run is 1 % or less.
 The verification worksheet (`docs/component_verification.csv`) is tracked in
 git because the researcher fills it in; the command will not overwrite it
 without `--force`.
+
+## ADR-038 — Bridges are checked by scripts that drive the real applications
+"Verified in Rhino / Grasshopper / Blender" means a check script ran inside
+the application against a live lab and asserted numbers:
+`calflab bridge rhino --check` (`validate_in_rhino.py`),
+`calflab bridge rhino --grasshopper` (`grasshopper/build_example.py`) and
+`calflab bridge blender --check` / `--check-ui`. The Rhino check types the
+real `CalflabPush` alias with its prompts answered from the macro; the Blender
+UI check sends simulated mouse events (`--enable-event-simulate`). None of
+this is a person using the tool: what the model looks like, and anything
+dragged or typed by hand, stays on the researcher's verify list. The checks
+edit the open project (and undo it), so they are meant for a scratch project.
+
+## ADR-039 — Rhino primitives are NURBS Breps
+Sphere, capsule and cylinder Breps are converted to NURBS
+(`Brep.MakeValidForV2`) before the server's transform is applied. The
+transforms are rounded to six decimals and therefore not exactly rigid; a
+revolved capsule could become invalid under one, and Rhino then refused to add
+it without an error (the shanks disappeared after a shank-length edit).
+`add_primitive` now raises if Rhino rejects an object. Consequence: pulled
+spheres and capsules are NURBS surfaces, not exact revolved surfaces.
+
+## ADR-040 — The Grasshopper example is generated, and gated by "apply"
+`calflab_example.gh` is written by `build_example.py` inside Rhino (GH files
+are binary) and is committed. Its components locate `calflab_gh.py` next to
+the definition file. SetGenomeParams has an extra `apply` input, off in the
+saved file, so opening the example never edits the design. This supersedes
+the "recipe only" gap recorded in ADR-024. The Hops path of ADR-024 is still
+untested: Hops is not installed on this machine and was not installed by the
+session (installing software into Rhino is the researcher's call).

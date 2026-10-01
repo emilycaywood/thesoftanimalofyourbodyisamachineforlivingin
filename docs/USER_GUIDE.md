@@ -33,8 +33,8 @@ Rhino 8 and Blender (4.2 or newer) are optional.
 | `calflab registry check` / `rebuild` | Verify or rebuild the experiment index |
 | `calflab components audit` | Unverified components, the results that depend on them, actuators at their torque limit (section 9) |
 | `calflab components worksheet` | Write the datasheet verification worksheet (CSV) |
-| `calflab bridge rhino` | How to install the Rhino commands |
-| `calflab bridge blender --install` | Build the Blender extension and install it into Blender |
+| `calflab bridge rhino` | How to install the Rhino commands. `--check` tests them inside Rhino, `--grasshopper` rebuilds and tests `calflab_example.gh` (lab running on a scratch project) |
+| `calflab bridge blender --install` | Build the Blender extension and install it into Blender. `--check` verifies it numerically, `--check-ui` clicks through the sidebar panel |
 
 **Where things live.** The working copy is `C:\CALFLABHOME`, a local folder no
 sync client touches. The Python environment is in `%LOCALAPPDATA%\calflab`;
@@ -278,8 +278,11 @@ All clients talk to the same running lab; an edit in one appears in the others.
 * **Rhino 8**: see `bridges/rhino/README.md`. `CalflabPull` brings the design in
   as layered geometry with blocks and ID user text; `CalflabPush` sends sculpted
   geometry back as an override; `CalflabLiveSync` follows changes.
-* **Grasshopper**: Hops endpoints at `http://127.0.0.1:8000/hops/...` or GH
-  Python 3 components (same README).
+* **Grasshopper**: open `bridges/rhino/grasshopper/calflab_example.gh` with the
+  lab running: GetDesign shows the genome and mass; move the slider and switch
+  `apply` on to change a gene; `run` simulates and GetMetrics shows the result;
+  `bake` builds the design in Rhino. (Hops endpoints also exist at
+  `http://127.0.0.1:8000/hops/...` but are untested: Hops is not installed.)
 * **Blender 4.2+ / 5.x**: `.\calflab.ps1 bridge blender --install`, then open
   the 3D viewport sidebar (N) > CALFLAB. Build an armature from the design
   (one bone per joint, limits applied), pose and keyframe it, export the

@@ -167,9 +167,19 @@ check exposed and fixed three defects: the trunk trajectory was applied about
 the world origin, bones were not perpendicular to their joint axes, and
 recorded body poses lagged joint angles by one physics step.
 
-Not verified on real software: the Blender sidebar panel clicked by hand,
-`CalflabPush` / `CalflabLiveSync` / the alias installer, the GH
-Python components and Hops against a live Grasshopper.
+A later session the same day pushed the branch (pull request #1), added the
+component audit and verification worksheet (`calflab components audit` /
+`worksheet`, ADR-037), and checked the remaining bridges inside the real
+applications (ADR-038): `CalflabInstall`, `CalflabPush` and `CalflabLiveSync`
+in Rhino 8.34, the five GH Python components (with a generated
+`calflab_example.gh`), and the Blender sidebar panel with simulated mouse
+clicks. Those checks fixed three Rhino defects: the installer crashed on a
+second run, leg capsules could vanish after a gene edit (ADR-039), and a
+live-sync error could escape into Rhino's idle loop.
+
+Not verified on real software: Hops against a live Grasshopper (Hops is not
+installed), and anything done by hand with the mouse in Rhino, Grasshopper,
+Blender's Pose Mode or the web viewport.
 
 Scaffolded as stubs with interfaces and contract tests: PPO training, MJX
 simulator, RemoteSSH and CloudNotebook transports (job bundling and the

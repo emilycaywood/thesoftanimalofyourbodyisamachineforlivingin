@@ -484,7 +484,8 @@ def build_blender_addon() -> Path:
 def bridge_blender(
     install: bool = typer.Option(False, "--install", help="Also install and enable it in Blender."),
     check: bool = typer.Option(False, "--check", help="Run the numerical bridge check in Blender (lab must be running)."),
-    url: str = typer.Option("http://127.0.0.1:8000", help="Lab URL for --check."),
+    check_ui: bool = typer.Option(False, "--check-ui", help="Click through the installed sidebar panel in Blender's window (lab must be running)."),
+    url: str = typer.Option("http://127.0.0.1:8000", help="Lab URL for --check / --check-ui."),
 ) -> None:
     """Build the Blender extension zip (and optionally install or check it)."""
     import json
@@ -493,6 +494,34 @@ def bridge_blender(
 
     z = build_blender_addon()
     console.print(f"Built [bold]{z}[/bold]")
+    if check_ui:
+        exe = find_blender()
+        if exe is None:
+            console.print("[red]Blender was not found.[/red]")
+            raise typer.Exit(1)
+        report = home_dir() / "blender_ui_check.json"
+        report.parent.mkdir(parents=True, exist_ok=True)
+        report.unlink(missing_ok=True)
+        script = repo_root() / "bridges" / "blender" / "validate_ui_in_blender.py"
+        console.print("Starting Blender; it clicks through the CALFLAB panel and closes itself (do not touch the mouse)...")
+        try:
+            subprocess.run([str(exe), "--enable-event-simulate", "--python", str(script)], check=False, timeout=240,
+                           capture_output=True, env={**os.environ, "CALFLAB_URL": url, "CALFLAB_BLENDER_REPORT": str(report)})
+        except subprocess.TimeoutExpired:
+            console.print("[red]Blender did not finish within 240 s and was stopped.[/red]")
+        if not report.is_file():
+            console.print("[red]Blender produced no report.[/red]")
+            raise typer.Exit(1)
+        rep = json.loads(report.read_text(encoding="utf-8"))
+        for key in ("blender", "extension", "tab", "buttons_found", "build_armature", "import_rollout", "export_clip", "screenshot"):
+            if key in rep:
+                console.print(f"{key}: {rep[key]}", markup=False)
+        if rep.get("error"):
+            console.print(rep["error"], style="red", markup=False)
+        console.print("[green]Blender panel check passed.[/green]" if rep.get("ok") else "[red]Blender panel check FAILED.[/red]")
+        if not rep.get("ok"):
+            raise typer.Exit(1)
+        return
     if check:
         exe = find_blender()
         if exe is None:
@@ -535,8 +564,13 @@ def bridge_blender(
     console.print(f"Installed and enabled in {exe.parent.name}. Open the 3D viewport sidebar (N) > CALFLAB.")
 
 
-def _rhino_check(url: str, timeout: float) -> None:
-    """Start Rhino, run bridges/rhino/validate_in_rhino.py around a real CalflabPush, report."""
+def _rhino_check(url: str, timeout: float, grasshopper: bool = False) -> None:
+    """Start Rhino, run a check script against the lab, report.
+
+    Commands: bridges/rhino/validate_in_rhino.py around a real CalflabPush.
+    Grasshopper: bridges/rhino/grasshopper/build_example.py, which also
+    (re)writes calflab_example.gh.
+    """
     import json
     import urllib.request
 
@@ -547,6 +581,12 @@ def _rhino_check(url: str, timeout: float) -> None:
         console.print("[red]Rhino 8 was not found.[/red]")
         raise typer.Exit(1)
     script = repo_root() / "bridges" / "rhino" / "validate_in_rhino.py"
+    macro = f"_-ScriptEditor _Run {script} CalflabPush head Skin head_sculpt _-ScriptEditor _Run {script}"
+    keys = ("rhino", "install", "connect", "pull", "geometry", "push", "repull", "livesync")
+    if grasshopper:
+        script = repo_root() / "bridges" / "rhino" / "grasshopper" / "build_example.py"
+        macro = f"_-ScriptEditor _Run {script}"
+        keys = ("rhino", "grasshopper", "get_design", "set_genome_params", "run_sim", "bake_to_rhino", "saved", "reopened")
     if " " in str(script):
         console.print(f"[red]The repo path contains a space ({script}); Rhino's /runscript cannot take it.[/red]")
         raise typer.Exit(1)
@@ -560,7 +600,6 @@ def _rhino_check(url: str, timeout: float) -> None:
     report.parent.mkdir(parents=True, exist_ok=True)
     for stale in (report, Path(str(report) + ".pass1")):
         stale.unlink(missing_ok=True)
-    macro = f"_-ScriptEditor _Run {script} CalflabPush head Skin head_sculpt _-ScriptEditor _Run {script}"
     console.print(f"Starting Rhino against project [bold]{project}[/bold]; it closes itself when done...")
     # the alias answers its own prompts from the macro, so the settings file must point at this lab
     settings = Path(os.environ.get("APPDATA", str(Path.home()))) / "calflab" / "rhino_bridge.json"
@@ -581,12 +620,13 @@ def _rhino_check(url: str, timeout: float) -> None:
         console.print("[red]Rhino produced no report.[/red]")
         raise typer.Exit(1)
     rep = json.loads(report.read_text(encoding="utf-8"))
-    for key in ("rhino", "install", "connect", "pull", "geometry", "push", "repull", "livesync"):
+    for key in keys:
         if key in rep:
-            console.print(f"{key}: {rep[key]}")
+            console.print(f"{key}: {rep[key]}", markup=False)
     if rep.get("error"):
-        console.print(f"[red]{rep['error']}[/red]")
-    console.print("[green]Rhino bridge check passed.[/green]" if rep.get("ok") else "[red]Rhino bridge check FAILED.[/red]")
+        console.print(rep["error"], style="red", markup=False)
+    what = "Grasshopper" if grasshopper else "Rhino"
+    console.print(f"[green]{what} bridge check passed.[/green]" if rep.get("ok") else f"[red]{what} bridge check FAILED.[/red]")
     if not rep.get("ok"):
         raise typer.Exit(1)
 
@@ -595,12 +635,16 @@ def _rhino_check(url: str, timeout: float) -> None:
 def bridge_rhino(
     check: bool = typer.Option(False, "--check", help="Run the command check inside Rhino (lab must be running; opens Rhino)."),
     url: str = typer.Option("http://127.0.0.1:8000", help="Lab URL for --check."),
-    timeout: float = typer.Option(240.0, help="Seconds to wait for Rhino with --check."),
+    grasshopper: bool = typer.Option(False, "--grasshopper", help="Rebuild calflab_example.gh and test it in Grasshopper (lab must be running; opens Rhino)."),
+    timeout: float = typer.Option(240.0, help="Seconds to wait for Rhino with --check / --grasshopper."),
 ) -> None:
     """Show how to install the Rhino 8 commands (or check them inside Rhino)."""
     scripts = repo_root() / "bridges" / "rhino" / "scripts"
-    if check:
-        _rhino_check(url, timeout)
+    if check or grasshopper:
+        if check:
+            _rhino_check(url, timeout)
+        if grasshopper:
+            _rhino_check(url, timeout, grasshopper=True)
         return
     console.print("In Rhino 8, run this once (it registers the Calflab* aliases):")
     console.print(f'  [bold]_-ScriptEditor _Run "{scripts / "CalflabInstall.py"}"[/bold]')
