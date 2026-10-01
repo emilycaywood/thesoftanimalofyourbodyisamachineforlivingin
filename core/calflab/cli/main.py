@@ -535,10 +535,73 @@ def bridge_blender(
     console.print(f"Installed and enabled in {exe.parent.name}. Open the 3D viewport sidebar (N) > CALFLAB.")
 
 
+def _rhino_check(url: str, timeout: float) -> None:
+    """Start Rhino, run bridges/rhino/validate_in_rhino.py around a real CalflabPush, report."""
+    import json
+    import urllib.request
+
+    from calflab.cli.doctor import find_rhino
+
+    exe = find_rhino()
+    if exe is None:
+        console.print("[red]Rhino 8 was not found.[/red]")
+        raise typer.Exit(1)
+    script = repo_root() / "bridges" / "rhino" / "validate_in_rhino.py"
+    if " " in str(script):
+        console.print(f"[red]The repo path contains a space ({script}); Rhino's /runscript cannot take it.[/red]")
+        raise typer.Exit(1)
+    try:
+        with urllib.request.urlopen(f"{url}/api/health", timeout=5) as resp:
+            project = json.loads(resp.read())["project"]
+    except OSError as exc:
+        console.print(f"[red]No lab at {url}.[/red] Start it first: calflab lab --project <a scratch project>")
+        raise typer.Exit(1) from exc
+    report = home_dir() / "rhino_check.json"
+    report.parent.mkdir(parents=True, exist_ok=True)
+    for stale in (report, Path(str(report) + ".pass1")):
+        stale.unlink(missing_ok=True)
+    macro = f"_-ScriptEditor _Run {script} CalflabPush head Skin head_sculpt _-ScriptEditor _Run {script}"
+    console.print(f"Starting Rhino against project [bold]{project}[/bold]; it closes itself when done...")
+    # the alias answers its own prompts from the macro, so the settings file must point at this lab
+    settings = Path(os.environ.get("APPDATA", str(Path.home()))) / "calflab" / "rhino_bridge.json"
+    settings.parent.mkdir(parents=True, exist_ok=True)
+    settings.write_text(json.dumps({"url": url}, indent=2), encoding="utf-8")
+    # a command-line string, not a list: Rhino needs /runscript="..." quoted exactly like this
+    proc = subprocess.Popen(f'"{exe}" /nosplash /runscript="{macro}"',
+                            env={**os.environ, "CALFLAB_RHINO_REPORT": str(report)})
+    deadline = time.time() + timeout
+    while proc.poll() is None and not report.is_file() and time.time() < deadline:
+        time.sleep(1.0)
+    try:  # the script asks Rhino to exit; do not depend on it
+        proc.wait(timeout=10.0)
+    except subprocess.TimeoutExpired:
+        proc.kill()
+    if not report.is_file():
+        console.print(f"[red]Rhino did not finish within {timeout:.0f} s and was stopped.[/red]")
+        console.print("[red]Rhino produced no report.[/red]")
+        raise typer.Exit(1)
+    rep = json.loads(report.read_text(encoding="utf-8"))
+    for key in ("rhino", "install", "connect", "pull", "geometry", "push", "repull", "livesync"):
+        if key in rep:
+            console.print(f"{key}: {rep[key]}")
+    if rep.get("error"):
+        console.print(f"[red]{rep['error']}[/red]")
+    console.print("[green]Rhino bridge check passed.[/green]" if rep.get("ok") else "[red]Rhino bridge check FAILED.[/red]")
+    if not rep.get("ok"):
+        raise typer.Exit(1)
+
+
 @bridge_app.command("rhino")
-def bridge_rhino() -> None:
-    """Show how to install the Rhino 8 commands."""
+def bridge_rhino(
+    check: bool = typer.Option(False, "--check", help="Run the command check inside Rhino (lab must be running; opens Rhino)."),
+    url: str = typer.Option("http://127.0.0.1:8000", help="Lab URL for --check."),
+    timeout: float = typer.Option(240.0, help="Seconds to wait for Rhino with --check."),
+) -> None:
+    """Show how to install the Rhino 8 commands (or check them inside Rhino)."""
     scripts = repo_root() / "bridges" / "rhino" / "scripts"
+    if check:
+        _rhino_check(url, timeout)
+        return
     console.print("In Rhino 8, run this once (it registers the Calflab* aliases):")
     console.print(f'  [bold]_-ScriptEditor _Run "{scripts / "CalflabInstall.py"}"[/bold]')
     console.print("Then type CalflabConnect, CalflabPull, CalflabPush or CalflabLiveSync in the Rhino command line.")

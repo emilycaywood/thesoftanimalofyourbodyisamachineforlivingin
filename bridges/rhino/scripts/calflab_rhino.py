@@ -147,7 +147,21 @@ def _transform(m):
 
 
 def _primitive_brep(shape, size):
-    """A Brep for a primitive in its local frame (centred on the origin, axis +Z)."""
+    """A NURBS Brep for a primitive in its local frame (centred on the origin, axis +Z).
+
+    Spheres, capsules and cylinders start as surfaces of revolution. The
+    server's transforms are rounded to six decimals, so they are not exactly
+    rigid; a revolved capsule can come out of such a transform invalid (its
+    profile segments no longer meet) and Rhino then refuses to add it. NURBS
+    surfaces take any affine transform. Found in Rhino 8.34: the shanks
+    vanished when the shank length changed.
+    """
+    brep = _exact_primitive_brep(shape, size)
+    brep.MakeValidForV2()  # converts every surface to NURBS
+    return brep
+
+
+def _exact_primitive_brep(shape, size):
     import Rhino
 
     rg = Rhino.Geometry
@@ -236,7 +250,10 @@ class RhinoDocAdapter(DocAdapter):
     def add_primitive(self, shape, size, xform, layer, name, color, user_text):
         brep = _primitive_brep(shape, size)
         brep.Transform(_transform(xform))
-        return self.doc.Objects.AddBrep(brep, self._attrs(layer, name, user_text, color))
+        oid = self.doc.Objects.AddBrep(brep, self._attrs(layer, name, user_text, color))
+        if str(oid) == "00000000-0000-0000-0000-000000000000":
+            raise BridgeError("Rhino rejected the geometry of %s (%s %s)" % (name, shape, list(size)))
+        return oid
 
     def add_block_instance(self, block, xform, layer, name, user_text):
         idef = self.doc.InstanceDefinitions.Find(block)

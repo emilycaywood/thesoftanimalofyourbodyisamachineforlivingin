@@ -17,7 +17,7 @@ def main():
         script = os.path.join(HERE, name + ".py")
         macro = '_-ScriptEditor _Run "%s"' % script
         if rs.IsAlias(name):
-            rs.SetAliasMacro(name, macro)
+            rs.AliasMacro(name, macro)
         else:
             rs.AddAlias(name, macro)
         print("CALFLAB: alias %s -> %s" % (name, script))

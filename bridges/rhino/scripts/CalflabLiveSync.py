@@ -31,8 +31,8 @@ def _on_idle(sender, args):
         try:
             cr.pull()
             print("CALFLAB: live sync pulled revision %s" % revision)
-        except cr.BridgeError as exc:
-            print("CALFLAB: %s" % exc)
+        except Exception as exc:  # never let an error escape into Rhino's idle loop
+            print("CALFLAB: live sync could not pull revision %s: %s" % (revision, exc))
 
 
 def main():
