@@ -114,13 +114,16 @@ def run_checks(project: Path | None = None) -> list[Check]:
     add("pnpm", pn is not None, pn or "not found", "npm install -g pnpm")
 
     root = repo_root()
-    in_tree = webenv.can_host_node_modules(root)
+    in_tree = webenv.in_tree()
+    synced = webenv.cloud_synced(root)
+    where = f"inside {synced}" if synced else ("supports links" if in_tree else "no junction support")
     add(
-        "Repo filesystem",
+        "Repo location",
         in_tree,
-        f"{root} " + ("(supports links)" if in_tree else "(no junction support, e.g. Google Drive)"),
-        f"OK to keep working: environments live in {home_dir()}. Recommended: move the checkout to a local "
-        "NTFS folder and use GitHub as the backup (git inside a synced Drive folder can corrupt).",
+        f"{root} ({where})",
+        f"OK to keep working: environments live in {home_dir()}, outside the synced folder. Pause syncing "
+        "during long runs if you see file-lock errors, and treat GitHub (not the sync service) as the backup "
+        "of the repository.",
         warn_only=True,
     )
     work = web_dir() if in_tree else home_dir() / "web"

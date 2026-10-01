@@ -69,10 +69,30 @@ def _is_link(p: Path) -> bool:
         return False
 
 
+def cloud_synced(directory: Path) -> str | None:
+    """Name of the sync service if ``directory`` is inside a cloud-synced folder."""
+    p = str(directory.resolve()).lower()
+    for var in ("OneDrive", "OneDriveConsumer", "OneDriveCommercial"):
+        root = os.environ.get(var)
+        if root and p.startswith(str(Path(root).resolve()).lower() + os.sep):
+            return "OneDrive"
+    parts = {part.lower() for part in directory.resolve().parts}
+    for marker, name in (("onedrive", "OneDrive"), ("my drive", "Google Drive"), ("google drive", "Google Drive"),
+                         ("dropbox", "Dropbox"), ("icloud drive", "iCloud Drive"), ("iclouddrive", "iCloud Drive")):
+        if any(part == marker or part.startswith(marker + " - ") for part in parts):
+            return name
+    return None
+
+
 def in_tree() -> bool:
+    """True if node_modules may live in ``web/``: the filesystem supports links
+    and the repo is not inside a cloud-synced folder (tens of thousands of
+    small files would be uploaded)."""
     override = os.environ.get("CALFLAB_WEB_IN_TREE")
     if override is not None:
         return override == "1"
+    if cloud_synced(web_dir()) is not None:
+        return False
     return can_host_node_modules(web_dir())
 
 
