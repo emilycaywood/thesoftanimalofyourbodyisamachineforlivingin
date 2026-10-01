@@ -34,7 +34,10 @@ you make a new assumption.
 
 * Run everything through `.\calflab.ps1 <cmd>` (or `calflab <cmd>` in the env).
   No bash-only tooling, no `make`.
-* The venv and `node_modules` live in `%LOCALAPPDATA%\calflab` (ADR-003).
+* The working copy is `C:\CALFLABHOME` (local, unsynced). The venv lives in
+  `%LOCALAPPDATA%\calflab\venv`; web dependencies are in-tree at
+  `web\node_modules`. Only if the repo is opened from a cloud-synced folder
+  does `node_modules` move to `%LOCALAPPDATA%\calflab\web` (ADR-003).
   Python: `& "$env:LOCALAPPDATA\calflab\venv\Scripts\python.exe"`.
 * `calflab test` runs ruff, pytest, mypy and the web checks (typecheck,
   eslint, vitest, Playwright). `--py`, `--web`, `--e2e` select subsets. Run it
