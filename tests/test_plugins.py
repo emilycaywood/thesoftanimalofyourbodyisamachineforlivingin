@@ -22,6 +22,8 @@ def test_every_registered_plugin_honours_its_contract(cls):
 
 def test_every_plugin_type_has_at_least_one_plugin():
     for ptype in PLUGIN_TYPES:
+        if ptype == "component":
+            continue  # components come from YAML; the template test covers the plugin path
         assert registry.all(ptype), f"no {ptype} plugin registered"
 
 
