@@ -30,5 +30,7 @@ else {
 $exe = $uvCmd[0]
 $pre = @()
 if ($uvCmd.Count -gt 1) { $pre = $uvCmd[1..($uvCmd.Count - 1)] }
+# Native tools write progress to stderr; that must not abort the script (PowerShell 5.1).
+$ErrorActionPreference = 'Continue'
 & $exe @pre run --project $repo --all-extras calflab @args
 exit $LASTEXITCODE

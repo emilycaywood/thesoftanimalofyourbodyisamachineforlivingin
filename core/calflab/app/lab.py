@@ -35,6 +35,7 @@ from calflab.project import (
     RunRecord,
 )
 from calflab.project.commands import LOG_FILE
+from calflab.project.motions import MotionLibrary
 from calflab.project.store import slugify, write_json
 from calflab.sim.rollout import Rollout
 
@@ -55,6 +56,7 @@ class Lab:
         self.jobs = JobManager(self.bus)
         self.registry = Registry(project)
         self.journal = Journal(project)
+        self.motions = MotionLibrary(project)
         self.log = CommandLog(project.path / LOG_FILE)
         self.evaluator = Evaluator(Cache(disk_dir=project.path / ".cache"))
         self.revision = self.log.total

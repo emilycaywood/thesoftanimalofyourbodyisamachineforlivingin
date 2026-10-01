@@ -286,6 +286,14 @@ def summarize(value: Any, limit: int = 4000) -> Any:
             "duration_s": float(value.t[-1] - value.t[0]) if value.n_frames else 0.0,
             "fell": value.meta.get("fell"),
         }
+    if isinstance(value, dict):  # keep scalars, collapse bulky nested tables
+        compact: dict[str, Any] = {}
+        for k, v in value.items():
+            if isinstance(v, (dict, list)) and len(json.dumps(v, default=str)) > 600:
+                compact[str(k)] = f"<{len(v)} items>"
+            else:
+                compact[str(k)] = v
+        value = compact
     try:
         text = json.dumps(value, default=str)
     except Exception:

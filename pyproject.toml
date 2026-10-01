@@ -68,7 +68,7 @@ extend-exclude = ["web", "bridges/blender", "bridges/rhino/scripts", "bridges/rh
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
-ignore = ["E501", "B008", "SIM108"]
+ignore = ["E501", "B008", "SIM108", "SIM112"]
 
 [tool.mypy]
 python_version = "3.12"
