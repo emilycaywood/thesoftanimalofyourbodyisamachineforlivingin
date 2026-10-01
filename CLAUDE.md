@@ -36,8 +36,15 @@ you make a new assumption.
   No bash-only tooling, no `make`.
 * The venv and `node_modules` live in `%LOCALAPPDATA%\calflab` (ADR-003).
   Python: `& "$env:LOCALAPPDATA\calflab\venv\Scripts\python.exe"`.
-* `calflab test` runs ruff, pytest, and the web checks. `calflab test --py`,
-  `--web`, `--e2e` select subsets. Run it after each module.
+* `calflab test` runs ruff, pytest, mypy and the web checks (typecheck,
+  eslint, vitest, Playwright). `--py`, `--web`, `--e2e` select subsets. Run it
+  after each module.
+* When running inside the Claude desktop app, `%LOCALAPPDATA%` is redirected,
+  so the environment is separate from the user's own terminal (ADR-033). In
+  PowerShell 5.1 do not pipe native stderr with `2>&1`.
+* To look at the UI: the `calflab-lab` entry in `.claude/launch.json` starts
+  the server on port 8000 serving the built web app (rebuild with `pnpm build`
+  via `calflab setup` after changing `web/src`).
 * MuJoCo runs on CPU. GPU training goes through a `ComputeBackend`.
 
 ## Repository map
@@ -61,6 +68,8 @@ core/calflab/
   project/            project folder, registry, command log, journal
   app/                Lab session: state, commands, undo, jobs, events
   bridge/             Rhino build list, Blender armature plan (pure functions)
+  design.py           build_design(): genome + overrides -> RobotSpec
+  config.py, paths.py robot defaults / gene / fitness files; repo and work dirs
   builtin/            built-in plugins (same mechanism as third-party)
   client.py           Python client (notebooks, Grasshopper)
   cli/                Typer CLI
@@ -148,18 +157,30 @@ To change the **genome**: edit/add `config/genes/<name>.yaml`, bump
 
 ## Web UI conventions
 
-* Stack: React 18 + TypeScript strict, Vite, React Three Fiber + drei,
-  @xyflow/react, dockview, Zustand, Tailwind, visx.
-* `web/src/api/` is the only place that talks to the server.
-  `web/src/store/` holds view state (selection, display mode, layout) and a
-  mirror of server state; it never computes domain results.
+* Stack (pinned, ADR-020): React 18 + TypeScript strict, Vite 6, React Three
+  Fiber 8 + drei 9, @xyflow/react 12, dockview 4, Zustand 5, Tailwind 4, visx 3.
+* Layout of `web/src/`: `api/` (the only code that talks to the server),
+  `store/` (`lab.ts` server mirror, `view.ts` view state, `playback.ts`),
+  `commands/` (registry + shortcuts), `components/` (`SchemaForm`, `ui.tsx`),
+  `viewport/`, `panels/`, `shell/`, `workspaces.ts`.
+* Stores never compute domain results. If the UI needs a number, add it to
+  the scene/rollout payload on the server (see ADR-028, ADR-029).
 * **Schema-driven forms:** render parameters with `<SchemaForm>` from the
   schema the server sends. Do not hand-write a form for a plugin.
-* **Every UI action is a command** registered in `web/src/commands/` (client
-  commands) or on the server (document commands). Menus, buttons, shortcuts
-  and the command line all call the same command by name.
-* **Panels** are registered in `web/src/panels/registry.tsx`; workspaces are
-  dockview layouts listed in `web/src/workspaces.ts`.
+* **Every UI action is a command**: client commands in
+  `web/src/commands/registry.ts`, document commands in
+  `core/calflab/app/commands.py`. Menus, buttons, shortcuts and the command
+  line all call `execute(name)`.
+* **Panels**: add the component, register it in `web/src/panels/registry.tsx`
+  and add its id to `web/src/panels/ids.ts`; add it to a workspace in
+  `web/src/workspaces.ts`. Bump `LAYOUT_VERSION` in `shell/Dock.tsx` when a
+  default layout changes.
+* **Effects must not return values.** Write `useEffect(() => { el.scrollIntoView(); }, [])`
+  with braces: some DOM methods return Promises, and React calls whatever an
+  effect returns as its cleanup.
+* The web app is run from a work directory (`calflab.cli.webenv`), which may
+  be outside the repo; never hard-code `web/node_modules`. `nodeLinker:
+  hoisted` and `preserveSymlinks` must stay (ADR-027).
 * Rhino conventions: RMB orbit, Shift+RMB pan, wheel zoom; L→R window
   selection, R→L crossing; Enter/Space repeats the last command; Esc cancels.
 * Grasshopper conventions in the node editor: orange = warning, red = error,

@@ -225,6 +225,6 @@ def dynamic_schema(title: str, fields: list[dict[str, Any]], description: str = 
                 ranged = base["min"] is not None and base["max"] is not None
                 base["ui"] = "slider" if ranged else "number"
             else:
-                base["ui"] = _DEFAULT_UI.get(base["type"], "json")
+                base["ui"] = _DEFAULT_UI.get(str(base["type"]), "json")
         norm.append(base)
     return {"title": title, "description": description, "fields": norm}

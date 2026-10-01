@@ -152,6 +152,26 @@ performance mode.
 Later-phase features exist now as plugin stubs with interfaces, docstrings,
 TODOs and a contract test each.
 
+### Status after the Phase 1 session (2026-10-01)
+
+All eleven milestones are met and covered by tests (`calflab test`: pytest,
+mypy, web typecheck/eslint/vitest, Playwright smoke). Verified outside the
+test suite: `CalflabPull` inside Rhino 8.34; the web lab driven by hand
+(simulate, override, evolve, click-to-load candidate).
+
+Not verified on real software: the Blender add-on (Blender was not found on
+the machine), `CalflabPush` / `CalflabLiveSync` / the alias installer, the GH
+Python components and Hops against a live Grasshopper.
+
+Scaffolded as stubs with interfaces and contract tests: PPO training, MJX
+simulator, RemoteSSH and CloudNotebook transports (job bundling and the
+notebook export are real), imitation reward, interactive selection, molds,
+skin patterns, nesting, system ID, touch response, puppeteering blend, ball
+joints. UI placeholders: Behave and Deploy workspaces, reference images,
+inertia / heat-map / range-of-motion overlays, endpoint/midpoint/axis snaps,
+angle and clearance measurement, run comparison, Pareto / parallel
+coordinates.
+
 ## 4. Risks
 
 | Risk | Impact | Mitigation |

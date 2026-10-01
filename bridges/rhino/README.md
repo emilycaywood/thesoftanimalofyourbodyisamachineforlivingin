@@ -70,6 +70,14 @@ BakeToRhino. Save it as `bridges/rhino/grasshopper/calflab_example.gh`.
 
 ## Status
 
+* `CalflabPull` was run inside Rhino 8.34 against a live server (2026-10-01):
+  9 layers under `CALFLAB`, 34 Breps, 23 block instances over 8 block
+  definitions, 18 joint-axis lines, user text on every object, and a second
+  pull replaced the objects without duplicating them.
+* `CalflabConnect`, `CalflabPush`, `CalflabLiveSync`, `CalflabInstall`, the GH
+  Python components and the Hops endpoints have **not** been exercised inside
+  Rhino/Grasshopper yet; the server side of each is covered by tests. Treat the
+  first use as a test.
 * Build-list logic is tested headlessly (`tests/test_bridges.py`), including
   running `calflab_rhino.build` against a fake document.
 * Fabrication exports to Rhino (flattened skin pieces, mold halves, nesting

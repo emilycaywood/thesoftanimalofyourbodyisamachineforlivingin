@@ -15,6 +15,7 @@ import base64
 import contextlib
 import re
 import uuid
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
@@ -79,7 +80,9 @@ class Journal:
             raise KeyError(f"No journal entry {entry_id!r}")
         return _parse(p)
 
-    def save(self, title: str, body: str, entry_id: str | None = None, tags: list[str] | None = None) -> JournalEntry:
+    def save(
+        self, title: str, body: str, entry_id: str | None = None, tags: Sequence[str] | None = None
+    ) -> JournalEntry:
         created = now_iso()
         if entry_id:
             with contextlib.suppress(KeyError):
@@ -91,7 +94,7 @@ class Journal:
             while (self.dir / f"{eid}.md").exists():
                 eid = f"{created[:10]}-{slugify(title, 'entry')}-{n}"
                 n += 1
-        entry = JournalEntry(id=eid, title=title, created=created, modified=now_iso(), tags=tags or [], body=body)
+        entry = JournalEntry(id=eid, title=title, created=created, modified=now_iso(), tags=[*(tags or [])], body=body)
         front = yaml.safe_dump(
             {"title": entry.title, "created": entry.created, "modified": entry.modified, "tags": entry.tags},
             sort_keys=False,
@@ -128,7 +131,7 @@ class Journal:
         write_json(d / f"{cid}.json", record)
         return record
 
-    def captures(self) -> list[dict[str, Any]]:
+    def captures(self) -> Sequence[dict[str, Any]]:
         import json
 
         d = self.project.dir("assets") / "captures"

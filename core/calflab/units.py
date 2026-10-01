@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import math
 from collections.abc import Iterable
+from typing import Any
 
 #: Design-unit -> SI multiplier. Units not listed are already SI (factor 1).
 _TO_SI: dict[str, float] = {
@@ -53,13 +54,13 @@ def known_units() -> list[str]:
     return sorted(_TO_SI)
 
 
-def to_si(value: float, unit: str | None) -> float:
-    """Convert ``value`` expressed in ``unit`` to SI."""
+def to_si(value: Any, unit: str | None) -> Any:
+    """Convert ``value`` (a number or a numpy array) expressed in ``unit`` to SI."""
     return value * _factor(unit)
 
 
-def from_si(value: float, unit: str | None) -> float:
-    """Convert an SI ``value`` to ``unit``."""
+def from_si(value: Any, unit: str | None) -> Any:
+    """Convert an SI ``value`` (a number or a numpy array) to ``unit``."""
     return value / _factor(unit)
 
 
@@ -88,11 +89,11 @@ def kg_to_g(v: float) -> float:
     return v * 1e3
 
 
-def deg_to_rad(v: float) -> float:
+def deg_to_rad(v: Any) -> Any:
     return v * math.pi / 180.0
 
 
-def rad_to_deg(v: float) -> float:
+def rad_to_deg(v: Any) -> Any:
     return v * 180.0 / math.pi
 
 

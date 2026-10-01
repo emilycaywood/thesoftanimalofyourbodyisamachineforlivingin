@@ -158,11 +158,11 @@ def power_budget(spec: RobotSpec, lib: Library, metrics: dict[str, Any] | None) 
                     other_w += comp.power_w
                     loads.append({"id": g.id, "name": comp.name, "power_w": comp.power_w, "verified": comp.verified})
     for s in spec.sensors:
-        comp = lib.get(s.component) if s.component and lib.has(s.component) else None
-        if isinstance(comp, SensorSpec) and comp.current_ma > 0:
-            w = comp.current_ma / 1000.0 * comp.voltage_v
+        sc = lib.get(s.component) if s.component and lib.has(s.component) else None
+        if isinstance(sc, SensorSpec) and sc.current_ma > 0:
+            w = sc.current_ma / 1000.0 * sc.voltage_v
             other_w += w
-            loads.append({"id": s.id, "name": comp.name, "power_w": round(w, 3), "verified": comp.verified})
+            loads.append({"id": s.id, "name": sc.name, "power_w": round(w, 3), "verified": sc.verified})
 
     mean_w = mean_a * bus_v + other_w
     peak_w = peak_a * bus_v + other_w

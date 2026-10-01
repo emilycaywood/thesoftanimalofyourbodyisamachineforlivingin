@@ -169,11 +169,11 @@ def lab(
 # ====================================================================== test
 @app.command()
 def test(
-    py: bool = typer.Option(False, "--py", help="Python: ruff + pytest."),
+    py: bool = typer.Option(False, "--py", help="Python: ruff, pytest, mypy."),
     web: bool = typer.Option(False, "--web", help="Web: typecheck, eslint, vitest."),
     e2e: bool = typer.Option(False, "--e2e", help="Playwright UI smoke test."),
     fast: bool = typer.Option(False, help="Skip tests marked slow."),
-    types: bool = typer.Option(False, "--types", help="Also run mypy (lenient)."),
+    types: bool = typer.Option(False, "--types", help="Only relevant with --web/--e2e: also run mypy."),
 ) -> None:
     """Run the test suites (all of them when no flag is given)."""
     from calflab.cli import webenv
@@ -196,8 +196,8 @@ def test(
         if fast:
             cmd += ["-m", "not slow"]
         step("pytest", cmd, root)
-        if types:
-            step("mypy", [sys.executable, "-m", "mypy", "--cache-dir", str(cache / "mypy_cache")], root)
+        if types or run_all or py:
+            step("mypy (lenient)", [sys.executable, "-m", "mypy", "--cache-dir", str(cache / "mypy_cache")], root)
     if web or e2e or run_all:
         work = webenv.workdir()
         exe = webenv.pnpm()

@@ -185,7 +185,7 @@ def _load_cached(directory: str, stamp: tuple[tuple[str, float], ...]) -> Librar
         from calflab.plugins import registry
 
         for cls in registry.all("component").values():
-            comps.extend(cls().components())
+            comps.extend(cls().components())  # type: ignore[attr-defined]
     except Exception:  # pragma: no cover - registry not ready during bootstrap
         pass
     return Library(comps)

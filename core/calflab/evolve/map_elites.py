@@ -248,8 +248,8 @@ class MapElitesCMA(Optimizer):
             stats = archive.stats
             entry = {
                 "generation": gen,
-                "best": float(stats.obj_max) if stats.num_elites else None,
-                "mean": float(stats.obj_mean) if stats.num_elites else None,
+                "best": float(stats.obj_max) if stats.num_elites else None,  # type: ignore[arg-type]
+                "mean": float(stats.obj_mean) if stats.num_elites else None,  # type: ignore[arg-type]
                 "gen_best": max((c.fitness for c in ok), default=None),
                 "gen_mean": float(np.mean([c.fitness for c in ok])) if ok else None,
                 "coverage": float(stats.coverage),

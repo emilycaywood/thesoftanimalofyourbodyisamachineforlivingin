@@ -77,3 +77,8 @@ ignore_missing_imports = true
 check_untyped_defs = false
 warn_unused_ignores = false
 plugins = ["pydantic.mypy"]
+
+[[tool.mypy.overrides]]
+# rhino3dm and trimesh ship incomplete/incorrect type stubs for the calls used here.
+module = ["calflab.export.geometry", "calflab.export.cad", "calflab_server.app"]
+disable_error_code = ["misc", "call-arg", "attr-defined"]

@@ -130,14 +130,19 @@ Position servos: MuJoCo `position` actuators with `kp`, joint damping, and
 first-order: `dT/dt = (I²R − (T−T_amb)/R_th) / C_th` with current from
 torque/kt. Thermal constants are guesses (**VERIFY**).
 
-## ADR-020 — React 18 + React Three Fiber 8
-Chosen for compatibility across dockview, @xyflow/react, drei and visx at the
-time of writing. Revisit when visx officially supports React 19.
+## ADR-020 — Web stack pinned to known-good majors
+React 18.3, React Three Fiber 8 / drei 9, three 0.170, dockview 4,
+@xyflow/react 12, Zustand 5, Tailwind 4, visx 3, Vite 6, Vitest 3,
+TypeScript 5.7, ESLint 9. Newer majors existed on the build date (React 19,
+R3F 9, dockview 8, Vite 8, TypeScript 7, ESLint 10); they were not adopted
+because their APIs could not be verified during the build. Upgrade one at a
+time behind the Playwright smoke test.
 
-## ADR-021 — shadcn/ui as vendored primitives
-A small set of shadcn-style components is vendored in `web/src/components/ui`
-(Tailwind + Radix) rather than generated with the shadcn CLI, so setup does
-not need network prompts.
+## ADR-021 — shadcn/ui-style primitives are vendored, without Radix
+`web/src/components/ui.tsx` holds a small set of shadcn-style components
+(Tailwind classes, no runtime UI library). The shadcn CLI and Radix were not
+used so setup needs no interactive prompts; add Radix primitives when a
+component needs real accessibility behaviour (menus, popovers).
 
 ## ADR-022 — WireViz output with a built-in fallback renderer
 The harness is written as WireViz YAML. If `wireviz` and Graphviz `dot` are
@@ -154,9 +159,12 @@ library plus RhinoCommon.
 
 ## ADR-024 — Grasshopper via Hops endpoints on the CALFLAB server
 `/hops/*` implements the Hops HTTP protocol for GetDesign, SetGenomeParams,
-RunSim, GetMetrics and BakeToRhino. GH Python 3 component sources wrapping
-`calflab.client` are also provided. A binary `.gh` example cannot be authored
-without Grasshopper; a step-by-step recipe is provided instead (known gap).
+RunSim, GetMetrics and BakeToRhino. GH Python 3 component sources are also
+provided; they use the standard-library bridge module (`calflab_rhino`) rather
+than `calflab.client`, so nothing has to be pip-installed inside Rhino. A
+binary `.gh` example cannot be authored without Grasshopper; a step-by-step
+recipe is provided instead (known gap). Neither path has been run inside
+Grasshopper yet.
 
 ## ADR-025 — Work on a feature branch
 Phase 1 is committed incrementally on `phase-1-vertical-slice`; `main` is left
@@ -166,3 +174,45 @@ untouched for the researcher to merge.
 `calflab setup` creates `projects/sample-calf/` in the repo (git-ignored).
 User projects default to `projects/<name>/`; bulky derived data (`runs/`,
 `exports/`, `.cache/`, SQLite) is git-ignored, text documents are tracked.
+
+## ADR-027 — Flat `node_modules` (`nodeLinker: hoisted`)
+The out-of-tree web work directory reaches `web/src` through a junction, which
+requires `preserveSymlinks` in Vite and TypeScript. pnpm's default symlinked
+layout cannot resolve transitive packages in that mode, so
+`web/pnpm-workspace.yaml` sets `nodeLinker: hoisted`. The `e2e/` folder is
+copied (not junctioned) into the work directory because Playwright resolves
+test files to their real path.
+
+## ADR-028 — Gumball handles are declared by the part generator
+`ParamValue.handle_axis` / `handle_frac` tell clients which body-local
+direction drives which parameter and where the handle sits. The UI only
+projects the drag onto that axis; it never decides what a drag means.
+
+## ADR-029 — Playback overlays are computed server-side
+Per-frame foot contact points and support polygons are part of the rollout
+payload (`calflab.app.scene.foot_tracks`), so clients draw them without doing
+geometry.
+
+## ADR-030 — Single-letter shortcuts act immediately
+`B` bakes, `K` plays, `H` hides, `I` isolates, `M` measures (rebindable).
+Any other letter typed outside a text field starts a command in the command
+line, as in Rhino. This differs from Rhino, where single letters are aliases
+confirmed with Enter; it follows the brief's "press B or click Bake".
+
+## ADR-031 — An identical simulation is not re-run
+The simulation node's cache key (inputs + code version) is stored with each
+run. Running again with identical inputs replays the recorded run instead of
+creating a duplicate record. Change the seed to force a new run.
+
+## ADR-032 — Default CPG and fitness numbers are starting points (**VERIFY**)
+The CPG defaults (1.6 Hz trot, 14 deg hip sweep, 24 deg knee lift) and the
+`walk` preset weights were chosen so the reference calf walks in simulation;
+they are not derived from calf gait data. The simulated speed (~0.36 m/s for
+the default, up to ~0.8 m/s after evolution) says nothing about the real robot
+until actuator and skin parameters are identified (Phase 3).
+
+## ADR-033 — Environment built during Phase 1 is inside the Claude app sandbox
+The Phase 1 build ran inside the Claude desktop app, whose `%LOCALAPPDATA%` is
+redirected to a per-app location. The venv and `node_modules` created there are
+not the ones a normal PowerShell session sees: run `.\calflab.ps1 setup` once
+in your own terminal.
