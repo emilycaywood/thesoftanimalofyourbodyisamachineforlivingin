@@ -1,0 +1,102 @@
+# Actuator library.
+#
+# EVERY VALUE HERE IS UNVERIFIED. Numbers were written from memory of public
+# datasheets and are a starting point only. Check each against the linked
+# source (and ideally a bench test) before you set `verified: true`.
+# Thermal parameters are order-of-magnitude guesses for a first-order model.
+#
+# Units: mass g, dims mm (x, y, z of the housing), torque N*m, speed rpm at the
+# output, current A, voltage V, cost USD.
+
+- key: sts3215
+  kind: actuator
+  name: Feetech STS3215 (12 V)
+  manufacturer: Feetech
+  mass_g: 55
+  dims_mm: [45.2, 24.7, 35.0]
+  stall_torque_nm: 2.94          # 30 kg.cm @ 12 V
+  stall_current_a: 2.7
+  no_load_speed_rpm: 45
+  voltage_v: 12.0
+  gear_ratio: 345
+  idle_current_a: 0.18
+  armature_kgm2: 0.004
+  winding_resistance_ohm: 4.4
+  r_thermal_k_per_w: 9.0
+  c_thermal_j_per_k: 25.0
+  max_temp_c: 70
+  protocol: ttl-serial-bus
+  cost_usd: 25
+  url: https://www.feetechrc.com/
+  source: Manufacturer product page / datasheet, recalled from memory
+  verified: false
+
+- key: xm430_w350
+  kind: actuator
+  name: Dynamixel XM430-W350
+  manufacturer: ROBOTIS
+  mass_g: 82
+  dims_mm: [28.5, 46.5, 34.0]
+  stall_torque_nm: 4.1           # @ 12 V
+  stall_current_a: 2.3
+  no_load_speed_rpm: 46
+  voltage_v: 12.0
+  gear_ratio: 353.5
+  idle_current_a: 0.04
+  armature_kgm2: 0.006
+  winding_resistance_ohm: 5.2
+  r_thermal_k_per_w: 7.0
+  c_thermal_j_per_k: 40.0
+  max_temp_c: 80
+  protocol: dynamixel-2.0 (TTL or RS-485)
+  cost_usd: 290
+  url: https://emanual.robotis.com/docs/en/dxl/x/xm430-w350/
+  source: ROBOTIS e-Manual, recalled from memory
+  verified: false
+
+- key: xh540_w270
+  kind: actuator
+  name: Dynamixel XH540-W270
+  manufacturer: ROBOTIS
+  mass_g: 165
+  dims_mm: [33.5, 58.5, 44.0]
+  stall_torque_nm: 10.6          # @ 12 V
+  stall_current_a: 4.9
+  no_load_speed_rpm: 30
+  voltage_v: 12.0
+  gear_ratio: 272.5
+  idle_current_a: 0.05
+  armature_kgm2: 0.012
+  winding_resistance_ohm: 2.4
+  r_thermal_k_per_w: 5.0
+  c_thermal_j_per_k: 80.0
+  max_temp_c: 80
+  protocol: dynamixel-2.0 (TTL or RS-485)
+  cost_usd: 450
+  url: https://emanual.robotis.com/docs/en/dxl/x/xh540-w270/
+  source: ROBOTIS e-Manual, recalled from memory
+  verified: false
+
+- key: qdd_bldc_generic
+  kind: actuator
+  name: Generic quasi-direct-drive BLDC (moteus-class)
+  manufacturer: generic
+  mass_g: 480
+  dims_mm: [100.0, 100.0, 45.0]
+  stall_torque_nm: 16.0          # peak, not continuous
+  stall_current_a: 30.0
+  no_load_speed_rpm: 600
+  voltage_v: 24.0
+  gear_ratio: 6
+  idle_current_a: 0.1
+  armature_kgm2: 0.0015
+  winding_resistance_ohm: 0.2
+  r_thermal_k_per_w: 2.0
+  c_thermal_j_per_k: 200.0
+  max_temp_c: 90
+  protocol: CAN-FD
+  cost_usd: 480
+  url: https://mjbots.com/
+  source: Order-of-magnitude figures for a ~100 mm 6:1 QDD actuator, recalled from memory
+  verified: false
+  notes: Needs a 24 V bus; not compatible with the default 3S battery.

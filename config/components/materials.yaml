@@ -1,0 +1,58 @@
+# Materials: structure and skin presets. ALL VALUES UNVERIFIED.
+#
+# Skin materials feed the reduced-order skin model (ADR-018):
+#   mass per area      = areal_density_g_cm2 + density_g_cm3 * thickness
+#   joint stiffness    = joint_stiffness_nm_per_rad_per_mm * thickness   (per covered joint)
+#   joint damping      = joint_damping_nms_per_rad_per_mm * thickness
+# The stiffness/damping coefficients are placeholders to be fitted from
+# physical tests in Phase 3.
+
+- key: petg
+  kind: material
+  role: structure
+  name: PETG (FDM printed)
+  density_g_cm3: 1.27
+  cost_usd_per_kg: 25
+  color: "#b9c0c9"
+  url: ""
+  source: Typical filament datasheet value
+  verified: false
+
+- key: pla
+  kind: material
+  role: structure
+  name: PLA (FDM printed)
+  density_g_cm3: 1.24
+  cost_usd_per_kg: 22
+  color: "#c9c4b9"
+  url: ""
+  source: Typical filament datasheet value
+  verified: false
+
+- key: knit_silicone_laminate
+  kind: material
+  role: skin
+  name: Knit + thin platinum silicone laminate
+  density_g_cm3: 1.07            # silicone layer
+  areal_density_g_cm2: 0.022     # knit base fabric (~220 g/m2)
+  joint_stiffness_nm_per_rad_per_mm: 0.05
+  joint_damping_nms_per_rad_per_mm: 0.010
+  cost_usd_per_kg: 45
+  color: "#d9a48f"
+  url: https://www.smooth-on.com/
+  source: Platinum silicone density from supplier TDS class values; mechanical coefficients are guesses
+  verified: false
+
+- key: cast_silicone
+  kind: material
+  role: skin
+  name: Solid cast platinum silicone (face, muzzle, hooves)
+  density_g_cm3: 1.07
+  areal_density_g_cm2: 0.0
+  joint_stiffness_nm_per_rad_per_mm: 0.15
+  joint_damping_nms_per_rad_per_mm: 0.030
+  cost_usd_per_kg: 45
+  color: "#c98f7d"
+  url: https://www.smooth-on.com/
+  source: Platinum silicone density from supplier TDS class values; mechanical coefficients are guesses
+  verified: false

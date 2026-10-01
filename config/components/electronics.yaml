@@ -1,0 +1,136 @@
+# Sensors, compute boards and batteries. ALL VALUES UNVERIFIED (see actuators.yaml).
+
+# ---------------------------------------------------------------- sensors
+- key: bno085
+  kind: sensor
+  type: imu
+  name: BNO085 9-DOF IMU breakout
+  manufacturer: CEVA / Adafruit breakout
+  mass_g: 3
+  dims_mm: [25.4, 22.9, 4.6]
+  interface: I2C / SPI / UART
+  current_ma: 15
+  voltage_v: 3.3
+  cost_usd: 25
+  url: https://www.adafruit.com/product/4754
+  source: Adafruit product page, recalled from memory
+  verified: false
+
+- key: fsr_foot
+  kind: sensor
+  type: fsr
+  name: Force-sensitive resistor (foot)
+  manufacturer: Interlink (FSR 402 class)
+  mass_g: 1
+  dims_mm: [18.3, 18.3, 0.5]
+  interface: analog (voltage divider)
+  current_ma: 1
+  voltage_v: 3.3
+  cost_usd: 9
+  url: https://www.interlinkelectronics.com/fsr-402
+  source: Manufacturer page, recalled from memory
+  verified: false
+
+- key: cap_touch_zone
+  kind: sensor
+  type: touch
+  name: Capacitive touch zone (MPR121 channel + conductive fabric)
+  manufacturer: NXP / generic breakout
+  mass_g: 4
+  dims_mm: [33.0, 19.0, 3.0]
+  interface: I2C
+  current_ma: 1
+  voltage_v: 3.3
+  cost_usd: 8
+  url: https://www.adafruit.com/product/1982
+  source: Adafruit product page, recalled from memory
+  verified: false
+
+- key: i2s_microphone
+  kind: sensor
+  type: microphone
+  name: I2S MEMS microphone breakout
+  manufacturer: generic (SPH0645 / ICS-43434 class)
+  mass_g: 1
+  dims_mm: [16.7, 12.7, 1.8]
+  interface: I2S
+  current_ma: 1
+  voltage_v: 3.3
+  cost_usd: 7
+  url: https://www.adafruit.com/product/3421
+  source: Adafruit product page, recalled from memory
+  verified: false
+
+- key: depth_camera
+  kind: sensor
+  type: depth_camera
+  name: Depth camera (optional)
+  manufacturer: generic (OAK-D Lite / RealSense D405 class)
+  mass_g: 61
+  dims_mm: [91.0, 28.0, 17.5]
+  interface: USB 3
+  current_ma: 700
+  voltage_v: 5.0
+  cost_usd: 150
+  url: https://shop.luxonis.com/
+  source: Order-of-magnitude figures, recalled from memory
+  verified: false
+
+- key: motor_feedback
+  kind: sensor
+  type: motor_feedback
+  name: Motor current / temperature (built into smart servos)
+  manufacturer: n/a
+  mass_g: 0
+  dims_mm: [0, 0, 0]
+  interface: servo bus
+  current_ma: 0
+  voltage_v: 0
+  cost_usd: 0
+  url: ""
+  source: Provided by the servo's own telemetry
+  verified: false
+
+# ---------------------------------------------------------------- boards
+- key: teensy_41
+  kind: board
+  name: Teensy 4.1
+  manufacturer: PJRC
+  role: low-level control (PlatformIO)
+  mass_g: 10
+  dims_mm: [61.0, 18.0, 5.0]
+  voltage_v: 5.0
+  power_w: 0.5
+  cost_usd: 32
+  url: https://www.pjrc.com/store/teensy41.html
+  source: PJRC product page, recalled from memory
+  verified: false
+
+- key: raspberry_pi_5
+  kind: board
+  name: Raspberry Pi 5 (8 GB)
+  manufacturer: Raspberry Pi Ltd
+  role: high-level behavior (ONNX runtime)
+  mass_g: 46
+  dims_mm: [85.0, 56.0, 17.0]
+  voltage_v: 5.0
+  power_w: 6.0
+  cost_usd: 80
+  url: https://www.raspberrypi.com/products/raspberry-pi-5/
+  source: Raspberry Pi product page; power is a typical-load guess
+  verified: false
+
+# ---------------------------------------------------------------- batteries
+- key: lipo_3s_5000
+  kind: battery
+  name: 3S LiPo 5000 mAh
+  manufacturer: generic
+  mass_g: 400
+  dims_mm: [138.0, 44.0, 26.0]
+  voltage_v: 11.1
+  capacity_mah: 5000
+  max_current_a: 50
+  cost_usd: 45
+  url: ""
+  source: Typical figures for hobby 3S 5000 mAh packs
+  verified: false
