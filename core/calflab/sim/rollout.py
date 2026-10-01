@@ -240,6 +240,11 @@ def run_rollout(
     for step in range(n_steps + 1):
         t = (step - n_settle) * control_dt
         ff = contacts()
+        # mj_step leaves body poses one physics step behind qpos. Refresh them so
+        # recorded poses and joint angles describe the same instant (clients such
+        # as Blender rebuild poses from the joint angles).
+        mujoco.mj_kinematics(model, data)
+        mujoco.mj_comPos(model, data)
         contact = ff > 1e-6
         q_act = data.qpos[a_qadr].copy()
         dq_act = data.qvel[a_dadr].copy()

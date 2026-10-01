@@ -13,7 +13,7 @@ Units everywhere in the UI and in files: **mm, g, degrees**. World frame:
 ## 1. Install and run
 
 Requirements: Windows 11, any Python 3 (only used to bootstrap `uv`), Node LTS.
-Rhino 8 and Blender 4.x are optional.
+Rhino 8 and Blender (4.2 or newer) are optional.
 
 ```powershell
 .\calflab.ps1 setup     # Python env, web dependencies and build, sample project, Blender add-on zip
@@ -31,7 +31,8 @@ Rhino 8 and Blender 4.x are optional.
 | `calflab new-plugin <type> <name>` | Generate a plugin template and its contract test |
 | `calflab plugins` | List registered plugins (ready / planned) |
 | `calflab registry check` / `rebuild` | Verify or rebuild the experiment index |
-| `calflab bridge rhino` / `blender` | How to install the Rhino commands / build the Blender add-on |
+| `calflab bridge rhino` | How to install the Rhino commands |
+| `calflab bridge blender --install` | Build the Blender extension and install it into Blender |
 
 **Where things live.** The working copy is `C:\CALFLABHOME`, a local folder no
 sync client touches. The Python environment is in `%LOCALAPPDATA%\calflab`;
@@ -277,8 +278,11 @@ All clients talk to the same running lab; an edit in one appears in the others.
   geometry back as an override; `CalflabLiveSync` follows changes.
 * **Grasshopper**: Hops endpoints at `http://127.0.0.1:8000/hops/...` or GH
   Python 3 components (same README).
-* **Blender 4.x**: see `bridges/blender/README.md`. Build an armature from the
-  design, export actions as reference clips, import rollouts.
+* **Blender 4.2+ / 5.x**: `.\calflab.ps1 bridge blender --install`, then open
+  the 3D viewport sidebar (N) > CALFLAB. Build an armature from the design
+  (one bone per joint, limits applied), pose and keyframe it, export the
+  action as a reference clip, or import a simulation run as an action for
+  rendering. Details and conventions: `bridges/blender/README.md`.
 * **Python / Jupyter**: `docs/notebooks/quickstart.ipynb`
 
   ```python

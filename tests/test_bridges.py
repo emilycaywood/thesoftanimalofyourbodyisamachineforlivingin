@@ -47,7 +47,14 @@ def test_blender_armature_one_bone_per_joint(calf_design):
     assert knee["range_deg"] == [j.range_deg[0] - j.rest_deg, j.range_deg[1] - j.rest_deg]
     assert np.allclose(np.abs(knee["axis_world"]), [0, 1, 0], atol=1e-6)
     for b in plan["bones"]:
-        assert np.linalg.norm(np.array(b["tail"]) - np.array(b["head"])) > 1.0, b["name"]
+        d = np.array(b["tail"]) - np.array(b["head"])
+        assert np.linalg.norm(d) > 1.0, b["name"]
+        if b["joint"]:
+            # a bone must be perpendicular to its joint axis, or Blender cannot
+            # hinge it about that axis with a single local rotation
+            axis = np.array(b["joint"]["axis_world"])
+            assert abs(np.dot(d / np.linalg.norm(d), axis)) < 1e-4, b["name"]
+            assert np.linalg.norm(axis) == pytest.approx(1.0, abs=1e-5)
     mesh_bones = {m["id"]: m["bone"] for m in plan["meshes"]}
     assert mesh_bones["leg.fl.shank.tube"] == "joint.fl.knee" and mesh_bones["trunk.shell"] == "root"
 
@@ -86,7 +93,7 @@ def test_bridge_scripts_are_valid_python_and_stdlib_only(path):
     """Bridge scripts run inside Rhino/Blender: they must not import calflab or third-party packages."""
     tree = ast.parse(path.read_text(encoding="utf-8"))
     allowed_host = {"Rhino", "rhinoscriptsyntax", "scriptcontext", "System", "bpy", "mathutils", "Grasshopper",
-                    "ghpythonlib", "calflab_rhino", "bpy_extras", "bmesh"}
+                    "ghpythonlib", "calflab_rhino", "bpy_extras", "bmesh", "calflab_blender"}
     import sys
 
     for node in ast.walk(tree):

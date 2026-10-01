@@ -226,3 +226,26 @@ The Phase 1 build ran inside the Claude desktop app, whose `%LOCALAPPDATA%` is
 redirected to a per-app location. The venv and `node_modules` created there are
 not the ones a normal PowerShell session sees: run `.\calflab.ps1 setup` once
 in your own terminal.
+
+## ADR-034 — Blender bones are perpendicular to their joint axes
+A Blender bone hinges cleanly only about one of its own local axes. The
+armature plan (`calflab.bridge.blender`) therefore moves each bone's tail so
+the bone is exactly perpendicular to its joint axis; the add-on rolls the bone
+so local Z is that axis and stores the sign (`calflab_sign`). Bones may not
+point exactly at the next joint: that is cosmetic. Found by checking every
+hinge numerically in Blender 5.2.2 (head pitch was 46 degrees off its axis).
+
+## ADR-035 — Recorded body poses are synchronous with joint angles
+`mj_step` leaves body poses one physics step behind `qpos`. The rollout
+recorder now refreshes kinematics before recording, so poses and joint angles
+describe the same instant and clients that rebuild poses from angles
+(Blender) agree with the viewport to ~0.02 mm. `CODE_VERSION` was bumped to 2,
+which invalidates cached rollouts; runs recorded before this have poses that
+lag their joint angles by 2 ms.
+
+## ADR-036 — The Blender bridge ships as an extension (Blender 4.2+)
+`blender_manifest.toml` plus a flat zip, installed with
+`calflab bridge blender --install` (`blender --command extension
+install-file`). Blender 4.0/4.1 (legacy add-on zips) are no longer supported.
+The trunk trajectory is carried by the armature object, as
+`T(p) R(q) T(-p0)` with `p0` the trunk's standing position.

@@ -20,8 +20,8 @@ from mathutils import Matrix, Quaternion, Vector
 bl_info = {
     "name": "CALFLAB bridge",
     "author": "CALFLAB",
-    "version": (0, 1, 0),
-    "blender": (4, 0, 0),
+    "version": (0, 2, 0),
+    "blender": (4, 2, 0),
     "location": "View3D > Sidebar > CALFLAB",
     "description": "Armature from the CALFLAB RobotSpec, motion clip export, rollout import",
     "category": "Rigging",
@@ -116,6 +116,8 @@ def build_armature(context, plan):
     arm = bpy.data.objects.new(name, arm_data)
     context.collection.objects.link(arm)
     arm["calflab_revision"] = plan.get("revision", 0)
+    # trunk (root body) position in the standing pose, mm: the root trajectory refers to this point
+    arm["calflab_root_mm"] = [float(v) for v in plan["bones"][0]["head"]]
     context.view_layer.objects.active = arm
     arm.select_set(True)
 
@@ -147,7 +149,14 @@ def build_armature(context, plan):
         pb.lock_rotation = (ax != "X", ax != "Y", ax != "Z")
         pb["calflab_axis"] = ax
         pb["calflab_rest_deg"] = joint["rest_deg"]
-        lo, hi = (math.radians(v) for v in joint["range_deg"])
+        # The bone's hinge axis may point along or against the joint axis
+        # (a bone's Y always runs head -> tail). Record the sign so a positive
+        # CALFLAB joint angle is always a positive rotation about the joint axis.
+        local = Vector((0.0, 1.0, 0.0)) if ax == "Y" else Vector((0.0, 0.0, 1.0))
+        bone_axis = arm.data.bones[b["name"]].matrix_local.to_3x3() @ local
+        sign = 1.0 if bone_axis.dot(Vector(joint["axis_world"])) >= 0.0 else -1.0
+        pb["calflab_sign"] = sign
+        lo, hi = sorted(sign * math.radians(v) for v in joint["range_deg"])
         con = pb.constraints.new("LIMIT_ROTATION")
         con.name = "CALFLAB joint limit"
         con.owner_space = "LOCAL"
@@ -186,6 +195,11 @@ def _hinge_bones(arm):
     return [pb for pb in arm.pose.bones if "calflab_axis" in pb.keys()]
 
 
+def _root_rest(arm):
+    """Trunk position in the standing pose, in armature space (Blender units)."""
+    return Vector(arm.get("calflab_root_mm", (0.0, 0.0, 0.0))) * 0.001
+
+
 # ---------------------------------------------------------------------- clips
 def action_to_clip(context, arm, name):
     """Sample the armature's current action into a CALFLAB motion clip."""
@@ -198,18 +212,19 @@ def action_to_clip(context, arm, name):
     bones = _hinge_bones(arm)
     joints = {pb.name: [] for pb in bones}
     root_pos, root_quat = [], []
-    rest = arm.matrix_world.copy()
+    p0 = _root_rest(arm)
     current = scene.frame_current
     for frame in range(start, end + 1):
         scene.frame_set(frame)
         for pb in bones:
-            angle = getattr(pb.rotation_euler, pb["calflab_axis"].lower())
+            angle = getattr(pb.rotation_euler, pb["calflab_axis"].lower()) * pb.get("calflab_sign", 1.0)
             joints[pb.name].append(round(math.degrees(angle), 4))
-        loc, rot, _ = arm.matrix_world.decompose()
-        root_pos.append([round(v * 1000.0, 3) for v in loc])
+        context.view_layer.update()
+        rot = arm.matrix_world.to_quaternion()
+        trunk = arm.matrix_world @ p0  # where the trunk is, not the object origin
+        root_pos.append([round(v * 1000.0, 3) for v in trunk])
         root_quat.append([round(v, 6) for v in rot])
     scene.frame_set(current)
-    _ = rest
     return {
         "name": name or action.name,
         "fps": fps,
@@ -230,23 +245,23 @@ def keyframes_to_action(context, arm, data):
     context.scene.render.fps = int(round(data["fps"]))
     arm.rotation_mode = "QUATERNION"
     bones = {pb.name: pb for pb in _hinge_bones(arm)}
-    origin = Vector(data["root_pos"][0]) * scale if data["root_pos"] else Vector()
-    base = arm.location.copy()
+    p0 = _root_rest(arm)
     for i in range(data["frames"]):
         frame = i + 1
         for jid, values in data["joints"].items():
             pb = bones.get(jid)
             if pb is None:
                 continue
-            setattr(pb.rotation_euler, pb["calflab_axis"].lower(), math.radians(values[i]))
+            setattr(pb.rotation_euler, pb["calflab_axis"].lower(), math.radians(values[i]) * pb.get("calflab_sign", 1.0))
             pb.keyframe_insert("rotation_euler", frame=frame)
-        if data["root_pos"]:
-            p = Vector(data["root_pos"][i]) * scale
-            arm.location = base + Vector((p.x - origin.x, p.y - origin.y, p.z - origin.z))
-            arm.keyframe_insert("location", frame=frame)
-        if data["root_quat"]:
-            arm.rotation_quaternion = Quaternion(data["root_quat"][i])
-            arm.keyframe_insert("rotation_quaternion", frame=frame)
+        # The armature object must carry the trunk to p with orientation q:
+        # world = T(p) R(q) T(-p0), so the object origin goes to p - R(q) p0.
+        q = Quaternion(data["root_quat"][i]) if data["root_quat"] else Quaternion()
+        p = Vector(data["root_pos"][i]) * scale if data["root_pos"] else p0
+        arm.rotation_quaternion = q
+        arm.location = p - q @ p0
+        arm.keyframe_insert("rotation_quaternion", frame=frame)
+        arm.keyframe_insert("location", frame=frame)
     context.scene.frame_start = 1
     context.scene.frame_end = max(1, data["frames"])
     return action

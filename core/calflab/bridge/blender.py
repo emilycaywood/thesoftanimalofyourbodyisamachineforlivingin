@@ -21,6 +21,29 @@ from calflab.sim.rollout import Rollout
 ROOT_BONE = "root"
 
 
+MIN_BONE_MM = 30.0
+
+
+def _perpendicular_tail(head: np.ndarray, tail: np.ndarray, axis: np.ndarray) -> list[float]:
+    """Bone tail moved so the bone is exactly perpendicular to its joint axis.
+
+    A Blender bone can only hinge cleanly about one of its own local axes. With
+    the bone perpendicular to the joint axis, rolling the bone puts its local Z
+    exactly on that axis, so a single-axis rotation is the true joint motion.
+    The bone then points at the child only approximately, which is cosmetic.
+    """
+    d = tail - head
+    length = float(np.linalg.norm(d))
+    perp = d - float(np.dot(d, axis)) * axis
+    n = float(np.linalg.norm(perp))
+    if n < 1e-6:  # the bone ran along the axis: pick any perpendicular direction
+        ref = np.array([0.0, 0.0, -1.0]) if abs(axis[2]) < 0.9 else np.array([1.0, 0.0, 0.0])
+        perp = ref - float(np.dot(ref, axis)) * axis
+        n = float(np.linalg.norm(perp))
+    out = head + perp / n * max(length, MIN_BONE_MM)
+    return [round(float(v), 3) for v in out]
+
+
 def armature_plan(spec: RobotSpec) -> dict[str, Any]:
     poses = spec.world_poses()
     parent_of = {b.id: b.parent for b in spec.bodies}
@@ -70,16 +93,18 @@ def armature_plan(spec: RobotSpec) -> dict[str, Any]:
         if j is None:
             continue
         p, q = poses[b.id]
+        axis = np.asarray(quat_rotate(q, j.axis), dtype=float)
+        axis /= np.linalg.norm(axis) or 1.0
         bones.append(
             {
                 "name": j.id,
                 "body": b.id,
                 "parent": bone_for_body(parent_of[b.id]),
                 "head": [round(v, 3) for v in p],
-                "tail": tail_for(b.id),
+                "tail": _perpendicular_tail(np.asarray(p, dtype=float), np.asarray(tail_for(b.id)), axis),
                 "joint": {
                     "type": j.type,
-                    "axis_world": [round(v, 6) for v in quat_rotate(q, j.axis)],
+                    "axis_world": [round(float(v), 6) for v in axis],
                     "range_deg": [j.range_deg[0] - j.rest_deg, j.range_deg[1] - j.rest_deg],
                     "rest_deg": j.rest_deg,
                     "cosmetic": j.cosmetic,

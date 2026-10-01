@@ -377,25 +377,76 @@ def registry_rebuild(project: Path | None = ProjectOpt) -> None:
 
 # ====================================================================== bridges
 def build_blender_addon() -> Path:
-    """Zip bridges/blender/calflab_blender into an installable add-on."""
+    """Zip bridges/blender/calflab_blender as a Blender extension (4.2+).
+
+    Extensions keep ``blender_manifest.toml`` and ``__init__.py`` at the root
+    of the zip (no wrapping folder).
+    """
     src = repo_root() / "bridges" / "blender" / "calflab_blender"
-    if not src.is_dir():
-        raise FileNotFoundError(src)
+    if not (src / "blender_manifest.toml").is_file():
+        raise FileNotFoundError(src / "blender_manifest.toml")
     out = repo_root() / "bridges" / "blender" / "dist" / "calflab_blender.zip"
     out.parent.mkdir(parents=True, exist_ok=True)
     with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
         for f in sorted(src.rglob("*")):
             if f.is_file() and "__pycache__" not in f.parts:
-                z.write(f, Path("calflab_blender") / f.relative_to(src))
+                z.write(f, f.relative_to(src))
     return out
 
 
 @bridge_app.command("blender")
-def bridge_blender() -> None:
-    """Build the installable Blender add-on zip."""
+def bridge_blender(
+    install: bool = typer.Option(False, "--install", help="Also install and enable it in Blender."),
+    check: bool = typer.Option(False, "--check", help="Run the numerical bridge check in Blender (lab must be running)."),
+    url: str = typer.Option("http://127.0.0.1:8000", help="Lab URL for --check."),
+) -> None:
+    """Build the Blender extension zip (and optionally install or check it)."""
+    import json
+
+    from calflab.cli.doctor import find_blender
+
     z = build_blender_addon()
     console.print(f"Built [bold]{z}[/bold]")
-    console.print("Blender: Edit > Preferences > Add-ons > Install from Disk... and pick that zip.")
+    if check:
+        exe = find_blender()
+        if exe is None:
+            console.print("[red]Blender was not found.[/red]")
+            raise typer.Exit(1)
+        script = repo_root() / "bridges" / "blender" / "validate_in_blender.py"
+        proc = subprocess.run(
+            [str(exe), "--background", "--factory-startup", "--python", str(script)],
+            capture_output=True, text=True, env={**os.environ, "CALFLAB_URL": url}, check=False,
+        )
+        line = next((ln for ln in proc.stdout.splitlines() if ln.startswith("CALFLAB_BLENDER_CHECK ")), None)
+        if line is None:
+            console.print("[red]Blender produced no report.[/red]")
+            console.print(proc.stdout[-1500:] + proc.stderr[-1500:])
+            raise typer.Exit(1)
+        rep = json.loads(line.split(" ", 1)[1])
+        if rep.get("error"):
+            console.print(f"[red]{rep['error']}[/red]")
+        for key in ("blender", "hinges", "rollout", "clip"):
+            if key in rep:
+                console.print(f"{key}: {rep[key]}")
+        console.print("[green]Blender bridge check passed.[/green]" if rep["ok"] else "[red]Blender bridge check FAILED.[/red]")
+        if not rep["ok"]:
+            raise typer.Exit(1)
+        if not install:
+            return
+    if not install:
+        console.print("Install it with: calflab bridge blender --install")
+        console.print("or in Blender: Edit > Preferences > Get Extensions > (arrow menu) Install from Disk...")
+        return
+    exe = find_blender()
+    if exe is None:
+        console.print("[red]Blender was not found.[/red] Install Blender 4.2+ or add blender.exe to PATH.")
+        raise typer.Exit(1)
+    cmd = [str(exe), "--command", "extension", "install-file", "-r", "user_default", "-e", str(z)]
+    code = subprocess.run(cmd, check=False).returncode
+    if code != 0:
+        console.print(f"[red]Blender could not install the extension (exit code {code}).[/red]")
+        raise typer.Exit(1)
+    console.print(f"Installed and enabled in {exe.parent.name}. Open the 3D viewport sidebar (N) > CALFLAB.")
 
 
 @bridge_app.command("rhino")

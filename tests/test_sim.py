@@ -70,6 +70,25 @@ def test_default_gait_walks_forward(calf_model):
     assert len(ts["t"]) == r.n_frames == len(ts["channels"]["speed"]["values"])
 
 
+def test_recorded_poses_match_recorded_joint_angles(calf_design, calf_model):
+    """Body poses and joint angles in a rollout describe the same instant, so a
+    client (Blender) that rebuilds poses from the angles lands on the same robot."""
+    from calflab import units as u
+    from calflab.model.xform import quat_to_matrix
+
+    r = run_rollout(calf_model, cpg(), SimSettings(duration_s=2.0), library())
+    spec = calf_design.spec
+    for i in (30, 70, r.n_frames - 1):
+        angles = {jid: float(u.rad_to_deg(r.q[i, k])) for k, jid in enumerate(r.joint_ids)}
+        fk = spec.world_poses(angles, root_pos=(0.0, 0.0, 0.0))
+        root_p = r.body_pos[i, 0].astype(float) * 1000.0
+        root_r = quat_to_matrix(tuple(float(v) for v in r.body_quat[i, 0]))
+        for bid in ("leg.fl.shank", "leg.hr.shank", "head", "tail"):
+            k = r.body_ids.index(bid)
+            sim_local = root_r.T @ (r.body_pos[i, k].astype(float) * 1000.0 - root_p)
+            assert np.allclose(sim_local, fk[bid][0], atol=0.05), (i, bid)
+
+
 def test_streaming_chunks_cover_all_frames(calf_model):
     seen = []
     r = run_rollout(calf_model, cpg(), SimSettings(duration_s=1.0), on_frames=seen.append, chunk_frames=10)

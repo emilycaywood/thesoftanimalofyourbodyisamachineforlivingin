@@ -159,8 +159,16 @@ mypy, web typecheck/eslint/vitest, Playwright smoke). Verified outside the
 test suite: `CalflabPull` inside Rhino 8.34; the web lab driven by hand
 (simulate, override, evolve, click-to-load candidate).
 
-Not verified on real software: the Blender add-on (Blender was not found on
-the machine), `CalflabPush` / `CalflabLiveSync` / the alias installer, the GH
+Added later the same day, once Blender 5.2.2 was installed: the Blender
+extension was run headless against a live server and checked numerically
+(every hinge on its true axis, imported rollout within 0.02 mm of the
+simulator, clip round trip exact); see `bridges/blender/README.md`. That
+check exposed and fixed three defects: the trunk trajectory was applied about
+the world origin, bones were not perpendicular to their joint axes, and
+recorded body poses lagged joint angles by one physics step.
+
+Not verified on real software: the Blender sidebar panel clicked by hand,
+`CalflabPush` / `CalflabLiveSync` / the alias installer, the GH
 Python components and Hops against a live Grasshopper.
 
 Scaffolded as stubs with interfaces and contract tests: PPO training, MJX

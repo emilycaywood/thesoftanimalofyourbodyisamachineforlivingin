@@ -13,4 +13,4 @@ warnings.filterwarnings("ignore", message="Could not import matplotlib")
 __version__ = "0.1.0"
 
 # Bump when node/plugin semantics change in a way that must invalidate caches.
-CODE_VERSION = "1"
+CODE_VERSION = "2"  # 2: recorded body poses are synchronous with joint angles
