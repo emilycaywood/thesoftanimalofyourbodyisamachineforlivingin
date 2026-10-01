@@ -96,7 +96,7 @@ Working rules (from the original brief):
 
 ## 4. Current state
 
-**Git:** branch `phase-1-vertical-slice`, 12 commits, clean tree. `main` has
+**Git:** branch `phase-1-vertical-slice`, clean tree. `main` has
 only the initial commit. **Nothing has been pushed**; the remote is
 `https://github.com/emilycaywood/thesoftanimalofyourbodyisamachineforlivingin.git`.
 Until it is pushed, `C:\CALFLABHOME` is the only copy and there is no backup.
