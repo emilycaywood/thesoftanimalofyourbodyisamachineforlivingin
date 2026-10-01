@@ -176,7 +176,7 @@ coordinates.
 
 | Risk | Impact | Mitigation |
 |---|---|---|
-| Repo lives on a Google Drive virtual FAT32 volume (no junctions/symlinks, slow many-small-file IO, sync races with `.git` and SQLite) | Broken `node_modules`, corrupt git/SQLite | venv and `node_modules` are kept in `%LOCALAPPDATA%\calflab` (ADR-003). Recommend moving the working copy to a local NTFS folder and using GitHub as the backup. |
+| Working copy placed in a cloud-synced folder (Google Drive, OneDrive): sync races with `.git` and SQLite, tens of thousands of small files uploaded | Broken `node_modules`, corrupt git/SQLite | Resolved 2026-10-01: the working copy is `C:\CALFLABHOME` (local NTFS). The code still detects synced folders and keeps environments out of them (ADR-003). GitHub is the backup; nothing has been pushed yet. |
 | Actuator/sensor specs are recalled, not measured | Wrong torque margins, mass budget | Every component is `verified: false` with a `source`; UI shows "unverified" badges |
 | No CUDA locally | No large-scale RL on the laptop | CPU MuJoCo + process pool locally; remote backends for MJX/PPO |
 | Rhino/Blender cannot be driven in CI | Bridges regress silently | Bridges are thin; all geometry/armature logic is in `calflab.bridge` and tested headlessly |

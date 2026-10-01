@@ -33,14 +33,15 @@ Rhino 8 and Blender 4.x are optional.
 | `calflab registry check` / `rebuild` | Verify or rebuild the experiment index |
 | `calflab bridge rhino` / `blender` | How to install the Rhino commands / build the Blender add-on |
 
-**Where things live.** The Python environment and `node_modules` are in
-`%LOCALAPPDATA%\calflab`, not in the repo, because the repo is on Google Drive
-(see DECISIONS.md ADR-003). Delete that folder and re-run `setup` to start clean.
-Projects are folders under `projects/`.
+**Where things live.** The working copy is `C:\CALFLABHOME`, a local folder no
+sync client touches. The Python environment is in `%LOCALAPPDATA%\calflab`;
+web dependencies are in `web\node_modules`. To start clean, delete both and
+re-run `setup`. Projects are folders under `projects/`.
 
-> Recommendation: keep the working copy on a local disk (for example
-> `C:\dev\calflab`) and use GitHub as the backup. Git repositories inside a
-> synced Drive folder can be corrupted by the sync client.
+> Keep the working copy out of OneDrive / Google Drive / Dropbox: sync clients
+> can corrupt a git repository and lock files mid-run. GitHub is the backup.
+> If the repo is ever opened from a synced folder anyway, CALFLAB keeps
+> `node_modules` outside it automatically (DECISIONS.md ADR-003).
 
 ---
 

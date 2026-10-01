@@ -33,12 +33,15 @@ and unreliable. Therefore:
 `C:\dev\calflab`) and rely on GitHub for backup. Git inside a synced Drive
 folder is a known source of repository corruption.
 
-**Update 2026-10-01:** the working copy was moved to
-`C:\Users\efcay\OneDrive\Documents\ARCHITECTURE\CALFLAB`. OneDrive is NTFS
-(junctions work) but still cloud-synced, so the rule is now "never put
-environments inside a cloud-synced folder": `calflab.cli.webenv.cloud_synced`
-detects OneDrive / Google Drive / Dropbox / iCloud and keeps `node_modules`
-out of tree there too. `CALFLAB_WEB_IN_TREE=1` overrides it.
+**Update 2026-10-01:** the working copy now lives in `C:\CALFLABHOME`, a
+plain local NTFS folder that no sync client touches, so `web/node_modules`
+and `web/dist` are in-tree there. (It briefly sat in a OneDrive folder, which
+is NTFS but still cloud-synced.) The rule that remains in the code is "never
+put environments inside a cloud-synced folder":
+`calflab.cli.webenv.cloud_synced` detects OneDrive / Google Drive / Dropbox /
+iCloud and falls back to the out-of-tree work directory.
+`CALFLAB_WEB_IN_TREE=1` overrides it. The Python venv stays in
+`%LOCALAPPDATA%\calflab` in every case. GitHub is the backup of the repo.
 
 ## ADR-004 — One distribution, two import packages
 `pyproject.toml` at the repo root builds `calflab` (from `core/`) and
