@@ -249,3 +249,16 @@ lag their joint angles by 2 ms.
 install-file`). Blender 4.0/4.1 (legacy add-on zips) are no longer supported.
 The trunk trajectory is carried by the armature object, as
 `T(p) R(q) T(-p0)` with `p0` the trunk's standing position.
+
+## ADR-037 — Component audit: what each spec field feeds is declared, not traced
+`calflab.wiring.audit.FIELD_USES` states, per component kind, which results
+each spec field feeds (mass, geometry, simulated torque limit, torque margins,
+power, runtime, thermal estimate, BOM cost). It was written by reading the
+code that consumes the library, not derived automatically; a test fails when
+a component model gains a field that the table does not classify. Fields with
+no uses (`no_load_speed_rpm`, `gear_ratio`, `max_temp_c`, actuator and board
+`voltage_v`) are recorded but read by no calculation yet. An actuator counts
+as "at its limit" when its torque margin in the chosen run is 1 % or less.
+The verification worksheet (`docs/component_verification.csv`) is tracked in
+git because the researcher fills it in; the command will not overwrite it
+without `--force`.

@@ -28,7 +28,9 @@ app = typer.Typer(
 )
 registry_app = typer.Typer(help="Experiment registry maintenance.", no_args_is_help=True)
 bridge_app = typer.Typer(help="Rhino and Blender bridges.", no_args_is_help=True)
+components_app = typer.Typer(help="Component library: verification worksheet and audit.", no_args_is_help=True)
 app.add_typer(registry_app, name="registry")
+app.add_typer(components_app, name="components")
 app.add_typer(bridge_app, name="bridge")
 console = Console()
 
@@ -373,6 +375,90 @@ def registry_rebuild(project: Path | None = ProjectOpt) -> None:
     counts = lab_.registry.rebuild()
     lab_.close()
     console.print(f"Indexed {counts['runs']} runs, {counts['candidates']} candidates, {counts['designs']} designs.")
+
+
+# ====================================================================== components
+@components_app.command("audit")
+def components_audit(
+    project: Path | None = ProjectOpt,
+    run_id: str = typer.Option("", "--run", help="Sim run to read torques from (default: latest sim run)."),
+    simulate: bool = typer.Option(False, "--simulate", help="Simulate the current design first."),
+) -> None:
+    """List unverified components, the results that depend on them, and saturated actuators."""
+    lab_ = _open_lab(project)
+    try:
+        if simulate:
+            job = lab_.jobs.wait(lab_.run_sim().id)
+            if job.status != "done":
+                raise RuntimeError(job.error)
+        rep = lab_.analysis("component_audit", {"run_id": run_id})
+    finally:
+        lab_.close()
+
+    table = Table(title=f"Components: {rep['unverified']} of {rep['total']} unverified "
+                        f"({rep['in_design_unverified']} used by this design)")
+    for col in ("Component", "Kind", "Verified", "Quantity", "Cost USD", "Mass g"):
+        table.add_column(col, no_wrap=True)
+    for c in rep["components"]:
+        qty = f"{c['qty']:g} {c['qty_unit']}".strip() if c["in_design"] else "not used"
+        table.add_row(c["key"], c["kind"], "[green]yes[/]" if c["verified"] else "[yellow]no[/]", qty,
+                      f"{c['cost_usd']:.0f}" if c["in_design"] else "", f"{c['mass_g']:.0f}" if c["in_design"] else "")
+    console.print(table)
+
+    table = Table(title="Results that rest on unverified components")
+    for col in ("Result", "Value", "Unverified components it depends on"):
+        table.add_column(col, overflow="fold")
+    for r in rep["results"]:
+        if r["value"] is None:
+            value = "no sim run"
+        elif r["key"] == "torque_margin":
+            value = f"{max(0.0, r['value']) * 100:.0f}%"
+        else:
+            value = f"{r['value']:g} {r['unit']}".strip()
+        if r["from_run"] is False and r["value"] is not None:
+            value += " (idle only: no sim run)"
+        table.add_row(r["label"], value, ", ".join(r["depends_on_unverified"]) or "-")
+    console.print(table)
+
+    if not rep["from_run"]:
+        console.print("[yellow]No sim run yet, so there are no torque margins.[/yellow] "
+                      "Run: calflab components audit --simulate")
+        return
+    table = Table(title=f"Torque margins from run {rep['run_id']} (lowest first)")
+    for col in ("Joint", "Actuator", "Stall", "Usable", "Peak", "RMS", "Margin"):
+        table.add_column(col, no_wrap=True)
+    for r in sorted(rep["torque"], key=lambda x: x["margin"]):
+        style = "red" if r["at_limit"] else ("yellow" if r["margin"] < 0.25 else "green")
+        table.add_row(r["joint"], r["component"], f"{r['stall_nm']:.2f}", f"{r['available_nm']:.2f}",
+                      f"{r['required_peak_nm']:.2f}", f"{r['required_rms_nm']:.2f}",
+                      f"[{style}]{max(0.0, r['margin']) * 100:.0f}%[/]")
+    console.print(table)
+    console.print("Torques in N*m. Usable = stall x derating (simulation.torque_derating).")
+    if rep["at_limit"]:
+        console.print(f"[red]{len(rep['at_limit'])} actuator(s) reach their usable torque limit:[/red] "
+                      + ", ".join(rep["at_limit"]))
+    console.print(rep["note"])
+
+
+@components_app.command("worksheet")
+def components_worksheet(
+    out: Path | None = typer.Option(None, "--out", "-o", help="CSV to write (default: docs/component_verification.csv)."),
+    force: bool = typer.Option(False, help="Overwrite an existing worksheet (your filled-in columns are lost)."),
+) -> None:
+    """Write a CSV with every recorded spec value and blank columns for the datasheet value."""
+    from calflab.components import library
+    from calflab.wiring import component_worksheet, component_worksheet_csv
+
+    path = (out or repo_root() / "docs" / "component_verification.csv").resolve()
+    if path.exists() and not force:
+        console.print(f"[red]{path} already exists.[/red] Use --force to overwrite it, or --out for another file.")
+        raise typer.Exit(2)
+    lib = library()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(component_worksheet_csv(lib), encoding="utf-8-sig", newline="")
+    console.print(f"Wrote [bold]{path}[/bold]: {len(component_worksheet(lib))} values across {len(lib.all())} components.")
+    console.print("Fill in datasheet_value, datasheet_reference and ok; then correct config/components/*.yaml "
+                  "and set verified: true yourself.")
 
 
 # ====================================================================== bridges

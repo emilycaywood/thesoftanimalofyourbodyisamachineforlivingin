@@ -11,7 +11,14 @@ from pydantic import BaseModel
 from calflab.components import library
 from calflab.plugins import Analysis, ExportContext, Exporter, Panel, register
 from calflab.schema import P
-from calflab.wiring import bill_of_materials, bom_csv, power_budget, render_harness, torque_margins
+from calflab.wiring import (
+    bill_of_materials,
+    bom_csv,
+    component_audit,
+    power_budget,
+    render_harness,
+    torque_margins,
+)
 
 
 # ====================================================================== exporters
@@ -228,6 +235,18 @@ class Bom(Analysis):
 
     def run(self, lab: Any) -> dict[str, Any]:
         return bill_of_materials(lab.design().spec, library())
+
+
+@register
+class ComponentAudit(Analysis):
+    key = "component_audit"
+    label = "Component audit"
+    description = "Unverified components, the results that depend on them, and actuators at their torque limit."
+    Params = _RunParams
+
+    def run(self, lab: Any) -> dict[str, Any]:
+        rid, metrics = _metrics_for(lab, self.params.run_id)  # type: ignore[attr-defined]
+        return {"run_id": rid, **component_audit(lab.design().spec, library(), metrics)}
 
 
 @register

@@ -31,6 +31,8 @@ Rhino 8 and Blender (4.2 or newer) are optional.
 | `calflab new-plugin <type> <name>` | Generate a plugin template and its contract test |
 | `calflab plugins` | List registered plugins (ready / planned) |
 | `calflab registry check` / `rebuild` | Verify or rebuild the experiment index |
+| `calflab components audit` | Unverified components, the results that depend on them, actuators at their torque limit (section 9) |
+| `calflab components worksheet` | Write the datasheet verification worksheet (CSV) |
 | `calflab bridge rhino` | How to install the Rhino commands |
 | `calflab bridge blender --install` | Build the Blender extension and install it into Blender |
 
@@ -305,6 +307,27 @@ To verify one: check the numbers against the datasheet (or a bench test), fix
 them in the YAML, set `verified: true`. The lab re-reads the library the next
 time the design is evaluated (any edit, or reload the page). Only you set that
 flag; no code does.
+
+**The worksheet.** `docs/component_verification.csv` (open it in Excel) has
+one row per recorded value: component, field, unit, the recorded value, what
+the lab uses it for, and its source. Fill in `datasheet_value`,
+`datasheet_reference` (document and page) and `ok`. Rows marked "not used by
+any calculation yet" can wait. `calflab components worksheet` regenerates the
+file from the YAML; it refuses to overwrite an existing worksheet unless you
+pass `--force` or `--out <other file>`, so your filled-in columns are safe.
+
+**The audit.** `calflab components audit` prints three tables:
+
+1. every library component, whether it is verified and how much of it the
+   current design uses;
+2. the headline results (BOM total, mass, worst torque margin, mean power,
+   battery runtime) with the unverified components each one rests on;
+3. torque margins per joint from the latest sim run, lowest first. Red rows
+   reach their usable torque (stall x derating) in that run.
+
+`--simulate` simulates the current design first, `--run <id>` picks a
+specific run. The same report is the `component_audit` analysis
+(`lab.analysis("component_audit")` in Python or a notebook).
 
 ---
 
