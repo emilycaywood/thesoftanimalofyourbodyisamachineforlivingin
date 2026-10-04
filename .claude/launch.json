@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "calflab-lab",
+      "runtimeExecutable": "powershell",
+      "runtimeArgs": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "calflab.ps1", "lab", "--no-browser", "--port", "8000"],
+      "port": 8000
+    }
+  ]
+}

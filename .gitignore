@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+
+# Node
+node_modules/
+web/dist/
+web/test-results/
+web/playwright-report/
+*.tsbuildinfo
+
+# CALFLAB projects: text documents are tracked, bulky/derived data is not
+projects/sample-calf/
+projects/*/runs/
+projects/*/exports/
+projects/*/.cache/
+projects/*/index.sqlite*
+projects/*/autosave/
+
+# Generated bridge bundles
+bridges/blender/dist/
+
+# OS / editors / Google Drive
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+*.tmp

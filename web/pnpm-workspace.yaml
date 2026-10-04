@@ -1,0 +1,14 @@
+# pnpm settings.
+#
+# nodeLinker: hoisted gives a flat node_modules without symlinks. CALFLAB may
+# run the web app from a work directory that reaches `src/` through a junction
+# (DECISIONS.md ADR-003), which requires `preserveSymlinks`; pnpm's default
+# symlinked layout does not resolve transitive packages in that mode.
+nodeLinker: hoisted
+
+# esbuild (used by Vite) needs its install script to fetch the native binary;
+# nothing else may run install scripts.
+onlyBuiltDependencies:
+  - esbuild
+allowBuilds:
+  esbuild: true

@@ -1,0 +1,135 @@
+@import "tailwindcss";
+@import "dockview/dist/styles/dockview.css";
+@import "@xyflow/react/dist/style.css";
+
+/* Theme tokens. Components use these through Tailwind's arbitrary values or the utility classes below. */
+:root,
+[data-theme="dark"] {
+  --bg: #171b21;
+  --bg-2: #1e242c;
+  --bg-3: #262d37;
+  --line: #333c48;
+  --fg: #d7dde5;
+  --fg-dim: #8b96a5;
+  --accent: #e0823d;
+  --accent-2: #4fa3d4;
+  --ok: #57b97a;
+  --warn: #e0a83d;
+  --err: #e05a52;
+  --viewport: #20262e;
+  color-scheme: dark;
+}
+[data-theme="light"] {
+  --bg: #f1f2f4;
+  --bg-2: #ffffff;
+  --bg-3: #e6e8ec;
+  --line: #cbd0d8;
+  --fg: #1f2630;
+  --fg-dim: #66707d;
+  --accent: #c8651c;
+  --accent-2: #1f78b4;
+  --ok: #2e8b57;
+  --warn: #b97f10;
+  --err: #c23b33;
+  --viewport: #dfe3e8;
+  color-scheme: light;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-bg2: var(--bg-2);
+  --color-bg3: var(--bg-3);
+  --color-line: var(--line);
+  --color-fg: var(--fg);
+  --color-dim: var(--fg-dim);
+  --color-accent: var(--accent);
+  --color-accent2: var(--accent-2);
+  --color-ok: var(--ok);
+  --color-warn: var(--warn);
+  --color-err: var(--err);
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font: 12px/1.4 "Segoe UI", system-ui, sans-serif;
+  user-select: none;
+}
+input,
+textarea,
+select,
+button {
+  font: inherit;
+  color: inherit;
+}
+input[type="text"],
+input[type="number"],
+textarea,
+select {
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  padding: 2px 5px;
+  outline: none;
+  user-select: text;
+}
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--accent-2);
+}
+input[type="range"] {
+  accent-color: var(--accent);
+  height: 14px;
+}
+::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--line);
+  border-radius: 5px;
+}
+.selectable {
+  user-select: text;
+}
+
+/* dockview follows the theme tokens */
+.dockview-theme-calflab {
+  --dv-background-color: var(--bg);
+  --dv-paneview-header-border-color: var(--line);
+  --dv-tabs-and-actions-container-background-color: var(--bg);
+  --dv-activegroup-visiblepanel-tab-background-color: var(--bg-2);
+  --dv-activegroup-hiddenpanel-tab-background-color: var(--bg);
+  --dv-inactivegroup-visiblepanel-tab-background-color: var(--bg-2);
+  --dv-inactivegroup-hiddenpanel-tab-background-color: var(--bg);
+  --dv-activegroup-visiblepanel-tab-color: var(--fg);
+  --dv-activegroup-hiddenpanel-tab-color: var(--fg-dim);
+  --dv-inactivegroup-visiblepanel-tab-color: var(--fg);
+  --dv-inactivegroup-hiddenpanel-tab-color: var(--fg-dim);
+  --dv-group-view-background-color: var(--bg-2);
+  --dv-separator-border: var(--line);
+  --dv-tab-divider-color: var(--line);
+  --dv-drag-over-background-color: color-mix(in srgb, var(--accent-2) 25%, transparent);
+  --dv-tabs-and-actions-container-height: 24px;
+  --dv-tabs-and-actions-container-font-size: 11px;
+}
+
+/* node editor */
+.react-flow {
+  --xy-background-color: var(--bg);
+  --xy-node-background-color: var(--bg-2);
+  --xy-node-color: var(--fg);
+  --xy-edge-stroke-width: 2;
+  --xy-controls-button-background-color: var(--bg-2);
+  --xy-controls-button-color: var(--fg);
+  --xy-controls-button-border-color: var(--line);
+  --xy-minimap-background-color: var(--bg-2);
+}

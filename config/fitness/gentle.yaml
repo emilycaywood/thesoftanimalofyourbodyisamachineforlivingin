@@ -1,0 +1,13 @@
+# Fitness preset: a slow, quiet, cool-running gait suited to close contact
+# with people (performance / theater use).
+name: gentle
+version: 1
+description: Slow, quiet, thermally easy gait with large torque margins.
+terms:
+  - {term: forward_speed, weight: 0.6, params: {target: 0.25, cap: 1.0}}
+  - {term: survival, weight: 1.0}
+  - {term: stability, weight: 0.8}
+  - {term: quiet_feet, weight: 0.8, params: {reference: 0.3}}
+  - {term: cool_running, weight: 0.4}
+  - {term: torque_margin, weight: 0.4}
+  - {term: straightness, weight: 0.2}
