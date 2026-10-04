@@ -28,6 +28,21 @@ def _version(cmd: list[str]) -> str | None:
         return None
 
 
+def uv_version() -> str | None:
+    """Version line of the uv that runs CALFLAB, or None.
+
+    Inside ``uv run`` (how calflab.ps1 starts everything) ``python`` is the
+    venv's interpreter, which has no uv module, and uv need not be on PATH; uv
+    names its own executable in the ``UV`` variable of every process it starts.
+    """
+    launcher = os.environ.get("UV")
+    return (
+        (_version([launcher, "--version"]) if launcher else None)
+        or _version(["uv", "--version"])
+        or _version(["python", "-m", "uv", "--version"])
+    )
+
+
 def find_rhino() -> Path | None:
     for base in (os.environ.get("ProgramFiles", r"C:\Program Files"), os.environ.get("ProgramW6432", "")):
         if base:
@@ -90,7 +105,7 @@ def run_checks(project: Path | None = None) -> list[Check]:
     add("Operating system", True, f"{platform.system()} {platform.release()} ({platform.machine()})")
     py = platform.python_version()
     add("Python", py.startswith(("3.11", "3.12")), py, "Run through .\\calflab.ps1 so uv picks Python 3.12")
-    uv = _version(["uv", "--version"]) or _version(["python", "-m", "uv", "--version"])
+    uv = uv_version()
     add("uv", uv is not None, uv or "not found", "python -m pip install --user uv", warn_only=True)
 
     for mod, label, fix, optional in (

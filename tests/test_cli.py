@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from calflab.cli import webenv
+from calflab.cli import doctor, webenv
 
 
 def test_cloud_synced_folders_are_detected(monkeypatch, tmp_path):
@@ -22,3 +22,19 @@ def test_node_modules_stay_out_of_synced_folders(monkeypatch, tmp_path):
     assert webenv.in_tree() is False
     monkeypatch.setenv("CALFLAB_WEB_IN_TREE", "1")
     assert webenv.in_tree() is True
+
+
+def test_doctor_finds_the_uv_that_launched_it(monkeypatch):
+    """`calflab doctor` runs under `python -m uv run`: uv is neither on PATH nor
+    importable by the venv's python, and used to be reported as not found."""
+    asked = []
+
+    def fake(cmd):
+        asked.append(cmd[0])
+        return "uv 0.12.21" if cmd[0] == "C:/somewhere/uv.exe" else None
+
+    monkeypatch.setattr(doctor, "_version", fake)
+    monkeypatch.setenv("UV", "C:/somewhere/uv.exe")
+    assert doctor.uv_version() == "uv 0.12.21" and asked == ["C:/somewhere/uv.exe"]
+    monkeypatch.delenv("UV")
+    assert doctor.uv_version() is None, "still reported when it really is missing"
