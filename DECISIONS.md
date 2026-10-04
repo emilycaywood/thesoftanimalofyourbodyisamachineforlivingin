@@ -394,3 +394,48 @@ keep their gait. New projects get the new one; in an existing document
 node=controller`) brings it in, and *Reset to defaults* in Form brings the
 forward knees. Both are undoable.
 
+## ADR-048 — Front legs may have two motors: abduction and an elbow (**VERIFY**)
+Decided by the researcher on 2026-10-04: the front pair should have two
+motors per leg, the hind pair keeps three. Gene `front_hip_flex` (bool, not
+evolvable): off removes `joint.<fl|fr>.hip_flex`, its actuator and its motor
+(2 x XH540-W270: 330 g and $900 by the recorded figures). The thigh keeps
+its ID and is fixed to the hip at the angle the standing pose gives it, so
+the standing body is geometrically identical; URDF export writes a fixed
+joint. The knee keeps the ID `joint.<k>.knee` and works as an elbow.
+
+The gene defaults to **on** (three motors) and `absent: true`, so nothing
+changes until it is switched off in a project. It was not made the default
+body because a two-motor leg only walks acceptably when the joint is high
+and points backward, and those proportions are still being explored with
+per-part overrides (there are no front-specific length genes yet).
+
+*The gait.* With one fore-and-aft joint the hoof travels a single arc, so a
+two-motor leg is stepped differently by the CPG: the knee does the sweep
+(`elbow_amplitude`, `elbow_offset`) and hip abduction swings the leg outward
+to clear the ground during swing (`swing_abduction`). Legs with hip flexion
+are driven as before; the two kinds coexist in one gait. In simulation
+(tuned with `tune_gait`, joint speeds capped): front joint backward with
+thigh 100 mm / shank 236 mm, a walk at about 0.21 m/s, stability 0.88,
+0.003 m sideways in 20 s; the researcher's test body of that day, 0.29 m/s,
+stability 0.90. The front abduction motors then work near their torque
+limit (3-10 % margin): they carry the lift. With the knee mid-leg and
+pointing forward the two-motor leg walks poorly (0.15-0.22 m/s, abduction
+saturated). These are simulation results on unverified component data and a
+simulator without joint-speed limits.
+
+## ADR-049 — Gait tuning for a fixed body is a lab job, speed-capped
+`tune_gait` (command, and *Tune for this body* on the Controller section)
+runs CMA-ES over the controller's optimisable parameters for the working
+design as it is, on the compute backend, and writes the result into the
+document as one undoable `set_node_params`. It is what was done by hand for
+ADR-047, made repeatable because the body keeps changing.
+Rules built in: commanded joint speeds, from
+`Controller.peak_joint_speeds`, must stay at or below `speed_fraction`
+(default 0.67) of each actuator's recorded no-load speed; a gait that falls
+is never chosen; the winner of each footfall pattern is re-run for 2.5 x the
+trial length (at least 20 s) and must survive that; parameters with no
+effect on the body (`Controller.relevant_dims`) are not searched; trials
+start standing whatever the document's start pose. A run record of kind
+`tune` keeps the settings, the caps, the before and after figures and the
+gait. The speed cap is a stand-in for a torque-speed curve in the servo
+model, which is still missing; Evolve's inner loop is still uncapped.

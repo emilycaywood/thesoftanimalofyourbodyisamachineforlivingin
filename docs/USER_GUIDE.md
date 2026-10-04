@@ -188,6 +188,18 @@ each pair of knees bends. New projects start with front knees forward and
 hind knees backward, and with a trot tuned for that body. Turn on the *Joint
 axes + limit arcs* overlay to see the limit arc and the standing tick flip.
 
+**Front hip flex** (on by default) is the hip-flexion motor of the two front
+legs. Switch it off for **two-motor front legs**: abduction at the shoulder
+and the knee working as an elbow. The upper segment is then fixed at its
+standing angle, two XH540 motors leave the bill of materials, and the gait
+steps those legs with the elbow (sweep) and the abduction (lift). The hind
+legs always have three motors. After switching, press *Tune for this body*
+in Simulate: no gait made for three-motor front legs suits two-motor ones.
+It walks acceptably when the front joint is high and points backward
+(**Front knee forward** off, a short front thigh and long front shank, set
+with overrides on `leg.fl.thigh`, `leg.fr.thigh`, `leg.fl.shank`,
+`leg.fr.shank`), and poorly with the knee mid-leg pointing forward.
+
 Projects, runs, candidates and baked designs made before 2026-10-04 keep the
 backward front knees they were made with. To bring an older document to the
 new default: *Reset to defaults* in Form (genes, including the knees) and
@@ -203,7 +215,8 @@ its data (section 9). *(planned: range-of-motion sweep, interference check)*
 
 ### Simulate
 Controller (CPG gait: trot, walk, pace, bound; *Reset to defaults* restores
-the default trot), simulation settings (duration,
+the default trot; **Tune for this body** searches a gait for the design as it
+is, see below), simulation settings (duration,
 seed, start pose, pushes), model settings (terrain, servo model, skin on/off,
 domain randomization) and the fitness preset. **F5** runs it; body poses stream
 into the viewport. The **Timeline** scrubs the run and plots any channel
@@ -212,6 +225,22 @@ with a cursor synced to the viewport. *Runs* lists every recorded run; click
 a row to replay it (the viewport comes to the front, the row is marked with
 a play triangle, and the status line says which run is replaying). An identical simulation is not re-run: the recorded one is
 reused. *(planned: side-by-side comparison, interactive push tool)*
+
+**Tune for this body.** Whenever the body changes enough that it walks badly
+(different leg proportions, knee direction, two-motor front legs), press
+*Tune for this body* on the Controller section (command `TuneGait`). A job
+searches the gait numbers with the body left alone, tries a trot and a walk,
+and writes the best gait into the Controller; Ctrl+Z restores the previous
+one. It takes about a minute with the default settings (30 iterations x 12
+gaits x 2 patterns, 8 s trials). It only accepts gaits that do not fall,
+that survive a 20 s check, and whose commanded joint speeds stay within 0.67
+of each motor's recorded no-load speed (the *speed fraction*; the simulator
+itself does not limit speed). The console prints speed, stability and lowest
+torque margin before and after; then press F5 and read the torque table. If
+it reports that no gait was found, the body cannot walk within those limits
+with this controller: raise the iterations, or change the body. The gait
+controls *Elbow amplitude*, *Elbow offset* and *Swing abduction* only act on
+two-motor legs.
 
 Metrics: forward speed, distance, cost of transport, stability, torque RMS and
 peak, torque margin, first-order thermal estimate, foot impact speed (noise

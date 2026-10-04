@@ -1,7 +1,7 @@
 # CALFLAB guide prompt for a chat assistant
 
 Paste everything below the line into a new chat. It is a snapshot of CALFLAB
-as of 2026-10-04 (branch `phase-1-vertical-slice`, code at commit `a6abcc7`).
+as of the afternoon of 2026-10-04 (branch `phase-1-vertical-slice`).
 Regenerate it after a session that changes the tool.
 
 ---
@@ -145,7 +145,42 @@ This version follows my first walkthrough by hand (2026-10-03) and my
 decision about the front knees (2026-10-04). Thirteen things changed. Walk me
 through the test path below in order unless I ask for something else.
 
-**What changed, in one list:**
+**Latest, added on the afternoon of 2026-10-04** (after I revised my idea of
+the front legs: the joint should face backward, sit high like an elbow, and
+the front legs should have two motors, not three):
+
+- Form > Legs has **Front hip flex** (on by default). Off = two-motor front
+  legs (section 10).
+- Simulate > Controller has **Tune for this body**, which searches a gait for
+  whatever body I have built (section 11, Simulate). Use it after any change
+  of leg proportions, knee direction or motor count.
+- Three new gait sliders that only act on two-motor legs: *Elbow amplitude*,
+  *Elbow offset*, *Swing abduction*.
+- The default body is unchanged for now (front knees forward, three motors).
+  I am exploring the elbow in my own project `projects\forward-knees`.
+
+**Test path E: two-motor front legs with a high elbow.**
+
+1. Open a project (`.\calflab.ps1 lab --project projects\forward-knees`, or
+   a new folder). In Form > Legs switch **Front knee forward** off and
+   **Front hip flex** off. In the viewport the motor block at each front hip
+   is gone; the legs stand as before.
+2. Make the front joint high: select `leg.fl.thigh`, type 100 in the bar at
+   the bottom (Override this part); the same for `leg.fr.thigh`. Then set
+   `leg.fl.shank` and `leg.fr.shank` so the front hooves reach the ground:
+   with the default hind legs (170 / 170) that is 236. If the front hooves
+   float or the hind hooves float, the calf stands tilted; check from
+   `ViewRight`.
+3. Simulate > Controller > **Tune for this body**. A form opens; the
+   defaults are fine. Press OK. A job runs for about a minute (Jobs tab).
+   The console then prints "Before: ..." and "After (walk): ..." and says the
+   gait was written into the document.
+4. Press F5. Expect a slow walk, roughly 0.2-0.3 m/s, that does not fall and
+   stays nearly straight. In Mechanism the front `hip_abd` rows are the
+   lowest (single digits to about 10 %): those motors lift the leg.
+5. Ctrl+Z restores the gait from before tuning.
+
+**What changed in the morning version, in one list:**
 
 1. Front knees can bend forward (`front_knee_forward` gene), and forward is
    now the default for **new** projects.
@@ -334,6 +369,9 @@ fraction, amplitudes in degrees):
 - knee in swing: 3.1416 x knee_amplitude x f / s
 - hip abduction (only if abduction_amplitude is not 0): 6.2832 x
   abduction_amplitude x f
+- on a two-motor leg, the knee (elbow) instead: the larger of 2 x
+  elbow_amplitude x f / (1 - s) and 3.1416 x elbow_amplitude x f / s; and
+  its hip abduction: 3.1416 x swing_abduction x f / s
 
 Compare the first three with 180 deg/s and the last with 276 deg/s. The
 default gait was tuned with all of them held at or below **120 deg/s**, two
@@ -349,8 +387,8 @@ Worked examples:
 | Optimizer's unconstrained best for forward knees (2.95 Hz, hip 14.1, knee 12.5, swing 0.51), 0.9 m/s | 170 | 258 | 229 | Beyond; this is why it was not made the default |
 | The evolved gait now in my sample document (walk, 2.5 Hz, hip 27.3, knee 32.3, swing 0.27), 0.98 m/s | 188 | 792 | 936 | Four to five times the motor's recorded top speed |
 
-**Evolution is not capped.** Only the default gait was tuned with the speed
-cap. Evolve's inner loop searches frequency 0.6-3.0 Hz, hip amplitude 2-35,
+**Evolution is not capped.** Only the default gait and gaits from *Tune for
+this body* are found with the speed cap. Evolve's inner loop searches frequency 0.6-3.0 Hz, hip amplitude 2-35,
 knee amplitude 5-55, swing fraction 0.25-0.55, hip offset -15 to 15 and
 crouch -10 to 25 with no speed limit, and the fitness rewards speed. It will
 tend to find fast gaits the servos could not follow. Read every evolved or
@@ -517,7 +555,8 @@ Document commands (these change the project and can be undone): `SetGenes`,
 `Connect`, `Disconnect`, `SetNodeParams`, `SetNodeFlags`, `GroupNodes`,
 `Ungroup`, `ClusterNodes`. Actions that start work or act on the record,
 and are not themselves undo steps: `Simulate` (`run_sim`), `Evolve`
-(`run_evolve`), `Bake`, `Export`, `SetBackend`, `Undo`, `Redo`. The typed
+(`run_evolve`), `TuneGait` (new; its result is written as one undo step),
+`Bake`, `Export`, `SetBackend`, `Undo`, `Redo`. The typed
 name is the PascalCase form of the server key (`set_genes` -> `SetGenes`).
 
 ### Keyboard shortcuts (rebindable: press F1)
@@ -670,6 +709,7 @@ may change; the rest are choices I make.
 | Legs | `knee_bend` | 40 | 10-80 deg | Knee flexion when standing |
 | Legs | `hind_knee_forward` | off | on/off | Hind knees point forward. Not evolvable |
 | Legs | `front_knee_forward` | **on** | on/off | Front knees point forward. Not evolvable. Anything saved before 2026-10-04 keeps it off |
+| Legs | `front_hip_flex` | on | on/off | Front legs have a hip-flexion motor. Off = two motors per front leg. Not evolvable |
 | Neck and head | `neck_length` | 160 | 80-260 | |
 | Neck and head | `neck_angle` | 50 | 10-80 deg | Neck elevation when standing |
 | Neck and head | `neck_radius` | 32 | 20-50 | |
@@ -691,7 +731,7 @@ may change; the rest are choices I make.
 | Shell and skin | `skin_thickness` | 1.5 | 0.5-6.0 | Silicone layer. Not evolvable |
 | Sensing | `has_depth_camera` | off | on/off | Not evolvable |
 
-That is 34 genes. The Form workspace also shows live mass against the 7 kg
+That is 35 genes. The Form workspace also shows live mass against the 7 kg
 target, height, length and centre of mass, and two buttons: *Reset to
 defaults* (all genes) and *Bake design*. Reference images on view planes are
 planned.
@@ -705,6 +745,42 @@ that suits one knee arrangement does not suit another: the new default gait
 was tuned for front forward / hind backward; it also walks without falling
 with all four forward (0.53 m/s) and all four backward (0.31 m/s) in
 simulation, but was not tuned for those.
+
+**Two-motor front legs.** With **Front hip flex** off, each front leg has two
+motors: hip abduction (sideways) and the knee, which then works as an elbow
+(forward and back). The joint `joint.fl.hip_flex`, the actuator
+`act.fl.hip_flex` and its motor block disappear (and the same for `fr`); the
+upper segment `leg.fl.thigh` stays, fixed to the hip at its standing angle,
+so the standing shape does not change. The hind legs always keep three
+motors. By the recorded, unverified figures this removes 2 x XH540-W270: 330
+g (4,715 g total on the default body) and $900 ($4,353 bill of materials).
+16 motors instead of 18.
+
+With one forward-backward joint the hoof can only move along one arc, so the
+gait steps these legs differently: the elbow sweeps the leg, and the
+abduction motor swings it outward to lift the hoof clear on the way forward.
+That makes it a waddling walk, and it loads the front abduction motors
+(XM430-W350, the smallest leg motor). Findings in simulation, all with tuned
+gaits and capped joint speeds:
+
+- Front joint backward and high (front thigh 100, front shank 236, by
+  override): a walk at about 0.21 m/s, stability 0.88, almost no sideways
+  drift over 20 s; lowest torque margin about 3 % on a front abduction motor.
+- My test project as I left it (thigh gene 152, shank gene 250, front thighs
+  overridden to 100; front hooves 46 mm off the ground when standing), with
+  two-motor front legs: 0.29 m/s, stability 0.90, drift 0.012 m in 20 s;
+  front abduction and front knees at about 9-12 % margin. With three-motor
+  front legs the same body tunes to a similar speed (0.28 m/s).
+- Knee mid-leg and pointing forward (the current default body) with two
+  motors: poor, 0.15-0.22 m/s with the abduction motors at their limit.
+
+No gait made for three-motor front legs works on two-motor ones: after
+switching, use *Tune for this body*. There are no separate genes for front
+and hind leg lengths yet; the front proportions are set with overrides on
+the four front parts, and overrides stop at the gene range (thigh and shank
+100-260 mm). A front upper segment shorter than 100 mm needs a change to
+request. The Blender and Rhino bridges were run on a two-motor body by
+script only (plan and build list), not inside the applications.
 
 **Why old work stays backward.** The gene did not exist before 2026-10-03.
 A genome that does not mention it is read as "off", which is what those
@@ -748,7 +824,47 @@ drive all four legs; the gaits differ only in the timing between legs. The
 | `hip_offset` | -3 deg | -20 to 20 | Constant hip bias (positive = legs further back) |
 | `crouch` | -7 deg | -15 to 30 | Extra knee flexion in stance (negative = straighter legs) |
 | `abduction_amplitude` | 0 deg | 0-15 | Sideways sway of the hips |
+| `elbow_amplitude` | 13 deg | 0-40 | Two-motor legs only: half of the fore-and-aft sweep made by the knee (elbow) |
+| `elbow_offset` | 0 deg | -25 to 25 | Two-motor legs only: constant bias of that sweep (positive = hoof further back) |
+| `swing_abduction` | 6.5 deg | 0-28 | Two-motor legs only: how far the leg swings outward to lift the hoof |
 | `ramp` | 0.8 s | 0-3 | Time to ease in from standing |
+
+**Tune for this body** (button on the Controller section; command
+`TuneGait`). It searches the gait numbers for the design exactly as it is,
+without changing the body, and writes the best gait into the Controller as
+one undo step. It opens a form:
+
+| Setting | Default | Meaning |
+|---|---|---|
+| `iterations` | 30 | Search rounds per footfall pattern |
+| `popsize` | 12 | Gaits tried per round |
+| `duration_s` | 8 | Simulated seconds per trial |
+| `speed_fraction` | 0.67 | Commanded joint speed may reach this fraction of each motor's recorded no-load speed |
+| `gaits` | trot, walk | Footfall patterns to try (empty = keep the current one) |
+| `sigma` | 0.25 | How widely it explores at first |
+| `seed` | 1 | Change it for a different search |
+| `apply` | on | Write the result into the document |
+
+With the defaults it runs about 700 simulations in roughly a minute on my
+computer, as a job with progress and cancel. What it guarantees about the
+gait it returns: it did not fall in the trial; it did not fall in a longer
+check run (20 s); every joint's commanded speed is within the cap (section
+5 explains why that matters). What it does not guarantee: torque margin
+(read the Mechanism table after F5; the `walk` fitness preset does not
+reward margin, `gentle` does, and the tuner uses whichever preset the
+Fitness section has), a straight path over a minute, or anything about the
+real robot. Trials always start standing, whatever *Start pose* says. The
+console shows a "Before" and an "After" line with speed, stability and
+lowest torque margin. If it says no gait was found, the body cannot walk
+within those limits with this controller: more iterations, a different
+seed, a higher speed fraction (with the caution of section 5), or a
+different body. Each tuning is recorded as a run of kind `tune` (it appears
+in the Journal's *Link run...* list) with its settings, the speed caps, and
+the before and after figures. Sliders it does not need for the body (the
+elbow ones on a calf with three-motor legs) are left as they were.
+
+This is the tool for my current exploration: change the proportions, press
+*Tune for this body*, press F5, read the table.
 
 Until 2026-10-04 the defaults were 1.6 Hz, 14, 24, 0.40, 0, 0. Documents made
 before then keep whatever gait they had.
@@ -1219,7 +1335,8 @@ bill-of-materials lines, all unverified. Knee direction changes none of this.
 
 **Works and is tested:** everything in sections 8 to 13; the component audit
 and worksheet. The automated suite passes: 219 Python tests, 14 interface
-tests, and 5 browser tests that drive the lab with a real mouse and keyboard
+tests, and 5 browser tests (the two-motor leg and the gait tuner are covered by
+Python tests, not yet by a browser test) that drive the lab with a real mouse and keyboard
 (the original smoke test; dragging the gumball arrow and the trunk's three
 arrows; the harness overlay; clicking runs and linking them in the journal;
 evolving from a baked design, the gene table, pin to compare, and Load).
@@ -1266,8 +1383,9 @@ the navigation presets other than Rhino. Hops is untested and not installed.
 - Standing up from lying saturates the front hip-flexion motors with forward
   front knees and the default gait.
 - The default gait was tuned for one body. Change the proportions much (leg
-  lengths, trunk length, mass) and it may need re-tuning; there is no button
-  for that other than running Evolve, whose gaits are not speed-limited.
+  lengths, trunk length, mass) and it needs re-tuning: *Tune for this body*.
+- Two-motor front legs lean on the front abduction motors, which end up near
+  their torque limit; and there are no front-specific leg length genes.
 - A design link in a journal entry does not open the design.
 
 **Planned, with only a placeholder today:** PPO reinforcement learning, GPU
@@ -1297,6 +1415,9 @@ autonomy for performance.
 | My panel layout is back to the default | Expected once with this version. Re-dock as I like; it is remembered again |
 | My sample project still has backward front knees | Expected: old work is not converted. Section 9, "Moving an older document to the new default" |
 | I switched Front knee forward on and the calf stumbles or barely moves | The document still has a gait made for backward knees. Simulate > Controller > **Reset to defaults** |
+| I changed the leg proportions, knee direction or Front hip flex and the calf walks badly or falls | Simulate > Controller > **Tune for this body** |
+| Tune for this body ends with "No gait was found..." | The body cannot walk within the speed and no-fall limits with this controller. Check that all four hooves reach the ground; try more iterations or another seed |
+| The calf stands tilted, nose down or nose up | Front and hind legs have different standing heights (the lab sets the trunk height from the tallest leg). Adjust the front shank override until the hooves meet the ground |
 | The calf lies down at the start of every run, or a run reads slow | Simulate > *Start pose* is `lying`. Set it to `stand` |
 | The calf walks in a curve | Expected: there is no steering (section 5). The metric is Lateral drift |
 | The torque table shows red after I changed the gait or adopted a candidate | The gait asks more than the motors' usable torque. Section 5; compare with the default via Reset to defaults (Ctrl+Z to return) |
@@ -1340,7 +1461,7 @@ and run `setup`.
 | `docs\component_verification.csv` | My datasheet worksheet |
 | `docs\proposals\anatomical-leg.md` | The three-segment leg proposal (set aside) |
 | `PLAN.md` | Architecture and phases |
-| `DECISIONS.md` | Every assumption, as numbered decisions (ADR-001 to ADR-047). ADR-041 to ADR-047 belong to this version; ADR-047 is the forward-knee default, the gait and the speed limitation |
+| `DECISIONS.md` | Every assumption, as numbered decisions (ADR-001 to ADR-049). ADR-041 to ADR-049 belong to this version; ADR-047 is the forward-knee default, the gait and the speed limitation; ADR-048 the two-motor front leg; ADR-049 gait tuning |
 | `config\components\*.yaml` | Component data |
 | `config\genes\calf.yaml` | Gene definitions |
 | `config\fitness\*.yaml` | Fitness presets |
@@ -1368,6 +1489,8 @@ I will know it works. It starts with the opening message from
 - C: start remote compute and PPO.
 - D: test Hops after I install it.
 - E: move my sample project to the new default body and gait, baking first.
+- G: make my settled elbow body (front-specific leg genes, two motors) the
+  default, with a gait tuned for it.
 - F: **add motor speed to the simulator** (a torque-speed curve, a speed
   margin beside the torque margin), which closes the blind spot in section 5.
 

@@ -103,7 +103,7 @@ pull request #1 into `main`
 The repository is **public**. `main` still has only the initial commit; the
 researcher merges.
 
-**Tests:** `calflab test` passes: ruff, 219 pytest tests, mypy, web typecheck
+**Tests:** `calflab test` passes: ruff, 227 pytest tests, mypy, web typecheck
 and eslint, 14 Vitest tests, 5 Playwright tests (smoke, gumball drag and
 harness overlay with a real mouse, runs + journal, evolve from a design).
 `calflab doctor` is clean apart from three optional warnings (Graphviz, no
@@ -182,6 +182,29 @@ knees; no extra leg joint is wanted):**
   120 deg/s (two thirds of the XH540-W270's recorded, unverified 30 rpm).
   Gaits from Evolve are not capped and can be faster than the servos.
 * The three-segment leg proposal is set aside (kept in `docs/proposals/`).
+
+**Added later on 2026-10-04 (researcher's revision: the front joint should
+work as a high, backward-facing elbow, and the front legs should have two
+motors):**
+
+* Gene `front_hip_flex` (Form > Legs, on by default). Off = two-motor front
+  legs: no front hip-flexion joint, actuator or motor; the thigh is a fixed
+  strut; IDs unchanged (ADR-048). All exporters, analyses, the Rhino build
+  list and the Blender armature plan were run on such a body by script.
+* The CPG steps two-motor legs with the knee (sweep) and hip abduction
+  (lift): new parameters `elbow_amplitude`, `elbow_offset`,
+  `swing_abduction`.
+* `tune_gait`: a job that tunes the gait for the working design as it is,
+  with joint speeds capped, and writes it into the document (ADR-049).
+  Button *Tune for this body* on the Controller section.
+* Not changed: the default body (front knees forward, three motors). The
+  researcher is exploring the elbow proportions with overrides in
+  `projects/forward-knees` (front thighs 100 mm; thigh and shank genes 152
+  and 250, which leaves the front hooves 46 mm off the ground when
+  standing). Once the proportions settle, the natural next step is
+  front-specific length genes and a new default body (next session G).
+* The forward-knee default of the morning is therefore likely to be
+  superseded; it is still what a new project gets.
 
 **Scaffolded only (interfaces + tests, no behaviour):** PPO training, MJX
 simulator, RemoteSSH and CloudNotebook transports (job bundling is real),
@@ -287,7 +310,7 @@ Journal, Rhino bridge):**
 |---|---|
 | `CLAUDE.md` | Conventions for every session (loaded automatically) |
 | `PLAN.md` | Architecture, module boundaries, data flow, phases, risks, status |
-| `DECISIONS.md` | ADR log: every assumption (47 so far) |
+| `DECISIONS.md` | ADR log: every assumption (49 so far) |
 | `docs/proposals/anatomical-leg.md` | Proposal for a three-segment leg (set aside 2026-10-04; not built) |
 | `docs/USER_GUIDE.md` | How to use the lab |
 | `docs/component_verification.csv` | Datasheet verification worksheet (the researcher fills it in) |
@@ -354,3 +377,13 @@ Prefix each with the opening message from section 1.
 > whether the 120 deg/s cap used for the default was too cautious or not
 > cautious enough. Do not change component values; flag which results rest
 > on unverified speeds.
+
+**G. Make the elbow body the default**
+> I have settled the front leg: joint facing backward, upper segment <N> mm,
+> lower segment <N> mm, standing bend <N> deg, two motors (front_hip_flex
+> off). Add front-specific genes for those three values (allowing an upper
+> segment shorter than 100 mm if I asked for it), keep the hooves on the
+> ground automatically, make this the default body for new projects with
+> existing work unchanged (the `absent` mechanism of ADR-047), tune the
+> default gait for it with tune_gait, and tell me speed, drift and the
+> torque margins of the front abduction motors, which carry the lift.
