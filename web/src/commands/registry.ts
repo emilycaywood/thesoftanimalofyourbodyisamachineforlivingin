@@ -36,13 +36,28 @@ export const hooks: {
   openShortcuts: () => void;
   startTour: () => void;
   focusCommandLine: () => void;
+  /** bring a dock panel to the front of its tab group (adds it if it was closed) */
+  showPanel: (id: string) => void;
 } = {
   openDialog: () => undefined,
   capture: () => null,
   openShortcuts: () => undefined,
   startTour: () => undefined,
   focusCommandLine: () => undefined,
+  showPanel: () => undefined,
 };
+
+/** Replay a recorded run in the viewport, and bring the viewport forward so it can be seen. */
+export async function replayRun(runId: string): Promise<void> {
+  const lab = useLab.getState();
+  try {
+    await usePlayback.getState().loadRun(runId);
+    hooks.showPanel("viewport");
+    lab.log("info", `Replaying run ${runId}`, "runs");
+  } catch (e) {
+    lab.log("error", `Cannot replay run ${runId}: ${(e as Error).message}`, "runs");
+  }
+}
 
 const view = () => useView.getState();
 

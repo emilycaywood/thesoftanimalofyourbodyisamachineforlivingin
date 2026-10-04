@@ -2,11 +2,12 @@
 // re-docks is saved per workspace in the browser.
 import { DockviewReact, type DockviewApi, type DockviewReadyEvent, type IDockviewPanelProps } from "dockview";
 import { Component, useEffect, useRef, type ErrorInfo, type FC, type ReactNode } from "react";
+import { hooks } from "@/commands/registry";
 import { PANELS } from "@/panels/registry";
 import { useView } from "@/store/view";
 import { workspace, type WorkspaceDef } from "@/workspaces";
 
-const LAYOUT_VERSION = 3;
+const LAYOUT_VERSION = 4;
 const key = (ws: string) => `calflab.layout.v${LAYOUT_VERSION}.${ws}`;
 
 class PanelBoundary extends Component<{ children: ReactNode }, { error: string | null }> {
@@ -56,12 +57,17 @@ function buildDefault(api: DockviewApi, ws: WorkspaceDef) {
     add(ws.bottom[0], { referencePanel: c0, direction: "below" });
     ws.bottom.slice(1).forEach((id) => add(id, { referencePanel: ws.bottom[0], direction: "within" }));
   }
+  const beside = ws.beside ?? [];
+  if (beside.length) {
+    add(beside[0], { referencePanel: c0, direction: "right" });
+    beside.slice(1).forEach((id) => add(id, { referencePanel: beside[0], direction: "within" }));
+  }
   if (ws.left.length) {
     add(ws.left[0], { referencePanel: c0, direction: "left" });
     ws.left.slice(1).forEach((id, i) => add(id, { referencePanel: ws.left[i], direction: "below" }));
   }
   if (ws.right.length) {
-    add(ws.right[0], { referencePanel: c0, direction: "right" });
+    add(ws.right[0], { referencePanel: beside[0] ?? c0, direction: "right" });
     ws.right.slice(1).forEach((id) => add(id, { referencePanel: ws.right[0], direction: "within" }));
   }
   // show the first tab of every group, and leave the centre panel active
@@ -120,6 +126,18 @@ export function Dock() {
     load(apiRef.current, ws);
     loading.current = false;
   }, [ws]);
+
+  useEffect(() => {
+    hooks.showPanel = (id) => {
+      const api = apiRef.current;
+      if (!api || !(id in PANELS)) return;
+      const panel = api.getPanel(id) ?? api.addPanel({ id, component: id, title: (PANELS as Record<string, { title: string }>)[id].title });
+      if (!panel.api.isVisible) panel.api.setActive();
+    };
+    return () => {
+      hooks.showPanel = () => undefined;
+    };
+  }, []);
 
   useEffect(() => {
     const reset = () => {

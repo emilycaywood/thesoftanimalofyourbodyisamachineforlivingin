@@ -1,9 +1,9 @@
 // Fabricate, Wire and Journal workspaces. Exporters and analyses are plugins;
 // their forms come from schemas and their results from the server.
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "@/api/client";
 import type { Job, PluginInfo } from "@/api/types";
-import { execute } from "@/commands/registry";
+import { execute, replayRun } from "@/commands/registry";
 import { SchemaForm } from "@/components/SchemaForm";
 import { Badge, Button, Empty, PanelScroll, Planned, Row, Section, Unverified, fmt } from "@/components/ui";
 import { useLab } from "@/store/lab";
@@ -241,7 +241,7 @@ function Rendered({ body, captures }: { body: string; captures: CaptureInfo[] })
           className="rounded bg-accent2/20 px-1 font-mono text-[11px] text-accent2 hover:bg-accent2/30"
           title={`Open ${kind} ${id}`}
           onClick={() => {
-            if (kind === "run") void usePlayback.getState().loadRun(id);
+            if (kind === "run") void replayRun(id);
             else if (kind === "candidate") void api.post(`/api/candidates/${id}/simulate`);
             else useLab.getState().log("info", `Design ${id}: see the Designs panel`, "journal");
           }}
@@ -264,6 +264,21 @@ export function JournalPanel() {
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [editing, setEditing] = useState(false);
+  const runs = useLab((s) => s.runs);
+  const designs = useLab((s) => s.designs);
+  const replaying = usePlayback((s) => s.runId);
+  const area = useRef<HTMLTextAreaElement>(null);
+
+  /** Insert text at the caret of the editor (or at the end). */
+  const insert = (text: string) => {
+    const ta = area.current;
+    setBody((b) => {
+      const from = ta ? ta.selectionStart : b.length;
+      const to = ta ? ta.selectionEnd : b.length;
+      const before = b.slice(0, from);
+      return `${before}${before && !/\s$/.test(before) ? " " : ""}${text} ${b.slice(to)}`;
+    });
+  };
 
   const refresh = () =>
     api.get<{ entries: EntrySummary[]; captures: CaptureInfo[] }>("/api/journal").then((j) => {
@@ -298,8 +313,6 @@ export function JournalPanel() {
         return refresh();
       })
       .catch((e) => log("error", e.message));
-  const latestRun = useLab.getState().runs[0];
-  const latestDesign = useLab.getState().designs[0];
 
   return (
     <div className="flex h-full" data-testid="journal-panel">
@@ -328,8 +341,31 @@ export function JournalPanel() {
               {editing ? (
                 <>
                   <Button size="sm" onClick={() => void execute("Capture")}>Capture viewport</Button>
-                  <Button size="sm" disabled={!latestRun} title="Insert a link to the latest run" onClick={() => setBody((b) => `${b} calflab://run/${latestRun.id}`)}>Link run</Button>
-                  <Button size="sm" disabled={!latestDesign} title="Insert a link to the latest design" onClick={() => setBody((b) => `${b} calflab://design/${latestDesign.id}`)}>Link design</Button>
+                  <select
+                    value=""
+                    disabled={!runs.length}
+                    title="Insert a link to a run: the one replaying in the viewport (click it in Runs), or any other"
+                    data-testid="link-run"
+                    onChange={(e) => e.target.value && insert(`calflab://run/${e.target.value}`)}
+                  >
+                    <option value="">Link run...</option>
+                    {replaying && <option value={replaying}>Selected in Runs: {replaying}</option>}
+                    {runs.map((r) => (
+                      <option key={r.id} value={r.id}>
+                        {r.created.slice(0, 16).replace("T", " ")} · {r.kind} · {r.title}{r.fitness === null ? "" : ` · fitness ${fmt(r.fitness, 2)}`}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    value=""
+                    disabled={!designs.length}
+                    title="Insert a link to a baked design"
+                    data-testid="link-design"
+                    onChange={(e) => e.target.value && insert(`calflab://design/${e.target.value}`)}
+                  >
+                    <option value="">Link design...</option>
+                    {designs.map((d) => <option key={d.id} value={d.id}>{d.id}</option>)}
+                  </select>
                   <Button size="sm" variant="primary" onClick={save}>Save</Button>
                 </>
               ) : (
@@ -337,7 +373,7 @@ export function JournalPanel() {
               )}
             </div>
             {editing ? (
-              <textarea className="min-h-0 flex-1 resize-none rounded-none border-0 p-2 font-mono text-[12px]" value={body} placeholder="Write in Markdown..." onChange={(e) => setBody(e.target.value)} />
+              <textarea ref={area} className="min-h-0 flex-1 resize-none rounded-none border-0 p-2 font-mono text-[12px]" value={body} placeholder="Write in Markdown..." onChange={(e) => setBody(e.target.value)} />
             ) : (
               <PanelScroll className="p-3"><Rendered body={body} captures={captures} /></PanelScroll>
             )}

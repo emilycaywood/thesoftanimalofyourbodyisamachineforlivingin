@@ -3,7 +3,7 @@ import clsx from "clsx";
 import { Eye, EyeOff, Lock, LockOpen, RotateCcw, X } from "lucide-react";
 import { useEffect, useMemo, useRef } from "react";
 import { api } from "@/api/client";
-import { execute } from "@/commands/registry";
+import { execute, replayRun } from "@/commands/registry";
 import { Badge, Button, Empty, IconButton, Kbd, PanelScroll, fmt } from "@/components/ui";
 import { useLab } from "@/store/lab";
 import { usePlayback } from "@/store/playback";
@@ -161,7 +161,6 @@ export function JobsPanel() {
 export function RunsPanel() {
   const runs = useLab((s) => s.runs);
   const current = usePlayback((s) => s.runId);
-  const log = useLab((s) => s.log);
   const sims = runs.filter((r) => r.kind === "sim");
   if (!sims.length) {
     return (
@@ -180,12 +179,13 @@ export function RunsPanel() {
           {sims.map((r) => (
             <tr
               key={r.id}
-              className={clsx("cursor-default hover:bg-bg3", current === r.id && "bg-accent/25")}
+              className={clsx("cursor-pointer hover:bg-bg3", current === r.id && "bg-accent/30 font-semibold")}
               data-run={r.id}
-              onClick={() => void usePlayback.getState().loadRun(r.id).catch((e) => log("error", e.message))}
-              title="Click to replay this run"
+              data-current={current === r.id || undefined}
+              onClick={() => void replayRun(r.id)}
+              title="Click to replay this run in the viewport"
             >
-              <td className="px-2 font-mono text-[11px]">{r.id}</td>
+              <td className="px-2 font-mono text-[11px]">{current === r.id ? "\u25B6 " : ""}{r.id}</td>
               <td className="truncate">{r.title}</td>
               <td>{fmt(r.fitness, 3)}</td>
               <td>{r.seed ?? "-"}</td>

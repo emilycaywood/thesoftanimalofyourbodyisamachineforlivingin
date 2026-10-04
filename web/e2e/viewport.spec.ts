@@ -19,7 +19,7 @@ async function shot(canvas: Locator, name: string) {
 }
 
 /** The active gumball arrow in page coordinates (the viewport publishes it on the canvas). */
-async function arrow(page: Page, canvas: Locator, param: string) {
+async function arrow(canvas: Locator, param: string) {
   await expect(canvas).toHaveAttribute("data-gumball", new RegExp(`^${param} `));
   // the camera frames the robot shortly after load; wait until the arrow stops moving
   let last = "";
@@ -47,7 +47,7 @@ test("dragging the gumball arrow overrides one leg segment", async ({ page }) =>
   const hud = page.getByTestId("gumball-hud");
   const value = hud.locator('input[type="text"]');
   await expect(value).toHaveValue("170");
-  const a = await arrow(page, canvas, "length");
+  const a = await arrow(canvas, "length");
   expect(a.len).toBeGreaterThan(60); // a handle you can see and catch, at any zoom
   await shot(canvas, "gumball-leg");
 
@@ -77,9 +77,9 @@ test("dragging the gumball arrow overrides one leg segment", async ({ page }) =>
   // the trunk has a handle per dimension; picking another one in the bar moves the active arrow
   await page.locator('[data-tree-id="trunk"]').click();
   await expect(hud).toContainText("trunk");
-  const length = await arrow(page, canvas, "length");
+  const length = await arrow(canvas, "length");
   await hud.locator("select").first().selectOption("height");
-  const height = await arrow(page, canvas, "height");
+  const height = await arrow(canvas, "height");
   expect(Math.hypot(height.x - length.x, height.y - length.y)).toBeGreaterThan(20);
   await shot(canvas, "gumball-trunk");
 

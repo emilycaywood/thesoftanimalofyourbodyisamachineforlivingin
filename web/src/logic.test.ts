@@ -130,7 +130,7 @@ describe("workspaces", () => {
   it("has the nine workspaces from the brief and only known panels", () => {
     expect(WORKSPACES.map((w) => w.label)).toEqual(["Form", "Mechanism", "Simulate", "Evolve", "Behave", "Fabricate", "Wire", "Deploy", "Journal"]);
     for (const w of WORKSPACES) {
-      for (const id of [...w.center, ...w.left, ...w.right, ...w.bottom]) expect(PANEL_IDS, `${w.id}: ${id}`).toContain(id);
+      for (const id of [...w.center, ...(w.beside ?? []), ...w.left, ...w.right, ...w.bottom]) expect(PANEL_IDS, `${w.id}: ${id}`).toContain(id);
     }
   });
 });
