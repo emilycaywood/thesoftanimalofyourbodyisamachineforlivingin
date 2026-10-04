@@ -183,12 +183,16 @@ Genome sliders grouped by Trunk, Legs, Neck and head, Tail and ears, Mechanism,
 Shell and skin, Sensing; live mass against the 7 kg target, height, length and
 centre of mass. *(planned: reference images on view planes)*
 
-Under Legs, **Hind knee forward** and **Front knee forward** choose which way
-each pair of knees bends (both off = all four point backward). Turn on the
-*Joint axes + limit arcs* overlay to see the limit arc and the standing tick
-flip. The default trot is tuned for backward knees: with either toggle on
-the calf falls until the gait is re-tuned (Evolve does that). A leg closer to
-a real calf's is proposed in `docs/proposals/anatomical-leg.md`.
+Under Legs, **Front knee forward** and **Hind knee forward** choose which way
+each pair of knees bends. New projects start with front knees forward and
+hind knees backward, and with a trot tuned for that body. Turn on the *Joint
+axes + limit arcs* overlay to see the limit arc and the standing tick flip.
+
+Projects, runs, candidates and baked designs made before 2026-10-04 keep the
+backward front knees they were made with. To bring an older document to the
+new default: *Reset to defaults* in Form (genes, including the knees) and
+*Reset to defaults* on the Controller section in Simulate (the gait), or just
+switch **Front knee forward** on and reset the gait. Each is one undo step.
 
 ### Mechanism
 Actuator choice per joint group and knee drive (direct or belt), and a
@@ -198,7 +202,8 @@ in that run. Every actuator carries an **unverified** badge until you check
 its data (section 9). *(planned: range-of-motion sweep, interference check)*
 
 ### Simulate
-Controller (CPG gait: trot, walk, pace, bound), simulation settings (duration,
+Controller (CPG gait: trot, walk, pace, bound; *Reset to defaults* restores
+the default trot), simulation settings (duration,
 seed, start pose, pushes), model settings (terrain, servo model, skin on/off,
 domain randomization) and the fitness preset. **F5** runs it; body poses stream
 into the viewport. The **Timeline** scrubs the run and plots any channel
@@ -251,6 +256,11 @@ was evaluated with, they are replaced by the run's and the log says so;
 otherwise the adopted body would not be the one that was scored.
 All candidates and their parents are stored in the registry.
 *(planned: Pareto front, parallel coordinates, interactive selection)*
+
+A caution on evolved gaits: the simulator limits each motor's torque but not
+its speed. Evolution can therefore find fast gaits the real servos could not
+follow (the default trot was tuned with joint speed capped at 120 deg/s for
+this reason; ADR-047). Read high stride frequencies with that in mind.
 
 ### Fabricate
 Parts list by ID and exporters: *Leg segment (CAD)* produces a printable

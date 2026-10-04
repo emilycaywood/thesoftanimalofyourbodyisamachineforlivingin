@@ -71,7 +71,7 @@ Blender and the labels on fabricated parts.
   18 plus a root.)
 - Each leg is simplified to two segments, thigh and shank, with a hoof.
 - Default design: 5.0 kg (target at most 7 kg), 608 mm tall, about 700 mm
-  long. It trots at 0.36 m/s in simulation.
+  long. It trots at 0.51 m/s in simulation.
 - Default motors: Dynamixel XM430-W350 on hip abduction, Dynamixel XH540-W270
   on hip flexion and knee, Feetech STS3215 on neck, head, tail and ears.
 - Electronics: Teensy 4.1 (low-level control), Raspberry Pi 5 (behavior), a
@@ -294,7 +294,7 @@ may change; the rest are choices I make.
 | Legs | `hoof_radius` | 20 | 12-32 | Hoof radius |
 | Legs | `knee_bend` | 40 | 10-80 deg | Knee flexion when standing |
 | Legs | `hind_knee_forward` | off | on/off | Hind knees point forward. Not evolvable |
-| Legs | `front_knee_forward` | off | on/off | Front knees point forward. Not evolvable |
+| Legs | `front_knee_forward` | on | on/off | Front knees point forward. Not evolvable. Work saved before 2026-10-04 keeps it off |
 | Neck and head | `neck_length` | 160 | 80-260 | |
 | Neck and head | `neck_angle` | 50 | 10-80 deg | Neck elevation when standing |
 | Neck and head | `neck_radius` | 32 | 20-50 | |
@@ -345,12 +345,12 @@ swings the legs, with no feedback from sensors. Parameters:
 | Parameter | Default | Range | Meaning |
 |---|---|---|---|
 | `gait` | trot | trot, walk, pace, bound | Footfall pattern |
-| `frequency` | 1.6 Hz | 0.4-3.5 | Strides per second |
-| `hip_amplitude` | 14 deg | 0-40 | Half of the hip sweep |
-| `knee_amplitude` | 24 deg | 0-60 | Extra knee lift during swing |
-| `swing_fraction` | 0.4 | 0.2-0.6 | Share of the stride with the foot in the air |
-| `hip_offset` | 0 deg | -20 to 20 | Constant hip bias (positive = legs further back) |
-| `crouch` | 0 deg | -15 to 30 | Extra knee flexion in stance |
+| `frequency` | 2.0 Hz | 0.4-3.5 | Strides per second |
+| `hip_amplitude` | 10.5 deg | 0-40 | Half of the hip sweep |
+| `knee_amplitude` | 10.5 deg | 0-60 | Extra knee lift during swing |
+| `swing_fraction` | 0.55 | 0.2-0.6 | Share of the stride with the foot in the air |
+| `hip_offset` | -3 deg | -20 to 20 | Constant hip bias (positive = legs further back) |
+| `crouch` | -7 deg | -15 to 30 | Extra knee flexion in stance (negative = straighter legs) |
 | `abduction_amplitude` | 0 deg | 0-15 | Sideways sway of the hips |
 | `ramp` | 0.8 s | 0-3 | Time to ease in from standing |
 

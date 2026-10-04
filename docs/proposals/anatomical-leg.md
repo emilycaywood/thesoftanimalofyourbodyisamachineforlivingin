@@ -1,7 +1,10 @@
 # Proposal: a leg that is more faithful to a calf
 
-Status: **proposal, nothing built.** Written 2026-10-03 at the researcher's
-request. It needs a decision before any code changes (questions at the end).
+Status: **set aside by the researcher on 2026-10-04, nothing built.** The
+body needs forward-facing front knees on the current two-segment leg, not
+another joint. That is now the default, with a gait tuned for it (ADR-047).
+The text below is kept for the day a two-bend leg is wanted; its section "An
+intermediate step" describes the state before the retune and is out of date.
 
 ## Where we are
 

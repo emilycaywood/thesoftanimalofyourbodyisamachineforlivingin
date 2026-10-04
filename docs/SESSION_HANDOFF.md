@@ -1,9 +1,10 @@
 # CALFLAB session handoff
 
 Everything a new Claude Code session (or a new collaborator) needs to pick up
-CALFLAB. Last updated 2026-10-03 on branch `phase-1-vertical-slice`, after the
+CALFLAB. Last updated 2026-10-04 on branch `phase-1-vertical-slice`, after the
 session that worked through the researcher's first walkthrough by hand (six
-fixes, section 4; run `git log --oneline -12` for the current state).
+fixes) and then made forward front knees, with a gait tuned for them, the
+default (section 4; run `git log --oneline -12` for the current state).
 
 ---
 
@@ -102,7 +103,7 @@ pull request #1 into `main`
 The repository is **public**. `main` still has only the initial commit; the
 researcher merges.
 
-**Tests:** `calflab test` passes: ruff, 214 pytest tests, mypy, web typecheck
+**Tests:** `calflab test` passes: ruff, 219 pytest tests, mypy, web typecheck
 and eslint, 14 Vitest tests, 5 Playwright tests (smoke, gumball drag and
 harness overlay with a real mouse, runs + journal, evolve from a design).
 `calflab doctor` is clean apart from three optional warnings (Graphviz, no
@@ -119,7 +120,8 @@ was a false alarm, fixed 2026-10-03. uv is installed and is what
   with lineage, journal with captures.
 * Simulation: genome -> RobotSpec -> MJCF -> MuJoCo (CPU) with a CPG gait,
   skin model, domain-randomization hooks, metrics. The reference calf is
-  5.0 kg, 608 mm tall and trots at 0.36 m/s in simulation.
+  5.0 kg, 608 mm tall, has forward front knees and backward hind knees, and
+  trots at 0.51 m/s in simulation (since 2026-10-04, ADR-047).
 * Evolve: MAP-Elites (pyribs) + CMA-ES inner loop on the local process pool.
 * Web lab: Form, Mechanism, Simulate, Evolve, Fabricate, Wire, Journal
   workspaces; viewport, schema-driven panels, node editor, command line.
@@ -143,8 +145,7 @@ was a false alarm, fixed 2026-10-03. uv is installed and is what
 **Added 2026-10-03, after the researcher's first walkthrough by hand:**
 
 * `front_knee_forward` gene (Form > Legs), the counterpart of
-  `hind_knee_forward`. Default off, no migration. The default trot falls
-  with either knee toggle on: the gait needs tuning for forward knees.
+  `hind_knee_forward`.
 * Gumball: an arrow per handle parameter, visible and draggable (was a
   one-pixel line hidden inside the part). The bar follows the drag.
 * Harness routes are drawn over the body in the web viewport (on by default
@@ -161,6 +162,26 @@ was a false alarm, fixed 2026-10-03. uv is installed and is what
 * Overrides and evolution: the starting point's enabled overrides are built
   into every candidate and never vary; candidates are shown, replayed and
   adopted with the overrides of their run (ADR-044).
+
+**Added 2026-10-04 (researcher's decision: the final body has forward front
+knees; no extra leg joint is wanted):**
+
+* `front_knee_forward` defaults to **on** for new projects. Anything saved
+  before the gene existed (documents, undo records, runs, candidates, baked
+  designs) keeps backward front knees: the gene definition carries
+  `absent: false`, the value of a genome that does not mention it (ADR-047).
+  No genome version bump, no migration.
+* The default CPG trot was re-tuned for that body: 2.0 Hz, hip 10.5 deg,
+  knee 10.5 deg, swing 0.55, hip offset -3 deg, crouch -7 deg. In simulation:
+  0.51 m/s, stability 0.93, 6.2 W, lowest leg torque margin 0.41, no fall in
+  60 s. One shared set of numbers was enough; no front/hind gait parameters.
+* `reset_node_params` command and a *Reset to defaults* button on the
+  Controller section, so an existing document can take the new gait.
+* Found while tuning: **the simulator does not limit joint speed**, only
+  torque. The default gait was tuned with commanded joint speed capped at
+  120 deg/s (two thirds of the XH540-W270's recorded, unverified 30 rpm).
+  Gaits from Evolve are not capped and can be faster than the servos.
+* The three-segment leg proposal is set aside (kept in `docs/proposals/`).
 
 **Scaffolded only (interfaces + tests, no behaviour):** PPO training, MJX
 simulator, RemoteSSH and CloudNotebook transports (job bundling is real),
@@ -206,14 +227,19 @@ Journal, Rhino bridge):**
   datasheets): fill in `docs/component_verification.csv`, correct the YAML,
   set `verified: true`. All 14 components the design uses are unverified, so
   the $5,253 BOM, 5.0 kg mass and ~25 min runtime all rest on them.
-* Torque: in the default trot `act.fr.hip_abd` (XM430-W350) reaches its
-  usable torque (2.46 N*m = stall x 0.6) and the neck pitch servo (STS3215)
-  has 3 % margin. Either the hip-abduction actuator is undersized, the 0.6
-  derating is too cautious, or the gait is too wide: a design decision.
+* Torque: with the default trot of 2026-10-04 no leg actuator is near its
+  limit (lowest margin 41 %, hip flexion); the neck pitch servo (STS3215) has
+  16 %. The earlier finding that `act.fr.hip_abd` saturates belonged to the
+  old gait; it can return with other gaits, so re-read the torque table
+  after changing the gait.
+* Joint speed: the 120 deg/s cap behind the default gait rests on the
+  XH540-W270's no-load speed (30 rpm), which is unverified like every other
+  component value. A torque-speed curve in the servo model is the proper
+  fix (next session F).
+* The default trot veers when left running (open loop): 0.15 m sideways in
+  20 s, 2.6 m in 60 s.
 * Proportions and mass model (ADR-015, ADR-017); skin, servo and thermal
   coefficients (ADR-018, ADR-019); the two-segment leg simplification.
-* `docs/proposals/anatomical-leg.md`: four decisions are needed before a
-  three-segment leg (carpus at the front, hock at the back) is built.
 * Harness: only battery, leg buses, neck bus, IMU and Pi link are routed.
   Foot, touch and microphone sensors have no cables in the model; adding
   them needs connector and wire choices (ADR-043).
@@ -261,8 +287,8 @@ Journal, Rhino bridge):**
 |---|---|
 | `CLAUDE.md` | Conventions for every session (loaded automatically) |
 | `PLAN.md` | Architecture, module boundaries, data flow, phases, risks, status |
-| `DECISIONS.md` | ADR log: every assumption (46 so far) |
-| `docs/proposals/anatomical-leg.md` | Proposal for a three-segment leg (not built; decisions needed) |
+| `DECISIONS.md` | ADR log: every assumption (47 so far) |
+| `docs/proposals/anatomical-leg.md` | Proposal for a three-segment leg (set aside 2026-10-04; not built) |
 | `docs/USER_GUIDE.md` | How to use the lab |
 | `docs/component_verification.csv` | Datasheet verification worksheet (the researcher fills it in) |
 | `bridges/rhino/README.md`, `bridges/blender/README.md` | Bridge install, conventions, what is verified |
@@ -312,19 +338,19 @@ Prefix each with the opening message from section 1.
 > Python components, fix whatever breaks in server/calflab_server/hops.py,
 > and update bridges/rhino/README.md.
 
-**E. Leg anatomy (after deciding the questions in the proposal)**
-> Read docs/proposals/anatomical-leg.md. My decisions are: <silhouette or
-> locomotion>, <actuation option A, B or C>, <keep or rename joint IDs>,
-> <proportions: assumed or from my measurements in ...>. Implement the
-> three-segment leg accordingly: genome v3 with a migration that keeps every
-> stored run and design loading, the standing pose, the CPG, harness, CAD
-> leg segment and bridges; re-tune the default trot; supersede ADR-015 with
-> a new ADR; re-run the Rhino and Blender bridge checks on a scratch project.
+**E. The sample project on the new default**
+> My working document in projects/sample-calf still has backward front knees
+> and an adopted evolved gait. Tell me what it would change, then (after I
+> say yes) bake the current state as a design so nothing is lost, switch
+> front_knee_forward on, reset the gait to the default, simulate, and show
+> me the torque-margin table and speed before and after.
 
-**F. Gaits for forward knees**
-> With front_knee_forward on (and separately hind_knee_forward on) the
-> default trot falls. Use the Evolve inner loop (CMA-ES over the CPG, body
-> fixed) from a scratch project to find a gait that does not fall for each
-> knee configuration, report speed and stability against the default, and
-> propose whether the CPG needs a per-pair knee phase or amplitude.
-
+**F. Motor speed in the simulator**
+> The servo model limits torque but not speed (ADR-047). Add a torque-speed
+> curve to the servo model in core/calflab/sim (available torque falling
+> linearly to zero at the actuator's no_load_speed_rpm), a "speed margin"
+> metric beside the torque margin, and a column for it in the Mechanism
+> table. Show how the default trot and my evolved gaits fare with it, and
+> whether the 120 deg/s cap used for the default was too cautious or not
+> cautious enough. Do not change component values; flag which results rest
+> on unverified speeds.

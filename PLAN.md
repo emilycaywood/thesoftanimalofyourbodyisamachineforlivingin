@@ -183,7 +183,9 @@ gumball that can be seen and dragged and harness routes that are drawn, in
 the web viewport and in Rhino (ADR-042, ADR-043), loading a baked design and
 evolving from one (ADR-044), a gene table for archive candidates (ADR-045),
 and run rows / journal links that replay visibly (ADR-046). A three-segment
-leg is proposed, not built: `docs/proposals/anatomical-leg.md`.
+leg was proposed and set aside: `docs/proposals/anatomical-leg.md`. On
+2026-10-04 forward front knees became the default body, with a default trot
+re-tuned for it (ADR-047); earlier work keeps backward knees.
 
 Not verified on real software: Hops against a live Grasshopper (Hops is not
 installed), and most things done by hand with the mouse in Grasshopper and

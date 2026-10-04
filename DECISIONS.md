@@ -217,7 +217,8 @@ creating a duplicate record. Change the seed to force a new run.
 ## ADR-032 — Default CPG and fitness numbers are starting points (**VERIFY**)
 The CPG defaults (1.6 Hz trot, 14 deg hip sweep, 24 deg knee lift) and the
 `walk` preset weights were chosen so the reference calf walks in simulation;
-they are not derived from calf gait data. The simulated speed (~0.36 m/s for
+they are not derived from calf gait data. (Defaults replaced on 2026-10-04,
+see ADR-047; the reasoning here still holds.) The simulated speed (~0.36 m/s for
 the default, up to ~0.8 m/s after evolution) says nothing about the real robot
 until actuator and skin parameters are identified (Phase 3).
 
@@ -294,14 +295,12 @@ untested: Hops is not installed on this machine and was not installed by the
 session (installing software into Rhino is the researcher's call).
 
 ## ADR-041 — Front knee direction is a gene, added without a genome version bump
-`front_knee_forward` (bool, default off, not evolvable) sits next to
-`hind_knee_forward`. Off reproduces the previous behaviour, so genome v2
-genomes, runs and designs are unchanged and no migration is registered
-(adding a gene with a default needs none). The two toggles are an interim
-answer to the two-segment simplification of ADR-015; the proposal for a
-three-segment leg is `docs/proposals/anatomical-leg.md` and is not built. The
-default trot is tuned for backward knees and falls with either toggle on
-(**VERIFY** by re-tuning the gait before reading anything into that).
+`front_knee_forward` (bool, not evolvable) sits next to `hind_knee_forward`.
+It was added with default off; ADR-047 made forward the default and records
+how older genomes keep backward knees. No migration is registered. The
+proposal for a three-segment leg (`docs/proposals/anatomical-leg.md`) was
+written and then set aside by the researcher on 2026-10-04: the body needs
+forward front knees on the current two-segment leg, not another joint.
 
 ## ADR-042 — Viewport handles and cables are drawn over the model
 The gumball is CALFLAB's own arrow (one per `ParamValue.handle_axis`), not
@@ -354,4 +353,44 @@ Clicking a run (Runs panel, a journal link) loads it and activates the
 viewport panel; in the Journal workspace the viewport sits beside the
 journal instead of behind it (`beside` in `web/src/workspaces.ts`).
 `LAYOUT_VERSION` is 4: saved dock layouts were reset once.
+
+## ADR-047 — Forward front knees and a gait tuned for them are the default (**VERIFY**)
+Decided by the researcher on 2026-10-04: the final body has forward-facing
+front knees, so `front_knee_forward` defaults to on for new projects.
+
+*Existing work is not changed.* A gene definition may carry `absent`: the
+value a stored genome had before the gene existed. `front_knee_forward` has
+`default: true, absent: false`, and `GenomeDefinition.complete` fills a
+missing gene with `absent`. Every document, undo record, run, candidate and
+baked design saved before the gene existed therefore still builds backward
+front knees; `reset_genes` and new projects get the default. This needs no
+genome version bump and no migration, and unlike a migration it also covers
+graph node parameters and the command log, which carry no genome version.
+
+*The gait.* The old default trot fell on this body. The CPG defaults are now
+frequency 2.0 Hz, hip amplitude 10.5 deg, knee amplitude 10.5 deg, swing
+fraction 0.55, hip offset -3 deg, crouch -7 deg (trot). Found with CMA-ES
+over the six CPG parameters, body fixed, `walk` fitness preset, 8 s rollouts,
+then rounded. In simulation on the default body: 0.51 m/s over 20 s (old
+default on backward knees: 0.39), stability 0.93 (0.74), mean power 6.2 W
+(10.2), lowest leg torque margin 0.41 (0.00: hip abduction was saturated), no
+fall in 60 s, unchanged at floor friction 0.6 and 1.2. It is open loop and
+veers: 0.15 m sideways in 20 s, 2.6 m in 60 s. The one shared set of numbers
+was enough; no separate front/hind gait parameters were added.
+
+*Joint speed is not simulated.* The servo model limits torque, not speed.
+The unconstrained optimum was a 3 Hz trot at 0.9 m/s that commands about
+260 deg/s at the hip; the recorded no-load speed of the leg servo (XH540-W270,
+30 rpm, unverified) is 180 deg/s, and at no-load speed a motor has no torque
+left. The search was therefore repeated with the peak *commanded* joint speed
+held at 120 deg/s (two thirds of that figure) and the default is from that
+search. The old default commanded about 300 deg/s at the knee. Until the
+simulator has a torque-speed curve, gaits found by Evolve can exceed what
+the motors can follow; 120 deg/s rests on an unverified datasheet value.
+
+Controller parameters are stored in each document, so existing documents
+keep their gait. New projects get the new one; in an existing document
+*Reset to defaults* on the Controller section (`reset_node_params
+node=controller`) brings it in, and *Reset to defaults* in Form brings the
+forward knees. Both are undoable.
 
