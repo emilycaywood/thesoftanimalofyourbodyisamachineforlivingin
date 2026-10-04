@@ -249,10 +249,12 @@ CALFLAB keeps two layers and never mixes them silently.
    editing it by hand, except that it stays listed and reversible.
 
 **Making an override with the handle (gumball).** Select a leg segment or the
-trunk. A handle appears, with a bar at the bottom of the viewport such as
+trunk. An arrow appears at the end of the part (one on a leg segment, three on
+the trunk), with a bar at the bottom of the viewport such as
 `leg.fl.shank  length  [170] mm  [Override this part]`.
 
-- Drag the handle, or type a value in the bar and press Enter.
+- Drag the arrow with the left button (the bar follows), or type a value in
+  the bar and press Enter.
 - **Override this part** changes only that one part.
 - **Drive gene** changes the gene behind it, so every part sharing that gene
   follows (all four shanks, for example).
@@ -367,7 +369,7 @@ a world that differs from the model.
 
 *Timeline:* scrubs the run and plots any channel (speed, pitch, roll, power,
 per-actuator torque and temperature, foot forces) with a cursor synced to the
-viewport. *Runs* lists every recorded run; click one to replay it.
+viewport. *Runs* lists every recorded run; click a row to replay it in the viewport.
 
 *Metrics:* forward speed, distance, lateral drift, cost of transport (energy
 per weight per distance; lower is better), stability (low trunk roll and
@@ -400,11 +402,17 @@ the compute backend.
 Rough cost: generations x batch x (inner iterations x inner population + 1)
 simulations. Start small. It uses half my CPU cores by default.
 
+*Start from* chooses the starting design: the working document, or a baked
+design (the document is then left alone). Enabled overrides of the starting
+design are built into every candidate and do not evolve.
+
 **Start evolution**, then watch the *Archive* tab: the heatmap fills in, with
 fitness over generations, coverage and rollout count. **Click a cell** to
-replay that candidate and see its fitness terms and lineage (its parents).
+replay that candidate and see its fitness terms, lineage (its parents) and
+its genes as differences from the current design and from its parent; *Pin
+to compare* adds a column against a second candidate.
 **Adopt into design** loads it into the document; that is undoable. Planned:
-Pareto front, parallel coordinates, interactive selection, compare.
+Pareto front, parallel coordinates, interactive selection.
 
 *Fitness presets:*
 
@@ -452,9 +460,10 @@ drawing needs Graphviz (`winget install Graphviz.Graphviz`); without it a
 simple built-in diagram is shown.
 
 ### Journal
-Markdown entries stored in the project's `journal/` folder. *Link run* and
-*Link design* insert live links (`calflab://run/<id>`,
-`calflab://design/<id>`). *Capture viewport* attaches an image with its
+Markdown entries stored in the project's `journal/` folder. *Link run...* and
+*Link design...* are lists to choose from (the run last clicked in *Runs* is
+on top); they insert live links (`calflab://run/<id>`,
+`calflab://design/<id>`) at the caret. *Capture viewport* attaches an image with its
 provenance.
 
 ### Behave (planned, Phase 4) and Deploy (planned, Phase 3)

@@ -1,10 +1,9 @@
 # CALFLAB session handoff
 
 Everything a new Claude Code session (or a new collaborator) needs to pick up
-CALFLAB. Last updated 2026-10-01 on branch `phase-1-vertical-slice`, after the session
-that pushed the branch, added the component audit and checked the bridges
-inside Rhino, Grasshopper and Blender (run `git log --oneline -8` for the
-current state).
+CALFLAB. Last updated 2026-10-03 on branch `phase-1-vertical-slice`, after the
+session that worked through the researcher's first walkthrough by hand (six
+fixes, section 4; run `git log --oneline -12` for the current state).
 
 ---
 
@@ -103,9 +102,13 @@ pull request #1 into `main`
 The repository is **public**. `main` still has only the initial commit; the
 researcher merges.
 
-**Tests:** `calflab test` passes: ruff, 209 pytest tests, mypy, web typecheck
-and eslint, 13 Vitest tests, 1 Playwright smoke test. `calflab doctor` is
-clean apart from optional warnings (Graphviz, no CUDA, unverified components).
+**Tests:** `calflab test` passes: ruff, 214 pytest tests, mypy, web typecheck
+and eslint, 14 Vitest tests, 5 Playwright tests (smoke, gumball drag and
+harness overlay with a real mouse, runs + journal, evolve from a design).
+`calflab doctor` is clean apart from three optional warnings (Graphviz, no
+CUDA, unverified components). It used to warn "uv not found" as well: that
+was a false alarm, fixed 2026-10-03. uv is installed and is what
+`calflab.ps1` runs everything through; nothing needs installing.
 
 **Built and working (Phase 1 vertical slice):**
 
@@ -137,6 +140,28 @@ clean apart from optional warnings (Graphviz, no CUDA, unverified components).
   numerically (`bridge blender --check`), and the sidebar panel clicked with
   simulated mouse events (`bridge blender --check-ui`).
 
+**Added 2026-10-03, after the researcher's first walkthrough by hand:**
+
+* `front_knee_forward` gene (Form > Legs), the counterpart of
+  `hind_knee_forward`. Default off, no migration. The default trot falls
+  with either knee toggle on: the gait needs tuning for forward knees.
+* Gumball: an arrow per handle parameter, visible and draggable (was a
+  one-pixel line hidden inside the part). The bar follows the drag.
+* Harness routes are drawn over the body in the web viewport (on by default
+  in the Wire workspace) and pulled into Rhino as polylines on
+  `CALFLAB::Harness`. `calflab.wiring.harness_paths` is the one source.
+* Baked designs: **Load** into the working document (`load_design`,
+  undoable) and **Evolve from** (`run_evolve design=<id>`); the Designs panel
+  is also in the Evolve workspace. Runs record what they started from.
+* Archive: a gene table for the clicked candidate (vs current design, vs
+  parent, vs a pinned candidate), computed by `Lab.candidate_genes`.
+* Runs rows replay visibly (they did work, but in the Journal workspace the
+  viewport was a hidden tab); the Journal has run and design pickers and the
+  viewport beside the editor.
+* Overrides and evolution: the starting point's enabled overrides are built
+  into every candidate and never vary; candidates are shown, replayed and
+  adopted with the overrides of their run (ADR-044).
+
 **Scaffolded only (interfaces + tests, no behaviour):** PPO training, MJX
 simulator, RemoteSSH and CloudNotebook transports (job bundling is real),
 imitation reward, interactive selection, molds, skin patterns, nesting,
@@ -150,13 +175,30 @@ audit has no panel in the web lab yet (CLI and `lab.analysis` only).
 
 * Hops endpoints against Grasshopper: Hops is not installed on this machine
   (Rhino `PackageManager` > Hops).
-* Rhino and Grasshopper by hand: how the pulled model looks, opening
-  `calflab_example.gh` on the canvas, dragging the slider, pressing the
-  buttons; `CalflabConnect` as a typed command; pushing a Brep or SubD.
+* Grasshopper by hand: opening `calflab_example.gh` on the canvas, dragging
+  the slider, pressing the buttons. Rhino by hand: pushing a SubD; looking
+  at the harness curves now pulled onto `CALFLAB::Harness`.
 * Blender by hand: posing in Pose Mode, typing in the panel's fields;
   Blender 4.2-4.5.
-* Web viewport by hand: dragging the gumball handle, window/crossing
-  selection, four-view, Rendered mode, mouse navigation presets.
+* Web viewport by hand: the new gumball arrows and harness overlay (checked
+  with a real mouse by Playwright, not yet by the researcher),
+  window/crossing selection, four-view, Rendered mode, mouse navigation
+  presets.
+
+**Checked by hand by the researcher (2026-10-03: web lab, Evolve, Wire,
+Journal, Rhino bridge):**
+
+* `CalflabConnect` typed as a command: works.
+* `CalflabPull`: the model looks right on first inspection (the Harness
+  layer was empty; fixed since, see above).
+* `CalflabPush` with a Brep (two boolean-unioned spheres, 2810 faces): works.
+  It shows in the web lab only while the Skin layer is visible there, which
+  is easy to miss: a pushed sculpt replaces the Skin geometry of its part.
+* `CalflabLiveSync`: works, follows override toggles and gene edits.
+* Typing a value in the gumball bar + *Override this part*: works (badge in
+  Properties, entry in Overrides).
+* `doctor` warned "uv not found" on top of the three expected warnings:
+  false alarm, fixed (see Tests above).
 
 **The researcher must verify:**
 
@@ -170,7 +212,17 @@ audit has no panel in the web lab yet (CLI and `lab.analysis` only).
   derating is too cautious, or the gait is too wide: a design decision.
 * Proportions and mass model (ADR-015, ADR-017); skin, servo and thermal
   coefficients (ADR-018, ADR-019); the two-segment leg simplification.
-* Known UX gap: in a new Blender file the default cube hides the calf.
+* `docs/proposals/anatomical-leg.md`: four decisions are needed before a
+  three-segment leg (carpus at the front, hock at the back) is built.
+* Harness: only battery, leg buses, neck bus, IMU and Pi link are routed.
+  Foot, touch and microphone sensors have no cables in the model; adding
+  them needs connector and wire choices (ADR-043).
+* Adopting a candidate now replaces the document's overrides when they
+  differ from the run's (ADR-044). Say if you would rather be asked first.
+* Known UX gaps: in a new Blender file the default cube hides the calf. In
+  the Evolve workspace the Archive and the Viewport are tabs of one group,
+  so the replay of a clicked cell is behind the Archive tab. A sculpt pushed
+  from Rhino is invisible in the web lab while the Skin layer is off.
 
 ---
 ## 5. Things about this machine that are not obvious
@@ -209,7 +261,8 @@ audit has no panel in the web lab yet (CLI and `lab.analysis` only).
 |---|---|
 | `CLAUDE.md` | Conventions for every session (loaded automatically) |
 | `PLAN.md` | Architecture, module boundaries, data flow, phases, risks, status |
-| `DECISIONS.md` | ADR log: every assumption (40 so far) |
+| `DECISIONS.md` | ADR log: every assumption (46 so far) |
+| `docs/proposals/anatomical-leg.md` | Proposal for a three-segment leg (not built; decisions needed) |
 | `docs/USER_GUIDE.md` | How to use the lab |
 | `docs/component_verification.csv` | Datasheet verification worksheet (the researcher fills it in) |
 | `bridges/rhino/README.md`, `bridges/blender/README.md` | Bridge install, conventions, what is verified |
@@ -233,9 +286,11 @@ Prefix each with the opening message from section 1.
 > UI). Update docs/USER_GUIDE.md.
 
 **B. Viewport and Form polish**
-> Exercise the web viewport by hand: gumball dragging, window/crossing
-> selection, four-view, Rendered mode and all three navigation presets; fix
-> defects. Then implement reference images on view planes (the
+> Check window/crossing selection, four-view, Rendered mode and all three
+> navigation presets in the web viewport with Playwright (real mouse, as
+> web/e2e/viewport.spec.ts does for the gumball); fix defects. Put the
+> Archive beside the Viewport in the Evolve workspace so a clicked cell's
+> replay is visible. Then implement reference images on view planes (the
 > `set_reference` command and `/api/assets` exist), endpoint/midpoint/axis
 > snaps, the angle measurement tool, and side-by-side run comparison in
 > Simulate. Keep all logic in the core, extend the Playwright smoke test, and
@@ -256,3 +311,20 @@ Prefix each with the opening message from section 1.
 > at the five /hops endpoints, solve them against the live lab like the GH
 > Python components, fix whatever breaks in server/calflab_server/hops.py,
 > and update bridges/rhino/README.md.
+
+**E. Leg anatomy (after deciding the questions in the proposal)**
+> Read docs/proposals/anatomical-leg.md. My decisions are: <silhouette or
+> locomotion>, <actuation option A, B or C>, <keep or rename joint IDs>,
+> <proportions: assumed or from my measurements in ...>. Implement the
+> three-segment leg accordingly: genome v3 with a migration that keeps every
+> stored run and design loading, the standing pose, the CPG, harness, CAD
+> leg segment and bridges; re-tune the default trot; supersede ADR-015 with
+> a new ADR; re-run the Rhino and Blender bridge checks on a scratch project.
+
+**F. Gaits for forward knees**
+> With front_knee_forward on (and separately hind_knee_forward on) the
+> default trot falls. Use the Evolve inner loop (CMA-ES over the CPG, body
+> fixed) from a scratch project to find a gait that does not fall for each
+> knee configuration, report speed and stability against the default, and
+> propose whether the CPG needs a per-pair knee phase or amplitude.
+

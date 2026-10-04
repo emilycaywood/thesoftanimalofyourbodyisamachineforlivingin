@@ -177,9 +177,18 @@ clicks. Those checks fixed three Rhino defects: the installer crashed on a
 second run, leg capsules could vanish after a gene edit (ADR-039), and a
 live-sync error could escape into Rhino's idle loop.
 
+The researcher's first walkthrough by hand (2026-10-03) found six problems,
+fixed in the session that followed: a front knee direction gene (ADR-041), a
+gumball that can be seen and dragged and harness routes that are drawn, in
+the web viewport and in Rhino (ADR-042, ADR-043), loading a baked design and
+evolving from one (ADR-044), a gene table for archive candidates (ADR-045),
+and run rows / journal links that replay visibly (ADR-046). A three-segment
+leg is proposed, not built: `docs/proposals/anatomical-leg.md`.
+
 Not verified on real software: Hops against a live Grasshopper (Hops is not
-installed), and anything done by hand with the mouse in Rhino, Grasshopper,
-Blender's Pose Mode or the web viewport.
+installed), and most things done by hand with the mouse in Grasshopper and
+Blender's Pose Mode. `docs/SESSION_HANDOFF.md` lists what the researcher has
+checked by hand in Rhino and the web lab.
 
 Scaffolded as stubs with interfaces and contract tests: PPO training, MJX
 simulator, RemoteSSH and CloudNotebook transports (job bundling and the

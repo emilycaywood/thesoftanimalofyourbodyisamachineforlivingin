@@ -292,3 +292,66 @@ saved file, so opening the example never edits the design. This supersedes
 the "recipe only" gap recorded in ADR-024. The Hops path of ADR-024 is still
 untested: Hops is not installed on this machine and was not installed by the
 session (installing software into Rhino is the researcher's call).
+
+## ADR-041 — Front knee direction is a gene, added without a genome version bump
+`front_knee_forward` (bool, default off, not evolvable) sits next to
+`hind_knee_forward`. Off reproduces the previous behaviour, so genome v2
+genomes, runs and designs are unchanged and no migration is registered
+(adding a gene with a default needs none). The two toggles are an interim
+answer to the two-segment simplification of ADR-015; the proposal for a
+three-segment leg is `docs/proposals/anatomical-leg.md` and is not built. The
+default trot is tuned for backward knees and falls with either toggle on
+(**VERIFY** by re-tuning the gait before reading anything into that).
+
+## ADR-042 — Viewport handles and cables are drawn over the model
+The gumball is CALFLAB's own arrow (one per `ParamValue.handle_axis`), not
+three's TransformControls: constant size on screen, pointing outward from the
+part, drawn after everything else without depth test. Harness routes are
+drawn the same way. Reason: both exist to be seen and picked, and both sit
+inside or against the shells. The drag-to-value conversion
+(`axisParam` in `web/src/viewport/viewLogic.ts`) is screen geometry and stays
+in the UI; clamping to the gene range is repeated by the server.
+The active arrow's screen position is published on the canvas element
+(`data-gumball`) so the Playwright test can drag it with a real mouse.
+
+## ADR-043 — A harness route is drawn along the path its length is measured on
+`calflab.wiring.harness_paths` returns, per route, source element ->
+origins of `via_bodies` -> destination element in the standing pose. The web
+overlay and the Rhino build list both draw exactly these points, so a drawn
+cable times the slack factor is its `length_mm`. It is a schematic path
+through joint centres, not a routed cable inside the shells, and only the
+routes the generator defines exist (battery, one bus per leg, neck bus, IMU,
+Pi link). Foot, touch and microphone sensors have no routes: adding them
+means choosing connectors and wire gauges, which is component data and is
+left to the researcher.
+
+## ADR-044 — Evolution starts from the document or from a baked design; overrides ride along
+`run_evolve(design=...)` takes body and gait (genome, generator and model
+parameters, controller, overrides) from a baked design and evaluation
+settings (fitness preset, simulation) from the working document, which it
+does not modify. The run records `parent = <design id>` and
+`inputs.start = {source, design | revision}`.
+The enabled overrides of the starting point are applied to every candidate
+and are never varied: an override is an explicit statement about one part,
+not a gene. Consequently a candidate is only reproduced by its genome *plus*
+the overrides of its run. Showing, replaying and adopting a candidate use
+the run's recorded overrides and model parameters; `adopt_candidate`
+replaces the document's overrides when they differ and logs that it did
+(rule 6: never silent). Runs recorded before this ADR have no `inputs.start`
+and are shown as started from the working document.
+`load_design` replaces the document's graph and overrides with the design's
+as one undoable command; layers, references and settings are kept.
+
+## ADR-045 — Candidate comparison is computed in the core
+`Lab.candidate_genes` returns every gene of a candidate with value, the
+reference values (working design, first parent or the run's starting design,
+an optional second candidate), numeric deltas and "differs" flags. The web
+panel only formats it. With two parents (line mutation) the comparison is
+against the first: the one the child was mutated from.
+
+## ADR-046 — Replaying a run brings the viewport forward
+Clicking a run (Runs panel, a journal link) loads it and activates the
+viewport panel; in the Journal workspace the viewport sits beside the
+journal instead of behind it (`beside` in `web/src/workspaces.ts`).
+`LAYOUT_VERSION` is 4: saved dock layouts were reset once.
+

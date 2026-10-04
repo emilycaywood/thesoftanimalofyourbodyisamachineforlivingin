@@ -115,8 +115,10 @@ command.
   components* (to select an actuator or a board). `Hide`, `Show`, `Isolate`.
 * **Overlays** (layers icon): centre of mass, joint axes with limit arcs (the
   white tick is the standing angle), support polygon, contact forces (during
-  playback), mass-budget colours, collision geometry only, harness routes,
-  sensors, ground grid. *(planned: inertia ellipsoids, torque/temperature heat
+  playback), mass-budget colours, collision geometry only, harness routes
+  (cables drawn over the body in every display mode, with a dot at each end;
+  always shown in the Wire workspace; hidden during playback), sensors,
+  ground grid. *(planned: inertia ellipsoids, torque/temperature heat
   map, range-of-motion sweep)*
 * **Measure** (M): click two points on the robot for a distance. *(planned:
   angle, clearance across the joint range)*
@@ -134,12 +136,16 @@ CALFLAB keeps two layers and never mixes them silently.
 2. **Explicit overrides**: direct edits of one part, stored as named records on
    top of the parametric result.
 
-**Make an override with the gumball.** Select a leg segment (or the trunk). A
-handle appears with a small bar at the bottom of the viewport:
+**Make an override with the gumball.** Select a leg segment (or the trunk).
+An arrow appears at the end of the part, pointing the way it grows, with a
+small bar at the bottom of the viewport:
 `leg.fl.shank  length  [170] mm  [Override this part]`.
+A leg segment has one arrow (length); the trunk has three (length red, width
+green, height blue). The arrow turns yellow under the cursor.
 
-* Drag the handle, or type an exact value in the bar and press Enter (typing
-  also works while you are dragging). Grid snap is in the status bar.
+* Drag the arrow with the left mouse button; the bar shows the value as you
+  drag. Or type an exact value in the bar and press Enter. Grid snap is in
+  the status bar. One drag is one undo step.
 * **Override this part** creates/updates an override for that one part.
 * **Drive gene** changes the gene behind the parameter instead, so all parts
   sharing it follow.
@@ -161,6 +167,13 @@ project as a record of how a design was reached.
 (`calf-v003`) with its genome, overrides, graph, evaluated spec, code version
 and a thumbnail. Baked designs are what you cite.
 
+**Bring a baked design back.** The *Designs* panel (Form, Evolve and Journal
+workspaces) shows every baked design with two buttons. **Load** replaces the
+working document's genes, graph and overrides with the design's (also
+`LoadDesign id=calf-v003`); Ctrl+Z brings the document back. **Evolve from**
+starts an evolution from the design without touching the document (see
+Evolve below).
+
 ---
 
 ## 5. Workspaces
@@ -169,6 +182,13 @@ and a thumbnail. Baked designs are what you cite.
 Genome sliders grouped by Trunk, Legs, Neck and head, Tail and ears, Mechanism,
 Shell and skin, Sensing; live mass against the 7 kg target, height, length and
 centre of mass. *(planned: reference images on view planes)*
+
+Under Legs, **Hind knee forward** and **Front knee forward** choose which way
+each pair of knees bends (both off = all four point backward). Turn on the
+*Joint axes + limit arcs* overlay to see the limit arc and the standing tick
+flip. The default trot is tuned for backward knees: with either toggle on
+the calf falls until the gait is re-tuned (Evolve does that). A leg closer to
+a real calf's is proposed in `docs/proposals/anatomical-leg.md`.
 
 ### Mechanism
 Actuator choice per joint group and knee drive (direct or belt), and a
@@ -184,7 +204,8 @@ domain randomization) and the fitness preset. **F5** runs it; body poses stream
 into the viewport. The **Timeline** scrubs the run and plots any channel
 (speed, pitch, roll, power, per-actuator torque and temperature, foot forces)
 with a cursor synced to the viewport. *Runs* lists every recorded run; click
-one to replay it. An identical simulation is not re-run: the recorded one is
+a row to replay it (the viewport comes to the front, the row is marked with
+a play triangle, and the status line says which run is replaying). An identical simulation is not re-run: the recorded one is
 reused. *(planned: side-by-side comparison, interactive push tool)*
 
 Metrics: forward speed, distance, cost of transport, stability, torque RMS and
@@ -192,14 +213,44 @@ peak, torque margin, first-order thermal estimate, foot impact speed (noise
 proxy), time to stand from lying, time at joint limits.
 
 ### Evolve
-Choose the optimizer (MAP-Elites + CMA-ES), budget, the two behavior
-descriptors of the archive, rollout length, fitness preset and compute
-backend, then **Start evolution**. The *Archive* tab shows the MAP-Elites
-heatmap filling in, fitness over generations, coverage and rollout count.
-**Click a cell** to replay that candidate in the viewport and see its fitness
-terms and lineage; **Adopt into design** loads it into the document (undoable).
+Choose what to **start from**, the optimizer (MAP-Elites + CMA-ES), budget,
+the two behavior descriptors of the archive, rollout length, fitness preset
+and compute backend, then **Start evolution**.
+
+*What evolution starts from.* **Working document** (the default): the design
+as it is now. Or any **baked design** (pick it under *Start from*, or press
+*Evolve from* in the Designs panel): then body, gait and overrides come from
+that design, the document is not changed, and the fitness preset and rollout
+length are still the ones in the panel. The first candidate is the starting
+design itself; the others vary its evolvable genes around it. Genes marked
+not evolvable (knee direction, actuators, has_tail...) stay as they are in
+the starting design. The run record stores the start: `parent` is the design
+id and `inputs.start` is `{source: design, design: <id>}` or
+`{source: document, revision: N}`; the Archive tab shows it above the heatmap
+and the list of past runs says `from <design>`.
+
+*Overrides are not genes.* The enabled overrides of the starting point are
+built into every candidate unchanged. A one-leg override (say
+`leg.fl.shank.length = 200`) keeps that shank at 200 mm in every candidate
+while `shank_length` evolves for the other three legs; it is never mutated
+and never removed. Disabled overrides are ignored.
+
+The *Archive* tab shows the MAP-Elites heatmap filling in, fitness over
+generations, coverage and rollout count. **Click a cell** to replay that
+candidate in the viewport and see its fitness terms, lineage and **genes**:
+each gene's value and its difference from the current design and from its
+parent (or from the starting design, for the first generation). The table
+lists the genes that differ; *show unchanged* lists all. **Pin to compare**
+keeps the selected candidate as an extra column: click another cell and the
+column *vs pinned* is the difference between the two bodies. Overrides built
+into the run are listed under the table. Nothing is adopted by looking.
+
+**Adopt into design** loads the candidate's genes and gait into the document
+(undoable). If the document's overrides differ from the ones the candidate
+was evaluated with, they are replaced by the run's and the log says so;
+otherwise the adopted body would not be the one that was scored.
 All candidates and their parents are stored in the registry.
-*(planned: Pareto front, parallel coordinates, interactive selection, compare)*
+*(planned: Pareto front, parallel coordinates, interactive selection)*
 
 ### Fabricate
 Parts list by ID and exporters: *Leg segment (CAD)* produces a printable
@@ -212,14 +263,24 @@ Select parts first to export only those. Files are written to
 ### Wire
 Power budget from the latest run's torque profile (mean/peak power, battery
 runtime), bill of materials with costs, links and unverified badges, and the
-harness with routed cable lengths and a diagram. WireViz YAML is exported
+harness with routed cable lengths and a diagram. The cables are drawn in the
+viewport (switch to the Viewport tab); click a row of the harness table to
+highlight that cable in yellow. Each cable is drawn along the path its
+length is measured on: from its source, through the origins of the leg
+parts it passes, to its destination, before slack. The model has the battery
+lead, one servo bus per leg (to the knee motor), the neck bus, the IMU and
+the Pi link; foot, touch and microphone sensors have no cables yet. WireViz YAML is exported
 always; the full WireViz drawing needs Graphviz (`winget install
 Graphviz.Graphviz`), otherwise a simple built-in diagram is shown.
 
 ### Journal
-Markdown entries stored in `journal/`. *Link run* / *Link design* insert live
-links (`calflab://run/<id>`, `calflab://design/<id>`); *Capture viewport*
-attaches an image with provenance.
+Markdown entries stored in `journal/`, with the viewport beside the editor
+and *Runs* and *Designs* on the right. *Link run...* is a list of every run
+(time, kind, title, fitness); the run you last clicked in *Runs* is at the
+top as "Selected in Runs". *Link design...* lists the baked designs. The
+link (`calflab://run/<id>`, `calflab://design/<id>`) goes in at the caret, so
+one entry can link several runs without typing an id. In a saved entry a run
+link replays that run. *Capture viewport* attaches an image with provenance.
 
 ### Behave *(planned, Phase 4)* and Deploy *(planned, Phase 3)*
 These tabs explain what will live there and list the plugins already
@@ -276,7 +337,8 @@ registry rebuild` recreates the index from the text files.
 All clients talk to the same running lab; an edit in one appears in the others.
 
 * **Rhino 8**: see `bridges/rhino/README.md`. `CalflabPull` brings the design in
-  as layered geometry with blocks and ID user text; `CalflabPush` sends sculpted
+  as layered geometry with blocks and ID user text, and the harness routes as
+  polylines on `CALFLAB::Harness`; `CalflabPush` sends sculpted
   geometry back as an override; `CalflabLiveSync` follows changes.
 * **Grasshopper**: open `bridges/rhino/grasshopper/calflab_example.gh` with the
   lab running: GetDesign shows the genome and mass; move the slider and switch
