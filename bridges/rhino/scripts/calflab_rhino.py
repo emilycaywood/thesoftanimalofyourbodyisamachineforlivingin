@@ -96,6 +96,9 @@ class DocAdapter(object):
     def add_line(self, a, b, layer, name, user_text):
         raise NotImplementedError
 
+    def add_polyline(self, points, layer, name, user_text):
+        raise NotImplementedError
+
     def redraw(self):
         raise NotImplementedError
 
@@ -124,8 +127,18 @@ def build(doc, build_list, annotations=True):
         for ann in build_list.get("annotations", []):
             doc.add_line(ann["from"], ann["to"], layer_index[ann["layer"]], ann["id"], ann["user_text"])
             lines += 1
+    curves = 0
+    for curve in build_list.get("curves", []):  # harness routes
+        doc.add_polyline(curve["points"], layer_index[curve["layer"]], curve["id"], curve["user_text"])
+        curves += 1
     doc.redraw()
-    return {"objects": count, "annotations": lines, "layers": len(layer_index), "blocks": len(build_list["blocks"])}
+    return {
+        "objects": count,
+        "annotations": lines,
+        "curves": curves,
+        "layers": len(layer_index),
+        "blocks": len(build_list["blocks"]),
+    }
 
 
 # ---------------------------------------------------------------------- Rhino implementation
@@ -275,6 +288,14 @@ class RhinoDocAdapter(DocAdapter):
         rg = self.Rhino.Geometry
         line = rg.Line(rg.Point3d(a[0], a[1], a[2]), rg.Point3d(b[0], b[1], b[2]))
         return self.doc.Objects.AddLine(line, self._attrs(layer, name, user_text))
+
+    def add_polyline(self, points, layer, name, user_text):
+        rg = self.Rhino.Geometry
+        pts = [rg.Point3d(float(p[0]), float(p[1]), float(p[2])) for p in points]
+        oid = self.doc.Objects.AddPolyline(pts, self._attrs(layer, name, user_text))
+        if str(oid) == "00000000-0000-0000-0000-000000000000":
+            raise BridgeError("Rhino rejected the harness route %s" % name)
+        return oid
 
     def redraw(self):
         self.doc.Views.Redraw()

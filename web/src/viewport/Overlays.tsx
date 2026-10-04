@@ -5,15 +5,35 @@ import { Grid, Line } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { useMemo, useRef } from "react";
 import * as THREE from "three";
-import type { LayerState, Scene } from "@/api/types";
+import type { LayerState, Scene, Vec3 } from "@/api/types";
 import { currentFrameIndex, usePlayback } from "@/store/playback";
 import { useView } from "@/store/view";
 
 const MAX_POLY = 16;
+// Drawn after the robot and without depth test: cables run inside the shells,
+// so anything less is hidden in Shaded and lost among the edges in Ghosted.
+const HARNESS_ORDER = 12;
+
+function HarnessRoute({ points, color, selected }: { points: Vec3[]; color: string; selected: boolean }) {
+  const shown = selected ? "#ffd54f" : color;
+  return (
+    <>
+      <Line points={points} color={shown} lineWidth={selected ? 5 : 3} depthTest={false} transparent renderOrder={HARNESS_ORDER} />
+      {[points[0], points[points.length - 1]].map((p, i) => (
+        <mesh key={i} position={p} renderOrder={HARNESS_ORDER}>
+          <sphereGeometry args={[selected ? 7 : 5, 12, 8]} />
+          <meshBasicMaterial color={shown} depthTest={false} transparent />
+        </mesh>
+      ))}
+    </>
+  );
+}
 
 export function Overlays({ scene, layers }: { scene: Scene; layers: Record<string, LayerState> }) {
   const overlays = useView((s) => s.overlays);
   const theme = useView((s) => s.theme);
+  const workspace = useView((s) => s.workspace);
+  const selection = useView((s) => s.selection);
   const playing = usePlayback((s) => s.source !== "none");
   const com = useRef<THREE.Group>(null);
   const comLine = useRef<THREE.Line>(null);
@@ -75,7 +95,8 @@ export function Overlays({ scene, layers }: { scene: Scene; layers: Record<strin
     }
   });
 
-  const harnessVisible = overlays.harness && !playing && layers.Harness?.visible !== false;
+  // the Wire workspace is about the harness, so it shows there without the overlay switch
+  const harnessVisible = (overlays.harness || workspace === "wire") && !playing && layers.Harness?.visible !== false;
   const sensorsVisible = overlays.sensors && !playing && layers.Sensors?.visible !== false;
   return (
     <>
@@ -116,7 +137,7 @@ export function Overlays({ scene, layers }: { scene: Scene; layers: Record<strin
         scene.harness.map(
           (h) =>
             h.points.length > 1 && (
-              <Line key={h.id} points={h.points} color={layers.Harness?.color ?? "#c4504e"} lineWidth={2} depthTest={false} />
+              <HarnessRoute key={h.id} points={h.points} color={layers.Harness?.color ?? "#c4504e"} selected={selection.includes(h.id)} />
             ),
         )}
       {sensorsVisible &&

@@ -16,8 +16,30 @@ from typing import Any
 import yaml
 
 from calflab.model.spec import RobotSpec
+from calflab.model.xform import Vec3, quat_rotate
 
 _COLOR_HEX = {"RD": "#d23b3b", "BK": "#222222", "YE": "#e0c21b", "BU": "#3b6fd2", "GN": "#3ba55d", "WH": "#eeeeee"}
+
+
+def harness_paths(spec: RobotSpec) -> dict[str, list[Vec3]]:
+    """World-space polyline (mm, standing pose) of every harness route.
+
+    A route runs from its source element through the origins of the bodies it
+    passes to its destination element: the same path its ``length_mm`` was
+    measured along (before slack). Viewports and bridges draw these points.
+    """
+    poses = spec.world_poses()
+    at: dict[str, Vec3] = {}
+    for b in spec.bodies:
+        bp, bq = poses[b.id]
+        for g in b.geoms:
+            r = quat_rotate(bq, g.pos)
+            at[g.id] = (bp[0] + r[0], bp[1] + r[1], bp[2] + r[2])
+    out: dict[str, list[Vec3]] = {}
+    for route in spec.harness_routes:
+        pts = [at.get(route.src)] + [poses[b][0] for b in route.via_bodies if b in poses] + [at.get(route.dst)]
+        out[route.id] = [p for p in pts if p is not None]
+    return out
 
 
 def _conn_name(element_id: str) -> str:

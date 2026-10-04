@@ -75,7 +75,12 @@ def check_geometry(doc):
     """Every pulled object exists, every solid has real extent, spheres are where the server says."""
     build_list = cr.request("/api/bridge/rhino/scene")
     by_id = {o.Attributes.GetUserString(cr.ID_KEY): o for o in calflab_objects(doc)}
-    expected = [o["id"] for o in build_list["objects"]] + [a["id"] for a in build_list.get("annotations", [])]
+    curves = build_list.get("curves", [])
+    expected = (
+        [o["id"] for o in build_list["objects"]]
+        + [a["id"] for a in build_list.get("annotations", [])]
+        + [c["id"] for c in curves]
+    )
     missing = [i for i in expected if i not in by_id]
     assert not missing, "objects in the build list but not in Rhino: %s" % missing[:6]
     flat, worst, spheres = [], 0.0, 0
@@ -90,7 +95,25 @@ def check_geometry(doc):
             worst = max(worst, max(abs(a - b) for a, b in zip(want, box_list(box))))
     assert not flat, "objects with no thickness in Rhino: %s" % flat[:6]
     assert worst <= TOL_MM, "a sphere is %.3f mm away from where the server put it" % worst
-    return {"objects": len(expected), "spheres_checked": spheres, "sphere_bbox_error_mm": round(worst, 4)}
+    assert curves, "the build list has no harness routes"
+    curve_error = 0.0
+    for c in curves:
+        obj = by_id[c["id"]]
+        layer = doc.Layers[obj.Attributes.LayerIndex].FullPath
+        assert layer == c["layer"], "%s is on layer %s, not %s" % (c["id"], layer, c["layer"])
+        pts = c["points"]
+        want = sum(
+            sum((pts[i + 1][k] - pts[i][k]) ** 2 for k in range(3)) ** 0.5 for i in range(len(pts) - 1)
+        )
+        curve_error = max(curve_error, abs(obj.Geometry.GetLength() - want))
+    assert curve_error <= TOL_MM, "a harness curve is %.3f mm longer or shorter than its route" % curve_error
+    return {
+        "objects": len(expected),
+        "spheres_checked": spheres,
+        "sphere_bbox_error_mm": round(worst, 4),
+        "harness_curves": len(curves),
+        "harness_length_error_mm": round(curve_error, 4),
+    }
 
 
 def finish(report):

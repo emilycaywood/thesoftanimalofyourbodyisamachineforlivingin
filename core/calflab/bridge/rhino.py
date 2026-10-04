@@ -90,6 +90,32 @@ def rhino_build_list(design: EvaluatedDesign, revision: int = 0) -> dict[str, An
                 "user_text": {ID_KEY: j.id, "calflab.range_deg": f"{j.range_deg[0]},{j.range_deg[1]}"},
             }
         )
+    from calflab.wiring.harness import harness_paths
+
+    curves = []
+    paths = harness_paths(spec)
+    for h in spec.harness_routes:
+        pts = paths[h.id]
+        if len(pts) < 2:
+            continue
+        curves.append(
+            {
+                "id": h.id,
+                "layer": f"{ROOT_LAYER}::Harness",
+                "kind": "polyline",
+                "points": [[round(c, 3) for c in p] for p in pts],
+                "user_text": {
+                    ID_KEY: h.id,
+                    "calflab.layer": "Harness",
+                    "calflab.src": h.src,
+                    "calflab.dst": h.dst,
+                    "calflab.length_mm": f"{h.length_mm:g}",
+                    "calflab.connector": h.connector,
+                    "calflab.wires": ",".join(w.signal for w in h.wires),
+                    "calflab.revision": str(revision),
+                },
+            }
+        )
     return {
         "units": "mm",
         "name": spec.name,
@@ -100,6 +126,7 @@ def rhino_build_list(design: EvaluatedDesign, revision: int = 0) -> dict[str, An
         "blocks": list(blocks.values()),
         "objects": objects,
         "annotations": annotations,
+        "curves": curves,
     }
 
 

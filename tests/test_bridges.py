@@ -8,6 +8,7 @@ import pytest
 from calflab.app import Lab, LabError
 from calflab.bridge import armature_plan, rhino_build_list
 from calflab.bridge.sculpt import save_pushed_mesh
+from calflab.config import default
 from calflab.model.spec import LAYERS
 from calflab.paths import repo_root
 
@@ -31,6 +32,17 @@ def test_rhino_build_list_layers_blocks_and_user_text(calf_design):
     assert m.shape == (4, 4) and np.allclose(m[:3, :3] @ m[:3, :3].T, np.eye(3), atol=1e-5)
     assert len(by_id) == len(rb["objects"]), "object ids are unique"
     assert {a["id"] for a in rb["annotations"]} == {j.id for j in calf_design.spec.joints}
+    routes = {h.id: h for h in calf_design.spec.harness_routes}
+    curves = {c["id"]: c for c in rb["curves"]}
+    assert set(curves) == set(routes) and routes, "every harness route is a curve"
+    bus = curves["harness.bus.fl"]
+    assert bus["layer"] == "CALFLAB::Harness" and bus["kind"] == "polyline" and len(bus["points"]) == 4
+    assert bus["user_text"]["calflab.id"] == "harness.bus.fl" and bus["user_text"]["calflab.dst"] == "act.fl.knee.motor"
+    slack = default("harness.slack_factor", 1.25)
+    for cid, c in curves.items():
+        p = np.array(c["points"])
+        drawn = np.linalg.norm(np.diff(p, axis=0), axis=1).sum()
+        assert drawn * slack == pytest.approx(routes[cid].length_mm, abs=0.2), "the curve is the path the length was measured on"
 
 
 def test_blender_armature_one_bone_per_joint(calf_design):
@@ -142,6 +154,9 @@ def test_rhino_script_builds_from_a_build_list_with_a_fake_rhino(calf_design):
         def add_line(self, a, b, layer, name, user_text):
             self.objects.append(("line", name, layer, user_text))
 
+        def add_polyline(self, points, layer, name, user_text):
+            self.objects.append(("polyline", name, layer, user_text))
+
         def redraw(self):
             pass
 
@@ -154,3 +169,6 @@ def test_rhino_script_builds_from_a_build_list_with_a_fake_rhino(calf_design):
     kinds = {name: kind for kind, name, _, _ in doc.objects}
     assert kinds["act.fl.knee.motor"] == "block" and kinds["leg.fl.shank.tube"] == "primitive"
     assert all(ut["calflab.id"] == name for _, name, _, ut in doc.objects)
+    harness = [(name, layer) for kind, name, layer, _ in doc.objects if kind == "polyline"]
+    assert summary["curves"] == len(rb["curves"]) == len(harness) > 0
+    assert all(doc.layers[layer] == "CALFLAB::Harness" for _, layer in harness), "routes land on the Harness layer"

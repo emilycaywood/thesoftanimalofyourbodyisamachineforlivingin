@@ -263,15 +263,17 @@ def build_scene(design: EvaluatedDesign, layers: dict[str, LayerState] | None = 
             "component": comp_info(r.material),
         }
 
+    from calflab.wiring.harness import harness_paths
+
     harness = []
+    paths = harness_paths(spec)
     for h in spec.harness_routes:
-        pts = [geom_world.get(h.src)] + [poses[b][0] for b in h.via_bodies] + [geom_world.get(h.dst)]
         harness.append(
             {
                 "id": h.id,
                 "src": h.src,
                 "dst": h.dst,
-                "points": [_round(p) for p in pts if p is not None],
+                "points": [_round(p) for p in paths[h.id]],
                 "length_mm": h.length_mm,
                 "wires": [w.model_dump() for w in h.wires],
                 "connector": h.connector,
