@@ -49,6 +49,8 @@ interface ViewStore {
   snapStep: number;
   gumballParam: string | null;
   gumballBound: boolean;
+  /** value under the cursor while a gumball arrow is being dragged (not yet confirmed by the server) */
+  gumballLive: number | null;
   measure: boolean;
   tourDone: boolean;
   set: (patch: Partial<ViewStore>) => void;
@@ -78,6 +80,7 @@ export const useView = create<ViewStore>()(
       snapStep: 1,
       gumballParam: null,
       gumballBound: false,
+      gumballLive: null,
       measure: false,
       tourDone: false,
       set: (patch) => set(patch),

@@ -4,7 +4,7 @@ import type { CommandInfo, FieldSchema } from "@/api/types";
 import { chord, DEFAULT_KEYS } from "@/commands/keys";
 import { allCommands, findCommand, matchCommands, normalize, parseArgs } from "@/commands/registry";
 import { groupFields, numberStep } from "@/components/schemaLogic";
-import { normRect, rectSelect, snapValue } from "@/viewport/viewLogic";
+import { axisParam, normRect, rectSelect, snapValue } from "@/viewport/viewLogic";
 import { WORKSPACES } from "@/workspaces";
 import { PANEL_IDS } from "@/panels/ids";
 
@@ -90,6 +90,21 @@ describe("snapping and form helpers", () => {
     expect(snapValue(172.4, 5)).toBe(170);
     expect(snapValue(172.6, 1)).toBe(173);
     expect(snapValue(172.6, 0)).toBe(172.6);
+  });
+
+  it("measures a gumball drag along the handle axis", () => {
+    // a camera 1000 mm out on -Y looking at the axis x = 0, z = t
+    const eye = [0, -1000, 0];
+    const at = (z: number) => {
+      const n = Math.hypot(1000, z);
+      return [0, 1000 / n, z / n];
+    };
+    const down = [0, 0, -1];
+    expect(axisParam(eye, at(0), [0, 0, 0], down)).toBeCloseTo(0);
+    expect(axisParam(eye, at(-40), [0, 0, 0], down)).toBeCloseTo(40); // dragging down a "down" handle adds
+    expect(axisParam(eye, at(25), [0, 0, 0], down)).toBeCloseTo(-25);
+    expect(axisParam(eye, at(-40), [0, 0, -170], down)).toBeCloseTo(-130);
+    expect(axisParam([0, 0, 500], down, [0, 0, 0], down)).toBeNull(); // looking straight down the axis
   });
 
   const f = (over: Partial<FieldSchema>): FieldSchema => ({

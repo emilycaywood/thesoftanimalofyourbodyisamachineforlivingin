@@ -213,10 +213,14 @@ function GumballHud({ scene }: { scene: Scene }) {
   const selection = useView((s) => s.selection);
   const preferred = useView((s) => s.gumballParam);
   const bound = useView((s) => s.gumballBound);
+  const live = useView((s) => s.gumballLive);
   const playing = usePlayback((s) => s.source !== "none");
   const target = useMemo(() => gumballTarget(scene, selection, preferred), [scene, selection, preferred]);
   const [text, setText] = useState("");
-  useEffect(() => setText(target ? String(Math.round(target.pv.value * 100) / 100) : ""), [target]);
+  useEffect(() => {
+    const v = live ?? target?.pv.value;
+    setText(v === undefined ? "" : String(Math.round(v * 100) / 100));
+  }, [target, live]);
   if (!target || playing) return null;
   const commit = () => {
     const v = Number(text);
@@ -234,7 +238,7 @@ function GumballHud({ scene }: { scene: Scene }) {
         type="text"
         className="w-16 text-right"
         value={text}
-        title="Type an exact value and press Enter (also works while dragging)"
+        title="Drag the arrow in the viewport, or type an exact value and press Enter"
         onChange={(e) => setText(e.target.value)}
         onBlur={commit}
         onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
