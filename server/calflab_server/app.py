@@ -141,8 +141,7 @@ def create_app(lab: Lab, web_dist: Path | None = None, watch_plugins: bool = Tru
     @app.get("/api/scene")
     def scene(candidate: str | None = None) -> dict[str, Any]:
         if candidate:
-            c = lab.registry.get_candidate(candidate)
-            return lab.scene(lab.variant_graph(c["genome"]["values"], c["controller"]))
+            return lab.candidate_scene(candidate)
         return lab.scene()
 
     @app.get("/api/commands")
@@ -224,6 +223,10 @@ def create_app(lab: Lab, web_dist: Path | None = None, watch_plugins: bool = Tru
     @app.get("/api/candidates/{candidate_id}")
     def candidate(candidate_id: str) -> dict[str, Any]:
         return lab.registry.get_candidate(candidate_id)
+
+    @app.get("/api/candidates/{candidate_id}/genes")
+    def candidate_genes(candidate_id: str, compare: str | None = None) -> dict[str, Any]:
+        return lab.candidate_genes(candidate_id, compare)
 
     @app.get("/api/candidates/{candidate_id}/lineage")
     def lineage(candidate_id: str) -> list[dict[str, Any]]:

@@ -1,7 +1,7 @@
 """Evolution: CMA-ES inner loop, MAP-Elites outer loop, lineage, registry."""
 
 import pytest
-from calflab.app import Lab
+from calflab.app import Lab, LabError
 from calflab.compute.bundle import read_results, write_bundle
 from calflab.compute.remote import CloudNotebook, RemoteSSH
 from calflab.design import genome_definition
@@ -103,6 +103,100 @@ def test_map_elites_run_records_lineage_and_archive(lab):
     assert lab.scene()["genome"]["values"] == before
 
 
+def test_evolution_starts_from_the_document_and_says_so(lab):
+    lab.execute("add_override", {"target": "leg.fl.shank", "param": "length", "value": 200.0})
+    job = lab.jobs.wait(lab.run_evolve(params=SMALL, backend="inline", sim=SIM).id, timeout=300)
+    rec = lab.registry.get_run(job.result["run_id"])
+    assert rec.inputs["start"] == {"source": "document", "revision": lab.revision} and rec.parent is None
+    assert [(o["target"], o["param"], o["value"]) for o in rec.overrides] == [("leg.fl.shank", "length", 200.0)]
+    cands = lab.registry.list_candidates(rec.id)
+    assert cands[0]["genome"]["values"] == rec.genome["values"], "the first candidate is the starting design itself"
+    # the override is not a gene: every candidate keeps the long front-left shank, whatever shank_length evolves to
+    for c in cands:
+        params = lab.candidate_scene(c["id"])["elements"]
+        assert params["leg.fl.shank"]["params"]["length"]["value"] == 200.0
+        assert params["leg.fr.shank"]["params"]["length"]["value"] == pytest.approx(c["genome"]["values"]["shank_length"])
+
+
+def test_load_a_baked_design_and_evolve_from_it(lab):
+    gdef = genome_definition("calf")
+    lab.execute("set_genes", {"values": {"trunk_length": 460, "front_knee_forward": True}})
+    lab.execute("add_override", {"target": "leg.fl.shank", "param": "length", "value": 200.0})
+    lab.execute("set_node_params", {"node": lab.state.graph.role("controller").id, "params": {"frequency": 2.1}})
+    baked = lab.bake("long fl shank")
+    assert baked.id == "long-fl-shank-v001"
+    lab.execute("clear_overrides")
+    lab.execute("reset_genes")
+    lab.execute("set_node_params", {"node": lab.state.graph.role("controller").id, "params": {"frequency": 1.2}})
+    doc_genes = dict(lab.state.graph.role("genome").params)
+
+    # ---- evolve from the design without touching the document
+    r = lab.execute("run_evolve", {"params": SMALL, "backend": "inline", "sim": SIM, "design": baked.id})["result"]
+    job = lab.jobs.wait(r["job"], timeout=300)
+    assert job.status == "done", job.error
+    rec = lab.registry.get_run(job.result["run_id"])
+    assert rec.parent == baked.id and rec.inputs["start"] == {"source": "design", "design": baked.id}
+    assert rec.genome["values"]["trunk_length"] == 460 and rec.genome["values"]["front_knee_forward"] is True
+    assert rec.controller["params"]["frequency"] == pytest.approx(2.1), "the gait comes from the design too"
+    assert [o["target"] for o in rec.overrides] == ["leg.fl.shank"]
+    assert lab.state.graph.role("genome").params == doc_genes and lab.state.overrides == []
+    assert {r["id"]: r["parent"] for r in lab.registry.list_runs("evolve")}[rec.id] == baked.id
+    cands = lab.registry.list_candidates(rec.id)
+    assert cands[0]["genome"]["values"] == gdef.complete(baked.genome["values"])
+    assert all(c["genome"]["values"]["front_knee_forward"] is True for c in cands), "genes that do not evolve stay"
+
+    # ---- a candidate is shown and replayed as it was evaluated, not with the document's overrides
+    child = next(c for c in cands if c["generation"] == 1)
+    assert lab.candidate_scene(child["id"])["elements"]["leg.fl.shank"]["params"]["length"]["override"]
+    sim = lab.jobs.wait(lab.simulate_candidate(child["id"]).id)
+    assert sim.status == "done", sim.error
+    assert [o["target"] for o in lab.registry.get_run(sim.result["run_id"]).overrides] == ["leg.fl.shank"]
+
+    # ---- its genes, as differences from the working design, its parent and another candidate
+    view = lab.candidate_genes(child["id"], compare=cands[1]["id"])
+    assert view["parent"] == child["parents"][0] and view["compare"] == cands[1]["id"]
+    rows = {g["gene"]: g for g in view["genes"]}
+    assert set(rows) == {g.id for g in gdef.genes}
+    trunk = rows["trunk_length"]
+    assert trunk["value"] == child["genome"]["values"]["trunk_length"] and trunk["current"] == doc_genes["trunk_length"]
+    assert trunk["current_delta"] == pytest.approx(trunk["value"] - doc_genes["trunk_length"]) and trunk["evolved"]
+    parent = lab.registry.get_candidate(child["parents"][0])["genome"]["values"]
+    assert trunk["parent_delta"] == pytest.approx(trunk["value"] - parent["trunk_length"])
+    assert trunk["compare"] == cands[1]["genome"]["values"]["trunk_length"]
+    knee = rows["front_knee_forward"]
+    assert knee["current_differs"] and knee["current_delta"] is None and not knee["parent_differs"] and not knee["evolved"]
+    assert not rows["act_knee"]["differs"]
+    assert view["overrides"][0]["target"] == "leg.fl.shank", "fixed parameters are listed beside the genes"
+    start = lab.candidate_genes(cands[1]["id"])
+    assert start["parent"] == "start" and start["compare"] is None
+    assert {g["gene"]: g for g in start["genes"]}["trunk_length"]["parent"] == 460
+
+    # ---- adopting brings the overrides it was evaluated with (the document had none)
+    out = lab.execute("adopt_candidate", {"id": child["id"]})["result"]
+    assert out["overrides_replaced"] is True
+    assert [(o.target, o.value) for o in lab.state.overrides] == [("leg.fl.shank", 200.0)]
+    assert lab.scene()["genome"]["values"] == child["genome"]["values"]
+    assert lab.execute("adopt_candidate", {"id": cands[2]["id"]})["result"]["overrides_replaced"] is False
+    lab.undo()
+    lab.undo()
+    assert lab.state.overrides == [] and lab.state.graph.role("genome").params == doc_genes
+
+    # ---- load the design into the working document; one undo brings the document back
+    out = lab.execute("load_design", {"id": baked.id})["result"]
+    assert out == {"design": baked.id, "overrides": 1}
+    scene = lab.scene()
+    assert scene["genome"]["values"]["trunk_length"] == 460 and scene["genome"]["values"]["front_knee_forward"] is True
+    assert scene["elements"]["leg.fl.shank"]["params"]["length"]["value"] == 200.0
+    assert lab.state.graph.role("controller").params["frequency"] == pytest.approx(2.1)
+    assert lab.design().spec.total_mass_g() == pytest.approx(baked.mass_g)
+    lab.undo()
+    assert lab.state.overrides == [] and lab.state.graph.role("genome").params == doc_genes
+    with pytest.raises(LabError, match="No design"):
+        lab.execute("load_design", {"id": "no-such-v001"})
+    with pytest.raises(LabError, match="No design"):
+        lab.run_evolve(params=SMALL, backend="inline", design="no-such-v001")
+
+
 def test_evolution_is_reproducible(lab):
     ids = []
     for _ in range(2):
@@ -126,8 +220,6 @@ def test_local_process_pool_gives_the_same_result_as_inline(lab):
 
 
 def test_stub_backends_refuse_clearly(lab):
-    from calflab.app import LabError
-
     with pytest.raises(LabError, match="not available"):
         lab.run_evolve(params=SMALL, backend="remote_ssh")
     with pytest.raises(LabError, match="not implemented"):

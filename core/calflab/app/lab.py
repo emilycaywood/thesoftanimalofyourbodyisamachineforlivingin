@@ -21,8 +21,11 @@ from calflab.app.events import EventBus
 from calflab.app.jobs import Job, JobContext, JobManager
 from calflab.app.scene import build_scene, foot_tracks
 from calflab.components import library
-from calflab.design import EvaluatedDesign
+from calflab.design import EvaluatedDesign, genome_definition
 from calflab.graph import Cache, EvalContext, Evaluator, Graph, NodeResult, node_types, summarize
+from calflab.model.genome import Genome
+from calflab.model.migrations import migrate
+from calflab.model.overrides import Override
 from calflab.plugins import ExportContext, load_plugins, registry
 from calflab.project import (
     CommandLog,
@@ -166,24 +169,41 @@ class Lab:
         return EvalContext(overrides=list(s.overrides), project_dir=self.project.path, **kw)
 
     def evaluate(
-        self, graph: Graph | None = None, targets: list[str] | None = None, **kw: Any
+        self,
+        graph: Graph | None = None,
+        targets: list[str] | None = None,
+        state: DocumentState | None = None,
+        **kw: Any,
     ) -> dict[str, NodeResult]:
-        return self.evaluator.evaluate(graph or self.state.graph, self._ctx(), targets=targets, **kw)
+        return self.evaluator.evaluate(graph or self.state.graph, self._ctx(state), targets=targets, **kw)
 
-    def _role_output(self, role: str, socket: str, graph: Graph | None = None) -> Any:
+    def _with_overrides(self, overrides: list[Override] | None) -> DocumentState | None:
+        """A copy of the document state carrying ``overrides`` instead of its own
+        (None = the document as it is). Used to evaluate bodies that were not
+        built from the working document: baked designs, evolved candidates."""
+        if overrides is None:
+            return None
+        state = self.state.model_copy(deep=True)
+        state.overrides = [o.model_copy(deep=True) for o in overrides]
+        return state
+
+    def _role_output(
+        self, role: str, socket: str, graph: Graph | None = None, state: DocumentState | None = None
+    ) -> Any:
         g = graph or self.state.graph
         try:
             node = g.role(role)
         except KeyError as exc:
             raise LabError(str(exc)) from exc
-        res = self.evaluate(g, targets=[node.id])[node.id]
+        res = self.evaluate(g, targets=[node.id], state=state)[node.id]
         if not res.ok:
             raise LabError(f"Node '{node.id}' ({role}): {'; '.join(res.messages) or res.status}")
         return res.outputs[socket]
 
-    def design(self, graph: Graph | None = None) -> EvaluatedDesign:
-        """The evaluated design of the current document (cached)."""
-        return self._role_output("design", "design", graph)
+    def design(self, graph: Graph | None = None, overrides: list[Override] | None = None) -> EvaluatedDesign:
+        """The evaluated design of the current document (cached), or of ``graph``
+        with ``overrides`` in place of the document's."""
+        return self._role_output("design", "design", graph, self._with_overrides(overrides))
 
     def variant_graph(
         self, genes: dict[str, Any] | None = None, controller: dict[str, Any] | None = None
@@ -200,10 +220,126 @@ class Lab:
             node.params = dict(controller.get("params", {}))
         return g
 
-    def scene(self, graph: Graph | None = None) -> dict[str, Any]:
-        s = build_scene(self.design(graph), self.state.layers)
+    def scene(self, graph: Graph | None = None, overrides: list[Override] | None = None) -> dict[str, Any]:
+        s = build_scene(self.design(graph, overrides), self.state.layers)
         s["revision"] = self.revision
         return s
+
+    # ------------------------------------------------------------------ baked designs / candidates
+    def design_document(self, design_id: str) -> tuple[Graph, list[Override]]:
+        """The graph and overrides a baked design was frozen with. Its genome is
+        migrated to the installed gene definition, so old designs always load."""
+        try:
+            rec = self.registry.get_design(design_id)
+        except KeyError as exc:
+            raise LabError(str(exc)) from exc
+        graph = Graph.model_validate(rec.graph)
+        try:
+            node = graph.role("genome")
+            gdef = genome_definition(str(rec.genome["definition"]))
+            genome = migrate(Genome.model_validate(rec.genome), gdef)
+        except (KeyError, ValueError) as exc:
+            raise LabError(f"Design {design_id} cannot be loaded: {exc}") from exc
+        nt = node_types().get(node.type)
+        node.params = nt.clean_params(genome.values) if nt else dict(genome.values)
+        return graph, [Override.model_validate(o) for o in rec.overrides]
+
+    def candidate_body(self, candidate_id: str) -> tuple[dict[str, Any], Graph, list[Override]]:
+        """An evolved candidate as it was evaluated: its genome and gait on the
+        document's pipeline, with the model settings and the overrides of the
+        run it belongs to (not whatever the document carries now)."""
+        try:
+            c = self.registry.get_candidate(candidate_id)
+        except KeyError as exc:
+            raise LabError(str(exc)) from exc
+        g = self.variant_graph(c["genome"]["values"], c["controller"])
+        try:
+            run = self.registry.get_run(str(c.get("run_id")))
+        except KeyError:
+            return c, g, list(self.state.overrides)
+        types = node_types()
+        for role, key in (("model", "compile"), ("design", "generator_params")):
+            if isinstance(run.inputs.get(key), dict):
+                node = g.role(role)
+                nt = types.get(node.type)
+                node.params = nt.clean_params(run.inputs[key]) if nt else dict(run.inputs[key])
+        return c, g, [Override.model_validate(o) for o in run.overrides]
+
+    def candidate_scene(self, candidate_id: str) -> dict[str, Any]:
+        _, g, overrides = self.candidate_body(candidate_id)
+        return self.scene(g, overrides)
+
+    def candidate_genes(self, candidate_id: str, compare: str | None = None) -> dict[str, Any]:
+        """A candidate's genes next to the working design, its parent and
+        (optionally) another candidate, with the differences worked out here."""
+        try:
+            c = self.registry.get_candidate(candidate_id)
+            other = self.registry.get_candidate(compare) if compare else None
+        except KeyError as exc:
+            raise LabError(str(exc)) from exc
+        gdef = genome_definition(str(c["genome"]["definition"]))
+        try:
+            run: RunRecord | None = self.registry.get_run(str(c.get("run_id")))
+        except KeyError:
+            run = None
+        parents = list(c.get("parents") or [])
+        parent_label, parent_src = "start", (run.genome or {}).get("values") if run else None
+        if parents:
+            try:
+                parent_label, parent_src = parents[0], self.registry.get_candidate(parents[0])["genome"]["values"]
+            except KeyError:
+                parent_src = None
+        columns: dict[str, dict[str, Any] | None] = {
+            "current": dict(self.state.graph.role("genome").params),
+            "parent": parent_src,
+            "compare": other["genome"]["values"] if other else None,
+        }
+        refs = {k: gdef.complete(v) if v is not None else None for k, v in columns.items()}
+        values = gdef.complete(c["genome"]["values"])
+        only = list((run.inputs.get("params") or {}).get("genes") or []) if run else []
+        evolved = {g.id for g in gdef.evolvable(only or None)}
+
+        def delta(a: Any, b: Any) -> tuple[bool, float | None]:
+            if isinstance(a, bool) or isinstance(b, bool) or not isinstance(a, int | float) or not isinstance(b, int | float):
+                return a != b, None
+            d = float(a) - float(b)
+            return abs(d) > 1e-9, d
+
+        rows = []
+        for g in gdef.genes:
+            row: dict[str, Any] = {
+                "gene": g.id,
+                "label": g.label or g.id.replace("_", " "),
+                "group": g.group,
+                "unit": g.unit,
+                "evolved": g.id in evolved,
+                "value": values[g.id],
+            }
+            row["differs"] = False
+            for key, ref in refs.items():
+                if ref is None:
+                    row[key] = None
+                    row[f"{key}_delta"] = None
+                    row[f"{key}_differs"] = False
+                    continue
+                differs, d = delta(values[g.id], ref[g.id])
+                row[key] = ref[g.id]
+                row[f"{key}_delta"] = d
+                row[f"{key}_differs"] = differs
+                row["differs"] = row["differs"] or differs
+            rows.append(row)
+        return {
+            "candidate": candidate_id,
+            "run_id": c.get("run_id"),
+            "parents": parents,
+            "parent": parent_label,
+            "compare": compare if other else None,
+            "genes": rows,
+            # parameters every candidate of the run was built with, whatever its genes say
+            "overrides": [
+                {k: o.get(k) for k in ("name", "target", "kind", "param", "value")} for o in (run.overrides if run else [])
+            ],
+        }
 
     def graph_view(self) -> dict[str, Any]:
         """The graph with per-node evaluation status and socket lists for the node editor."""
@@ -268,22 +404,26 @@ class Lab:
         title: str = "Simulate",
         parent: str | None = None,
         client: str = "api",
+        overrides: list[Override] | None = None,
     ) -> Job:
-        """Run the simulation node as a job; poses stream out as ``sim.frames`` events."""
+        """Run the simulation node as a job; poses stream out as ``sim.frames`` events.
+
+        ``overrides`` replaces the document's overrides for this run (a baked
+        design or a candidate is simulated with the ones it was built with)."""
         g = (graph or self.state.graph).model_copy(deep=True)
-        state = self.state.model_copy(deep=True)
+        state = self._with_overrides(overrides) or self.state.model_copy(deep=True)
         try:
             sim_id = g.role("simulation").id
         except KeyError as exc:
             raise LabError(str(exc)) from exc
         # fail fast (in the caller) if the pipeline feeding the simulation is broken
         for role, socket in (("design", "design"), ("model", "model"), ("controller", "controller")):
-            self._role_output(role, socket, g)
+            self._role_output(role, socket, g, state)
 
         def work(job: JobContext) -> dict[str, Any]:
             t0 = time.perf_counter()
-            design = self._role_output("design", "design", g)
-            model = self._role_output("model", "model", g)
+            design = self._role_output("design", "design", g, state)
+            model = self._role_output("model", "model", g, state)
             self.bus.emit("sim.started", job=job.job.id, body_ids=model.body_ids, scene=build_scene(design, state.layers))
             streamed = [0]
 
@@ -335,7 +475,7 @@ class Lab:
                 },
                 genome=design.genome.model_dump(mode="json"),
                 overrides=[o.model_dump(mode="json") for o in state.overrides if o.enabled],
-                controller=self._role_output("controller", "controller", g),
+                controller=self._role_output("controller", "controller", g, state),
                 fitness=preset,
                 metrics=metrics or {},
                 artifacts={
@@ -401,12 +541,32 @@ class Lab:
         params: dict[str, Any] | None = None,
         backend: str | None = None,
         sim: dict[str, Any] | None = None,
+        design: str | None = None,
     ) -> Job:
+        """Start an optimization run.
+
+        It starts from the working document, or from the baked design
+        ``design``: then body and gait (genome, generator and model settings,
+        controller, overrides) come from that design, while the fitness preset
+        and simulation settings are still the document's. Either way the
+        enabled overrides of the starting point are applied to every candidate.
+        """
         from calflab.evolve import EvolveProblem
         from calflab.fitness import presets
 
         g = self.state.graph.model_copy(deep=True)
         state = self.state.model_copy(deep=True)
+        start: dict[str, Any] = {"source": "document", "revision": self.revision}
+        if design:
+            baked, baked_overrides = self.design_document(design)
+            for role in ("genome", "design", "model", "controller"):
+                try:
+                    src, dst = baked.role(role), g.role(role)
+                except KeyError as exc:
+                    raise LabError(f"Design {design} cannot start an evolution: {exc}") from exc
+                dst.type, dst.params = src.type, dict(src.params)
+            state.overrides = baked_overrides
+            start = {"source": "design", "design": design}
         try:
             opt = registry.get("optimizer", optimizer)(params or {})
         except Exception as exc:
@@ -418,11 +578,11 @@ class Lab:
         ok, reason = backend_obj.available()  # type: ignore[attr-defined]
         if not ok:
             raise LabError(f"Compute backend {bkey!r} is not available: {reason}")
-        design = self.design(g)
+        start_design = self._role_output("design", "design", g, state)
         preset = presets().get(str(g.role("fitness").params.get("preset")))
         if preset is None:
             raise LabError("The fitness node has no valid preset")
-        ctrl = self._role_output("controller", "controller", g)
+        ctrl = self._role_output("controller", "controller", g, state)
         sim_params = {**g.role("simulation").params, **(sim or {})}
         run_id = self.registry.new_run_id("evolve")
 
@@ -437,16 +597,18 @@ class Lab:
                 seed=int(opt.params.seed) if hasattr(opt.params, "seed") else None,
                 backend=bkey,
                 inputs={"optimizer": optimizer, "params": opt.params.model_dump(mode="json"), "sim": sim_params,
-                        "compile": g.role("model").params},
-                genome=design.genome.model_dump(mode="json"),
+                        "compile": g.role("model").params, "generator_params": g.role("design").params,
+                        "start": start},
+                genome=start_design.genome.model_dump(mode="json"),
                 overrides=[o.model_dump(mode="json") for o in state.overrides if o.enabled],
                 controller=ctrl,
                 fitness={"preset": preset.model_dump(mode="json")},
+                parent=design or None,
             )
             self.registry.save_run(record)
             self.bus.emit("runs.changed", run_id=run_id)
             problem = EvolveProblem(
-                genome=design.genome.model_dump(mode="json"),
+                genome=start_design.genome.model_dump(mode="json"),
                 overrides=record.overrides,
                 generator=g.role("design").type.split(":", 1)[1],
                 generator_params=g.role("design").params,
@@ -520,12 +682,8 @@ class Lab:
 
     def simulate_candidate(self, candidate_id: str) -> Job:
         """Replay an evolved candidate (its own body and gait) without editing the document."""
-        try:
-            c = self.registry.get_candidate(candidate_id)
-        except KeyError as exc:
-            raise LabError(str(exc)) from exc
-        g = self.variant_graph(c["genome"]["values"], c["controller"])
-        return self.run_sim(g, title=f"Candidate {candidate_id}", parent=candidate_id)
+        _, g, overrides = self.candidate_body(candidate_id)
+        return self.run_sim(g, title=f"Candidate {candidate_id}", parent=candidate_id, overrides=overrides)
 
     # ------------------------------------------------------------------ bake / export
     def bake(self, name: str, note: str = "") -> DesignRecord:

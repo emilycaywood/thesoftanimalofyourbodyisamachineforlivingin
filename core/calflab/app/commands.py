@@ -688,7 +688,54 @@ class AdoptCandidate(Command):
         if ctype in types:
             cnode.type = ctype
             cnode.params = types[ctype].clean_params(c["controller"].get("params", {}))
-        return {"candidate": c["id"], "fitness": c.get("fitness")}
+        # The candidate was built with the overrides of its run. If the document
+        # carries different ones, adopting only the genes would give another body.
+        replaced = False
+        try:
+            run_overrides = lab.registry.get_run(str(c.get("run_id"))).overrides
+        except KeyError:
+            run_overrides = None
+        if run_overrides is not None:
+
+            def sig(o: dict[str, Any]) -> tuple[Any, ...]:
+                return (o.get("kind", "param"), o.get("target"), o.get("param"), o.get("value"), o.get("asset"))
+
+            mine = sorted(map(repr, (sig(o.model_dump(mode="json")) for o in state.overrides if o.enabled)))
+            if mine != sorted(map(repr, map(sig, run_overrides))):
+                state.overrides = [Override.model_validate(o) for o in run_overrides]
+                replaced = True
+                lab.bus.emit(
+                    "log",
+                    level="warn",
+                    source="adopt",
+                    message=f"Adopt {c['id']}: the document's overrides were replaced by the {len(run_overrides)} "
+                    "this candidate was evaluated with (Ctrl+Z restores them).",
+                )
+        return {"candidate": c["id"], "fitness": c.get("fitness"), "overrides_replaced": replaced}
+
+
+@register
+class LoadDesign(Command):
+    key = "load_design"
+    label = "Load baked design"
+    description = "Replace the working document's graph and overrides with those of a baked design (undoable)."
+    category = "Edit"
+    mutates = True
+
+    class Params(BaseModel):
+        id: str = P("", desc="Design id, e.g. calf-v003.")
+
+    def title(self) -> str:
+        return f"Load design {self.params.id}"  # type: ignore[attr-defined]
+
+    def run(self, lab: Any, state: DocumentState) -> Any:
+        design_id = self.params.id  # type: ignore[attr-defined]
+        if not design_id:
+            raise _err("Which design? Give its id, e.g. load_design id=calf-v001")
+        graph, overrides = lab.design_document(design_id)
+        state.graph = graph
+        state.overrides = overrides
+        return {"design": design_id, "overrides": len(overrides)}
 
 
 # ====================================================================== actions (not undoable)
@@ -759,10 +806,11 @@ class RunEvolve(Command):
         params: dict[str, Any] = P(default_factory=dict, ui="json", desc="Optimizer parameters.")
         backend: str = P("", desc="Compute backend key (empty = current).")
         sim: dict[str, Any] = P(default_factory=dict, ui="json", desc="Simulation overrides for evaluation rollouts.")
+        design: str = P("", desc="Baked design to start from (empty = the working document).")
 
     def run(self, lab: Any, state: DocumentState) -> Any:
         p = self.params
-        job = lab.run_evolve(p.optimizer, p.params, p.backend or None, p.sim)  # type: ignore[attr-defined]
+        job = lab.run_evolve(p.optimizer, p.params, p.backend or None, p.sim, p.design or None)  # type: ignore[attr-defined]
         return {"job": job.id, "run_id": job.result.get("run_id")}
 
 
