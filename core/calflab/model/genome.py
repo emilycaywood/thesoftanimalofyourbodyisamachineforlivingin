@@ -25,6 +25,11 @@ class GeneDef(BaseModel):
     id: str
     type: Literal["float", "int", "bool", "enum"] = "float"
     default: GeneValue
+    #: What a stored genome that does not mention this gene had (None = ``default``).
+    #: Set it when a gene is added, or its default changed, after genomes were
+    #: already saved, so that old documents, runs, candidates and designs keep
+    #: the body they were made with while new projects get the new default.
+    absent: GeneValue | None = None
     min: float | None = None
     max: float | None = None
     step: float | None = None
@@ -47,6 +52,8 @@ class GeneDef(BaseModel):
                 raise ValueError(f"Gene {self.id!r}: enum genes need choices")
             if self.default not in self.choices:
                 raise ValueError(f"Gene {self.id!r}: default not in choices")
+        if self.absent is not None and self.coerce(self.absent) != self.absent:
+            raise ValueError(f"Gene {self.id!r}: 'absent' is not a valid value for this gene")
         return self
 
     def coerce(self, value: Any) -> GeneValue:
@@ -94,8 +101,10 @@ class GenomeDefinition(BaseModel):
         return {g.id: g.default for g in self.genes}
 
     def complete(self, values: dict[str, Any]) -> dict[str, GeneValue]:
-        """Fill in defaults, drop unknown genes, coerce and clamp."""
-        out = self.defaults()
+        """Complete stored values: fill in genes they do not mention (with the
+        gene's ``absent`` value if it has one, else its default), drop unknown
+        genes, coerce and clamp."""
+        out: dict[str, GeneValue] = {g.id: g.default if g.absent is None else g.absent for g in self.genes}
         for k, v in values.items():
             if self.has(k):
                 out[k] = self.gene(k).coerce(v)

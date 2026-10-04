@@ -96,10 +96,8 @@ def test_optional_parts_follow_genes():
 
 def test_knee_direction_genes_flip_only_their_pair():
     gdef = genome_definition("calf")
-    assert gdef.gene("front_knee_forward").default is False, "old genomes keep their front knees"
-
     def knees(**genes):
-        v = gdef.defaults() | genes
+        v = gdef.defaults() | {"front_knee_forward": False} | genes
         spec = build_design(Genome(definition="calf", version=gdef.version, values=v)).spec
         return {k: spec.joint(f"joint.{k}.knee") for k in ("fl", "fr", "hl", "hr")}, spec
 

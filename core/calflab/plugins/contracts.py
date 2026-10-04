@@ -101,8 +101,11 @@ def _gene_definition(cls: type[Plugin]) -> list[str]:
     out = []
     if d.name != cls.key:
         out.append(f"definition name {d.name!r} must equal the plugin key {cls.key!r}")
-    if d.complete({}) != d.defaults():
-        out.append("complete({}) must equal defaults()")
+    if d.complete(d.defaults()) != d.defaults():
+        out.append("complete(defaults()) must equal defaults()")
+    legacy = {g.id: g.default if g.absent is None else g.absent for g in d.genes}
+    if d.complete({}) != legacy:
+        out.append("complete({}) must give each gene its 'absent' value, or its default")
     return out
 
 

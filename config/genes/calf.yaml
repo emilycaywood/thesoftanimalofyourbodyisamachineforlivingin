@@ -2,7 +2,8 @@
 #
 # Bump `version` and add a migration in core/calflab/model/migrations.py when
 # you rename, remove or re-scale a gene. Adding a gene with a default needs no
-# migration. Lengths in mm, angles in degrees.
+# migration; if its default is not what older genomes effectively had, give
+# it `absent: <that value>`. Lengths in mm, angles in degrees.
 #
 # Proportions are design assumptions (DECISIONS.md ADR-015), not measurements.
 
@@ -42,7 +43,9 @@ genes:
      description: "Knee flexion in the standing pose."}
   - {id: hind_knee_forward, type: bool, default: false, group: Legs, evolvable: false,
      description: "Hind knees point forward (stifle-like) instead of backward (hock-like)."}
-  - {id: front_knee_forward, type: bool, default: false, group: Legs, evolvable: false,
+  # Forward is the default since 2026-10-04. Genomes saved before the gene
+  # existed had backward front knees: that is what `absent` records.
+  - {id: front_knee_forward, type: bool, default: true, absent: false, group: Legs, evolvable: false,
      description: "Front knees point forward (carpus-like) instead of backward (elbow-like)."}
 
   # ------------------------------------------------------------- neck and head

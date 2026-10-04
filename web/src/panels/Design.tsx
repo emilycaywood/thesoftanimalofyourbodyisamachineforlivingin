@@ -89,7 +89,12 @@ export function SimulatePanel() {
         <Button variant="primary" disabled={busy} onClick={() => void execute("RunSim")}>{busy ? "Simulating..." : "Simulate (F5)"}</Button>
         <span className="text-dim">Poses stream into the viewport; scrub them on the timeline.</span>
       </div>
-      <Section title="Controller"><RoleForm role="controller" /></Section>
+      <Section
+        title="Controller"
+        right={<Button size="sm" variant="ghost" title="Put every gait value back to its default (undoable)" data-testid="reset-gait" onClick={() => void execute("ResetNodeParams", { node: "controller" })}>Reset to defaults</Button>}
+      >
+        <RoleForm role="controller" />
+      </Section>
       <Section title="Simulation"><RoleForm role="simulation" /></Section>
       <Section title="Model (terrain, servos, skin)"><RoleForm role="model" /></Section>
       <Section title="Fitness"><RoleForm role="fitness" /></Section>

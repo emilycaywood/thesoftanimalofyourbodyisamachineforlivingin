@@ -62,12 +62,28 @@ def test_default_gait_walks_forward(calf_model):
     r = run_rollout(calf_model, cpg(), SimSettings(duration_s=4.0), library())
     m = compute_metrics(r)
     assert not m["fell"]
-    assert m["speed_mps"] > 0.1
+    assert m["speed_mps"] > 0.3
     assert 0 < m["cost_of_transport"] < 10
     assert set(METRIC_DEFS) <= set(m)
     assert len(m["by_actuator"]) == 18
     ts = timeseries(r)
     assert len(ts["t"]) == r.n_frames == len(ts["channels"]["speed"]["values"])
+
+
+def test_default_body_and_gait_belong_together(calf_design, calf_model):
+    """New projects: front knees forward, hind knees backward, and a default
+    trot tuned for that body (ADR-047) that keeps walking and stays inside the
+    joint speed it was tuned for."""
+    spec = calf_design.spec
+    assert spec.joint("joint.fl.knee").rest_deg > 0 > spec.joint("joint.hl.knee").rest_deg
+    m = compute_metrics(run_rollout(calf_model, cpg(), SimSettings(duration_s=12.0), library()))
+    assert not m["fell"] and m["speed_mps"] > 0.4 and m["stability"] > 0.85
+    legs = [a for a in m["by_actuator"].values() if ".hip_" in a["joint"] or a["joint"].endswith(".knee")]
+    assert len(legs) == 12 and min(a["torque_margin"] for a in legs) > 0.25, "no leg actuator near its torque limit"
+    p = cpg().params
+    t_swing, t_stance = p.swing_fraction / p.frequency, (1 - p.swing_fraction) / p.frequency
+    peak = max(2 * p.hip_amplitude / t_stance, np.pi * p.hip_amplitude / t_swing, np.pi * p.knee_amplitude / t_swing)
+    assert peak <= 121, "commanded joint speed (deg/s) stays at two thirds of the leg servo's recorded no-load speed"
 
 
 def test_recorded_poses_match_recorded_joint_angles(calf_design, calf_model):

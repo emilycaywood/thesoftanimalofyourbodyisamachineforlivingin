@@ -4,6 +4,10 @@ Each leg has a phase in [0, 1). During stance the hip sweeps the leg backward
 at constant rate; during swing it returns forward on a cosine while the knee
 flexes to lift the hoof. Gaits differ only in the phase offsets between legs.
 
+The default numbers are a trot tuned on 2026-10-04 for the default body
+(front knees forward, hind knees backward) with the peak commanded joint speed
+held at 120 deg/s; see ADR-047. They are starting points, not measurements.
+
 Joints are found by the ID convention ``joint.<leg>.{hip_abd,hip_flex,knee}``
 with leg in (fl, fr, hl, hr). Other actuators hold their standing angle.
 """
@@ -40,12 +44,12 @@ class CPGController(Controller):
 
     class Params(BaseModel):
         gait: Literal["trot", "walk", "pace", "bound"] = P("trot", desc="Footfall pattern.")
-        frequency: float = P(1.6, unit="Hz", ge=0.4, le=3.5, step=0.05, desc="Stride frequency.")
-        hip_amplitude: float = P(14.0, unit="deg", ge=0, le=40, step=0.5, desc="Half of the hip sweep.")
-        knee_amplitude: float = P(24.0, unit="deg", ge=0, le=60, step=0.5, desc="Extra knee flexion during swing.")
-        swing_fraction: float = P(0.4, ge=0.2, le=0.6, step=0.01, desc="Fraction of the stride spent in swing.")
-        hip_offset: float = P(0.0, unit="deg", ge=-20, le=20, step=0.5, desc="Constant hip bias (positive = legs further back).")
-        crouch: float = P(0.0, unit="deg", ge=-15, le=30, step=0.5, desc="Extra knee flexion in stance.")
+        frequency: float = P(2.0, unit="Hz", ge=0.4, le=3.5, step=0.05, desc="Stride frequency.")
+        hip_amplitude: float = P(10.5, unit="deg", ge=0, le=40, step=0.5, desc="Half of the hip sweep.")
+        knee_amplitude: float = P(10.5, unit="deg", ge=0, le=60, step=0.5, desc="Extra knee flexion during swing.")
+        swing_fraction: float = P(0.55, ge=0.2, le=0.6, step=0.01, desc="Fraction of the stride spent in swing.")
+        hip_offset: float = P(-3.0, unit="deg", ge=-20, le=20, step=0.5, desc="Constant hip bias (positive = legs further back).")
+        crouch: float = P(-7.0, unit="deg", ge=-15, le=30, step=0.5, desc="Extra knee flexion in stance (negative = straighter legs).")
         abduction_amplitude: float = P(0.0, unit="deg", ge=0, le=15, step=0.5, desc="Lateral sway of the hips.")
         ramp: float = P(0.8, unit="s", ge=0.0, le=3.0, step=0.1, desc="Time to ramp the gait in from standing.")
 

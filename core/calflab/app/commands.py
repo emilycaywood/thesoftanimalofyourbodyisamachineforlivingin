@@ -287,6 +287,33 @@ class SetNodeParams(Command):
 
 
 @register
+class ResetNodeParams(Command):
+    key = "reset_node_params"
+    label = "Reset node to defaults"
+    description = "Restore every parameter of a graph node (e.g. the gait controller) to its default value."
+    category = "Graph"
+    mutates = True
+
+    class Params(BaseModel):
+        node: str = P("", desc="Node id, or a pipeline role such as controller.")
+
+    def title(self) -> str:
+        return f"Reset {self.params.node} to defaults"  # type: ignore[attr-defined]
+
+    def run(self, lab: Any, state: DocumentState) -> Any:
+        ref = self.params.node  # type: ignore[attr-defined]
+        try:
+            node = state.graph.node(state.graph.roles.get(ref, ref))
+        except KeyError as exc:
+            raise _err(f"No node or pipeline role {ref!r}") from exc
+        nt = node_types().get(node.type)
+        if nt is None:
+            raise _err(f"Node {node.id} has an unknown type {node.type!r}")
+        node.params = nt.default_params()
+        return {"node": node.id, "params": node.params}
+
+
+@register
 class AddNode(Command):
     key = "add_node"
     label = "Add node"

@@ -41,7 +41,7 @@ def test_incremental_recompute_only_downstream():
     again = ev.evaluate(g)
     assert all(again[n].cached for n in ("genome", "morphology", "mjcf", "controller"))
 
-    g.node("controller").params["frequency"] = 2.0
+    g.node("controller").params["frequency"] = 2.4
     res = ev.evaluate(g)
     assert res["morphology"].cached and res["mjcf"].cached
     assert not res["controller"].cached

@@ -120,7 +120,7 @@ def test_evolution_starts_from_the_document_and_says_so(lab):
 
 def test_load_a_baked_design_and_evolve_from_it(lab):
     gdef = genome_definition("calf")
-    lab.execute("set_genes", {"values": {"trunk_length": 460, "front_knee_forward": True}})
+    lab.execute("set_genes", {"values": {"trunk_length": 460, "front_knee_forward": False}})
     lab.execute("add_override", {"target": "leg.fl.shank", "param": "length", "value": 200.0})
     lab.execute("set_node_params", {"node": lab.state.graph.role("controller").id, "params": {"frequency": 2.1}})
     baked = lab.bake("long fl shank")
@@ -136,14 +136,14 @@ def test_load_a_baked_design_and_evolve_from_it(lab):
     assert job.status == "done", job.error
     rec = lab.registry.get_run(job.result["run_id"])
     assert rec.parent == baked.id and rec.inputs["start"] == {"source": "design", "design": baked.id}
-    assert rec.genome["values"]["trunk_length"] == 460 and rec.genome["values"]["front_knee_forward"] is True
+    assert rec.genome["values"]["trunk_length"] == 460 and rec.genome["values"]["front_knee_forward"] is False
     assert rec.controller["params"]["frequency"] == pytest.approx(2.1), "the gait comes from the design too"
     assert [o["target"] for o in rec.overrides] == ["leg.fl.shank"]
     assert lab.state.graph.role("genome").params == doc_genes and lab.state.overrides == []
     assert {r["id"]: r["parent"] for r in lab.registry.list_runs("evolve")}[rec.id] == baked.id
     cands = lab.registry.list_candidates(rec.id)
     assert cands[0]["genome"]["values"] == gdef.complete(baked.genome["values"])
-    assert all(c["genome"]["values"]["front_knee_forward"] is True for c in cands), "genes that do not evolve stay"
+    assert all(c["genome"]["values"]["front_knee_forward"] is False for c in cands), "genes that do not evolve stay"
 
     # ---- a candidate is shown and replayed as it was evaluated, not with the document's overrides
     child = next(c for c in cands if c["generation"] == 1)
@@ -185,7 +185,7 @@ def test_load_a_baked_design_and_evolve_from_it(lab):
     out = lab.execute("load_design", {"id": baked.id})["result"]
     assert out == {"design": baked.id, "overrides": 1}
     scene = lab.scene()
-    assert scene["genome"]["values"]["trunk_length"] == 460 and scene["genome"]["values"]["front_knee_forward"] is True
+    assert scene["genome"]["values"]["trunk_length"] == 460 and scene["genome"]["values"]["front_knee_forward"] is False
     assert scene["elements"]["leg.fl.shank"]["params"]["length"]["value"] == 200.0
     assert lab.state.graph.role("controller").params["frequency"] == pytest.approx(2.1)
     assert lab.design().spec.total_mass_g() == pytest.approx(baked.mass_g)

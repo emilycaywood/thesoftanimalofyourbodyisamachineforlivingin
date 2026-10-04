@@ -30,7 +30,7 @@ def test_enum_actuator_genes_exist_in_library():
 
 def test_defaults_roundtrip_and_clamp():
     d = genome_definition("calf")
-    assert d.complete({}) == d.defaults()
+    assert d.complete(d.defaults()) == d.defaults()
     v = d.complete({"trunk_length": 99999, "unknown_gene": 1})
     assert v["trunk_length"] == d.gene("trunk_length").max
     assert "unknown_gene" not in v
@@ -79,3 +79,20 @@ def test_migration_rejects_future_and_foreign_genomes():
 def test_every_yaml_definition_has_a_migration_chain():
     for name, d in gene_definition_files().items():
         migrate(Genome(definition=name, version=1, values={}), d)
+
+
+def test_a_gene_added_later_says_what_its_absence_meant():
+    """New projects get forward front knees; anything saved before the gene
+    existed (documents, runs, candidates, designs) keeps backward ones."""
+    d = genome_definition("calf")
+    g = d.gene("front_knee_forward")
+    assert g.default is True and g.absent is False
+    assert d.default_genome().values["front_knee_forward"] is True
+    old = {k: v for k, v in d.defaults().items() if k != "front_knee_forward"}
+    assert d.complete(old)["front_knee_forward"] is False
+    assert d.complete(old | {"front_knee_forward": True})["front_knee_forward"] is True
+    assert migrate(Genome(definition="calf", version=d.version, values=old), d).values["front_knee_forward"] is False
+    assert migrate(Genome(definition="calf", version=1, values={"leg_length": 340}), d).values["front_knee_forward"] is False
+    with pytest.raises(ValueError, match="absent"):
+        GeneDef(id="x", default=1, min=0, max=2, absent=5)
+

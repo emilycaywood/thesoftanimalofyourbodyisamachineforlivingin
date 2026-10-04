@@ -242,3 +242,42 @@ def test_project_refuses_newer_schema(tmp_path):
     f.write_text(json.dumps(doc), encoding="utf-8")
     with pytest.raises(ValueError, match="newer"):
         Project.open(tmp_path / "p")
+
+
+def test_documents_saved_before_the_front_knee_gene_keep_backward_knees(tmp_path):
+    """Forward front knees are the default for new projects only: a document
+    whose genome does not mention the gene was made with backward ones."""
+    from calflab.project.store import PROJECT_FILE, read_json, write_json
+
+    lab = Lab.open(tmp_path / "p")
+    assert lab.scene()["genome"]["values"]["front_knee_forward"] is True
+    lab.close()
+    f = tmp_path / "p" / PROJECT_FILE
+    data = read_json(f)
+    genome = next(n for n in data["state"]["graph"]["nodes"] if n["type"] == "genome:calf")
+    del genome["params"]["front_knee_forward"]
+    write_json(f, data)
+    lab = Lab.open(tmp_path / "p")
+    try:
+        scene = lab.scene()
+        assert scene["genome"]["values"]["front_knee_forward"] is False
+        assert next(j["rest_deg"] for j in scene["joints"] if j["id"] == "joint.fl.knee") < 0
+        lab.execute("set_genes", {"values": {"trunk_length": 430}})  # editing another gene does not flip it
+        assert lab.scene()["genome"]["values"]["front_knee_forward"] is False
+        lab.execute("reset_genes")  # asking for the defaults does
+        assert lab.scene()["genome"]["values"]["front_knee_forward"] is True
+    finally:
+        lab.close()
+
+
+def test_reset_node_params_restores_the_default_gait(lab):
+    cid = lab.state.graph.role("controller").id
+    defaults = dict(lab.state.graph.role("controller").params)
+    lab.execute("set_node_params", {"node": cid, "params": {"frequency": 3.1, "gait": "walk"}})
+    out = lab.execute("reset_node_params", {"node": "controller"})["result"]  # by pipeline role
+    assert out["node"] == cid and lab.state.graph.role("controller").params == defaults
+    lab.undo()
+    assert lab.state.graph.role("controller").params["frequency"] == 3.1
+    with pytest.raises(LabError, match="No node"):
+        lab.execute("reset_node_params", {"node": "nope"})
+
