@@ -292,6 +292,7 @@ may change; the rest are choices I make.
 | Legs | `hoof_radius` | 20 | 12-32 | Hoof radius |
 | Legs | `knee_bend` | 40 | 10-80 deg | Knee flexion when standing |
 | Legs | `hind_knee_forward` | off | on/off | Hind knees point forward. Not evolvable |
+| Legs | `front_knee_forward` | off | on/off | Front knees point forward. Not evolvable |
 | Neck and head | `neck_length` | 160 | 80-260 | |
 | Neck and head | `neck_angle` | 50 | 10-80 deg | Neck elevation when standing |
 | Neck and head | `neck_radius` | 32 | 20-50 | |

@@ -292,7 +292,7 @@ class CalfGenerator(PartGenerator):
         # ------------------------------------------------------------ legs
         for k, (sx, sy) in LEGS.items():
             hind = sx < 0
-            forward = bool(genes.get("hind_knee_forward")) and hind
+            forward = bool(genes.get("hind_knee_forward" if hind else "front_knee_forward"))
             hip_id, thigh_id, shank_id = f"leg.{k}.hip", f"leg.{k}.thigh", f"leg.{k}.shank"
             tl, tr = val(thigh_id, "length"), val(thigh_id, "radius")
             sl, sr = val(shank_id, "length"), val(shank_id, "radius")

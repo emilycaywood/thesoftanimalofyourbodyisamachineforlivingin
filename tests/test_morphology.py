@@ -92,3 +92,34 @@ def test_optional_parts_follow_genes():
     assert "tail" not in ids and "ear.l" not in ids
     assert len(spec.transmissions) == 4 and all(t.type == "belt" for t in spec.transmissions)
     assert len([j for j in spec.joints if j.group == "leg"]) == 12
+
+
+def test_knee_direction_genes_flip_only_their_pair():
+    gdef = genome_definition("calf")
+    assert gdef.gene("front_knee_forward").default is False, "old genomes keep their front knees"
+
+    def knees(**genes):
+        v = gdef.defaults() | genes
+        spec = build_design(Genome(definition="calf", version=gdef.version, values=v)).spec
+        return {k: spec.joint(f"joint.{k}.knee") for k in ("fl", "fr", "hl", "hr")}, spec
+
+    base, _ = knees()
+    front, spec = knees(front_knee_forward=True)
+    for k in ("fl", "fr"):
+        assert front[k].rest_deg == pytest.approx(-base[k].rest_deg) and front[k].rest_deg > 0
+        assert front[k].range_deg == (-base[k].range_deg[1], -base[k].range_deg[0])
+        hip = spec.joint(f"joint.{k}.hip_flex")
+        assert hip.rest_deg < 0, "the thigh swings forward so the hoof stays under the hip"
+    for k in ("hl", "hr"):
+        assert front[k].rest_deg == base[k].rest_deg and front[k].range_deg == base[k].range_deg
+    hind, _ = knees(hind_knee_forward=True)
+    assert hind["fl"].rest_deg == base["fl"].rest_deg and hind["hl"].rest_deg == -base["hl"].rest_deg
+    # hooves still reach the ground with the front knees flipped
+    from calflab.model.xform import quat_rotate
+
+    poses = spec.world_poses()
+    for b in spec.bodies:
+        for g in b.geoms:
+            if g.foot:
+                p, q = poses[b.id]
+                assert p[2] + quat_rotate(q, g.pos)[2] - g.size[0] == pytest.approx(0.0, abs=0.5)

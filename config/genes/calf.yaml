@@ -42,6 +42,8 @@ genes:
      description: "Knee flexion in the standing pose."}
   - {id: hind_knee_forward, type: bool, default: false, group: Legs, evolvable: false,
      description: "Hind knees point forward (stifle-like) instead of backward (hock-like)."}
+  - {id: front_knee_forward, type: bool, default: false, group: Legs, evolvable: false,
+     description: "Front knees point forward (carpus-like) instead of backward (elbow-like)."}
 
   # ------------------------------------------------------------- neck and head
   - {id: neck_length, default: 160, min: 80, max: 260, unit: mm, group: Neck and head,
