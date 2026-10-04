@@ -48,6 +48,12 @@ genes:
   - {id: front_knee_forward, type: bool, default: true, absent: false, group: Legs, evolvable: false,
      description: "Front knees point forward (carpus-like) instead of backward (elbow-like)."}
 
+  # Off = two motors per front leg (abduction, and the knee acting as an elbow):
+  # the upper segment is fixed to the hip at its standing angle. Genomes saved
+  # before the gene existed had three motors: that is what `absent` records.
+  - {id: front_hip_flex, type: bool, default: true, absent: true, group: Legs, evolvable: false,
+     description: "Front legs have a hip-flexion motor. Off = two motors per front leg (abduction and knee/elbow); the upper segment is fixed."}
+
   # ------------------------------------------------------------- neck and head
   - {id: neck_length, default: 160, min: 80, max: 260, unit: mm, group: Neck and head,
      description: "Length of the neck."}

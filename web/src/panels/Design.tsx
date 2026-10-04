@@ -83,6 +83,7 @@ export function SimulatePanel() {
   const metrics = usePlayback((s) => s.metrics);
   const meta = useLab((s) => s.meta);
   const busy = useLab((s) => s.jobs.some((j) => j.kind === "sim" && (j.status === "running" || j.status === "queued")));
+  const tuning = useLab((s) => s.jobs.some((j) => j.kind === "tune" && (j.status === "running" || j.status === "queued")));
   return (
     <PanelScroll data-testid="simulate-panel">
       <div className="flex items-center gap-2 border-b border-line bg-bg p-2">
@@ -91,7 +92,21 @@ export function SimulatePanel() {
       </div>
       <Section
         title="Controller"
-        right={<Button size="sm" variant="ghost" title="Put every gait value back to its default (undoable)" data-testid="reset-gait" onClick={() => void execute("ResetNodeParams", { node: "controller" })}>Reset to defaults</Button>}
+        right={
+          <span className="flex gap-1">
+            <Button
+              size="sm"
+              variant="ghost"
+              disabled={tuning}
+              title="Search gait numbers for this body as it is, within the motors' speed, and write them here (a job; undoable)"
+              data-testid="tune-gait"
+              onClick={() => void execute("TuneGait")}
+            >
+              {tuning ? "Tuning..." : "Tune for this body"}
+            </Button>
+            <Button size="sm" variant="ghost" title="Put every gait value back to its default (undoable)" data-testid="reset-gait" onClick={() => void execute("ResetNodeParams", { node: "controller" })}>Reset to defaults</Button>
+          </span>
+        }
       >
         <RoleForm role="controller" />
       </Section>

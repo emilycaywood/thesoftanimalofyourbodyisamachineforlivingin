@@ -672,6 +672,95 @@ class Lab:
         job.result = {"run_id": run_id}
         return job
 
+    # ------------------------------------------------------------------ gait tuning
+    def tune_gait(self, settings: dict[str, Any] | None = None, backend: str | None = None) -> Job:
+        """Search a gait for the working design as it is (body fixed), within the
+        motors' speed caps, and write it into the document (ADR-048)."""
+        from calflab.evolve.gait import GaitTuneSettings, tune_gait
+        from calflab.fitness import presets
+
+        try:
+            cfg = GaitTuneSettings.model_validate(settings or {})
+        except Exception as exc:
+            raise LabError(f"tune_gait: invalid parameters: {exc}") from exc
+        g = self.state.graph.model_copy(deep=True)
+        state = self.state.model_copy(deep=True)
+        design = self._role_output("design", "design", g, state)
+        ctrl = self._role_output("controller", "controller", g, state)
+        preset = presets().get(str(g.role("fitness").params.get("preset")))
+        if preset is None:
+            raise LabError("The fitness node has no valid preset")
+        bkey = backend or self.backend_key
+        backend_obj = registry.get("compute_backend", bkey)()
+        ok, reason = backend_obj.available()  # type: ignore[attr-defined]
+        if not ok:
+            raise LabError(f"Compute backend {bkey!r} is not available: {reason}")
+        overrides = [o.model_dump(mode="json") for o in state.overrides if o.enabled]
+        payload = {
+            "genome": design.genome.model_dump(mode="json"),
+            "overrides": overrides,
+            "generator": g.role("design").type.split(":", 1)[1],
+            "generator_params": g.role("design").params,
+            "compile": g.role("model").params,
+            "sim": {**g.role("simulation").params, "start_pose": "stand"},
+            "controller": ctrl,
+            "fitness": preset.model_dump(mode="json"),
+        }
+        controller_node = g.role("controller").id
+
+        def work(job: JobContext) -> dict[str, Any]:
+            t0 = time.perf_counter()
+            result = tune_gait(payload, design.spec, library(), cfg, backend_obj, job.report, job.cancelled)  # type: ignore[arg-type]
+            if result["cancelled"]:
+                return {"cancelled": True}
+            after, before = result["after"], result["before"]
+            run_id = self.registry.new_run_id("tune")
+            self.registry.save_run(
+                RunRecord(
+                    id=run_id,
+                    kind="tune",
+                    title="Tune gait",
+                    status="done" if after else "failed",
+                    duration_s=time.perf_counter() - t0,
+                    seed=cfg.seed,
+                    backend=bkey,
+                    inputs={"settings": cfg.model_dump(mode="json"), "sim": payload["sim"], "compile": payload["compile"],
+                            "speed_caps_deg_s": result["speed_caps_deg_s"], "before": before, "tried": result["tried"]},
+                    genome=payload["genome"],
+                    overrides=overrides,
+                    controller={"key": result["controller"], "params": after["params"]} if after else ctrl,
+                    fitness={"preset": preset.model_dump(mode="json"),
+                             "result": {"total": after["fitness"]}} if after else None,
+                    metrics={**(after["metrics"] if after else {}), "evals": result["evals"]},
+                )
+            )
+            self.bus.emit("runs.changed", run_id=run_id)
+            if after is None:
+                raise LabError(
+                    "No gait was found that keeps this body upright within the motors' speed caps. "
+                    "Try more iterations, a higher speed fraction, or change the body."
+                )
+
+            def line(s: dict[str, Any]) -> str:
+                m = s["metrics"]
+                if not m:
+                    return "could not be simulated"
+                return (f"{m.get('speed_mps', 0):.2f} m/s, stability {m.get('stability', 0):.2f}, "
+                        f"lowest torque margin {m.get('torque_margin_min', 0) * 100:.0f} %"
+                        + (", fell" if m.get("fell") else "")
+                        + (f", {s['speed_excess'] * 100:.0f} % over the speed cap" if s["speed_excess"] else ""))
+
+            job.log(f"Before: {line(before)}")
+            job.log(f"After ({after['params'].get('gait', result['controller'])}): {line(after)}")
+            if cfg.apply:
+                self.execute("set_node_params", {"node": controller_node, "params": after["params"]}, client="tune")
+                self.end_gesture()
+                job.log("The gait was written into the document (Ctrl+Z restores the previous one).")
+            return {"run_id": run_id, "applied": cfg.apply, "params": after["params"], "before": before, "after": after,
+                    "speed_caps_deg_s": result["speed_caps_deg_s"], "evals": result["evals"]}
+
+        return self.jobs.submit("tune", "Tune gait for this body", work, backend=bkey)
+
     def evolve_view(self, run_id: str) -> dict[str, Any]:
         from calflab.project.store import read_json
 

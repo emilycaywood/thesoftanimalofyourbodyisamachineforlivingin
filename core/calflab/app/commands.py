@@ -13,6 +13,7 @@ from typing import Any
 
 from pydantic import BaseModel
 
+from calflab.evolve.gait import GaitTuneSettings
 from calflab.graph import Graph, GraphEdge, GraphGroup, GraphNode, default_graph, node_types
 from calflab.model.overrides import Override
 from calflab.plugins import Command, register
@@ -839,6 +840,21 @@ class RunEvolve(Command):
         p = self.params
         job = lab.run_evolve(p.optimizer, p.params, p.backend or None, p.sim, p.design or None)  # type: ignore[attr-defined]
         return {"job": job.id, "run_id": job.result.get("run_id")}
+
+
+@register
+class TuneGait(Command):
+    key = "tune_gait"
+    label = "Tune gait for this body"
+    description = (
+        "Search gait numbers for the working design as it is (the body does not change), keeping commanded "
+        "joint speeds within the motors' recorded speed, then write the gait into the document."
+    )
+    category = "Simulate"
+    Params = GaitTuneSettings
+
+    def run(self, lab: Any, state: DocumentState) -> Any:
+        return {"job": lab.tune_gait(self.params.model_dump(mode="json")).id}
 
 
 @register

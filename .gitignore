@@ -17,7 +17,8 @@ web/playwright-report/
 *.tsbuildinfo
 
 # CALFLAB projects: text documents are tracked, bulky/derived data is not
-projects/sample-calf/
+# every project folder is the researcher's working data (runs, designs, journal)
+projects/*/
 projects/*/runs/
 projects/*/exports/
 projects/*/.cache/

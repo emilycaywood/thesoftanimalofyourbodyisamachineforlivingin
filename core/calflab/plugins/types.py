@@ -185,6 +185,20 @@ class Controller(Plugin):
         return np.clip(np.array(vals, dtype=float), 0.0, 1.0)
 
     @classmethod
+    def relevant_dims(cls, joint_ids: list[str]) -> list[str]:
+        """Names of the optimisable parameters that have any effect on a robot
+        with these joints (default: all of them)."""
+        return [d.name for d in cls.vector_dims()]
+
+    @classmethod
+    def peak_joint_speeds(cls, params: dict[str, Any], joint_ids: list[str]) -> dict[str, float]:
+        """Peak joint speed (deg/s) the controller commands on each of
+        ``joint_ids`` with ``params``, for controllers whose motion is known in
+        advance. The simulator does not limit joint speed (ADR-047), so this is
+        how a gait is checked against the motors' speed. Default: unknown ({})."""
+        return {}
+
+    @classmethod
     def extra(cls) -> dict[str, Any]:
         return {"vector_dims": [d.__dict__ for d in cls.vector_dims()]}
 

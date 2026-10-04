@@ -7,6 +7,10 @@ Frame: X forward, Y left, Z up; mm, g, degrees. Leg keys: ``fl``, ``fr``,
 segment backward, so the standing pose of a backward-pointing knee is
 ``hip_flex > 0`` and ``knee < 0``.
 
+A front leg may have two motors instead of three (gene ``front_hip_flex`` off):
+the thigh is then fixed to the hip at its standing angle, there is no
+``joint.<k>.hip_flex`` / ``act.<k>.hip_flex``, and the knee works as an elbow.
+
 Proportions and the mass model are assumptions (ADR-015, ADR-017).
 """
 
@@ -31,7 +35,7 @@ from calflab.model.spec import (
     Transmission,
     Wire,
 )
-from calflab.model.xform import Vec3, quat_axis_angle, quat_from_z_to, quat_rotate
+from calflab.model.xform import IDENTITY, Vec3, quat_axis_angle, quat_from_z_to, quat_rotate
 from calflab.plugins import BuildContext, PartGenerator, register
 from calflab.schema import P
 
@@ -61,7 +65,7 @@ class CalfGenerator(PartGenerator):
 
     key = "calf"
     label = "Reference calf"
-    description = "Quadruped calf: trunk, 4 x (hip abduction, hip flexion, knee), neck, head, tail, ears."
+    description = "Quadruped calf: trunk, 4 legs (hip abduction, hip flexion, knee; front hip flexion optional), neck, head, tail, ears."
     version = "1"
     genome_definition = "calf"
 
@@ -293,6 +297,7 @@ class CalfGenerator(PartGenerator):
         for k, (sx, sy) in LEGS.items():
             hind = sx < 0
             forward = bool(genes.get("hind_knee_forward" if hind else "front_knee_forward"))
+            hip_flexes = hind or bool(genes.get("front_hip_flex", True))
             hip_id, thigh_id, shank_id = f"leg.{k}.hip", f"leg.{k}.thigh", f"leg.{k}.shank"
             tl, tr = val(thigh_id, "length"), val(thigh_id, "radius")
             sl, sr = val(shank_id, "length"), val(shank_id, "radius")
@@ -318,7 +323,8 @@ class CalfGenerator(PartGenerator):
             hip.geoms.append(
                 shell(Geom(id=f"{hip_id}.block", shape="sphere", size=(tr * 1.3, 0, 0), label="Hip block"))
             )
-            hip.geoms.append(motor(a_flex, str(genes["act_hip_flex"]), (0.0, sy * leg_off * 0.4, 0.0)))
+            if hip_flexes:
+                hip.geoms.append(motor(a_flex, str(genes["act_hip_flex"]), (0.0, sy * leg_off * 0.4, 0.0)))
             bodies.append(hip)
             joints.append(
                 Joint(
@@ -337,6 +343,8 @@ class CalfGenerator(PartGenerator):
                 name=f"Thigh ({LEG_NAMES[k]})",
                 parent=hip_id,
                 pos=add((0.0, sy * leg_off, 0.0), off(thigh_id)),
+                # without a hip-flexion motor the thigh is a fixed strut at its standing angle
+                quat=IDENTITY if hip_flexes else quat_axis_angle((0.0, 1.0, 0.0), rest_hip),
             )
             thigh.geoms.append(
                 shell(
@@ -366,18 +374,19 @@ class CalfGenerator(PartGenerator):
                     )
                 )
             bodies.append(thigh)
-            joints.append(
-                Joint(
-                    id=f"joint.{k}.hip_flex",
-                    name=f"Hip flexion ({LEG_NAMES[k]})",
-                    body=thigh_id,
-                    axis=(0.0, 1.0, 0.0),
-                    range_deg=lim("hip_flex", (-75, 75)),
-                    rest_deg=rest_hip,
-                    damping=jd,
-                    friction=jf,
+            if hip_flexes:
+                joints.append(
+                    Joint(
+                        id=f"joint.{k}.hip_flex",
+                        name=f"Hip flexion ({LEG_NAMES[k]})",
+                        body=thigh_id,
+                        axis=(0.0, 1.0, 0.0),
+                        range_deg=lim("hip_flex", (-75, 75)),
+                        rest_deg=rest_hip,
+                        damping=jd,
+                        friction=jf,
+                    )
                 )
-            )
 
             shank = Body(
                 id=shank_id,
@@ -446,7 +455,7 @@ class CalfGenerator(PartGenerator):
                 SkinRegion(
                     id=f"skin.leg.{k}",
                     bodies=[thigh_id, shank_id],
-                    joints=[f"joint.{k}.hip_flex", f"joint.{k}.knee"],
+                    joints=([f"joint.{k}.hip_flex"] if hip_flexes else []) + [f"joint.{k}.knee"],
                     material=skin_mat.key,
                     thickness_mm=skin_t,
                     area_mm2=area,
@@ -459,9 +468,12 @@ class CalfGenerator(PartGenerator):
                 transmissions.append(
                     Transmission(id=tr_id, type="belt", ratio=1.0, efficiency=0.95, motor_body=thigh_id)
                 )
+            actuators.append(Actuator(id=a_abd, joint=f"joint.{k}.hip_abd", component=str(genes["act_hip_abd"])))
+            if hip_flexes:
+                actuators.append(
+                    Actuator(id=a_flex, joint=f"joint.{k}.hip_flex", component=str(genes["act_hip_flex"]))
+                )
             actuators += [
-                Actuator(id=a_abd, joint=f"joint.{k}.hip_abd", component=str(genes["act_hip_abd"])),
-                Actuator(id=a_flex, joint=f"joint.{k}.hip_flex", component=str(genes["act_hip_flex"])),
                 Actuator(
                     id=a_knee,
                     joint=f"joint.{k}.knee",
