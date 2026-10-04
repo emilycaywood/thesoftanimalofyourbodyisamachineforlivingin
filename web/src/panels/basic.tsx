@@ -3,11 +3,12 @@ import clsx from "clsx";
 import { Eye, EyeOff, Lock, LockOpen, RotateCcw, X } from "lucide-react";
 import { useEffect, useMemo, useRef } from "react";
 import { api } from "@/api/client";
-import { execute, replayRun } from "@/commands/registry";
+import { execute, hooks, replayRun } from "@/commands/registry";
 import { Badge, Button, Empty, IconButton, Kbd, PanelScroll, fmt } from "@/components/ui";
 import { useLab } from "@/store/lab";
 import { usePlayback } from "@/store/playback";
 import { useView } from "@/store/view";
+import { useEvolve } from "./Evolve";
 
 // ---------------------------------------------------------------- layers
 export function LayersPanel() {
@@ -205,6 +206,7 @@ export function DesignsPanel() {
     return (
       <Empty title="No designs baked yet" action={<Button variant="primary" onClick={() => void execute("Bake")}>Bake (B)</Button>}>
         Bake freezes the current state into an immutable, named, versioned Design you can cite: press <Kbd>B</Kbd> or click Bake.
+        A baked design can be loaded back into the working document or used as the start of an evolution.
       </Empty>
     );
   }
@@ -220,6 +222,28 @@ export function DesignsPanel() {
             <div className="flex justify-between text-[10px] text-dim">
               <span>{fmt(d.mass_g, 0)} g</span>
               <span>{d.created.slice(0, 10)}</span>
+            </div>
+            <div className="mt-1 flex gap-1">
+              <Button
+                size="sm"
+                title="Replace the working document's genes, graph and overrides with this design (Ctrl+Z brings the document back)"
+                data-testid="design-load"
+                onClick={() => void execute("LoadDesign", { id: d.id }).then(() => usePlayback.getState().clear())}
+              >
+                Load
+              </Button>
+              <Button
+                size="sm"
+                title="Start an evolution from this design without changing the working document"
+                data-testid="design-evolve"
+                onClick={() => {
+                  useEvolve.setState({ startDesign: d.id });
+                  useView.getState().set({ workspace: "evolve" });
+                  hooks.showPanel("evolve");
+                }}
+              >
+                Evolve from
+              </Button>
             </div>
           </div>
         ))}
