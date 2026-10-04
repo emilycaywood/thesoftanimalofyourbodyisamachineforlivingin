@@ -1,0 +1,14 @@
+schema_version = "1.0.0"
+
+id = "calflab_blender"
+version = "0.2.0"
+name = "CALFLAB bridge"
+tagline = "Armature, reference clips and simulation rollouts for the CALFLAB lab"
+maintainer = "CALFLAB"
+type = "add-on"
+tags = ["Rigging", "Animation"]
+blender_version_min = "4.2.0"
+license = ["SPDX:MIT"]
+
+[permissions]
+network = "Talks to the CALFLAB server running on this computer"

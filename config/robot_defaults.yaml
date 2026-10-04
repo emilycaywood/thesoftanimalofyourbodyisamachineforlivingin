@@ -1,0 +1,65 @@
+# Robot defaults. Everything here is user-editable. Geometry defaults live in
+# the gene definition (config/genes/calf.yaml); this file holds targets and the
+# non-gene choices the part generator and simulator read.
+#
+# Units: mm, g, degrees unless a key says otherwise.
+
+targets:
+  height_mm: 610            # top of head, standing
+  body_length_mm: 700       # muzzle to rump
+  max_mass_g: 7000          # including skin
+
+genome:
+  definition: calf
+  part_generator: calf
+
+dof:
+  per_leg: [hip_abduction, hip_flexion, knee]   # 4 x 3 = 12
+  neck: [neck_yaw, neck_pitch, head_pitch]      # 3
+  optional: {tail: 1, ears: 2}                  # cosmetic
+
+joint_limits_deg:
+  hip_abd: [-30, 30]
+  hip_flex: [-75, 75]
+  knee: [-150, -3]          # sign flips for forward-pointing knees
+  neck_yaw: [-50, 50]
+  neck_pitch: [-40, 40]
+  head_pitch: [-35, 35]
+  tail: [-45, 45]
+  ear: [-40, 40]
+
+structure:
+  material: petg
+  joint_damping_nms_per_rad: 0.05
+  joint_friction_nm: 0.02
+
+electronics:
+  battery: lipo_3s_5000
+  boards: [teensy_41, raspberry_pi_5]
+  bus_voltage_v: 11.1
+
+sensors:
+  imu: bno085
+  foot: fsr_foot
+  touch_zones: [head, muzzle, flank_left, flank_right]
+  touch: cap_touch_zone
+  microphone: i2s_microphone
+  depth_camera: depth_camera        # only mounted if the genome enables it
+  motor_feedback: motor_feedback
+
+skin:
+  face_material: cast_silicone      # head / muzzle
+  hoof_material: cast_silicone
+  face_thickness_mm: 3.0
+
+simulation:                         # initial values of the "MJCF compile" node in new projects
+  torque_derating: 0.6              # usable fraction of stall torque (ADR-019)
+  servo_saturation_deg: 10.0        # position error at which a servo gives its usable torque
+  servo_kd_ratio_s: 0.03
+  floor_friction: 0.9
+  timestep_ms: 2.0
+
+harness:
+  slack_factor: 1.25                # cable length = routed distance x slack
+  bus_gauge_awg: 20
+  signal_gauge_awg: 26

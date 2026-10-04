@@ -1,0 +1,14 @@
+# Fitness preset: steady forward walking.
+# Bump `version` whenever you change terms, weights or params, so runs that
+# used the old definition stay distinguishable. Each run stores the full preset.
+name: walk
+version: 1
+description: Walk forward steadily, upright, efficiently and quietly.
+terms:
+  - {term: forward_speed, weight: 1.0, params: {target: 0.5, cap: 1.5}}
+  - {term: survival, weight: 1.0}
+  - {term: stability, weight: 0.5}
+  - {term: efficiency, weight: 0.3}
+  - {term: straightness, weight: 0.3}
+  - {term: quiet_feet, weight: 0.2}
+  - {term: joint_limits, weight: 0.1}

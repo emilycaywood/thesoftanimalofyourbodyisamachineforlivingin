@@ -1,0 +1,151 @@
+"""MJCF compile, deterministic rollouts, metrics, skin model."""
+
+import numpy as np
+import pytest
+from calflab.components import library
+from calflab.plugins import registry
+from calflab.sim import (
+    CompileOptions,
+    DomainRandomization,
+    Push,
+    Rollout,
+    SimSettings,
+    compile_mjcf,
+    compute_metrics,
+    run_rollout,
+    timeseries,
+)
+from calflab.sim.metrics import METRIC_DEFS
+
+
+def cpg(**params):
+    return registry.get("controller", "cpg")(params)
+
+
+def test_mjcf_compiles_in_mujoco(calf_design, calf_model):
+    import mujoco
+
+    model = mujoco.MjModel.from_xml_string(calf_model.xml)
+    assert model.nu == len(calf_design.spec.actuators) == 18
+    assert model.njnt == 1 + 18
+    assert model.body(calf_model.body_ids[0]).name == "trunk"
+    mass = float(np.sum(model.body_mass))
+    assert mass == pytest.approx(calf_design.spec.total_mass_g() / 1000.0, rel=1e-3)
+    assert len(calf_model.foot_geoms) == 4
+
+
+def test_fk_matches_mujoco(calf_design, calf_model):
+    """The pure-Python forward kinematics used for the viewport agrees with MuJoCo."""
+    import mujoco
+
+    model = mujoco.MjModel.from_xml_string(calf_model.xml)
+    data = mujoco.MjData(model)
+    mujoco.mj_resetDataKeyframe(model, data, 0)
+    mujoco.mj_forward(model, data)
+    poses = calf_design.spec.world_poses()
+    for bid in calf_model.body_ids:
+        mj = data.xpos[model.body(bid).id] * 1000.0
+        mine = np.array(poses[bid][0]) + np.array([0, 0, 2.0])  # compiler lifts the root 2 mm
+        assert np.allclose(mj, mine, atol=1e-3), bid
+
+
+def test_rollout_is_deterministic(calf_model):
+    s = SimSettings(duration_s=2.0, seed=3)
+    a = run_rollout(calf_model, cpg(), s, library())
+    b = run_rollout(calf_model, cpg(), s, library())
+    assert np.array_equal(a.body_pos, b.body_pos)
+    assert np.array_equal(a.torque, b.torque)
+    assert compute_metrics(a) == compute_metrics(b)
+
+
+def test_default_gait_walks_forward(calf_model):
+    r = run_rollout(calf_model, cpg(), SimSettings(duration_s=4.0), library())
+    m = compute_metrics(r)
+    assert not m["fell"]
+    assert m["speed_mps"] > 0.3
+    assert 0 < m["cost_of_transport"] < 10
+    assert set(METRIC_DEFS) <= set(m)
+    assert len(m["by_actuator"]) == 18
+    ts = timeseries(r)
+    assert len(ts["t"]) == r.n_frames == len(ts["channels"]["speed"]["values"])
+
+
+def test_default_body_and_gait_belong_together(calf_design, calf_model):
+    """New projects: front knees forward, hind knees backward, and a default
+    trot tuned for that body (ADR-047) that keeps walking and stays inside the
+    joint speed it was tuned for."""
+    spec = calf_design.spec
+    assert spec.joint("joint.fl.knee").rest_deg > 0 > spec.joint("joint.hl.knee").rest_deg
+    m = compute_metrics(run_rollout(calf_model, cpg(), SimSettings(duration_s=12.0), library()))
+    assert not m["fell"] and m["speed_mps"] > 0.4 and m["stability"] > 0.85
+    legs = [a for a in m["by_actuator"].values() if ".hip_" in a["joint"] or a["joint"].endswith(".knee")]
+    assert len(legs) == 12 and min(a["torque_margin"] for a in legs) > 0.25, "no leg actuator near its torque limit"
+    p = cpg().params
+    t_swing, t_stance = p.swing_fraction / p.frequency, (1 - p.swing_fraction) / p.frequency
+    peak = max(2 * p.hip_amplitude / t_stance, np.pi * p.hip_amplitude / t_swing, np.pi * p.knee_amplitude / t_swing)
+    assert peak <= 121, "commanded joint speed (deg/s) stays at two thirds of the leg servo's recorded no-load speed"
+
+
+def test_recorded_poses_match_recorded_joint_angles(calf_design, calf_model):
+    """Body poses and joint angles in a rollout describe the same instant, so a
+    client (Blender) that rebuilds poses from the angles lands on the same robot."""
+    from calflab import units as u
+    from calflab.model.xform import quat_to_matrix
+
+    r = run_rollout(calf_model, cpg(), SimSettings(duration_s=2.0), library())
+    spec = calf_design.spec
+    for i in (30, 70, r.n_frames - 1):
+        angles = {jid: float(u.rad_to_deg(r.q[i, k])) for k, jid in enumerate(r.joint_ids)}
+        fk = spec.world_poses(angles, root_pos=(0.0, 0.0, 0.0))
+        root_p = r.body_pos[i, 0].astype(float) * 1000.0
+        root_r = quat_to_matrix(tuple(float(v) for v in r.body_quat[i, 0]))
+        for bid in ("leg.fl.shank", "leg.hr.shank", "head", "tail"):
+            k = r.body_ids.index(bid)
+            sim_local = root_r.T @ (r.body_pos[i, k].astype(float) * 1000.0 - root_p)
+            assert np.allclose(sim_local, fk[bid][0], atol=0.05), (i, bid)
+
+
+def test_streaming_chunks_cover_all_frames(calf_model):
+    seen = []
+    r = run_rollout(calf_model, cpg(), SimSettings(duration_s=1.0), on_frames=seen.append, chunk_frames=10)
+    assert sum(len(c["t"]) for c in seen) == r.n_frames
+    assert seen[0]["start"] == 0 and seen[0]["pos"].shape[1:] == (len(r.body_ids), 3)
+
+
+def test_rollout_save_load(tmp_path, calf_model):
+    r = run_rollout(calf_model, cpg(), SimSettings(duration_s=1.0), library())
+    r.save(tmp_path / "r.npz")
+    back = Rollout.load(tmp_path / "r.npz")
+    assert np.array_equal(back.body_pos, r.body_pos)
+    assert compute_metrics(back) == compute_metrics(r)
+
+
+def test_push_disturbs_the_robot(calf_model):
+    calm = run_rollout(calf_model, cpg(), SimSettings(duration_s=2.0), library())
+    push = Push(t_s=0.8, duration_s=0.2, force_n=(0.0, 40.0, 0.0))
+    hit = run_rollout(calf_model, cpg(), SimSettings(duration_s=2.0, pushes=[push]), library())
+    assert not np.array_equal(calm.body_pos, hit.body_pos)
+    assert compute_metrics(hit)["lateral_drift_m"] > compute_metrics(calm)["lateral_drift_m"]
+
+
+def test_skin_adds_joint_stiffness_and_mass(calf_design):
+    with_skin = compile_mjcf(calf_design.spec, library(), CompileOptions(include_skin=True))
+    without = compile_mjcf(calf_design.spec, library(), CompileOptions(include_skin=False))
+    assert "stiffness" in with_skin.xml and "stiffness" not in without.xml
+    assert with_skin.total_mass_kg > without.total_mass_kg + 0.3
+
+
+def test_domain_randomization_is_seeded(calf_design):
+    opt = CompileOptions(randomization=DomainRandomization(enabled=True))
+    a = compile_mjcf(calf_design.spec, library(), opt, seed=1)
+    b = compile_mjcf(calf_design.spec, library(), opt, seed=1)
+    c = compile_mjcf(calf_design.spec, library(), opt, seed=2)
+    assert a.xml == b.xml and a.xml != c.xml
+
+
+def test_stand_up_from_lying_reports_a_time(calf_model):
+    r = run_rollout(
+        calf_model, cpg(hip_amplitude=0, knee_amplitude=0), SimSettings(duration_s=5.0, start_pose="lying"), library()
+    )
+    t = compute_metrics(r)["time_to_stand_s"]
+    assert t is None or t > 0

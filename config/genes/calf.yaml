@@ -1,0 +1,113 @@
+# Gene definition for the reference calf.
+#
+# Bump `version` and add a migration in core/calflab/model/migrations.py when
+# you rename, remove or re-scale a gene. Adding a gene with a default needs no
+# migration; if its default is not what older genomes effectively had, give
+# it `absent: <that value>`. Lengths in mm, angles in degrees.
+#
+# Proportions are design assumptions (DECISIONS.md ADR-015), not measurements.
+
+name: calf
+version: 2
+description: >
+  Reference calf quadruped: trunk, four 3-DOF legs (hip abduction, hip
+  flexion, knee), neck (yaw, pitch), head (pitch), optional tail and ears.
+
+genes:
+  # ------------------------------------------------------------- trunk
+  - {id: trunk_length, default: 420, min: 300, max: 560, unit: mm, group: Trunk,
+     description: "Shoulder-to-rump length of the trunk."}
+  - {id: trunk_width, default: 150, min: 100, max: 220, unit: mm, group: Trunk,
+     description: "Trunk width (left-right)."}
+  - {id: trunk_height, default: 170, min: 110, max: 240, unit: mm, group: Trunk,
+     description: "Trunk depth (back to belly)."}
+
+  # ------------------------------------------------------------- legs
+  - {id: stance_width, default: 170, min: 110, max: 260, unit: mm, group: Legs,
+     description: "Left-right distance between hip abduction axes."}
+  - {id: hip_inset, default: 35, min: 10, max: 90, unit: mm, group: Legs,
+     description: "Distance of the hips from the front/rear end of the trunk."}
+  - {id: hip_drop, default: 40, min: 0, max: 90, unit: mm, group: Legs,
+     description: "Height of the hip axis below the trunk centre line."}
+  - {id: leg_offset, default: 30, min: 10, max: 60, unit: mm, group: Legs,
+     description: "Sideways offset of the leg plane from the abduction axis."}
+  - {id: thigh_length, default: 170, min: 100, max: 260, unit: mm, group: Legs,
+     description: "Hip to knee."}
+  - {id: shank_length, default: 170, min: 100, max: 260, unit: mm, group: Legs,
+     description: "Knee to hoof centre."}
+  - {id: leg_radius, default: 16, min: 10, max: 28, unit: mm, group: Legs,
+     description: "Radius of the leg segments."}
+  - {id: hoof_radius, default: 20, min: 12, max: 32, unit: mm, group: Legs,
+     description: "Radius of the (cast silicone) hoof."}
+  - {id: knee_bend, default: 40, min: 10, max: 80, unit: deg, group: Legs,
+     description: "Knee flexion in the standing pose."}
+  - {id: hind_knee_forward, type: bool, default: false, group: Legs, evolvable: false,
+     description: "Hind knees point forward (stifle-like) instead of backward (hock-like)."}
+  # Forward is the default since 2026-10-04. Genomes saved before the gene
+  # existed had backward front knees: that is what `absent` records.
+  - {id: front_knee_forward, type: bool, default: true, absent: false, group: Legs, evolvable: false,
+     description: "Front knees point forward (carpus-like) instead of backward (elbow-like)."}
+
+  # Off = two motors per front leg (abduction, and the knee acting as an elbow):
+  # the upper segment is fixed to the hip at its standing angle. Genomes saved
+  # before the gene existed had three motors: that is what `absent` records.
+  - {id: front_hip_flex, type: bool, default: true, absent: true, group: Legs, evolvable: false,
+     description: "Front legs have a hip-flexion motor. Off = two motors per front leg (abduction and knee/elbow); the upper segment is fixed."}
+
+  # ------------------------------------------------------------- neck and head
+  - {id: neck_length, default: 160, min: 80, max: 260, unit: mm, group: Neck and head,
+     description: "Length of the neck."}
+  - {id: neck_angle, default: 50, min: 10, max: 80, unit: deg, group: Neck and head,
+     description: "Neck elevation above horizontal in the standing pose."}
+  - {id: neck_radius, default: 32, min: 20, max: 50, unit: mm, group: Neck and head,
+     description: "Radius of the neck."}
+  - {id: head_length, default: 190, min: 120, max: 260, unit: mm, group: Neck and head,
+     description: "Poll to muzzle."}
+  - {id: head_width, default: 100, min: 70, max: 140, unit: mm, group: Neck and head,
+     description: "Head width."}
+  - {id: head_height, default: 110, min: 70, max: 150, unit: mm, group: Neck and head,
+     description: "Head depth."}
+  - {id: head_tilt, default: 25, min: 0, max: 60, unit: deg, group: Neck and head,
+     description: "Nose-down tilt of the head in the standing pose."}
+
+  # ------------------------------------------------------------- tail and ears
+  - {id: has_tail, type: bool, default: true, group: Tail and ears, evolvable: false,
+     description: "Include a 1-DOF tail."}
+  - {id: tail_length, default: 180, min: 60, max: 300, unit: mm, group: Tail and ears,
+     description: "Length of the tail."}
+  - {id: has_ears, type: bool, default: true, group: Tail and ears, evolvable: false,
+     description: "Include two 1-DOF ears (cosmetic)."}
+  - {id: ear_length, default: 70, min: 30, max: 120, unit: mm, group: Tail and ears,
+     description: "Length of each ear."}
+
+  # ------------------------------------------------------------- mechanism
+  - {id: knee_drive, type: enum, default: direct, choices: [direct, belt], group: Mechanism,
+     evolvable: false,
+     description: "direct = knee motor at the knee; belt = motor at the hip driving the knee by belt."}
+  - {id: act_hip_abd, type: enum, default: xm430_w350, group: Mechanism, evolvable: false,
+     choices: [sts3215, xm430_w350, xh540_w270, qdd_bldc_generic],
+     description: "Actuator for hip abduction."}
+  - {id: act_hip_flex, type: enum, default: xh540_w270, group: Mechanism, evolvable: false,
+     choices: [sts3215, xm430_w350, xh540_w270, qdd_bldc_generic],
+     description: "Actuator for hip flexion."}
+  - {id: act_knee, type: enum, default: xh540_w270, group: Mechanism, evolvable: false,
+     choices: [sts3215, xm430_w350, xh540_w270, qdd_bldc_generic],
+     description: "Actuator for the knee."}
+  - {id: act_small, type: enum, default: sts3215, group: Mechanism, evolvable: false,
+     choices: [sts3215, xm430_w350],
+     description: "Actuator for neck, head, tail and ears."}
+
+  # ------------------------------------------------------------- shell and skin
+  - {id: wall_thickness, default: 2.0, min: 1.0, max: 4.0, step: 0.1, unit: mm, group: Shell and skin,
+     evolvable: false,
+     description: "Printed shell wall thickness (drives structure mass)."}
+  - {id: skin_material, type: enum, default: knit_silicone_laminate, group: Shell and skin,
+     evolvable: false, choices: [knit_silicone_laminate, cast_silicone],
+     description: "Skin material for trunk, neck and legs (head and hooves are cast silicone)."}
+  - {id: skin_thickness, default: 1.5, min: 0.5, max: 6.0, step: 0.1, unit: mm, group: Shell and skin,
+     evolvable: false,
+     description: "Silicone layer thickness of the skin."}
+
+  # ------------------------------------------------------------- sensing
+  - {id: has_depth_camera, type: bool, default: false, group: Sensing, evolvable: false,
+     description: "Mount the optional depth camera in the head."}
