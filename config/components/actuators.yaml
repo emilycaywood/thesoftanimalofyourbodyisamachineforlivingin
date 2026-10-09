@@ -110,3 +110,53 @@
   guessed: [r_thermal_k_per_w, c_thermal_j_per_k]
   verified: false
   notes: Needs a 24 V bus; not compatible with the default 3S battery.
+
+- key: scs0009
+  kind: actuator
+  name: "Feetech SCS0009 (6 V)"
+  manufacturer: Feetech
+  protocol: ttl-serial-bus    # half duplex asynchronous serial, 38400 bps to 1 Mbps
+  mass_g: 13.2    # g; "13.2 +/- 1 g"
+  dims_mm: [23.2, 12.1, 25.25]    # mm; the page's A, B, C
+  cost_usd: null    # USD; not on the page (default assumed, and reported)
+  stall_torque_nm: 0.2256    # N*m; "peak stall torque 2.3 kg.cm @ 6 V" x 0.0980665
+  stall_current_a: 1.0    # A; "1.0 A @ 6 V"
+  no_load_speed_rpm: 100    # rpm; "0.1 sec/60 deg @ 6 V" = 10 / 0.1
+  voltage_v: 6.0    # V the figures are given for; operating range 4 to 7.4 V
+  gear_ratio: null    # not on the page (default assumed, and reported)
+  idle_current_a: 0.15    # A; "running current (at no load) 150 mA @ 6 V"
+  armature_kgm2: null    # not on the page (default assumed, and reported)
+  winding_resistance_ohm: null    # not on the page (default assumed, and reported)
+  r_thermal_k_per_w: null    # not on the page (default assumed, and reported)
+  c_thermal_j_per_k: null    # not on the page (default assumed, and reported)
+  max_temp_c: null    # not on the page: it gives an operating range of -15 to 70 degC ambient, not a winding limit
+  url: https://www.feetechrc.com/    # product page "6V 2.3kg serial bus servo"
+  source: "Feetech product page '6V 2.3kg serial bus servo' (model SCS0009 / SC-0090-C001), saved copy supplied by the researcher, read 2026-10-09"
+  guessed: []
+  verified: false    # set to true yourself once every value is checked
+  notes: Rated torque 0.7 kg.cm @ 6 V (0.069 N*m); 300 deg of travel; plastic case, copper + steel gears, no bearing. The page calls the output spline 25T in its text and 20T/OD 3.95 mm in its table.
+
+- key: mg996r
+  kind: actuator
+  name: "MG996R metal gear servo (6 V)"
+  manufacturer: ""    # not named in the document (a Handson Technology user guide, SKU EMH-1056)
+  protocol: pwm    # 1.5 ms pulse = middle, about 1 ms and 2 ms = the ends
+  mass_g: 55    # g; "Weight: 55g"
+  dims_mm: [40.7, 19.7, 42.9]    # mm; "40.7 x 19.7 x 42.9 mm approx."
+  cost_usd: null    # USD; not in the document (default assumed, and reported)
+  stall_torque_nm: 1.0787    # N*m; "11 kgf.cm (6 V)" x 0.0980665; 9.4 kgf.cm at 4.8 V
+  stall_current_a: 2.5    # A; "Stall Current: 2.5A (6V)"
+  no_load_speed_rpm: 71.4    # rpm; "0.14 s/60 deg (6 V)" = 10 / 0.14; 0.17 s/60 deg at 4.8 V
+  voltage_v: 6.0    # V the figures are given for; operating range 4.8 to 7.2 V
+  gear_ratio: null    # not in the document (default assumed, and reported)
+  idle_current_a: null    # A; the document says "Running Current: 500mA" without saying at what load, so it is not entered
+  armature_kgm2: null    # not in the document (default assumed, and reported)
+  winding_resistance_ohm: null    # not in the document (default assumed, and reported)
+  r_thermal_k_per_w: null    # not in the document (default assumed, and reported)
+  c_thermal_j_per_k: null    # not in the document (default assumed, and reported)
+  max_temp_c: null    # not in the document (default assumed, and reported)
+  url: http://www.handsontec.com/
+  source: "Handson Technology User Guide 'MG996R Metal Gear Servo Motor' (MG996R.pdf, 6 pages), supplied by the researcher, read 2026-10-09. A reseller's guide, not the maker's datasheet."
+  guessed: []
+  verified: false    # set to true yourself once every value is checked
+  notes: Rotates about 120 deg (60 each way) according to the document, which limits the joint range it can serve. Double ball bearing, metal gears.
