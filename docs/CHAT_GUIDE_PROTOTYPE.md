@@ -3,8 +3,9 @@
 Paste everything below the line into a new chat. It covers one job: I have
 modelled a small prototype calf in Rhino (printed PLA with stainless steel
 rods) and want it in CALFLAB's simulator with its real mass. It is a snapshot
-of CALFLAB as of 2026-10-08 (branch `chassis-mass`, after ADR-054, the
-infill estimate) and stands
+of CALFLAB as of 2026-10-09 (branch `chassis-mass`, after ADR-056: the
+infill estimate, the neck and head switches, and front and hind legs of
+their own proportions) and stands
 on its own. For entering components in detail, the Mass tab in depth, or the
 rest of the lab, see `docs/CHAT_GUIDE_CHASSIS.md` and
 `docs/CHAT_GUIDE_PROMPT.md`. Regenerate this file after a session that
@@ -88,7 +89,13 @@ battery, skin and hooves are separate items.
 
 **Body IDs** (what a solid is pushed onto): `trunk`; for each leg `fl`, `fr`,
 `hl`, `hr` (front/hind, left/right): `leg.fl.hip`, `leg.fl.thigh`,
-`leg.fl.shank`; `neck.base`, `neck`, `head`. The tail and ears (`tail`,
+`leg.fl.shank`; `neck.base`, `neck`, `head`. **With "Front legs have a
+thigh" off (section 4) the front legs have only `leg.fl.hip`, `leg.fl.shank`,
+`leg.fr.hip`, `leg.fr.shank`**: there is no `leg.fl.thigh` or `leg.fr.thigh`
+to push onto. The hind legs always have all three. What moves with what:
+`leg.<k>.hip` is everything between the abduction axis and the next pitch
+axis; `leg.<k>.thigh` is between the hip flexion axis and the knee axis;
+`leg.<k>.shank` is everything below the last pitch axis, down to the foot. The tail and ears (`tail`,
 `ear.l`, `ear.r`) have no printed structure in the model.
 
 ## 2. Ask me these first
@@ -148,6 +155,50 @@ In Rhino, `CalflabConnect` checks the link (address normally
 3. Form, group *Legs*: `front_knee_forward` (front knees forward or
    backward) and `front_hip_flex` (on = three motors per front leg, off =
    two, the thigh a fixed strut).
+   **If my front and hind legs differ, or a leg has no thigh or a very
+   short one**, the same group has these (labels as in the Form tab, all
+   off or unused by default):
+
+   | Setting in Form > Legs | Gene | Range (default) | At scale 0.337 |
+   |---|---|---|---|
+   | Front legs have a thigh | `front_thigh` | on / off (on) | |
+   | Front and hind legs have their own lengths | `own_leg_lengths` | on / off (off) | |
+   | Front thigh length | `front_thigh_length` | 5 to 300 mm (170) | 1.69 to 101.1 mm |
+   | Front shank length | `front_shank_length` | 30 to 450 mm (170) | 10.11 to 151.65 mm |
+   | Hind thigh length | `hind_thigh_length` | 5 to 300 mm (170) | 1.69 to 101.1 mm |
+   | Hind shank length | `hind_shank_length` | 30 to 450 mm (170) | 10.11 to 151.65 mm |
+
+   - *Front and hind legs have their own lengths* on: the four lengths are
+     used; **Thigh length** and **Shank length** then do nothing. (Those two
+     stop at 100 mm full size, 33.7 mm at scale 0.337, which is why a
+     near-zero thigh needs the switch.)
+   - How to measure: thigh = hip flexion axis to knee axis. Shank = knee
+     axis to the **centre of the hoof ball**, so *axis to the ground = shank
+     length + hoof radius*. With my "axis to ground contact" measurement,
+     shank length = that measurement minus the **Hoof radius** slider
+     (6.74 mm at scale 0.337 unless I changed it).
+   - *Front legs have a thigh* off: the front leg is hip (abduction), one
+     pitch joint, then the shank hanging straight down, hoof directly under
+     the pitch axis. The pitch joint is `joint.fl.knee` / `joint.fr.knee`,
+     shown as *Shoulder pitch*, with actuator `act.fl.knee` / `act.fr.knee`.
+     Its motor is the Mechanism list **act knee**, which the hind knees
+     share; it has its own row in the torque-margin table.
+     `front_knee_forward` and `front_hip_flex` then have no effect.
+   - Every hoof stands on the ground: *Hip drop* applies to the longer pair
+     of legs, and the hips of the shorter pair sit lower in the trunk by
+     the difference. The trunk is level. If my prototype's trunk is tilted
+     when it stands, the lab cannot show that; say so.
+   - What goes with the thigh: its printed shell and skin (mass), its
+     collision capsule, and the front hip-flexion motors if they were on.
+     An override or a pushed solid still aimed at `leg.fl.thigh` gives a
+     warning ("... targets missing ...") and is ignored.
+   - My prototype (three-motor hind legs with hip flexion and knee almost on
+     one axis, two-motor front legs with no thigh): *own lengths* on,
+     *Front legs have a thigh* off, Hind thigh length = my axis-to-axis
+     distance, Hind and Front shank length from my axis-to-ground
+     measurements, `front_knee_forward` and hind knee forward off. In
+     Mechanism: `act_hip_abd` = `mg996r`, `act_hip_flex` = `scs0009`,
+     `act_knee` = `scs0009`. Then check the height readout against my 205 mm.
    Form, group *Neck and head*: three switches, **Neck yaw motor**
    (`has_neck_yaw`), **Neck pitch motor** (`has_neck_pitch`) and **Head
    pitch motor** (`has_head_pitch`), all on by default. Off = that joint and
@@ -426,8 +477,16 @@ Help me read the result as a first look, not a prediction (section 9).
   skeleton is the lab's, not my model's (section 1).
 - **Densities:** `pla` and `petg` are unverified typical values;
   `stainless_304` I verified.
-- **The small calf is untested ground.** No real small servo has been
-  entered or simulated. The simulator's time step and contact settings were
+- **The new leg layout was tested with stand-in lengths, not mine.** A
+  thighless, short-thighed body at scale 0.337 builds, exports, tunes and
+  simulates without collapsing, sinking or hitting joint limits (time step
+  2 ms, unchanged). With `scs0009` on the pitch joints and the library's
+  full-size battery and boards (about 1 kg of components) it stands but
+  barely walks, 0.02 m/s, with those servos at their torque limit; with
+  stronger servos the same body trots at about 0.09 m/s. So the result
+  depends on entering my real battery and board.
+- **The small calf is untested ground.** My two servos (`scs0009`,
+  `mg996r`) are in the library, unverified; no small battery or board is. The simulator's time step and contact settings were
   chosen for a 5 kg, 600 mm body and have not been re-examined for a 200 mm
   one. Treat speed and torque margins as a first look.
 - **The simulator limits torque, not joint speed.** *Tune for this body*
@@ -452,6 +511,9 @@ Help me read the result as a first look, not a prediction (section 9).
 | `The mesh of the solid ... has a different volume (x %) than the sender reports` | Mesh and Rhino disagree by more than 5 %: look for overlapping or inside-out pieces |
 | `'x' is not a structure material in the library. Choose one of: ...` | The `calflab.material` value is misspelt or not in `materials.yaml` with `role: structure` |
 | `'x' is not a body` | Use a body ID from section 1 |
+| `'leg.fl.thigh' is not a body`, or a warning that an override "targets missing leg.fl.thigh..." | "Front legs have a thigh" is off: the front legs have only hip and shank. Push onto `leg.fl.hip` or `leg.fl.shank` |
+| Front and hind length sliders do nothing | "Front and hind legs have their own lengths" is off. Or the other way round: with it on, Thigh length and Shank length do nothing |
+| The calf stands but barely moves, and the torque-margin table shows 0 % on the shoulder pitch or hind hip flexion | Those servos are at their limit. Check what the body weighs in the Mass tab: with the library's full-size battery and boards a small calf carries about 1 kg of components |
 | `Solid '<name>': it has print tags but not calflab.print.perimeters, calflab.print.line_width. An infill estimate needs all of calflab.print.infill, calflab.print.perimeters, calflab.print.line_width; no value is assumed. Nothing was pushed.` | That solid has some print tags but not all three (the message lists the missing ones). Add them, or remove them all for a dense solid; push the body again |
 | `Solid '<name>': calflab.print.infill = '0.15' looks like a fraction: write the percentage, e.g. 15. Nothing was pushed.` | Infill is a percentage |
 | `... calflab.print.infill = '150' must be between 0 and 100 (percent)`, `... calflab.print.perimeters = '2.5' must be a whole number, 1 or more`, `... calflab.print.line_width = '0' must be more than 0 (mm)`, `... = 'two' is not a number (...)` | The tag's value cannot be used. Correct it in Attribute User Text and push again. Nothing was pushed |

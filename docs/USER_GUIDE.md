@@ -424,6 +424,48 @@ It walks acceptably when the front joint is high and points backward
 with overrides on `leg.fl.thigh`, `leg.fr.thigh`, `leg.fl.shank`,
 `leg.fr.shank`), and poorly with the knee mid-leg pointing forward.
 
+**Front and hind legs that differ** (all off or unused by default; a calf
+that leaves them alone is built exactly as before):
+
+| Setting in Form > Legs | Gene | Range (default) | At scale 0.337 |
+|---|---|---|---|
+| Front legs have a thigh | `front_thigh` | on / off (on) | |
+| Front and hind legs have their own lengths | `own_leg_lengths` | on / off (off) | |
+| Front thigh length | `front_thigh_length` | 5 to 300 mm (170) | 1.69 to 101.1 mm |
+| Front shank length | `front_shank_length` | 30 to 450 mm (170) | 10.11 to 151.65 mm |
+| Hind thigh length | `hind_thigh_length` | 5 to 300 mm (170) | 1.69 to 101.1 mm |
+| Hind shank length | `hind_shank_length` | 30 to 450 mm (170) | 10.11 to 151.65 mm |
+
+* **Front and hind legs have their own lengths**: on, the four lengths in
+  the table are used and **Thigh length** / **Shank length** are ignored (the
+  two sliders stay in the panel and do nothing). Like every length they
+  follow *Overall scale* and are shown in real millimetres. A thigh is
+  measured from the hip flexion axis to the knee axis; a shank from the knee
+  axis to the centre of the hoof ball, so *axis to the ground = shank length
+  + hoof radius* (the **Hoof radius** slider).
+* The thigh sliders go down to 5 mm at full size (1.7 mm at scale 0.337),
+  for a leg whose hip flexion and knee axes nearly coincide. The shared
+  **Thigh length** still stops at 100 mm.
+* **Every hoof stands on the ground.** *Hip drop* is the height of the hip
+  axes of the longest legs below the trunk centre line; the hips of the
+  shorter pair sit lower by the difference. The trunk stays level. (Without
+  the switch, a leg shortened by an override still hangs short, as before.)
+* **Front legs have a thigh**: off, a front leg has no thigh body at all.
+  It is `leg.fl.hip` (abduction), then one pitch joint, then `leg.fl.shank`
+  hanging straight down, with the hoof directly below the pitch axis. The
+  pitch joint keeps the IDs `joint.fl.knee` / `act.fl.knee` and is named
+  *Shoulder pitch*; its motor is the one chosen as **act knee** in
+  Mechanism (shared with the hind knees), drawn in the hip, and it has its
+  own row in the torque-margin table. It may swing 75 degrees each way.
+  **Front knee forward**, **Front hip flex** and a belt knee drive have no
+  effect on such a leg. There is no `leg.fl.thigh` / `leg.fr.thigh` in the
+  Scene tree, the Mass tab, Rhino or Blender; an override or a pushed solid
+  that still targets one is reported as a warning and otherwise ignored.
+  The thigh's printed shell and skin leave the mass, its collision capsule
+  is gone, and the hip-flexion motors go with it if they were on.
+* The four lengths and the two switches are not varied by Evolve.
+* After changing the leg layout, press *Tune for this body* in Simulate.
+
 Projects, runs, candidates and baked designs made before 2026-10-04 keep the
 backward front knees they were made with. To bring an older document to the
 new default: *Reset to defaults* in Form (genes, including the knees) and

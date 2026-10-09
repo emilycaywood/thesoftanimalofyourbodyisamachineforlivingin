@@ -787,3 +787,60 @@ Checked by `tests/test_neck_switches.py` (every combination: joints,
 actuators, mass, poses, skin, harness; compile, simulate, Blender plan,
 Rhino build list) and by a script that ran every exporter and analysis on a
 body with all three off. Not looked at in the web lab or in Rhino.
+
+## ADR-056 — Front and hind legs of their own lengths; front legs without a thigh (**VERIFY**)
+Requested by the researcher on 2026-10-09 for a prototype at scale 0.337:
+hind legs whose hip flexion and knee axes nearly coincide, front legs that
+are shoulder abduction, one pitch joint and a shank with no thigh. One
+`thigh_length` served all four legs and stopped at 100 mm (33.7 mm at that
+scale), and a front leg without hip flexion still had its thigh as a strut
+(ADR-048). The request's measurements were placeholders; nothing here
+depends on them.
+
+*Decision: additive, off by default.* `thigh_length` and `shank_length` are
+used throughout tests, the Grasshopper example and saved work, so they were
+not renamed or split by a migration. Instead:
+
+* `own_leg_lengths` (bool, default and `absent` false). On: the front legs
+  read `front_thigh_length` / `front_shank_length` and the hind legs
+  `hind_thigh_length` / `hind_shank_length`; the shared two are ignored.
+* The four lengths: `scale_by: scale`, thigh 5 to 300 mm, shank 30 to
+  450 mm, default 170. Wide on purpose, a hand-built body is not bound by the
+  proportions of ADR-015. **Not evolvable**, so the default calf's search
+  space, and hence its evolution runs, are unchanged; the cost is that Evolve
+  does not vary the leg lengths of a body that uses them.
+* `front_thigh` (bool, default and `absent` true). Off: no `leg.f*.thigh`
+  body. `leg.f*.shank` is a child of `leg.f*.hip` at the lateral leg offset
+  and hangs straight down (rest 0), on `joint.f*.knee`.
+
+*The pitch joint keeps the knee's IDs* (`joint.<k>.knee`, `act.<k>.knee`,
+motor from `act_knee`) and is only named "Shoulder pitch". Stable IDs are
+API: the CPG already steps a leg with a knee and no hip flexion as a
+two-motor leg (knee sweeps, abduction lifts), the torque table, speed caps,
+firmware and bridges key on these IDs, and nothing needed to learn a new
+one. Consequence: its motor cannot be chosen apart from the hind knees'.
+Its range is that of hip flexion (a straight leg swings both ways), not the
+knee's one-sided range. `front_knee_forward`, `front_hip_flex` and a belt
+drive do nothing on such a leg; its motor is drawn in the hip.
+
+*Grounding.* Legs of different standing heights used to leave the shorter
+pair in the air (trunk height follows the longest leg). With
+`own_leg_lengths` on or `front_thigh` off, the hip of each shorter leg is
+lowered in the trunk by the difference, so every hoof stands and the trunk
+stays level; `hip_drop` then belongs to the longest legs. Assumed: the
+prototype's trunk is level and its front and hind pitch axes sit at
+different heights. A tilted trunk is not modelled. Without either switch
+nothing changes: a leg shortened by an override still hangs short, as saved
+projects have it.
+
+*A very short thigh* is an ordinary body (a capsule of length 5 mm full size
+at the least); its direct-drive knee motor is drawn at the hip instead of
+above it.
+
+Checked: specs of six unchanged gene sets hash identically before and after
+the change; `tests/test_leg_layout.py`; every exporter and analysis, a
+simulation and `tune_gait` on a thighless, short-thighed body at scale 0.337
+with stand-in lengths. Simulation settings were left as they are (2 ms): that
+body neither collapsed, sank nor violated joint limits, but nothing was
+re-examined for a 200 mm calf (ADR-052). Not looked at in the web lab, Rhino
+or Blender by anyone.

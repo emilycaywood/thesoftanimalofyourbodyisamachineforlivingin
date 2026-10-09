@@ -108,7 +108,7 @@ branched from `phase-1-vertical-slice`, pushed to GitHub and open as a pull
 request into `phase-1-vertical-slice` (so it joins pull request #1 when the
 researcher merges it).
 
-**Tests:** `calflab test` passes: ruff, 267 pytest tests, mypy, web typecheck
+**Tests:** `calflab test` passes: ruff, 273 pytest tests, mypy, web typecheck
 and eslint, 14 Vitest tests, 7 Playwright tests (smoke, material / weighed
 mass / pushed solid / Mass panel, real-millimetre sliders at scale 0.33,
 gumball drag and harness overlay with a
@@ -314,6 +314,25 @@ motors; ADR-055):**
   simulation and undo were run by script on a body with all three off.
   Not looked at in the web lab or Rhino by anyone.
 
+**Added later on 2026-10-09 (researcher's request: the prototype's legs do
+not fit the skeleton; ADR-056; and its two servos):**
+
+* `scs0009` and `mg996r` in `config/components/actuators.yaml`, from the
+  two documents the researcher supplied; unverified, blanks left blank.
+* Form > Legs: `own_leg_lengths` (off) with `front_thigh_length`,
+  `front_shank_length`, `hind_thigh_length`, `hind_shank_length` (thigh
+  down to 5 mm full size), and `front_thigh` (on; off = no front thigh body,
+  the shank hangs from the hip on `joint.f*.knee`, named Shoulder pitch).
+  With either in use the shorter legs' hips sit lower so all hooves stand.
+  None is evolvable; no genome version bump. This supersedes next session G
+  for the lengths (the default body was not changed).
+* The request's three leg measurements were placeholders: the body was
+  tested with stand-in lengths. With scs0009 on the pitch joints and the
+  full-size battery and boards it stands but hardly walks (servos at their
+  limit); with mg996r everywhere it trots at 0.09 m/s. A small battery and
+  board are still not in the library.
+* `tests/test_leg_layout.py` (6).
+
 **Scaffolded only (interfaces + tests, no behaviour):** PPO training, MJX
 simulator, RemoteSSH and CloudNotebook transports (job bundling is real),
 imitation reward, interactive selection, molds, skin patterns, nesting,
@@ -435,7 +454,7 @@ Journal, Rhino bridge):**
 |---|---|
 | `CLAUDE.md` | Conventions for every session (loaded automatically) |
 | `PLAN.md` | Architecture, module boundaries, data flow, phases, risks, status |
-| `DECISIONS.md` | ADR log: every assumption (55 so far) |
+| `DECISIONS.md` | ADR log: every assumption (56 so far) |
 | `docs/proposals/anatomical-leg.md` | Proposal for a three-segment leg (set aside 2026-10-04; not built) |
 | `docs/USER_GUIDE.md` | How to use the lab |
 | `docs/CHAT_GUIDE_PROMPT.md` | Prompt that makes a chat assistant a guide to the whole lab |

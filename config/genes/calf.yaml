@@ -12,7 +12,8 @@ version: 2
 description: >
   Reference calf quadruped: trunk, four 3-DOF legs (hip abduction, hip
   flexion, knee), neck (yaw, pitch), head (pitch), optional tail and ears.
-  Front hip flexion and each neck and head joint can be switched off.
+  Front hip flexion and each neck and head joint can be switched off; front
+  and hind legs can have their own lengths, and the front legs no thigh.
 
 genes:
   # ------------------------------------------------------------- scale
@@ -63,6 +64,29 @@ genes:
   # before the gene existed had three motors: that is what `absent` records.
   - {id: front_hip_flex, type: bool, default: true, absent: true, group: Legs, evolvable: false,
      description: "Front legs have a hip-flexion motor. Off = two motors per front leg (abduction and knee/elbow); the upper segment is fixed."}
+
+  # Front and hind legs of their own proportions (ADR-056). All off / unused by
+  # default, and `absent` records that: older genomes build exactly as before.
+  # The four lengths are read only while `own_leg_lengths` is on; they are not
+  # evolvable, so the search space of the default calf is unchanged.
+  - {id: front_thigh, type: bool, default: true, absent: true, group: Legs, evolvable: false,
+     label: "Front legs have a thigh",
+     description: "Off = no front thigh at all: the shank hangs straight down from the shoulder on one pitch joint (joint.fl.knee / joint.fr.knee), driven by the knee actuator. The front knee direction and the front hip-flexion switch then do nothing."}
+  - {id: own_leg_lengths, type: bool, default: false, absent: false, group: Legs, evolvable: false,
+     label: "Front and hind legs have their own lengths",
+     description: "On = the four lengths below are used and Thigh length / Shank length are ignored. The hips of the shorter legs sit lower in the trunk so every hoof stands on the ground."}
+  - {id: front_thigh_length, scale_by: scale, default: 170, min: 5, max: 300, unit: mm, group: Legs, evolvable: false,
+     label: "Front thigh length",
+     description: "Front legs: hip (shoulder) pitch axis to knee axis. Used when front and hind legs have their own lengths and the front legs have a thigh."}
+  - {id: front_shank_length, scale_by: scale, default: 170, min: 30, max: 450, unit: mm, group: Legs, evolvable: false,
+     label: "Front shank length",
+     description: "Front legs: knee axis (without a thigh: the shoulder pitch axis) to hoof centre. Used when front and hind legs have their own lengths."}
+  - {id: hind_thigh_length, scale_by: scale, default: 170, min: 5, max: 300, unit: mm, group: Legs, evolvable: false,
+     label: "Hind thigh length",
+     description: "Hind legs: hip flexion axis to knee axis. Used when front and hind legs have their own lengths."}
+  - {id: hind_shank_length, scale_by: scale, default: 170, min: 30, max: 450, unit: mm, group: Legs, evolvable: false,
+     label: "Hind shank length",
+     description: "Hind legs: knee axis to hoof centre. Used when front and hind legs have their own lengths."}
 
   # ------------------------------------------------------------- neck and head
   - {id: neck_length, scale_by: scale, default: 160, min: 80, max: 260, unit: mm, group: Neck and head,

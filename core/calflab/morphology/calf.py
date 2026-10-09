@@ -11,6 +11,15 @@ A front leg may have two motors instead of three (gene ``front_hip_flex`` off):
 the thigh is then fixed to the hip at its standing angle, there is no
 ``joint.<k>.hip_flex`` / ``act.<k>.hip_flex``, and the knee works as an elbow.
 
+Front and hind legs may differ (ADR-056). Gene ``own_leg_lengths`` on: the
+front legs take ``front_thigh_length`` / ``front_shank_length`` and the hind
+legs ``hind_thigh_length`` / ``hind_shank_length`` instead of the shared
+``thigh_length`` / ``shank_length``. Gene ``front_thigh`` off: a front leg
+has no thigh body at all; ``leg.<k>.shank`` hangs straight down from
+``leg.<k>.hip`` on ``joint.<k>.knee`` (the shoulder pitch), driven by
+``act.<k>.knee``. In either case the hips of the shorter legs sit lower in
+the trunk so that every hoof stands on the ground.
+
 Each neck and head joint has its own switch (genes ``has_neck_yaw``,
 ``has_neck_pitch``, ``has_head_pitch``; ADR-055). Off: no joint, no actuator
 and no motor mass; ``neck.base``, ``neck`` and ``head`` keep their IDs and
@@ -125,15 +134,18 @@ class CalfGenerator(PartGenerator):
             }
         }
         down = (0.0, 0.0, -1.0)
-        for k in LEGS:
+        own = bool(genes.get("own_leg_lengths", False))
+        for k, (sx, _) in LEGS.items():
+            end = ("front_" if sx > 0 else "hind_") if own else ""  # which pair of length genes this leg reads
             out[f"leg.{k}.hip"] = {"offset": pv("leg_offset", "Leg offset"), **offsets()}
-            out[f"leg.{k}.thigh"] = {
-                "length": pv("thigh_length", handle=down),
-                "radius": pv("leg_radius"),
-                **offsets(),
-            }
+            if sx < 0 or bool(genes.get("front_thigh", True)):
+                out[f"leg.{k}.thigh"] = {
+                    "length": pv(f"{end}thigh_length", "Thigh length" if own else None, handle=down),
+                    "radius": pv("leg_radius"),
+                    **offsets(),
+                }
             out[f"leg.{k}.shank"] = {
-                "length": pv("shank_length", handle=down),
+                "length": pv(f"{end}shank_length", "Shank length" if own else None, handle=down),
                 "radius": pv("leg_radius"),
                 "hoof_radius": pv("hoof_radius"),
                 **offsets(),
@@ -264,14 +276,24 @@ class CalfGenerator(PartGenerator):
         hip_drop = float(genes["hip_drop"]) * s  # type: ignore[arg-type]
         stance = float(genes["stance_width"]) * s  # type: ignore[arg-type]
         inset = float(genes["hip_inset"]) * s  # type: ignore[arg-type]
+        front_thigh = bool(genes.get("front_thigh", True))
+
+        def stands(k: str) -> float:
+            """Hip axis to the ground in the standing pose (mm). A leg without a thigh hangs straight down."""
+            shank = val(f"leg.{k}.shank", "length")
+            reach = (
+                standing_leg_height(val(f"leg.{k}.thigh", "length"), shank, bend) if f"leg.{k}.thigh" in params else shank
+            )
+            return reach + val(f"leg.{k}.shank", "hoof_radius") - params[f"leg.{k}.hip"]["offset_z"].value
+
         # Trunk height is set by the longest leg so all hooves reach the ground.
-        leg_h = max(
-            standing_leg_height(val(f"leg.{k}.thigh", "length"), val(f"leg.{k}.shank", "length"), bend)
-            + val(f"leg.{k}.shank", "hoof_radius")
-            - params[f"leg.{k}.hip"]["offset_z"].value
-            for k in LEGS
-        )
+        heights = {k: stands(k) for k in LEGS}
+        leg_h = max(heights.values())
         trunk_z = leg_h + hip_drop
+        # Front and hind legs of their own lengths: the hips of the shorter legs sit lower in the trunk, so
+        # every hoof stands on the ground (ADR-056). Otherwise, as before, a shorter leg hangs short.
+        grounded = bool(genes.get("own_leg_lengths", False)) or not front_thigh
+        lower = {k: (leg_h - heights[k]) if grounded else 0.0 for k in LEGS}
 
         trunk = Body(id="trunk", name="Trunk", pos=(0.0, 0.0, trunk_z))
         trunk.geoms.append(
@@ -330,13 +352,15 @@ class CalfGenerator(PartGenerator):
         for k, (sx, sy) in LEGS.items():
             hind = sx < 0
             forward = bool(genes.get("hind_knee_forward" if hind else "front_knee_forward"))
-            hip_flexes = hind or bool(genes.get("front_hip_flex", True))
+            thighless = not hind and not front_thigh  # the shank hangs from the hip on one pitch joint
+            hip_flexes = (hind or bool(genes.get("front_hip_flex", True))) and not thighless
             hip_id, thigh_id, shank_id = f"leg.{k}.hip", f"leg.{k}.thigh", f"leg.{k}.shank"
-            tl, tr = val(thigh_id, "length"), val(thigh_id, "radius")
             sl, sr = val(shank_id, "length"), val(shank_id, "radius")
+            tl, tr = (0.0, sr) if thighless else (val(thigh_id, "length"), val(thigh_id, "radius"))
             hr_ = val(shank_id, "hoof_radius")
             leg_off = val(hip_id, "offset")
-            rest_hip, rest_knee = standing_leg_angles(tl, sl, bend, forward)
+            rest_hip, rest_knee = (0.0, 0.0) if thighless else standing_leg_angles(tl, sl, bend, forward)
+            hip_z = -hip_drop - lower[k]
 
             hx = sx * (L / 2.0 - inset)
             hy = sy * stance / 2.0
@@ -344,20 +368,22 @@ class CalfGenerator(PartGenerator):
 
             # hip abduction motor lives in the trunk
             trunk.geoms.append(
-                motor(a_abd, str(genes["act_hip_abd"]), (hx - sx * 30.0 * s, hy * 0.6, -hip_drop))
+                motor(a_abd, str(genes["act_hip_abd"]), (hx - sx * 30.0 * s, hy * 0.6, hip_z))
             )
 
             hip = Body(
                 id=hip_id,
                 name=f"Hip ({LEG_NAMES[k]})",
                 parent="trunk",
-                pos=add((hx, hy, -hip_drop), off(hip_id)),
+                pos=add((hx, hy, hip_z), off(hip_id)),
             )
             hip.geoms.append(
                 shell(Geom(id=f"{hip_id}.block", shape="sphere", size=(tr * 1.3, 0, 0), label="Hip block"), hip_id)
             )
             if hip_flexes:
                 hip.geoms.append(motor(a_flex, str(genes["act_hip_flex"]), (0.0, sy * leg_off * 0.4, 0.0)))
+            if thighless:  # the pitch motor sits in the hip, where a hip-flexion motor would
+                hip.geoms.append(motor(a_knee, str(genes["act_knee"]), (0.0, sy * leg_off * 0.4, 0.0)))
             bodies.append(hip)
             joints.append(
                 Joint(
@@ -371,62 +397,64 @@ class CalfGenerator(PartGenerator):
                 )
             )
 
-            thigh = Body(
-                id=thigh_id,
-                name=f"Thigh ({LEG_NAMES[k]})",
-                parent=hip_id,
-                pos=add((0.0, sy * leg_off, 0.0), off(thigh_id)),
-                # without a hip-flexion motor the thigh is a fixed strut at its standing angle
-                quat=IDENTITY if hip_flexes else quat_axis_angle((0.0, 1.0, 0.0), rest_hip),
-            )
-            thigh.geoms.append(
-                shell(
-                    Geom(
-                        id=f"{thigh_id}.tube",
-                        shape="capsule",
-                        size=(tr, tl, 0),
-                        pos=(0.0, 0.0, -tl / 2.0),
-                        label="Thigh",
-                    ),
-                    thigh_id,
+            belt = str(genes["knee_drive"]) == "belt" and not thighless
+            thigh: Body | None = None
+            if not thighless:
+                thigh = Body(
+                    id=thigh_id,
+                    name=f"Thigh ({LEG_NAMES[k]})",
+                    parent=hip_id,
+                    pos=add((0.0, sy * leg_off, 0.0), off(thigh_id)),
+                    # without a hip-flexion motor the thigh is a fixed strut at its standing angle
+                    quat=IDENTITY if hip_flexes else quat_axis_angle((0.0, 1.0, 0.0), rest_hip),
                 )
-            )
-            belt = str(genes["knee_drive"]) == "belt"
-            knee_motor_z = -tl * 0.18 if belt else -tl + 12.0 * s
-            thigh.geoms.append(motor(a_knee, str(genes["act_knee"]), (0.0, sy * tr * 0.6, knee_motor_z)))
-            if belt:
                 thigh.geoms.append(
-                    Geom(
-                        id=f"trans.{k}.knee.belt",
-                        shape="box",
-                        size=(10.0 * s, 6.0 * s, tl * 0.82),
-                        pos=(0.0, -sy * tr * 0.9, -tl * 0.59),
-                        layer="Transmission",
-                        role="visual",
-                        mass_g=12.0 * s,
-                        label="Knee belt",
+                    shell(
+                        Geom(
+                            id=f"{thigh_id}.tube",
+                            shape="capsule",
+                            size=(tr, tl, 0),
+                            pos=(0.0, 0.0, -tl / 2.0),
+                            label="Thigh",
+                        ),
+                        thigh_id,
                     )
                 )
-            bodies.append(thigh)
-            if hip_flexes:
-                joints.append(
-                    Joint(
-                        id=f"joint.{k}.hip_flex",
-                        name=f"Hip flexion ({LEG_NAMES[k]})",
-                        body=thigh_id,
-                        axis=(0.0, 1.0, 0.0),
-                        range_deg=lim("hip_flex", (-75, 75)),
-                        rest_deg=rest_hip,
-                        damping=jd,
-                        friction=jf,
+                knee_motor_z = -tl * 0.18 if belt else min(-tl + 12.0 * s, 0.0)  # a very short thigh: at the hip
+                thigh.geoms.append(motor(a_knee, str(genes["act_knee"]), (0.0, sy * tr * 0.6, knee_motor_z)))
+                if belt:
+                    thigh.geoms.append(
+                        Geom(
+                            id=f"trans.{k}.knee.belt",
+                            shape="box",
+                            size=(10.0 * s, 6.0 * s, tl * 0.82),
+                            pos=(0.0, -sy * tr * 0.9, -tl * 0.59),
+                            layer="Transmission",
+                            role="visual",
+                            mass_g=12.0 * s,
+                            label="Knee belt",
+                        )
                     )
-                )
+                bodies.append(thigh)
+                if hip_flexes:
+                    joints.append(
+                        Joint(
+                            id=f"joint.{k}.hip_flex",
+                            name=f"Hip flexion ({LEG_NAMES[k]})",
+                            body=thigh_id,
+                            axis=(0.0, 1.0, 0.0),
+                            range_deg=lim("hip_flex", (-75, 75)),
+                            rest_deg=rest_hip,
+                            damping=jd,
+                            friction=jf,
+                        )
+                    )
 
             shank = Body(
                 id=shank_id,
                 name=f"Shank ({LEG_NAMES[k]})",
-                parent=thigh_id,
-                pos=add((0.0, 0.0, -tl), off(shank_id)),
+                parent=hip_id if thighless else thigh_id,
+                pos=add((0.0, sy * leg_off, 0.0) if thighless else (0.0, 0.0, -tl), off(shank_id)),
             )
             shank.geoms.append(
                 shell(
@@ -454,12 +482,14 @@ class CalfGenerator(PartGenerator):
             shank.geoms.append(hoof)
             bodies.append(shank)
             klim = lim("knee", (-150, -3))
-            if forward:
+            if thighless:  # a straight leg swings both ways about vertical, like a hip
+                klim = lim("hip_flex", (-75, 75))
+            elif forward:
                 klim = (-klim[1], -klim[0])
             joints.append(
                 Joint(
                     id=f"joint.{k}.knee",
-                    name=f"Knee ({LEG_NAMES[k]})",
+                    name=f"{'Shoulder pitch' if thighless else 'Knee'} ({LEG_NAMES[k]})",
                     body=shank_id,
                     axis=(0.0, 1.0, 0.0),
                     range_deg=klim,
@@ -472,6 +502,8 @@ class CalfGenerator(PartGenerator):
             # skin sleeve
             area = 0.0
             for b, length, radius in ((thigh, tl, tr), (shank, sl, sr)):
+                if b is None:
+                    continue
                 sg = Geom(
                     id=f"{b.id}.skin",
                     shape="capsule",
@@ -491,7 +523,7 @@ class CalfGenerator(PartGenerator):
             skins.append(
                 SkinRegion(
                     id=f"skin.leg.{k}",
-                    bodies=[thigh_id, shank_id],
+                    bodies=[shank_id] if thighless else [thigh_id, shank_id],
                     joints=([f"joint.{k}.hip_flex"] if hip_flexes else []) + [f"joint.{k}.knee"],
                     material=skin_mat.key,
                     thickness_mm=skin_t,
@@ -875,7 +907,10 @@ def _harness(spec: RobotSpec, defaults: dict[str, Any]) -> list[HarnessRoute]:
     for k in LEGS:
         dst = f"act.{k}.knee.motor"
         if dst in geom_ids:
-            route(f"harness.bus.{k}", mcu, dst, [f"leg.{k}.hip", f"leg.{k}.thigh"], list(bus), "JST-EH-3")
+            via = [b for b in (f"leg.{k}.hip", f"leg.{k}.thigh") if b in poses]  # a front leg may have no thigh
+            if any(g.id == dst for g in spec.body(f"leg.{k}.hip").geoms):
+                via = []  # ... and then its pitch motor is in the hip itself
+            route(f"harness.bus.{k}", mcu, dst, via, list(bus), "JST-EH-3")
     # the neck bus runs to the furthest neck or head motor there is; none, no bus
     for dst, via in (("act.head_pitch.motor", ["neck.base"]), ("act.neck_pitch.motor", []), ("act.neck_yaw.motor", [])):
         if dst in geom_ids:
