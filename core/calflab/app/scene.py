@@ -96,9 +96,20 @@ def _round(v: Any, nd: int = 3) -> list[float]:
     return [round(float(x), nd) for x in v]
 
 
-def build_scene(design: EvaluatedDesign, layers: dict[str, LayerState] | None = None) -> dict[str, Any]:
+def build_scene(
+    design: EvaluatedDesign,
+    layers: dict[str, LayerState] | None = None,
+    settings: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """``settings`` are the document's settings (a project may set its own mass target)."""
+    from calflab.components import MaterialSpec
+    from calflab.model.mass import mass_breakdown
+
     spec = design.spec
     lib = library()
+    breakdown = mass_breakdown(spec, lib)
+    by_body = {r["body"]: r for r in breakdown["bodies"]}
+    default_material = str(default("structure.material", "petg"))
     poses = spec.world_poses()
     parent_of = {b.id: b.parent for b in spec.bodies}
     elements: dict[str, dict[str, Any]] = {}
@@ -134,6 +145,8 @@ def build_scene(design: EvaluatedDesign, layers: dict[str, LayerState] | None = 
                     "component": g.component,
                     "label": g.label,
                     "mass_g": round(g.mass_g, 2),
+                    "mass_source": g.mass_source,
+                    "material": g.material,
                     "foot": g.foot,
                     "mesh": g.mesh,
                 }
@@ -148,9 +161,10 @@ def build_scene(design: EvaluatedDesign, layers: dict[str, LayerState] | None = 
                 "layer": g.layer,
                 "body": b.id,
                 "mass_g": round(g.mass_g, 2),
+                "mass_source": breakdown["source_labels"][g.mass_source],
                 "shape": g.shape,
                 "size_mm": _round(g.size),
-                "component": comp_info(g.component),
+                "component": comp_info(g.component) or comp_info(g.material),
             }
         bodies.append(
             {
@@ -175,6 +189,10 @@ def build_scene(design: EvaluatedDesign, layers: dict[str, LayerState] | None = 
             "params": params_of(b.id),
             "joints": [j.id for j in spec.joints_of(b.id)],
         }
+        st = by_body[b.id]["structure"]
+        if st["source"] is not None or st["note"]:
+            # the fabricated structure of this part: its material and where its mass comes from
+            elements[b.id]["structure"] = {**st, "material": st["material"] or default_material}
 
     act_by_joint = {a.joint: a for a in spec.actuators}
     trans = {t.id: t for t in spec.transmissions}
@@ -296,7 +314,15 @@ def build_scene(design: EvaluatedDesign, layers: dict[str, LayerState] | None = 
     zs = [p[2] for p in geom_world.values()]
     xs = [p[0] for p in geom_world.values()]
     total = spec.total_mass_g()
-    target = float(default("targets.max_mass_g", 7000))
+    own_target = (settings or {}).get("max_mass_g")
+    target = float(own_target or default("targets.max_mass_g", 7000))
+    scale = float(design.genome.values.get("scale", 1.0))
+    materials = [
+        {"key": c.key, "name": c.name, "density_g_cm3": c.density_g_cm3, "verified": c.verified,
+         "default": c.key == default_material}
+        for c in lib.by_kind("material")
+        if isinstance(c, MaterialSpec) and c.role == "structure"
+    ]
     return {
         "name": spec.name,
         "units": {"length": "mm", "mass": "g", "angle": "deg"},
@@ -311,15 +337,19 @@ def build_scene(design: EvaluatedDesign, layers: dict[str, LayerState] | None = 
         "mass": {
             "total_g": round(total, 1),
             "target_g": target,
+            "target_source": "project" if own_target else "default",
             "over_budget": total > target,
             "by_layer_g": {k: round(v, 1) for k, v in spec.mass_by_layer().items()},
             "by_body_g": {b.id: round(b.mass_g(), 1) for b in spec.bodies},
+            "breakdown": breakdown,
         },
+        "materials": materials,
         "extents": {
             "height_mm": round(max(zs) if zs else 0.0, 1),
             "length_mm": round((max(xs) - min(xs)) if xs else 0.0, 1),
-            "target_height_mm": default("targets.height_mm"),
-            "target_length_mm": default("targets.body_length_mm"),
+            "scale": scale,
+            "target_height_mm": round(float(default("targets.height_mm", 610)) * scale, 1),
+            "target_length_mm": round(float(default("targets.body_length_mm", 700)) * scale, 1),
         },
         "elements": elements,
         "layers": {k: v.model_dump() for k, v in (layers or {}).items()},

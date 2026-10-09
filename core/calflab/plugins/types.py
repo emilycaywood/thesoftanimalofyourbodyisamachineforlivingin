@@ -63,6 +63,8 @@ class BuildContext:
     library: Library
     defaults: dict[str, Any]
     geometry_overrides: dict[str, Override] = field(default_factory=dict)
+    #: structure material key by body id, for bodies that do not use the default (ADR-050)
+    materials: dict[str, str] = field(default_factory=dict)
 
 
 class PartGenerator(Plugin):

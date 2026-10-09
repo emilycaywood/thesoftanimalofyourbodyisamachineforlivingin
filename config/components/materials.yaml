@@ -6,6 +6,12 @@
 #   joint damping      = joint_damping_nms_per_rad_per_mm * thickness
 # The stiffness/damping coefficients are placeholders to be fitted from
 # physical tests in Phase 3.
+#
+# A structure material's density gives the mass of a part: a pushed closed
+# solid weighs volume x density (ADR-050). For a printed part that is not
+# solid, enter the effective density you measure (mass of a printed sample /
+# its outer volume) as its own entry, e.g. `pla_20pct_infill`.
+# Add an entry with: calflab components new material <key>
 
 - key: petg
   kind: material
@@ -41,6 +47,7 @@
   color: "#d9a48f"
   url: https://www.smooth-on.com/
   source: Platinum silicone density from supplier TDS class values; mechanical coefficients are guesses
+  guessed: [joint_stiffness_nm_per_rad_per_mm, joint_damping_nms_per_rad_per_mm]
   verified: false
 
 - key: cast_silicone
@@ -55,4 +62,5 @@
   color: "#c98f7d"
   url: https://www.smooth-on.com/
   source: Platinum silicone density from supplier TDS class values; mechanical coefficients are guesses
+  guessed: [joint_stiffness_nm_per_rad_per_mm, joint_damping_nms_per_rad_per_mm]
   verified: false

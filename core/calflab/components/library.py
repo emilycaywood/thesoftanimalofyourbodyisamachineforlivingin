@@ -3,6 +3,15 @@
 Data lives in ``config/components/*.yaml`` (and may be extended by
 ``ComponentProvider`` plugins). Every entry carries ``source`` and
 ``verified``; the code never invents a spec and never sets ``verified``.
+
+No value is filled in silently (ADR-051):
+
+* a required value that is missing (or ``null``) makes the entry *incomplete*:
+  it is listed by the audit, cannot be selected and is not in the library;
+* an optional value that is missing takes the model's default and the field
+  is recorded in ``defaulted``;
+* a value the researcher could not find on a datasheet is entered as a best
+  guess and named in the entry's ``guessed:`` list.
 """
 
 from __future__ import annotations
@@ -35,6 +44,19 @@ class Component(BaseModel):
     source: str
     verified: bool = False
     notes: str = ""
+    #: spec fields whose values are guesses, not datasheet values (written by the researcher)
+    guessed: list[str] = []
+    #: spec fields the entry does not give, so the default of this model is in use (set by the loader)
+    defaulted: list[str] = []
+
+
+#: fields that describe an entry rather than specify it
+META_FIELDS = frozenset({
+    "key", "kind", "name", "manufacturer", "url", "source", "verified", "notes", "guessed", "defaulted",
+    "protocol", "type", "interface", "role", "color",
+})
+_NOT_FOR_MATERIAL = frozenset({"mass_g", "dims_mm", "cost_usd"})  # a material is bought by the kg
+_SKIN_ONLY = frozenset({"areal_density_g_cm2", "joint_stiffness_nm_per_rad_per_mm", "joint_damping_nms_per_rad_per_mm"})
 
 
 class ActuatorSpec(Component):
@@ -107,8 +129,10 @@ _MODELS: dict[str, type[Component]] = {
 
 
 class Library:
-    def __init__(self, components: list[Component]):
+    def __init__(self, components: list[Component], incomplete: dict[str, dict[str, Any]] | None = None):
         self._by_key: dict[str, Component] = {}
+        #: entries that cannot be used yet: key -> {kind, name, missing, file}
+        self.incomplete: dict[str, dict[str, Any]] = dict(incomplete or {})
         for c in components:
             if c.key in self._by_key:
                 raise ValueError(f"Duplicate component key {c.key!r}")
@@ -118,6 +142,12 @@ class Library:
         try:
             return self._by_key[key]
         except KeyError as exc:
+            if key in self.incomplete:
+                inc = self.incomplete[key]
+                raise KeyError(
+                    f"Component {key!r} is incomplete: enter {', '.join(inc['missing'])} in "
+                    f"config/components/{inc['file']} (mark any value you had to guess in 'guessed:')."
+                ) from exc
             raise KeyError(
                 f"Unknown component {key!r}. Add it to config/components/*.yaml "
                 "(with source: and verified: false)."
@@ -154,24 +184,67 @@ class Library:
         return [c.model_dump(mode="json") for c in self._by_key.values()]
 
 
+def spec_fields(kind: str, role: str | None = None) -> list[str]:
+    """Names of the fields that specify a component of this kind (a structure
+    material has no skin coefficients)."""
+    out = [f for f in _MODELS[kind].model_fields if f not in META_FIELDS]
+    if kind == "material":
+        out = [f for f in out if f not in _NOT_FOR_MATERIAL and (role == "skin" or f not in _SKIN_ONLY)]
+    return out
+
+
+def required_fields(kind: str, role: str | None = None) -> list[str]:
+    """Spec fields an entry must give before it can be used: those without a
+    default, and the mass (a missing mass must not count as 0 g)."""
+    model = _MODELS[kind]
+    return [f for f in spec_fields(kind, role) if model.model_fields[f].is_required() or f == "mass_g"]
+
+
+class IncompleteComponent(ValueError):
+    """An entry with required values still to be entered."""
+
+    def __init__(self, key: str, missing: list[str]):
+        super().__init__(f"Component {key!r} is incomplete: missing {', '.join(missing)}")
+        self.key = key
+        self.missing = missing
+
+
 def parse_component(data: dict[str, Any]) -> Component:
+    """Validate one YAML entry. ``null`` means "not entered yet": never a value."""
+    key = data.get("key")
     kind = data.get("kind")
     model = _MODELS.get(str(kind))
     if model is None:
-        raise ValueError(f"Component {data.get('key')!r}: unknown kind {kind!r}")
+        raise ValueError(f"Component {key!r}: unknown kind {kind!r}")
     if "source" not in data:
-        raise ValueError(f"Component {data.get('key')!r} has no 'source:' field")
-    return model.model_validate(data)
+        raise ValueError(f"Component {key!r} has no 'source:' field")
+    given = {k: v for k, v in data.items() if v is not None and k != "defaulted"}
+    fields = spec_fields(str(kind), given.get("role"))
+    absent = [f for f in fields if f not in given]
+    required = required_fields(str(kind), given.get("role"))
+    missing = [f for f in absent if f in required]
+    if missing:
+        raise IncompleteComponent(str(key), missing)
+    unknown = [f for f in given.get("guessed") or [] if f not in fields]
+    if unknown:
+        raise ValueError(f"Component {key!r}: 'guessed' names {unknown}, which are not spec fields of a {kind}")
+    return model.model_validate({**given, "defaulted": absent})
 
 
-def load_dir(directory: Path) -> list[Component]:
+def load_dir(directory: Path) -> tuple[list[Component], dict[str, dict[str, Any]]]:
+    """Usable components, and the incomplete entries by key."""
     out: list[Component] = []
+    incomplete: dict[str, dict[str, Any]] = {}
     for path in sorted(directory.glob("*.yaml")):
         with path.open("r", encoding="utf-8") as fh:
             items = yaml.safe_load(fh) or []
         for item in items:
-            out.append(parse_component(item))
-    return out
+            try:
+                out.append(parse_component(item))
+            except IncompleteComponent as exc:
+                incomplete[exc.key] = {"key": exc.key, "kind": item.get("kind"), "name": item.get("name") or exc.key,
+                                       "missing": exc.missing, "file": path.name}
+    return out, incomplete
 
 
 def _stamp(directory: Path) -> tuple[tuple[str, float], ...]:
@@ -180,7 +253,7 @@ def _stamp(directory: Path) -> tuple[tuple[str, float], ...]:
 
 @lru_cache(maxsize=4)
 def _load_cached(directory: str, stamp: tuple[tuple[str, float], ...]) -> Library:
-    comps = load_dir(Path(directory))
+    comps, incomplete = load_dir(Path(directory))
     try:  # plugin-provided components
         from calflab.plugins import registry
 
@@ -188,7 +261,7 @@ def _load_cached(directory: str, stamp: tuple[tuple[str, float], ...]) -> Librar
             comps.extend(cls().components())  # type: ignore[attr-defined]
     except Exception:  # pragma: no cover - registry not ready during bootstrap
         pass
-    return Library(comps)
+    return Library(comps, incomplete)
 
 
 def library() -> Library:

@@ -57,13 +57,18 @@ def bill_of_materials(spec: RobotSpec, lib: Library) -> dict[str, Any]:
             }
         )
 
-    # materials
-    by_layer = spec.mass_by_layer()
+    # materials: structure by the material each part's mass was computed with (ADR-050)
     struct_key = default("structure.material", "petg")
-    if lib.has(struct_key) and by_layer.get("Structure", 0) > 0:
-        m = lib.material(struct_key)
-        mass = by_layer["Structure"]
-        lines.append(_material_line(m, mass, "printed structure"))
+    struct_mass: dict[str, float] = {}
+    for b in spec.bodies:
+        for g in b.geoms:
+            if g.layer == "Structure" and g.component is None and g.mass_g > 0:
+                key = g.material or struct_key
+                struct_mass[key] = struct_mass.get(key, 0.0) + g.mass_g
+    for key, mass in struct_mass.items():
+        if lib.has(key):
+            m = lib.material(key)
+            lines.append(_material_line(m, mass, "printed structure" if m.role == "structure" else "cast parts"))
     skin_mass: dict[str, float] = {}
     for r in spec.skin_regions:
         geoms = [g for b in spec.bodies if b.id in r.bodies for g in b.geoms if g.layer == "Skin"]
@@ -120,6 +125,11 @@ def power_budget(spec: RobotSpec, lib: Library, metrics: dict[str, Any] | None) 
     bus voltage. With no run, only idle and board loads are reported.
     """
     bus_v = float(default("electronics.bus_voltage_v", 11.1))
+    bat_geom = next((g for b in spec.bodies for g in b.geoms if g.id == "elec.battery"), None)
+    if bat_geom and bat_geom.component and lib.has(bat_geom.component):
+        pack = lib.get(bat_geom.component)
+        if isinstance(pack, BatterySpec) and pack.voltage_v > 0:
+            bus_v = pack.voltage_v  # the bus is the battery chosen in Mechanism
     by_act = (metrics or {}).get("by_actuator", {})
     trans = {t.id: t for t in spec.transmissions}
     rows: list[dict[str, Any]] = []
@@ -167,7 +177,6 @@ def power_budget(spec: RobotSpec, lib: Library, metrics: dict[str, Any] | None) 
     mean_w = mean_a * bus_v + other_w
     peak_w = peak_a * bus_v + other_w
     battery = None
-    bat_geom = next((g for b in spec.bodies for g in b.geoms if g.id == "elec.battery"), None)
     if bat_geom and bat_geom.component and lib.has(bat_geom.component):
         bc = lib.get(bat_geom.component)
         if isinstance(bc, BatterySpec):

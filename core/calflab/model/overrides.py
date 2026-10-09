@@ -48,10 +48,11 @@ class Override(BaseModel):
     id: str
     name: str
     target: str  # element id
-    kind: Literal["param", "geometry"] = "param"
+    kind: Literal["param", "geometry", "material", "mass"] = "param"
     param: str | None = None  # for kind == "param"
-    value: float | None = None
+    value: float | None = None  # param value, or measured mass (g) for kind == "mass"
     asset: str | None = None  # for kind == "geometry": project-relative mesh path
+    material: str | None = None  # for kind == "material": material-library key
     enabled: bool = True
     source: str = "web"  # client that created it (web, rhino, blender, cli)
     note: str = ""
@@ -95,3 +96,23 @@ def apply_overrides(params: ElementParams, overrides: list[Override]) -> tuple[E
 def geometry_overrides(overrides: list[Override]) -> dict[str, Override]:
     """Active geometry overrides by target element id (last one wins)."""
     return {o.target: o for o in overrides if o.enabled and o.kind == "geometry" and o.asset}
+
+
+def material_overrides(overrides: list[Override]) -> dict[str, str]:
+    """Structure material key by body id (last enabled one wins)."""
+    return {o.target: o.material for o in overrides if o.enabled and o.kind == "material" and o.material}
+
+
+def mass_overrides(overrides: list[Override]) -> dict[str, Override]:
+    """Active measured-mass overrides by body id (last one wins)."""
+    return {o.target: o for o in overrides if o.enabled and o.kind == "mass" and o.value is not None}
+
+
+def geometry_override_list(overrides: list[Override]) -> list[Override]:
+    """Active geometry overrides, one per (body, layer): a body may carry a
+    pushed structure solid and a sculpted skin at the same time."""
+    last: dict[tuple[str, str], Override] = {}
+    for o in overrides:
+        if o.enabled and o.kind == "geometry" and o.asset:
+            last[(o.target, str(o.meta.get("layer", "Skin")))] = o
+    return list(last.values())

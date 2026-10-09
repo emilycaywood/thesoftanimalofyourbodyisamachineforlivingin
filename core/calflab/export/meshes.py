@@ -61,6 +61,8 @@ def spec_meshes(
         for g in body.geoms:
             if layers and g.layer not in layers:
                 continue
+            if g.role == "collision":
+                continue  # envelope kept only as a collision shape under a pushed solid
             if sel and body.id not in sel and g.id not in sel:
                 continue
             m = geom_mesh(g, project_dir)

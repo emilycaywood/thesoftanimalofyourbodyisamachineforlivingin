@@ -38,6 +38,9 @@ class GeneDef(BaseModel):
     label: str | None = None
     description: str = ""
     choices: list[str] | None = None
+    #: component kind whose library keys are also choices (e.g. ``actuator``), so a
+    #: component added to config/components is selectable without editing the genes
+    choices_from: str | None = None
     evolvable: bool = True
 
     @model_validator(mode="after")

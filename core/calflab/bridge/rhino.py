@@ -39,13 +39,20 @@ def rhino_build_list(design: EvaluatedDesign, revision: int = 0) -> dict[str, An
         bp, bq = poses[body.id]
         tb = np.array(matrix4(bp, bq))
         for g in body.geoms:
+            if g.role == "collision":
+                continue  # the envelope a pushed solid replaced: simulator collision shape only
             xform = (tb @ np.array(matrix4(g.pos, g.quat))).round(6).tolist()
             user_text = {
                 ID_KEY: g.id,
                 "calflab.body": body.id,
                 "calflab.layer": g.layer,
                 "calflab.revision": str(revision),
+                "calflab.mass_g": f"{g.mass_g:.2f}",
+                "calflab.mass_source": g.mass_source,
             }
+            if g.material:
+                # CalflabPush offers this as the material of whatever is pushed back
+                user_text["calflab.material"] = g.material
             obj: dict[str, Any] = {
                 "id": g.id,
                 "name": g.id,

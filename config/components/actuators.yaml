@@ -5,6 +5,12 @@
 # source (and ideally a bench test) before you set `verified: true`.
 # Thermal parameters are order-of-magnitude guesses for a first-order model.
 #
+# `guessed:` lists the fields whose value is not on the datasheet (your best
+# guess). A value left out or set to null is never filled in silently: a
+# required one makes the entry incomplete (not selectable), an optional one is
+# reported by `calflab components audit` as "default assumed".
+# Add an entry with: calflab components new actuator <key>
+#
 # Units: mass g, dims mm (x, y, z of the housing), torque N*m, speed rpm at the
 # output, current A, voltage V, cost USD.
 
@@ -29,6 +35,7 @@
   cost_usd: 25
   url: https://www.feetechrc.com/
   source: Manufacturer product page / datasheet, recalled from memory
+  guessed: [r_thermal_k_per_w, c_thermal_j_per_k]
   verified: false
 
 - key: xm430_w350
@@ -52,6 +59,7 @@
   cost_usd: 290
   url: https://emanual.robotis.com/docs/en/dxl/x/xm430-w350/
   source: ROBOTIS e-Manual, recalled from memory
+  guessed: [r_thermal_k_per_w, c_thermal_j_per_k]
   verified: false
 
 - key: xh540_w270
@@ -75,6 +83,7 @@
   cost_usd: 450
   url: https://emanual.robotis.com/docs/en/dxl/x/xh540-w270/
   source: ROBOTIS e-Manual, recalled from memory
+  guessed: [r_thermal_k_per_w, c_thermal_j_per_k]
   verified: false
 
 - key: qdd_bldc_generic
@@ -98,5 +107,6 @@
   cost_usd: 480
   url: https://mjbots.com/
   source: Order-of-magnitude figures for a ~100 mm 6:1 QDD actuator, recalled from memory
+  guessed: [r_thermal_k_per_w, c_thermal_j_per_k]
   verified: false
   notes: Needs a 24 V bus; not compatible with the default 3S battery.

@@ -12,6 +12,11 @@ the thigh is then fixed to the hip at its standing angle, there is no
 ``joint.<k>.hip_flex`` / ``act.<k>.hip_flex``, and the knee works as an elbow.
 
 Proportions and the mass model are assumptions (ADR-015, ADR-017).
+
+Gene ``scale`` multiplies every length (mm) gene and the fixed millimetre
+offsets of this generator, so a small test calf keeps the proportions the
+ranges describe. Wall and skin thickness are fabrication choices and do not
+scale (ADR-052).
 """
 
 from __future__ import annotations
@@ -80,6 +85,7 @@ class CalfGenerator(PartGenerator):
         from calflab.config import gene_definition_files
 
         gdef = gene_definition_files()["calf"]
+        s = float(genes.get("scale", 1.0))  # type: ignore[arg-type]
 
         def pv(
             gene: str,
@@ -88,12 +94,14 @@ class CalfGenerator(PartGenerator):
             frac: float = 1.0,
         ) -> ParamValue:
             g = gdef.gene(gene)
+            k = s if g.unit == "mm" else 1.0  # lengths follow the overall scale
             return ParamValue(
-                value=float(genes[gene]),  # type: ignore[arg-type]
+                value=float(genes[gene]) * k,  # type: ignore[arg-type]
                 unit=g.unit,
                 gene=gene,
-                min=g.min,
-                max=g.max,
+                scale=k,
+                min=None if g.min is None else g.min * k,
+                max=None if g.max is None else g.max * k,
                 label=label,
                 handle_axis=handle,
                 handle_frac=frac,
@@ -154,7 +162,23 @@ class CalfGenerator(PartGenerator):
         d = ctx.defaults
         gp = self.params
         limits: dict[str, list[float]] = d.get("joint_limits_deg", {})
-        struct = lib.material(d.get("structure", {}).get("material", "petg"))
+        s = float(genes.get("scale", 1.0))  # type: ignore[arg-type]
+        default_struct = lib.material(d.get("structure", {}).get("material", "petg"))
+        struct_cache: dict[str, Any] = {}
+
+        def struct_of(body_id: str) -> Any:
+            """Structure material of one body: its material override, else the default."""
+            if body_id not in struct_cache:
+                key = ctx.materials.get(body_id)
+                mat = default_struct
+                if key:
+                    try:
+                        mat = lib.material(key)
+                    except (KeyError, TypeError):
+                        mat = default_struct  # build_design reports the unknown key
+                struct_cache[body_id] = mat
+            return struct_cache[body_id]
+
         wall = float(genes["wall_thickness"])  # type: ignore[arg-type]
         jd = float(d.get("structure", {}).get("joint_damping_nms_per_rad", 0.05))
         jf = float(d.get("structure", {}).get("joint_friction_nm", 0.02))
@@ -175,9 +199,11 @@ class CalfGenerator(PartGenerator):
         def add(a: Vec3, b: Vec3) -> Vec3:
             return (a[0] + b[0], a[1] + b[1], a[2] + b[2])
 
-        def shell(g: Geom) -> Geom:
+        def shell(g: Geom, body_id: str) -> Geom:
             """Printed shell: mass = surface area x wall thickness x density."""
-            g.mass_g = g.area_mm2() * wall * struct.density_g_cm3 / 1000.0
+            mat = struct_of(body_id)
+            g.mass_g = g.area_mm2() * wall * mat.density_g_cm3 / 1000.0
+            g.material = mat.key
             return g
 
         def motor(act_id: str, comp_key: str, pos: Vec3) -> Geom:
@@ -190,6 +216,7 @@ class CalfGenerator(PartGenerator):
                 layer="Actuators",
                 role="visual",
                 mass_g=c.mass_g,
+                mass_source="component",
                 component=comp_key,
                 label=c.name,
             )
@@ -205,6 +232,7 @@ class CalfGenerator(PartGenerator):
                 layer=layer,
                 role="visual",
                 mass_g=c.mass_g,
+                mass_source="component",
                 component=comp_key,
                 label=c.name,
             )
@@ -229,9 +257,9 @@ class CalfGenerator(PartGenerator):
         # ------------------------------------------------------------ trunk
         L, W, H = val("trunk", "length"), val("trunk", "width"), val("trunk", "height")
         bend = float(genes["knee_bend"])  # type: ignore[arg-type]
-        hip_drop = float(genes["hip_drop"])  # type: ignore[arg-type]
-        stance = float(genes["stance_width"])  # type: ignore[arg-type]
-        inset = float(genes["hip_inset"])  # type: ignore[arg-type]
+        hip_drop = float(genes["hip_drop"]) * s  # type: ignore[arg-type]
+        stance = float(genes["stance_width"]) * s  # type: ignore[arg-type]
+        inset = float(genes["hip_inset"]) * s  # type: ignore[arg-type]
         # Trunk height is set by the longest leg so all hooves reach the ground.
         leg_h = max(
             standing_leg_height(val(f"leg.{k}.thigh", "length"), val(f"leg.{k}.shank", "length"), bend)
@@ -243,9 +271,9 @@ class CalfGenerator(PartGenerator):
 
         trunk = Body(id="trunk", name="Trunk", pos=(0.0, 0.0, trunk_z))
         trunk.geoms.append(
-            shell(Geom(id="trunk.shell", shape="box", size=(L, W * 0.8, H * 0.8), label="Trunk shell"))
+            shell(Geom(id="trunk.shell", shape="box", size=(L, W * 0.8, H * 0.8), label="Trunk shell"), "trunk")
         )
-        bat_key = d.get("electronics", {}).get("battery", "lipo_3s_5000")
+        bat_key = str(genes.get("battery") or d.get("electronics", {}).get("battery", "lipo_3s_5000"))
         trunk.geoms.append(part("elec.battery", bat_key, (0.0, 0.0, -H * 0.18), "Electronics"))
         boards = d.get("electronics", {}).get("boards", [])
         for i, bkey in enumerate(boards):
@@ -265,6 +293,7 @@ class CalfGenerator(PartGenerator):
                 layer="Skin",
                 role="visual",
                 color=skin_mat.color,
+                material=skin_mat.key,
                 label="Trunk skin",
             )
             trunk_skin_area = sk.area_mm2()
@@ -311,7 +340,7 @@ class CalfGenerator(PartGenerator):
 
             # hip abduction motor lives in the trunk
             trunk.geoms.append(
-                motor(a_abd, str(genes["act_hip_abd"]), (hx - sx * 30.0, hy * 0.6, -hip_drop))
+                motor(a_abd, str(genes["act_hip_abd"]), (hx - sx * 30.0 * s, hy * 0.6, -hip_drop))
             )
 
             hip = Body(
@@ -321,7 +350,7 @@ class CalfGenerator(PartGenerator):
                 pos=add((hx, hy, -hip_drop), off(hip_id)),
             )
             hip.geoms.append(
-                shell(Geom(id=f"{hip_id}.block", shape="sphere", size=(tr * 1.3, 0, 0), label="Hip block"))
+                shell(Geom(id=f"{hip_id}.block", shape="sphere", size=(tr * 1.3, 0, 0), label="Hip block"), hip_id)
             )
             if hip_flexes:
                 hip.geoms.append(motor(a_flex, str(genes["act_hip_flex"]), (0.0, sy * leg_off * 0.4, 0.0)))
@@ -354,22 +383,23 @@ class CalfGenerator(PartGenerator):
                         size=(tr, tl, 0),
                         pos=(0.0, 0.0, -tl / 2.0),
                         label="Thigh",
-                    )
+                    ),
+                    thigh_id,
                 )
             )
             belt = str(genes["knee_drive"]) == "belt"
-            knee_motor_z = -tl * 0.18 if belt else -tl + 12.0
+            knee_motor_z = -tl * 0.18 if belt else -tl + 12.0 * s
             thigh.geoms.append(motor(a_knee, str(genes["act_knee"]), (0.0, sy * tr * 0.6, knee_motor_z)))
             if belt:
                 thigh.geoms.append(
                     Geom(
                         id=f"trans.{k}.knee.belt",
                         shape="box",
-                        size=(10.0, 6.0, tl * 0.82),
+                        size=(10.0 * s, 6.0 * s, tl * 0.82),
                         pos=(0.0, -sy * tr * 0.9, -tl * 0.59),
                         layer="Transmission",
                         role="visual",
-                        mass_g=12.0,
+                        mass_g=12.0 * s,
                         label="Knee belt",
                     )
                 )
@@ -402,7 +432,8 @@ class CalfGenerator(PartGenerator):
                         size=(sr, sl, 0),
                         pos=(0.0, 0.0, -sl / 2.0),
                         label="Shank",
-                    )
+                    ),
+                    shank_id,
                 )
             )
             hoof = Geom(
@@ -412,6 +443,7 @@ class CalfGenerator(PartGenerator):
                 pos=(0.0, 0.0, -sl),
                 color="#3b3531",
                 foot=True,
+                material=hoof_mat.key,
                 label="Hoof",
             )
             hoof.mass_g = hoof.volume_mm3() / 1000.0 * hoof_mat.density_g_cm3
@@ -444,6 +476,7 @@ class CalfGenerator(PartGenerator):
                     layer="Skin",
                     role="visual",
                     color=skin_mat.color,
+                    material=skin_mat.key,
                     label="Leg skin",
                 )
                 a = sg.area_mm2()
@@ -495,11 +528,11 @@ class CalfGenerator(PartGenerator):
         nl, nr, na = val("neck", "length"), val("neck", "radius"), val("neck", "angle")
         nd = (math.cos(math.radians(na)), 0.0, math.sin(math.radians(na)))
         neck_root: Vec3 = (L / 2.0 - nr * 0.5, 0.0, H * 0.4 - nr * 0.5)
-        trunk.geoms.append(motor("act.neck_yaw", act_small, (neck_root[0] - 30.0, 0.0, neck_root[2] - 10.0)))
+        trunk.geoms.append(motor("act.neck_yaw", act_small, (neck_root[0] - 30.0 * s, 0.0, neck_root[2] - 10.0 * s)))
 
         base = Body(id="neck.base", name="Neck base", parent="trunk", pos=add(neck_root, off("neck")), part=False)
         base.geoms.append(
-            shell(Geom(id="neck.base.block", shape="sphere", size=(nr * 0.7, 0, 0), label="Neck base"))
+            shell(Geom(id="neck.base.block", shape="sphere", size=(nr * 0.7, 0, 0), label="Neck base"), "neck.base")
         )
         base.geoms.append(motor("act.neck_pitch", act_small, (0.0, 0.0, 0.0)))
         bodies.append(base)
@@ -527,7 +560,8 @@ class CalfGenerator(PartGenerator):
                     pos=(nd[0] * nl / 2, 0.0, nd[2] * nl / 2),
                     quat=nq,
                     label="Neck",
-                )
+                ),
+                "neck",
             )
         )
         neck_end: Vec3 = (nd[0] * nl, 0.0, nd[2] * nl)
@@ -541,6 +575,7 @@ class CalfGenerator(PartGenerator):
             layer="Skin",
             role="visual",
             color=skin_mat.color,
+            material=skin_mat.key,
             label="Neck skin",
         )
         nsk.mass_g = skin_mass(skin_mat, nsk.area_mm2(), skin_t)
@@ -594,7 +629,8 @@ class CalfGenerator(PartGenerator):
                     pos=hp(0, 0, 0),
                     quat=hq,
                     label="Head shell",
-                )
+                ),
+                "head",
             )
         )
         hsk = Geom(
@@ -606,6 +642,7 @@ class CalfGenerator(PartGenerator):
             layer="Skin",
             role="visual",
             color=face_mat.color,
+            material=face_mat.key,
             label="Face skin",
         )
         hsk.mass_g = skin_mass(face_mat, hsk.area_mm2(), face_t)
@@ -683,11 +720,12 @@ class CalfGenerator(PartGenerator):
                     Geom(
                         id=f"{eid}.blade",
                         shape="capsule",
-                        size=(7.0, el, 0),
+                        size=(7.0 * s, el, 0),
                         pos=(0.0, ed[1] * el / 2, ed[2] * el / 2),
                         quat=quat_from_z_to(ed),
                         color=face_mat.color,
-                        mass_g=math.pi * 7.0**2 * el / 1000.0 * face_mat.density_g_cm3 * 0.5,
+                        material=face_mat.key,
+                        mass_g=math.pi * (7.0 * s) ** 2 * el / 1000.0 * face_mat.density_g_cm3 * 0.5,
                         role="visual",
                         layer="Skin",
                         label="Ear",
@@ -723,17 +761,18 @@ class CalfGenerator(PartGenerator):
                 Geom(
                     id="tail.cord",
                     shape="capsule",
-                    size=(7.0, tl_, 0),
+                    size=(7.0 * s, tl_, 0),
                     pos=(td[0] * tl_ / 2, 0.0, td[2] * tl_ / 2),
                     quat=quat_from_z_to(td),
                     color=skin_mat.color,
-                    mass_g=math.pi * 7.0**2 * tl_ / 1000.0 * skin_mat.density_g_cm3 * 0.6,
+                    material=skin_mat.key,
+                    mass_g=math.pi * (7.0 * s) ** 2 * tl_ / 1000.0 * skin_mat.density_g_cm3 * 0.6,
                     role="visual",
                     layer="Skin",
                     label="Tail",
                 )
             )
-            trunk.geoms.append(motor("act.tail", act_small, (-L / 2.0 + 30.0, 0.0, H * 0.25)))
+            trunk.geoms.append(motor("act.tail", act_small, (-L / 2.0 + 30.0 * s, 0.0, H * 0.25)))
             bodies.append(tail)
             joints.append(
                 Joint(
@@ -757,7 +796,7 @@ class CalfGenerator(PartGenerator):
             transmissions=transmissions,
             sensors=sensors,
             skin_regions=skins,
-            metadata={"generator": self.key, "generator_version": self.version},
+            metadata={"generator": self.key, "generator_version": self.version, "scale": s},
         )
         spec.harness_routes = _harness(spec, d)
         return spec

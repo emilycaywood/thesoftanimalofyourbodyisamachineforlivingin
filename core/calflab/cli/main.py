@@ -399,11 +399,24 @@ def components_audit(
                         f"({rep['in_design_unverified']} used by this design)")
     for col in ("Component", "Kind", "Verified", "Quantity", "Cost USD", "Mass g"):
         table.add_column(col, no_wrap=True)
+    table.add_column("Not from a datasheet", overflow="fold")
     for c in rep["components"]:
         qty = f"{c['qty']:g} {c['qty_unit']}".strip() if c["in_design"] else "not used"
+        flags = "; ".join(x for x in (
+            "guessed: " + ", ".join(c["guessed"]) if c["guessed"] else "",
+            "default assumed: " + ", ".join(c["defaulted"]) if c["defaulted"] else "",
+        ) if x)
         table.add_row(c["key"], c["kind"], "[green]yes[/]" if c["verified"] else "[yellow]no[/]", qty,
-                      f"{c['cost_usd']:.0f}" if c["in_design"] else "", f"{c['mass_g']:.0f}" if c["in_design"] else "")
+                      f"{c['cost_usd']:.0f}" if c["in_design"] else "", f"{c['mass_g']:.0f}" if c["in_design"] else "",
+                      flags or "-")
     console.print(table)
+    if rep["incomplete"]:
+        table = Table(title="Incomplete entries (not selectable until these values are entered)")
+        for col in ("Component", "Kind", "File", "Missing"):
+            table.add_column(col, overflow="fold")
+        for c in rep["incomplete"]:
+            table.add_row(c["key"], str(c["kind"]), f"config/components/{c['file']}", ", ".join(c["missing"]))
+        console.print(table)
 
     table = Table(title="Results that rest on unverified components")
     for col in ("Result", "Value", "Unverified components it depends on"):
@@ -438,6 +451,27 @@ def components_audit(
         console.print(f"[red]{len(rep['at_limit'])} actuator(s) reach their usable torque limit:[/red] "
                       + ", ".join(rep["at_limit"]))
     console.print(rep["note"])
+
+
+@components_app.command("new")
+def components_new(
+    kind: str = typer.Argument(..., help="actuator, sensor, board, battery or material."),
+    key: str = typer.Argument(..., help="Short id in snake_case, e.g. ds3218 or pla_measured."),
+    name: str = typer.Option("", "--name", help="Display name, e.g. the model on the datasheet."),
+) -> None:
+    """Append a blank entry to config/components for you to fill in from the datasheet."""
+    from calflab.components.template import add_component
+
+    try:
+        path, missing = add_component(kind, key, name)
+    except ValueError as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(2) from exc
+    console.print(f"Added [bold]{key}[/bold] to {path} with verified: false and every value blank.")
+    console.print(f"It stays out of the lab until you enter: {', '.join(missing)}.")
+    console.print("Enter each value from the datasheet. If a value is not on it, enter your best guess and add the "
+                  "field's name to 'guessed:'. Leave optional values blank to see them reported as 'default assumed'.")
+    console.print("Check it with: calflab components audit")
 
 
 @components_app.command("worksheet")

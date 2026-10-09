@@ -221,7 +221,7 @@ class Lab:
         return g
 
     def scene(self, graph: Graph | None = None, overrides: list[Override] | None = None) -> dict[str, Any]:
-        s = build_scene(self.design(graph, overrides), self.state.layers)
+        s = build_scene(self.design(graph, overrides), self.state.layers, self.state.settings)
         s["revision"] = self.revision
         return s
 
@@ -424,7 +424,7 @@ class Lab:
             t0 = time.perf_counter()
             design = self._role_output("design", "design", g, state)
             model = self._role_output("model", "model", g, state)
-            self.bus.emit("sim.started", job=job.job.id, body_ids=model.body_ids, scene=build_scene(design, state.layers))
+            self.bus.emit("sim.started", job=job.job.id, body_ids=model.body_ids, scene=build_scene(design, state.layers, state.settings))
             streamed = [0]
 
             def on_frames(chunk: dict[str, Any]) -> None:
@@ -451,7 +451,7 @@ class Lab:
             run_id = self.registry.new_run_id("sim")
             run_dir = self.registry.run_dir(run_id)
             rollout.save(run_dir / "rollout.npz")
-            write_json(run_dir / "scene.json", build_scene(design, state.layers))
+            write_json(run_dir / "scene.json", build_scene(design, state.layers, state.settings))
             (run_dir / "model.xml").write_text(model.xml, encoding="utf-8")
             sim_node = g.node(sim_id)
             preset = None
@@ -472,6 +472,7 @@ class Lab:
                     "compile": g.role("model").params,
                     "generator": g.role("design").type,
                     "generator_params": g.role("design").params,
+                    "mass": self._mass_record(design),
                 },
                 genome=design.genome.model_dump(mode="json"),
                 overrides=[o.model_dump(mode="json") for o in state.overrides if o.enabled],
@@ -493,6 +494,25 @@ class Lab:
             return {"run_id": run_id, "cached": False, "metrics": record.metrics}
 
         return self.jobs.submit("sim", title, work)
+
+    @staticmethod
+    def _mass_record(design: EvaluatedDesign) -> dict[str, Any]:
+        """Where a run's masses came from: stored with the run so a result can
+        be traced to pushed geometry, weighed parts or envelope estimates."""
+        from calflab.model.mass import mass_breakdown
+
+        b = mass_breakdown(design.spec, library())
+        return {
+            "total_g": b["total_g"],
+            "by_source_g": b["by_source_g"],
+            "geometry_parts": b["geometry_parts"],
+            "measured_parts": b["measured_parts"],
+            "structure": {
+                r["body"]: {k: r["structure"][k] for k in ("mass_g", "source", "material")}
+                for r in b["bodies"]
+                if r["structure"]["source"]
+            },
+        }
 
     @staticmethod
     def _ok_output(results: dict[str, NodeResult], g: Graph, role: str, socket: str) -> Any:
@@ -598,7 +618,7 @@ class Lab:
                 backend=bkey,
                 inputs={"optimizer": optimizer, "params": opt.params.model_dump(mode="json"), "sim": sim_params,
                         "compile": g.role("model").params, "generator_params": g.role("design").params,
-                        "start": start},
+                        "start": start, "mass": self._mass_record(start_design)},
                 genome=start_design.genome.model_dump(mode="json"),
                 overrides=[o.model_dump(mode="json") for o in state.overrides if o.enabled],
                 controller=ctrl,
@@ -725,6 +745,7 @@ class Lab:
                     seed=cfg.seed,
                     backend=bkey,
                     inputs={"settings": cfg.model_dump(mode="json"), "sim": payload["sim"], "compile": payload["compile"],
+                            "mass": self._mass_record(design),
                             "speed_caps_deg_s": result["speed_caps_deg_s"], "before": before, "tried": result["tried"]},
                     genome=payload["genome"],
                     overrides=overrides,

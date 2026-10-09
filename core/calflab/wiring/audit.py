@@ -32,6 +32,7 @@ RESULTS: dict[str, str] = {
     "cad": "CAD actuator mount (leg segment export)",
     "sim_dynamics": "Simulated dynamics (gait, speed, stability)",
     "sim_torque": "Simulated torque limit and servo gain",
+    "speed_cap": "Joint speed cap of gait tuning",
     "torque_margin": "Torque margins",
     "power": "Power budget",
     "runtime": "Battery runtime",
@@ -47,7 +48,7 @@ FIELD_USES: dict[str, dict[str, tuple[str, tuple[str, ...]]]] = {
         "dims_mm": ("mm", ("geometry", "cad")),
         "stall_torque_nm": ("N*m", ("sim_torque", "torque_margin", "power", "runtime", "thermal")),
         "stall_current_a": ("A", ("power", "runtime", "thermal")),
-        "no_load_speed_rpm": ("rpm", ()),
+        "no_load_speed_rpm": ("rpm", ("speed_cap",)),
         "voltage_v": ("V", ()),
         "gear_ratio": ("", ()),
         "idle_current_a": ("A", ("power", "runtime", "thermal")),
@@ -90,7 +91,7 @@ FIELD_USES: dict[str, dict[str, tuple[str, tuple[str, ...]]]] = {
 }
 
 WORKSHEET_COLUMNS = (
-    "component", "kind", "name", "field", "unit", "recorded_value", "used_for",
+    "component", "kind", "name", "field", "unit", "recorded_value", "flag", "used_for",
     "source", "url", "datasheet_value", "datasheet_reference", "ok", "notes",
 )
 
@@ -117,6 +118,7 @@ def worksheet(lib: Library) -> list[dict[str, str]]:
     rows: list[dict[str, str]] = []
     for c in lib.all():
         for field, (unit, uses) in FIELD_USES[c.kind].items():
+            flag = "guess" if field in c.guessed else ("default assumed" if field in c.defaulted else "")
             rows.append(
                 {
                     "component": c.key,
@@ -125,6 +127,7 @@ def worksheet(lib: Library) -> list[dict[str, str]]:
                     "field": field,
                     "unit": unit,
                     "recorded_value": _value(c, field),
+                    "flag": flag,
                     "used_for": "; ".join(RESULTS[x] for x in uses) or "not used by any calculation yet",
                     "source": c.source,
                     "url": c.url,
@@ -155,7 +158,13 @@ def audit(
     (1 - peak / usable torque) is at or below ``limit_margin``.
     """
     bom = bill_of_materials(spec, lib)
-    used = {line["key"]: line for line in bom["lines"]}
+    used: dict[str, dict[str, Any]] = {}
+    for line in bom["lines"]:  # a material can have two lines (e.g. cast silicone: hooves and face skin)
+        if line["key"] in used:
+            for k in ("qty", "cost_usd", "mass_g"):
+                used[line["key"]][k] = round(used[line["key"]][k] + line[k], 2)
+        else:
+            used[line["key"]] = dict(line)
     components: list[dict[str, Any]] = []
     for c in lib.all():
         line = used.get(c.key)
@@ -174,6 +183,9 @@ def audit(
                 "mass_g": line["mass_g"] if line else 0.0,
                 "affects": affects(c),
                 "unused_fields": [f for f, (_u, uses) in FIELD_USES[c.kind].items() if not uses],
+                # values that are not datasheet values: guessed by the researcher / left to the code's default
+                "guessed": list(c.guessed),
+                "defaulted": list(c.defaulted),
             }
         )
 
@@ -204,6 +216,7 @@ def audit(
         "unverified": sum(1 for c in components if not c["verified"]),
         "in_design_unverified": sum(1 for c in components if c["in_design"] and not c["verified"]),
         "components": components,
+        "incomplete": list(lib.incomplete.values()),
         "results": results,
         "torque": rows,
         "at_limit": [r["actuator"] for r in rows if r["at_limit"]],

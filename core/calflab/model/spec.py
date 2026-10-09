@@ -41,6 +41,12 @@ LAYER_COLORS: dict[str, str] = {
 
 GeomShape = Literal["box", "capsule", "cylinder", "sphere", "ellipsoid", "mesh"]
 
+#: Where a geom's mass comes from (ADR-050). ``parametric`` is the envelope
+#: estimate of ADR-017; ``geometry`` is a pushed closed solid x material density.
+MassSource = Literal["parametric", "component", "geometry", "measured"]
+#: (ixx, iyy, izz, ixy, ixz, iyz)
+Inertia6 = tuple[float, float, float, float, float, float]
+
 
 class Geom(BaseModel):
     """A primitive attached to a body, in the body frame.
@@ -63,6 +69,25 @@ class Geom(BaseModel):
     mesh: str | None = None  # project-relative asset path for shape == "mesh"
     label: str | None = None
     foot: bool = False  # ground-contact geom used for gait metrics
+    # ---- mass bookkeeping (ADR-050)
+    mass_source: MassSource = "parametric"
+    material: str | None = None  # material-library key the mass was computed with
+    #: centre of mass in the geom frame (mm); None = the geom origin
+    com: Vec3 | None = None
+    #: inertia tensor about the centre of mass, geom axes (g*mm^2); None = that of the primitive
+    inertia: Inertia6 | None = None
+    mass_computed_g: float | None = None  # value a measured mass replaced
+    mass_replaced_g: float | None = None  # envelope estimate a pushed solid replaced (not counted)
+    mass_note: str = ""  # e.g. why a pushed solid was not used for mass
+
+    def mass_center(self) -> Vec3:
+        """Centre of mass in the body frame (mm)."""
+        if self.com is None:
+            return self.pos
+        from calflab.model.xform import quat_rotate
+
+        r = quat_rotate(self.quat, self.com)
+        return (self.pos[0] + r[0], self.pos[1] + r[1], self.pos[2] + r[2])
 
     def volume_mm3(self) -> float:
         a, b, c = self.size
@@ -330,7 +355,7 @@ class RobotSpec(BaseModel):
             for g in b.geoms:
                 if g.mass_g <= 0:
                     continue
-                r = quat_rotate(bq, g.pos)
+                r = quat_rotate(bq, g.mass_center())
                 for i in range(3):
                     acc[i] += g.mass_g * (bp[i] + r[i])
                 m += g.mass_g

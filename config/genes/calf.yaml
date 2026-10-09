@@ -14,6 +14,14 @@ description: >
   flexion, knee), neck (yaw, pitch), head (pitch), optional tail and ears.
 
 genes:
+  # ------------------------------------------------------------- scale
+  # Multiplies every length (mm) gene below and the generator's fixed offsets,
+  # so the ranges keep describing proportions. 0.33 gives a calf about 200 mm
+  # tall. Wall and skin thickness do not scale. (ADR-052)
+  - {id: scale, default: 1.0, min: 0.25, max: 1.25, step: 0.01, group: Scale, evolvable: false,
+     label: "Overall scale",
+     description: "Multiplies every length gene (they stay written at full size). 1 = the 610 mm calf; 0.33 = about 200 mm tall. Wall and skin thickness are not scaled."}
+
   # ------------------------------------------------------------- trunk
   - {id: trunk_length, default: 420, min: 300, max: 560, unit: mm, group: Trunk,
      description: "Shoulder-to-rump length of the trunk."}
@@ -84,18 +92,23 @@ genes:
   - {id: knee_drive, type: enum, default: direct, choices: [direct, belt], group: Mechanism,
      evolvable: false,
      description: "direct = knee motor at the knee; belt = motor at the hip driving the knee by belt."}
+  # `choices_from` adds every other complete entry of that kind in
+  # config/components, so a new servo or battery is selectable at once (ADR-051).
   - {id: act_hip_abd, type: enum, default: xm430_w350, group: Mechanism, evolvable: false,
-     choices: [sts3215, xm430_w350, xh540_w270, qdd_bldc_generic],
+     choices: [sts3215, xm430_w350, xh540_w270, qdd_bldc_generic], choices_from: actuator,
      description: "Actuator for hip abduction."}
   - {id: act_hip_flex, type: enum, default: xh540_w270, group: Mechanism, evolvable: false,
-     choices: [sts3215, xm430_w350, xh540_w270, qdd_bldc_generic],
+     choices: [sts3215, xm430_w350, xh540_w270, qdd_bldc_generic], choices_from: actuator,
      description: "Actuator for hip flexion."}
   - {id: act_knee, type: enum, default: xh540_w270, group: Mechanism, evolvable: false,
-     choices: [sts3215, xm430_w350, xh540_w270, qdd_bldc_generic],
+     choices: [sts3215, xm430_w350, xh540_w270, qdd_bldc_generic], choices_from: actuator,
      description: "Actuator for the knee."}
   - {id: act_small, type: enum, default: sts3215, group: Mechanism, evolvable: false,
-     choices: [sts3215, xm430_w350],
+     choices: [sts3215, xm430_w350], choices_from: actuator,
      description: "Actuator for neck, head, tail and ears."}
+  - {id: battery, type: enum, default: lipo_3s_5000, group: Mechanism, evolvable: false,
+     choices: [lipo_3s_5000], choices_from: battery,
+     description: "Battery pack in the trunk. Its voltage is the bus voltage of the power budget."}
 
   # ------------------------------------------------------------- shell and skin
   - {id: wall_thickness, default: 2.0, min: 1.0, max: 4.0, step: 0.1, unit: mm, group: Shell and skin,

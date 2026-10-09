@@ -4,6 +4,11 @@
 The geometry becomes a named *geometry override* on a body (for example a
 sculpted head shell or skin surface). It is layered over the parametric
 result, listed in the Properties panel, and can be toggled or removed there.
+
+Pushed onto the Structure layer, a closed solid also gives the part its mass:
+volume x the density of the material you name here (or of the object's
+``calflab.material`` user text). An open object is shown but not used for
+mass, and the command says so.
 """
 import os
 import sys
@@ -24,12 +29,27 @@ def main():
         return
     layer = rs.GetString("CALFLAB layer to replace", "Skin", ["Skin", "Structure"])
     name = rs.GetString("Name of this override", "%s sculpt" % target)
+    material = ""
+    if (layer or "Skin") == "Structure":
+        try:
+            choices = cr.structure_materials()
+        except cr.BridgeError as exc:
+            print("CALFLAB: %s" % exc)
+            return
+        material = rs.GetString(
+            "Material of this solid (Enter = the part's material)", cr.guess_material(objects) or "Default", ["Default"] + choices
+        )
+        if material is None:
+            return
+        if material.lower() == "default":
+            material = ""
     try:
-        r = cr.push(objects, target, name or "", layer or "Skin")
+        r = cr.push(objects, target, name or "", layer or "Skin", material)
     except cr.BridgeError as exc:
         print("CALFLAB: %s" % exc)
         return
-    print("CALFLAB: pushed %d faces as override %s on %s" % (r["faces"], r["override"], target))
+    for line in cr.push_report(r, target):
+        print(line)
 
 
 main()

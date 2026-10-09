@@ -350,16 +350,82 @@ def selection_to_mesh(objects):
     return vertices, faces
 
 
-def push(objects, target, name="", layer="Skin"):
-    """Send edited geometry back to CALFLAB as an explicit geometry override."""
+def selection_solid(objects):
+    """What Rhino itself says about the selection as a solid: are all objects
+    closed, and their exact total volume (mm^3). CALFLAB measures the mesh; it
+    uses this only to word its warning and to report the meshing error."""
+    import Rhino
+
+    rg = Rhino.Geometry
+    closed, volume = bool(objects), 0.0
+    for obj in objects:
+        geom = obj.Geometry
+        if isinstance(geom, rg.Extrusion):
+            geom = geom.ToBrep()
+        if isinstance(geom, rg.Brep):
+            ok = geom.IsSolid
+        elif isinstance(geom, rg.Mesh):
+            ok = geom.IsClosed
+        elif isinstance(geom, rg.SubD):
+            ok = geom.IsSolid
+        else:
+            ok = False
+        closed = closed and bool(ok)
+        if ok:
+            try:
+                props = rg.VolumeMassProperties.Compute(geom)
+                volume += abs(props.Volume) if props is not None else 0.0
+            except Exception:
+                pass
+    return {"closed": closed, "volume_mm3": volume if closed else 0.0}
+
+
+def push(objects, target, name="", layer="Skin", material=""):
+    """Send edited geometry back to CALFLAB as an explicit geometry override.
+
+    On the Structure layer a closed solid gives the part's mass (volume x the
+    density of ``material``); the reply says whether it did.
+    """
     vertices, faces = selection_to_mesh(objects)
     if not faces:
         raise BridgeError("The selection has no surface geometry to push.")
     return request(
         "/api/bridge/rhino/push",
-        {"target": target, "name": name, "layer": layer, "vertices": vertices, "faces": faces, "source": CLIENT},
+        {"target": target, "name": name, "layer": layer, "material": material, "vertices": vertices, "faces": faces,
+         "host": selection_solid(objects), "source": CLIENT},
         timeout=60.0,
     )
+
+
+def push_report(reply, target):
+    """The lines CalflabPush prints for a reply of ``push`` (all wording comes from the server's fields)."""
+    lines = ["CALFLAB: pushed %d faces as override %s on %s" % (reply["faces"], reply["override"], target)]
+    if reply.get("mass_from_geometry"):
+        line = "CALFLAB: %s structure mass is now %.1f g (%.1f cm3 of %s; the estimate it replaces was %.1f g)" % (
+            target, reply["mass_g"], reply["solid"]["volume_mm3"] / 1000.0, reply["material"], reply.get("replaced_g") or 0.0)
+        lines.append(line)
+        if reply.get("volume_error") is not None:
+            lines.append("CALFLAB: the mesh volume differs from Rhino's exact volume by %+.2f %%" % (reply["volume_error"] * 100.0))
+    if reply.get("warning"):
+        lines.append("CALFLAB WARNING: %s" % reply["warning"])
+    if reply.get("note"):
+        lines.append("CALFLAB: %s" % reply["note"])
+    return lines
+
+
+def structure_materials():
+    """Keys of the structure materials in the library (for the CalflabPush prompt)."""
+    return [m["key"] for m in request("/api/bridge/rhino/materials")["materials"]]
+
+
+def guess_material(objects):
+    """The material recorded on the selection: your own ``calflab.material``
+    user text, or the one CalflabPull wrote."""
+    for obj in objects:
+        material = obj.Attributes.GetUserString("calflab.material")
+        if material:
+            return material
+    return ""
 
 
 def guess_target(objects):

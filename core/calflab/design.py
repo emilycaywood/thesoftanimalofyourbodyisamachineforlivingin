@@ -5,12 +5,20 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from calflab.components import library
+from calflab.components import Library, MaterialSpec, library
 from calflab.config import robot_defaults
 from calflab.model.genome import Genome, GenomeDefinition
 from calflab.model.migrations import migrate
-from calflab.model.overrides import ElementParams, Override, apply_overrides, geometry_overrides
-from calflab.model.spec import RobotSpec
+from calflab.model.overrides import (
+    ElementParams,
+    Override,
+    apply_overrides,
+    geometry_override_list,
+    geometry_overrides,
+    mass_overrides,
+    material_overrides,
+)
+from calflab.model.spec import Body, Geom, RobotSpec
 from calflab.plugins import BuildContext, PartGenerator, load_plugins, registry
 
 
@@ -28,6 +36,14 @@ def genome_definition(name: str) -> GenomeDefinition:
     return cls().definition()  # type: ignore[attr-defined]
 
 
+def structure_material(lib: Library, key: str | None) -> MaterialSpec | None:
+    """The structure material ``key`` names, or None if it is not one."""
+    if not key or not lib.has(key):
+        return None
+    c = lib.get(key)
+    return c if isinstance(c, MaterialSpec) and c.role == "structure" else None
+
+
 def build_design(
     genome: Genome,
     overrides: list[Override] | None = None,
@@ -42,23 +58,51 @@ def build_design(
     genome = migrate(genome, gdef)
     params = gen.element_params(genome.values)
     params, warnings = apply_overrides(params, overrides or [])
+    lib = library()
+    defaults = robot_defaults()
+    materials: dict[str, str] = {}
+    for target, key in material_overrides(overrides or []).items():
+        if structure_material(lib, key) is None:
+            warnings.append(f"Material override on {target}: {key!r} is not a structure material; the default is used")
+        else:
+            materials[target] = key
     ctx = BuildContext(
-        library=library(),
-        defaults=robot_defaults(),
+        library=lib,
+        defaults=defaults,
         geometry_overrides=geometry_overrides(overrides or []),
+        materials=materials,
     )
     spec = gen.build(genome.values, params, ctx)
-    for target, ov in ctx.geometry_overrides.items():
-        _apply_geometry_override(spec, target, ov, warnings)
+    default_key = str(defaults.get("structure", {}).get("material", "petg"))
+    for ov in geometry_override_list(overrides or []):
+        _apply_geometry_override(spec, ov.target, ov, warnings, lib, materials.get(ov.target, default_key))
+    for target, ov in mass_overrides(overrides or []).items():
+        _apply_measured_mass(spec, target, ov, warnings)
     spec.metadata.update({"genome_definition": gdef.name, "genome_version": gdef.version})
     return EvaluatedDesign(genome=genome, element_params=params, spec=spec, warnings=warnings)
 
 
+def structure_geoms(body: Body) -> list[Geom]:
+    """The geoms that make up a body's fabricated structure: what a pushed
+    solid replaces and what a weighed part's mass stands for. Components and
+    the cast hoof are separate parts."""
+    return [g for g in body.geoms if g.layer == "Structure" and g.component is None and not g.foot]
+
+
 def _apply_geometry_override(
-    spec: RobotSpec, target: str, ov: Override, warnings: list[str]
+    spec: RobotSpec, target: str, ov: Override, warnings: list[str], lib: Library, body_material: str
 ) -> None:
-    """Replace a body's visible skin/shell with a sculpted mesh asset."""
-    from calflab.model.spec import Geom
+    """Put a pushed mesh in place of a body's geometry on one layer.
+
+    *Structure* (ADR-050): a closed solid gives the part's mass, centre of mass
+    and inertia as volume x density of its material; the envelope primitives
+    stay as massless collision shapes. An open or invalid solid is shown but
+    not used for mass: the envelope estimate stays, with a warning.
+
+    *Any other layer* (a skin sculpt): the mesh replaces the visible surface
+    and keeps the mass the envelope estimate gave it.
+    """
+    from calflab.model.solid import SolidInfo, scaled_inertia
 
     try:
         body = spec.body(target)
@@ -66,23 +110,80 @@ def _apply_geometry_override(
         warnings.append(f"Geometry override {ov.name!r} targets missing body {target}")
         return
     layer = str(ov.meta.get("layer", "Skin"))
-    replaced_mass = 0.0
-    kept = []
-    for g in body.geoms:
-        if g.layer == layer and g.role == "visual":
-            replaced_mass += g.mass_g
-        else:
-            kept.append(g)
-    kept.append(
-        Geom(
-            id=f"{target}.override.{ov.id}",
-            shape="mesh",
-            size=(0.0, 0.0, 0.0),
-            mesh=ov.asset,
-            layer=layer,
-            role="visual",
-            mass_g=replaced_mass,
-            label=ov.name,
-        )
+    mesh = Geom(
+        id=f"{target}.override.{ov.id}",
+        shape="mesh",
+        size=(0.0, 0.0, 0.0),
+        mesh=ov.asset,
+        layer=layer,
+        role="visual",
+        label=ov.name,
     )
-    body.geoms = kept
+    if layer != "Structure":
+        kept = []
+        for g in body.geoms:
+            if g.layer == layer and g.role == "visual":
+                mesh.mass_g += g.mass_g
+                mesh.material = mesh.material or g.material
+            else:
+                kept.append(g)
+        body.geoms = [*kept, mesh]
+        return
+
+    replaced = structure_geoms(body)
+    estimate = sum(g.mass_g for g in replaced)
+    solid = SolidInfo.model_validate(ov.meta.get("solid") or {})
+    key = str(ov.meta.get("material") or body_material)
+    mat = structure_material(lib, key)
+    problem = ""
+    if not ov.meta.get("solid"):
+        problem = "it was pushed before solids were measured (push it again)"
+    elif not solid.closed:
+        problem = solid.problem or "it is not a closed solid"
+    elif mat is None:
+        problem = f"{key!r} is not a structure material in the library"
+    for g in replaced:  # the envelope stays as the collision shape only
+        g.role = "collision"
+        g.label = f"{g.label or g.id} (envelope)"
+    if problem or mat is None:
+        note = f"The solid pushed onto {target} is not used for mass: {problem}. The parametric estimate is kept."
+        warnings.append(note)
+        mesh.mass_note = note
+        for g in replaced:
+            g.mass_note = note
+    else:
+        density = mat.density_g_cm3 / 1000.0  # g/mm^3
+        mesh.mass_g = solid.volume_mm3 * density
+        mesh.mass_source = "geometry"
+        mesh.material = mat.key
+        mesh.com = solid.com_mm
+        mesh.inertia = scaled_inertia(solid.inertia_mm5, density)
+        mesh.mass_replaced_g = estimate
+        for g in replaced:
+            g.mass_g = 0.0
+    body.geoms.append(mesh)
+
+
+def _apply_measured_mass(spec: RobotSpec, target: str, ov: Override, warnings: list[str]) -> None:
+    """A weighed part: its structure mass becomes the measured value. Centre of
+    mass and inertia keep the shape the geometry gave them, scaled to the mass."""
+    from calflab.model.solid import scaled_inertia
+
+    try:
+        body = spec.body(target)
+    except KeyError:
+        warnings.append(f"Measured mass {ov.name!r} targets missing body {target}")
+        return
+    geoms = [g for g in structure_geoms(body) if g.mass_g > 0]
+    computed = sum(g.mass_g for g in geoms)
+    measured = float(ov.value or 0.0)
+    if computed <= 0 or measured <= 0:
+        warnings.append(f"Measured mass on {target} is not used: the part has no structure mass to replace")
+        return
+    factor = measured / computed
+    for g in geoms:
+        g.mass_computed_g = g.mass_g
+        g.mass_g *= factor
+        if g.inertia is not None:
+            g.inertia = scaled_inertia(g.inertia, factor)
+        g.mass_source = "measured"

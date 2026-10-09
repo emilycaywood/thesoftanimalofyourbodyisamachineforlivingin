@@ -118,6 +118,7 @@
   cost_usd: 80
   url: https://www.raspberrypi.com/products/raspberry-pi-5/
   source: Raspberry Pi product page; power is a typical-load guess
+  guessed: [power_w]
   verified: false
 
 # ---------------------------------------------------------------- batteries
