@@ -348,6 +348,7 @@ def create_app(lab: Lab, web_dist: Path | None = None, watch_plugins: bool = Tru
             str(body.get("source", "rhino")),
             str(body.get("material", "")),
             body.get("host") if isinstance(body.get("host"), dict) else None,
+            body.get("parts") if isinstance(body.get("parts"), list) else None,
         )
 
     @app.get("/api/bridge/rhino/materials")

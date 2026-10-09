@@ -161,7 +161,7 @@ function BodyRows({ row, labels, open, selected, toggle }: {
         }}
       >
         <td className="truncate font-mono text-[11px]" title={row.name}>{open ? "▾" : "▸"} {row.body}</td>
-        <td className="truncate">{st.source ? st.material : ""}</td>
+        <td className="truncate" title={st.material_label}>{st.source ? (st.material ?? st.material_label) : ""}</td>
         <td>
           {st.source && <SourceBadge source={st.source} label={st.source_label} />}
           {st.note && <span className="text-warn" title={st.note}> !</span>}

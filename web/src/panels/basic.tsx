@@ -274,7 +274,7 @@ export function OverridesPanel() {
             <div className="truncate font-mono text-[10px] text-dim">
               {o.target}
               {o.kind === "param" && `.${o.param} = ${fmt(o.value)}`}
-              {o.kind === "geometry" && ` · ${o.meta?.layer ?? "Skin"} geometry${o.meta?.solid ? (o.meta.solid.closed ? `, closed solid ${fmt(o.meta.solid.volume_mm3 / 1000, 1)} cm3` : ", open: not used for mass") : ""}${o.meta?.material ? `, ${o.meta.material}` : ""}`}
+              {o.kind === "geometry" && ` · ${o.meta?.layer ?? "Skin"} geometry${o.meta?.solid ? (o.meta.solid.closed ? `, closed solid ${fmt(o.meta.solid.volume_mm3 / 1000, 1)} cm3` : ", open: not used for mass") : ""}${o.meta?.solids ? `, ${o.meta.solids.length} solids` : ""}${o.meta?.material ? `, ${o.meta.material}` : ""}`}
               {o.kind === "material" && ` · material = ${o.material}`}
               {o.kind === "mass" && ` · measured ${fmt(o.value)} g`}
               {" "}· from {o.source}

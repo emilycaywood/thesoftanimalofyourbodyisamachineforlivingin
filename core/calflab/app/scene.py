@@ -192,7 +192,8 @@ def build_scene(
         st = by_body[b.id]["structure"]
         if st["source"] is not None or st["note"]:
             # the fabricated structure of this part: its material and where its mass comes from
-            elements[b.id]["structure"] = {**st, "material": st["material"] or default_material}
+            # (a part of solids in several materials has no single one: ``materials`` lists them)
+            elements[b.id]["structure"] = {**st, "material": st["material"] or (None if st["materials"] else default_material)}
 
     act_by_joint = {a.joint: a for a in spec.actuators}
     trans = {t.id: t for t in spec.transmissions}

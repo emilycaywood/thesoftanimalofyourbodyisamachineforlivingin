@@ -105,6 +105,25 @@ test("choose a part's material, weigh it, and take the trunk's mass from a pushe
   await expect(page.getByTestId("mass-readout")).toContainText("/ 6000 g");
   await tab(page, "Mass").click();
 
+  // --- two solids in one push, each with its own material (as CalflabPush sends several objects)
+  await page.request.post("/api/bridge/rhino/push", {
+    data: {
+      target: "trunk", layer: "Structure", name: "two solids",
+      parts: [
+        { name: "body", material: "pla", ...cube(origin) },
+        { name: "rod", material: "petg", ...cube([origin[0] + 150, origin[1], origin[2]]) },
+      ],
+    },
+  });
+  await expect(panel.locator('[data-mass-body="trunk"]')).toContainText("petg + pla");
+  await expect(panel.locator('[data-mass-body="trunk"]')).toContainText("geometry");
+  await tab(page, "Properties").click();
+  await expect(props.getByTestId("part-materials")).toHaveText("petg + pla");
+  await expect(props.getByTestId("part-mass")).toHaveText("2510 g"); // 1000 cm3 x 1.24 + 1000 cm3 x 1.27
+  await expect(props.locator("[data-part-solid]")).toHaveCount(2);
+  await expect(props.getByTestId("part-com")).toContainText("mm");
+  await tab(page, "Mass").click();
+
   // --- an open solid is shown, warned about, and not used for mass
   await push(true);
   await expect(panel.getByTestId("design-warning")).toContainText("not used for mass: it is open (4 naked edges)");

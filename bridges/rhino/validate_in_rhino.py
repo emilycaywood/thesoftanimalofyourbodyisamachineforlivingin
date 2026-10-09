@@ -161,6 +161,31 @@ def check_solid_push(doc):
             assert row["from_geometry"], "a closed %s was not used for mass: %s" % (name, row["warning"])
             # exact for the sphere too: the mass uses Rhino's volume, not the (slightly small) mesh volume
             assert abs(row["mass_g"] - want) <= 0.02, "%s weighs %.2f g, expected %.2f g" % (name, row["mass_g"], want)
+
+    # two solids in one push, each with its own calflab.material (ADR-053): a pla box and a petg rod beside it
+    other = [m for m in scene["materials"] if m["key"] == "petg"][0]["density_g_cm3"]
+    rod_c = rg.Point3d(c.X + 100.0, c.Y, c.Z)
+    rod = rg.Box(rg.Plane(rod_c, rg.Vector3d.ZAxis), rg.Interval(-5.0, 5.0), rg.Interval(-5.0, 5.0), side).ToBrep()
+    ids = []
+    for name, brep, material in (("body", box, "pla"), ("rod", rod, "petg")):
+        attrs = Rhino.DocObjects.ObjectAttributes()
+        attrs.Name = name
+        attrs.SetUserString("calflab.material", material)
+        ids.append(doc.Objects.AddBrep(brep, attrs))
+    try:
+        reply = cr.push([doc.Objects.FindId(i) for i in ids], "trunk", "calflab validation two solids", "Structure", "")
+    finally:
+        for i in ids:
+            doc.Objects.Delete(i, True)
+    cr.request("/api/undo", {})
+    want = 1000.0 * density + 10.0 * other
+    x = 100.0 * 10.0 * other / want  # centre of mass along the line from the box to the rod, weighted by mass
+    out["two_solids"] = {"mass_g": reply.get("mass_g"), "solids": reply.get("solids"), "com_world_mm": reply.get("com_world_mm"),
+                         "warning": reply.get("warning", ""), "report": cr.push_report(reply, "trunk")}
+    assert reply["mass_from_geometry"], "two closed solids were not used for mass: %s" % reply.get("warning")
+    assert [s["material"] for s in reply["solids"]] == ["pla", "petg"], "the solids did not keep their own materials"
+    assert abs(reply["mass_g"] - want) <= 0.02, "two solids weigh %.2f g, expected %.2f g" % (reply["mass_g"], want)
+    assert abs(reply["com_world_mm"][0] - (c.X + x)) <= 0.05, "the centre of mass is not weighted by the solids' masses"
     return out
 
 

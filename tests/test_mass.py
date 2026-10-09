@@ -130,7 +130,7 @@ def test_run_record_names_the_parts_with_geometry_based_mass(lab):
     assert rec.id != plain.id, "a pushed solid is a different simulation"
     assert rec.inputs["mass"]["geometry_parts"] == ["trunk"]
     assert rec.inputs["mass"]["structure"]["trunk"] == {
-        "mass_g": pytest.approx(1240.0), "source": "geometry", "material": "pla"}
+        "mass_g": pytest.approx(1240.0), "source": "geometry", "material": "pla", "materials": ["pla"]}
     assert rec.overrides[0]["meta"]["solid"]["closed"] is True, "the run keeps what its mass was computed from"
     assert rec.metrics["speed_mps"] != plain.metrics["speed_mps"]
 
@@ -209,7 +209,7 @@ def test_b_material_of_a_parametric_part_is_an_override(lab):
     el = lab.scene()["elements"]["leg.fl.shank"]
     assert el["structure"]["material"] == "pla" and el["structure"]["source"] == "parametric"
     keys = {m["key"]: m for m in lab.scene()["materials"]}
-    assert set(keys) == {"petg", "pla"} and keys["petg"]["default"] and not keys["pla"]["verified"]
+    assert {"petg", "pla"} <= set(keys) and keys["petg"]["default"] and not keys["pla"]["verified"]
     bom = {line["key"]: line for line in lab.analysis("bom")["lines"] if "structure" in line["name"]}
     assert bom["pla"]["mass_g"] == pytest.approx(new["mass_g"], abs=0.1) and bom["petg"]["mass_g"] > 0
 
@@ -240,6 +240,171 @@ def test_b_material_of_a_pushed_solid_belongs_to_the_solid(lab):
     assert structure(lab) == old, "with the solid off, the parametric part is as it was"
     with pytest.raises(LabError, match="not a structure material"):
         push_box(lab, material="unobtainium")
+
+
+# ---------------------------------------------------------------------- G: several solids, each with its own material
+def box_part(lab, size, offset=(0.0, 0.0, 0.0), material="", name="", target="trunk", open_top=False):
+    """One solid of a several-solid push, as the Rhino bridge sends it (ADR-053)."""
+    box = trimesh.creation.box(size)
+    faces = box.faces
+    if open_top:
+        faces = faces[~np.isclose(box.triangles[:, :, 2].min(axis=1), size[2] / 2)]
+    origin = np.array(next(b for b in lab.scene()["bodies"] if b["id"] == target)["pos"])
+    return {"name": name, "material": material, "vertices": (box.vertices + origin + np.array(offset)).tolist(),
+            "faces": faces.tolist(), "host": {"closed": not open_top, "volume_mm3": float(np.prod(size))}}
+
+
+def push_parts(lab, parts, target="trunk", **kw):
+    return save_pushed_mesh(lab, target, [], [], layer="Structure", parts=parts, **kw)
+
+
+def test_g_a_pla_box_and_a_steel_rod_pushed_together_are_each_weighed_with_their_own_material(tmp_path):
+    """The researcher's two-box check: a 100 x 100 x 100 mm box tagged pla and a 10 x 10 x 100 mm box tagged
+    stainless_304, pushed onto trunk Structure in one CalflabPush. Densities are read from the library."""
+    from calflab_server.app import create_app
+    from fastapi.testclient import TestClient
+
+    path = repo_root() / "bridges" / "rhino" / "scripts" / "calflab_rhino.py"
+    spec = importlib.util.spec_from_file_location("calflab_rhino_solids_test", path)
+    script = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(script)
+
+    lib = library()
+    pla, steel = lib.material("pla").density_g_cm3, lib.material("stainless_304").density_g_cm3
+    m_box, m_rod = 1000.0 * pla, 10.0 * steel
+    lab = Lab.open(tmp_path / "p")
+    try:
+        lab.execute("set_node_params", {"node": "sim", "params": {"duration_s": 1.0}})
+        lab.end_gesture()
+        old, total = structure(lab), lab.scene()["mass"]["total_g"]
+        origin = np.array(next(b for b in lab.scene()["bodies"] if b["id"] == "trunk")["pos"])
+        with TestClient(create_app(lab, watch_plugins=False)) as client:
+            body = {"target": "trunk", "layer": "Structure", "name": "trunk chassis", "material": "", "parts": [
+                box_part(lab, (100.0, 100.0, 100.0), material="pla", name="body"),
+                box_part(lab, (10.0, 10.0, 100.0), offset=(100.0, 0.0, 0.0), material="stainless_304", name="rod"),
+            ]}
+            reply = client.post("/api/bridge/rhino/push", json=body).json()
+        assert reply["mass_from_geometry"] and reply["warning"] == ""
+        assert reply["mass_g"] == pytest.approx(m_box + m_rod, abs=0.01)
+        assert [(s["name"], s["material"], s["volume_mm3"]) for s in reply["solids"]] == [
+            ("body", "pla", pytest.approx(1.0e6)), ("rod", "stainless_304", pytest.approx(1.0e4))]
+        assert [s["mass_g"] for s in reply["solids"]] == pytest.approx([m_box, m_rod], abs=0.01)
+        lines = script.push_report(reply, "trunk")
+        assert f"trunk structure mass is now {m_box + m_rod:.1f} g (1010.0 cm3 of pla + stainless_304" in lines[1]
+        assert f"solid 1 (body): 1000.0 cm3 of pla = {m_box:.1f} g" in lines[2]
+        assert f"solid 2 (rod): 10.0 cm3 of stainless_304 = {m_rod:.1f} g" in lines[3]
+
+        # centre of mass: between the two boxes, weighted by their masses, not at the centre of their combined volume
+        x = 100.0 * m_rod / (m_box + m_rod)
+        assert x > 3 * (100.0 * 10.0 / 1010.0), "steel pulls it well past the volume centroid (0.99 mm)"
+        st = structure(lab)
+        assert st["com_mm"] == pytest.approx([x, 0.0, 0.0], abs=0.01)
+        assert reply["com_world_mm"] == pytest.approx((origin + [x, 0.0, 0.0]).tolist(), abs=0.02)
+        assert "structure centre of mass is at" in lines[4]
+        assert (st["source"], st["material"], st["materials"]) == ("geometry", None, ["pla", "stainless_304"])
+        assert st["material_label"] == "pla + stainless_304" and st["replaced_g"] == pytest.approx(old["mass_g"])
+        assert [(s["material"], s["mass_g"]) for s in st["solids"]] == [
+            ("pla", pytest.approx(m_box, abs=0.01)), ("stainless_304", pytest.approx(m_rod, abs=0.01))]
+        el = lab.scene()["elements"]["trunk"]["structure"]
+        assert el["material"] is None and el["material_label"] == "pla + stainless_304", "no default material is shown for a mixed part"
+        b = lab.scene()["mass"]["breakdown"]
+        assert sum(b["by_source_g"].values()) == pytest.approx(b["total_g"], abs=0.05) and b["geometry_parts"] == ["trunk"]
+        assert lab.scene()["mass"]["total_g"] == pytest.approx(total + m_box + m_rod - old["mass_g"], abs=0.11)
+
+        # each solid is its own mass geom with its own density; the simulator composes them
+        design = lab.design()
+        box, rod = (g for g in design.spec.body("trunk").geoms if g.shape == "mesh")
+        assert (box.material, rod.material) == ("pla", "stainless_304") and box.mesh != rod.mesh
+        assert rod.mass_center() == pytest.approx((100.0, 0.0, 0.0), abs=1e-3)
+        assert rod.inertia[0] == pytest.approx(m_rod * (10**2 + 100**2) / 12, rel=1e-6)
+        assert box.inertia[2] == pytest.approx(m_box * (100**2 + 100**2) / 12, rel=1e-6)
+        model = compile_mjcf(design.spec, lib)
+        assert model.total_mass_kg == pytest.approx(design.spec.total_mass_g() / 1000.0)
+        m = mujoco.MjModel.from_xml_string(model.xml)
+        for g, extents in ((box, [100.0, 100.0, 100.0]), (rod, [10.0, 10.0, 100.0])):
+            gid = mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_GEOM, g.id)
+            assert m.geom_type[gid] == mujoco.mjtGeom.mjGEOM_BOX and m.geom_contype[gid] == 0
+            assert sorted(m.geom_size[gid] * 2000) == pytest.approx(extents, rel=1e-4)
+        bom = {line["key"]: line for line in lab.analysis("bom")["lines"] if "structure" in line["name"]}
+        assert bom["stainless_304"]["mass_g"] == pytest.approx(m_rod, abs=0.1) and bom["pla"]["mass_g"] == pytest.approx(m_box, abs=0.1)
+
+        # pulled back into Rhino, each solid is its own object and keeps its material
+        pulled = [o for o in rhino_build_list(design)["objects"] if o["kind"] == "mesh"]
+        assert [o["user_text"]["calflab.material"] for o in pulled] == ["pla", "stainless_304"]
+
+        # the run record names the materials of the part
+        job = lab.jobs.wait(lab.run_sim().id)
+        assert job.status == "done", job.error
+        rec = lab.registry.get_run(job.result["run_id"]).inputs["mass"]["structure"]["trunk"]
+        assert rec["materials"] == ["pla", "stainless_304"] and rec["source"] == "geometry" and rec["material"] is None
+        assert [(s["material"], s["mass_g"]) for s in rec["solids"]] == [
+            ("pla", pytest.approx(m_box, abs=0.01)), ("stainless_304", pytest.approx(m_rod, abs=0.01))]
+
+        # a weighed mass on top: the value wins, the solids keep their proportions and the centre of mass stays
+        lab.execute("set_measured_mass", {"target": "trunk", "mass_g": 1500.0})
+        st = structure(lab)
+        assert (st["mass_g"], st["source"]) == (1500.0, "measured") and st["computed_g"] == pytest.approx(m_box + m_rod, abs=0.01)
+        assert st["com_mm"] == pytest.approx([x, 0.0, 0.0], abs=0.01) and st["materials"] == ["pla", "stainless_304"]
+        lab.execute("set_measured_mass", {"target": "trunk", "mass_g": 0})
+
+        # the material list in Properties cannot flatten a mixed part
+        with pytest.raises(LabError, match=r"own materials \(pla \+ stainless_304\).*calflab.material"):
+            lab.execute("set_part_material", {"target": "trunk", "material": "petg"})
+
+        # switching the override off returns the parametric part; undo and redo work as for one solid
+        lab.execute("toggle_override", {"id": reply["override"]})
+        assert structure(lab) == old and lab.scene()["mass"]["total_g"] == total
+        lab.undo()
+        assert structure(lab)["mass_g"] == pytest.approx(m_box + m_rod, abs=0.01)
+        lab.undo()  # removing the weighed mass
+        lab.undo()  # setting it
+        lab.undo()  # the push
+        assert structure(lab) == old and [o for o in lab.state.overrides if o.kind == "geometry"] == []
+        lab.redo()
+        assert structure(lab)["materials"] == ["pla", "stainless_304"]
+    finally:
+        lab.close()
+
+
+def test_g_solids_without_their_own_material_take_the_one_named_at_the_push(lab):
+    lib = library()
+    petg, pla = lib.material("petg").density_g_cm3, lib.material("pla").density_g_cm3
+    parts = [box_part(lab, (100.0, 100.0, 100.0), material="pla"), box_part(lab, (20.0, 20.0, 50.0), offset=(0.0, 100.0, 0.0))]
+    reply = push_parts(lab, parts, material="petg")
+    assert [(s["name"], s["material"]) for s in reply["solids"]] == [("solid 1", "pla"), ("solid 2", "petg")]
+    assert reply["mass_g"] == pytest.approx(1000.0 * pla + 20.0 * petg, abs=0.01)
+    lab.undo()
+    reply = push_parts(lab, parts)  # nothing named: the part's material
+    assert reply["solids"][1]["material"] == "petg" and reply["materials"] == ["petg", "pla"]
+    lab.undo()
+    # two solids of one material are one material; Properties may then change it for the whole part
+    reply = push_parts(lab, [{**p, "material": ""} for p in parts], material="pla")
+    assert structure(lab)["material"] == "pla" and reply["mass_g"] == pytest.approx(1020.0 * pla, abs=0.01)
+    lab.execute("set_part_material", {"target": "trunk", "material": "petg"})
+    assert structure(lab)["mass_g"] == pytest.approx(1020.0 * petg, abs=0.01)
+    with pytest.raises(LabError, match="not a structure material"):
+        push_parts(lab, [{**parts[0], "material": "unobtainium"}, parts[1]])
+    # one object alone is exactly a plain push; a second push replaces the first
+    reply = push_parts(lab, [parts[0]])
+    assert "solids" not in reply and structure(lab)["mass_g"] == pytest.approx(1000.0 * pla)
+    assert len([o for o in lab.state.overrides if o.kind == "geometry"]) == 1
+    # on Skin the objects are joined, as before: look only
+    reply = save_pushed_mesh(lab, "trunk", [], [], layer="Skin", parts=parts)
+    assert reply["faces"] == 24 and "changes the look only" in reply["note"]
+
+
+def test_g_one_open_solid_keeps_the_whole_part_on_its_estimate(lab):
+    old = structure(lab)
+    reply = push_parts(lab, [
+        box_part(lab, (100.0, 100.0, 100.0), material="pla", name="body"),
+        box_part(lab, (10.0, 10.0, 100.0), offset=(100.0, 0.0, 0.0), material="petg", name="rod", open_top=True),
+    ])
+    assert not reply["mass_from_geometry"] and "solids" not in reply
+    assert "The solids pushed onto trunk are not used for mass: rod: it is open (4 naked edges)" in reply["warning"]
+    assert "parametric estimate is kept" in reply["warning"]
+    st = structure(lab)
+    assert st["mass_g"] == old["mass_g"] and st["source"] == "parametric" and st["solids"] == []
+    assert lab.scene()["mass"]["breakdown"]["geometry_parts"] == []
 
 
 # ---------------------------------------------------------------------- F: measured mass
@@ -535,7 +700,7 @@ def test_push_over_http_takes_a_material_and_reports_the_mass(tmp_path):
     lab = Lab.open(tmp_path / "p")
     try:
         with TestClient(create_app(lab, watch_plugins=False)) as client:
-            assert [m["key"] for m in client.get("/api/bridge/rhino/materials").json()["materials"]] == ["petg", "pla"]
+            assert [m["key"] for m in client.get("/api/bridge/rhino/materials").json()["materials"]][:2] == ["petg", "pla"]
             box = trimesh.creation.box((100.0, 100.0, 100.0))
             origin = np.array(next(b for b in lab.scene()["bodies"] if b["id"] == "trunk")["pos"])
             body = {"target": "trunk", "layer": "Structure", "name": "box", "material": "pla",

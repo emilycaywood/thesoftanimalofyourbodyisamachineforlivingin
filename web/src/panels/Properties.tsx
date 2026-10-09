@@ -76,6 +76,11 @@ function StructureCard({ id, st }: { id: string; st: StructureMass }) {
   const current = materials.find((m) => m.key === st.material);
   return (
     <Section title="Material and mass" right={st.source ? <SourceBadge source={st.source} label={st.source_label} /> : undefined}>
+      {st.materials.length > 1 ? (
+        <Row label="Material" title="This part is made of pushed solids with their own materials. To change one, edit the solid's calflab.material user text in Rhino and push the part again.">
+          <span className="selectable min-w-0 flex-1" data-testid="part-materials">{st.material_label}</span>
+        </Row>
+      ) : (
       <Row label="Material" title="Structure material of this part (config/components/materials.yaml)">
         <select
           className="min-w-0 flex-1"
@@ -89,10 +94,24 @@ function StructureCard({ id, st }: { id: string; st: StructureMass }) {
         </select>
         {current && !current.verified && <Unverified />}
       </Row>
+      )}
+      {st.solids.length > 1 && st.solids.map((s) => (
+        <Row key={s.id} label="" title={s.id}>
+          <span className="min-w-0 flex-1 truncate text-[10px] text-dim" data-part-solid={s.id}>
+            {s.label} · {s.material}{s.verified === false && <span className="text-warn" title="Unverified library entry"> *</span>}
+          </span>
+          <span className="text-dim">{fmt(s.mass_g, 1)} g</span>
+        </Row>
+      ))}
       <Row label="Structure mass" title="Mass of the printed part, without motors, electronics, skin or hoof">
         <b data-testid="part-mass">{fmt(st.mass_g, 1)} g</b>
       </Row>
       <Row label="Source"><span className="selectable" data-testid="part-mass-source">{st.source_label}</span></Row>
+      {st.source === "geometry" && st.com_mm && (
+        <Row label="Centre of mass" title="Centre of mass of the pushed solids, each with its own density, in this part's own frame (mm)">
+          <span className="selectable text-dim" data-testid="part-com">{st.com_mm.map((v) => fmt(v, 1)).join(", ")} mm</span>
+        </Row>
+      )}
       {st.replaced_g !== null && (
         <Row label="Envelope estimate" title="The parametric estimate the pushed solid replaced: not counted">
           <span className="text-dim">{fmt(st.replaced_g, 1)} g (not counted)</span>

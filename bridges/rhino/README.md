@@ -30,12 +30,19 @@ is left alone. Sculpt on your own layer, then `CalflabPush` it.
 1. `CalflabPull`, then model the part on your own layer, in place.
 2. Optional: give the object the user text `calflab.material` = a structure
    material key (`pla`, `petg`, or one you added to
-   `config/components/materials.yaml`). `CalflabPush` offers it as the default.
+   `config/components/materials.yaml`). It is then weighed with that
+   material. A part of several materials (PLA body, steel rods) is several
+   closed solids, each with its own `calflab.material`, selected together
+   and pushed in one go (ADR-053).
 3. Select it, `CalflabPush`, body ID (for example `trunk`), layer
-   `Structure`, a name, the material (`Default` = the part's material).
+   `Structure`, a name and, only if a selected solid has no
+   `calflab.material`, the material for those (`Default` = the part's
+   material).
 4. Read the command line. A closed solid:
    `CALFLAB: trunk structure mass is now 1240.0 g (1000.0 cm3 of pla; the
-   estimate it replaces was 629.1 g)`. An open one:
+   estimate it replaces was 629.1 g)`, then one line per solid if there are
+   several (`solid 2 (rod): 10.0 cm3 of stainless_304 = ... g`) and the
+   centre of mass in Rhino's coordinates. An open one:
    `CALFLAB WARNING: The solid pushed onto trunk is not used for mass: it is
    open (4 naked edges). The parametric estimate is kept.`
 
@@ -143,6 +150,9 @@ Verified by `bridge rhino --check`:
   is open (4 naked edges)". These went through the bridge's `push` function
   with real Breps; the new material prompt of the typed command has not been
   answered by hand yet.
+* Several solids with their own materials (ADR-053, added 2026-10-08):
+  **not yet run in Rhino.** `bridge rhino --check` now also pushes a box
+  tagged `pla` with a rod tagged `petg`; run it once to confirm.
 * `CalflabLiveSync`: Rhino followed a `shank_length` edit made on the server
   within about a second (shank bounding box moved 20 mm for a 20 mm edit, no
   object lost), and the command turns it off again.

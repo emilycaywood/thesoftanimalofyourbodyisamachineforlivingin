@@ -97,7 +97,9 @@ def _apply_geometry_override(
     *Structure* (ADR-050): a closed solid gives the part's mass, centre of mass
     and inertia as volume x density of its material; the envelope primitives
     stay as massless collision shapes. An open or invalid solid is shown but
-    not used for mass: the envelope estimate stays, with a warning.
+    not used for mass: the envelope estimate stays, with a warning. A push of
+    several solids (``meta["solids"]``, ADR-053) gives one mass geom per solid,
+    each with its own material; the simulator composes them.
 
     *Any other layer* (a skin sculpt): the mesh replaces the visible surface
     and keeps the mass the envelope estimate gave it.
@@ -132,36 +134,60 @@ def _apply_geometry_override(
 
     replaced = structure_geoms(body)
     estimate = sum(g.mass_g for g in replaced)
-    solid = SolidInfo.model_validate(ov.meta.get("solid") or {})
-    key = str(ov.meta.get("material") or body_material)
-    mat = structure_material(lib, key)
-    problem = ""
-    if not ov.meta.get("solid"):
-        problem = "it was pushed before solids were measured (push it again)"
-    elif not solid.closed:
-        problem = solid.problem or "it is not a closed solid"
-    elif mat is None:
-        problem = f"{key!r} is not a structure material in the library"
+    # one entry per pushed solid; a push of a single solid has no list (ADR-053)
+    entries: list[dict[str, Any]] = list(ov.meta.get("solids") or []) or [
+        {"asset": ov.asset, "material": ov.meta.get("material"), "solid": ov.meta.get("solid")}
+    ]
+    several = len(entries) > 1
+    meshes: list[Geom] = []
+    measured: list[tuple[SolidInfo, MaterialSpec | None]] = []
+    problems: list[str] = []
+    for n, entry in enumerate(entries, start=1):
+        label = str(entry.get("name") or f"solid {n}")
+        solid = SolidInfo.model_validate(entry.get("solid") or {})
+        key = str(entry.get("material") or ov.meta.get("material") or body_material)
+        mat = structure_material(lib, key)
+        problem = ""
+        if not entry.get("solid"):
+            problem = "it was pushed before solids were measured (push it again)"
+        elif not solid.closed:
+            problem = solid.problem or "it is not a closed solid"
+        elif mat is None:
+            problem = f"{key!r} is not a structure material in the library"
+        if problem:
+            problems.append(f"{label}: {problem}" if several else problem)
+        measured.append((solid, mat))
+        meshes.append(
+            mesh.model_copy(update={"id": f"{mesh.id}.{n}", "mesh": entry.get("asset") or ov.asset, "label": f"{ov.name}: {label}"})
+            if several
+            else mesh
+        )
     for g in replaced:  # the envelope stays as the collision shape only
         g.role = "collision"
         g.label = f"{g.label or g.id} (envelope)"
-    if problem or mat is None:
-        note = f"The solid pushed onto {target} is not used for mass: {problem}. The parametric estimate is kept."
+    if problems:
+        # one unusable solid leaves the whole part on its estimate: a part-mass that lacks a solid would be wrong silently
+        note = (
+            f"The solids pushed onto {target} are not used for mass: {'; '.join(problems)}. The parametric estimate is kept."
+            if several
+            else f"The solid pushed onto {target} is not used for mass: {problems[0]}. The parametric estimate is kept."
+        )
         warnings.append(note)
-        mesh.mass_note = note
-        for g in replaced:
+        for g in [*meshes, *replaced]:
             g.mass_note = note
     else:
-        density = mat.density_g_cm3 / 1000.0  # g/mm^3
-        mesh.mass_g = solid.volume_mm3 * density
-        mesh.mass_source = "geometry"
-        mesh.material = mat.key
-        mesh.com = solid.com_mm
-        mesh.inertia = scaled_inertia(solid.inertia_mm5, density)
-        mesh.mass_replaced_g = estimate
+        for g, (solid, mat) in zip(meshes, measured, strict=True):
+            assert mat is not None
+            density = mat.density_g_cm3 / 1000.0  # g/mm^3: each solid with its own material
+            g.mass_g = solid.volume_mm3 * density
+            g.mass_source = "geometry"
+            g.material = mat.key
+            g.com = solid.com_mm
+            g.inertia = scaled_inertia(solid.inertia_mm5, density)
+        meshes[0].mass_replaced_g = estimate
         for g in replaced:
             g.mass_g = 0.0
-    body.geoms.append(mesh)
+    body.geoms.extend(meshes)
 
 
 def _apply_measured_mass(spec: RobotSpec, target: str, ov: Override, warnings: list[str]) -> None:

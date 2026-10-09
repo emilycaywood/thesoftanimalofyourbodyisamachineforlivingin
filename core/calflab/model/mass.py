@@ -46,6 +46,8 @@ def mass_breakdown(spec: RobotSpec, lib: Any) -> dict[str, Any]:
         s_notes: set[str] = set()
         s_computed: float | None = None
         s_replaced: float | None = None
+        s_moment = [0.0, 0.0, 0.0]  # sum of mass x centre of mass (g*mm, body frame)
+        s_solids: list[dict[str, Any]] = []
         for g in b.geoms:
             in_structure = g.layer == "Structure" and g.component is None and not g.foot
             if in_structure and g.mass_note:
@@ -82,7 +84,15 @@ def mass_breakdown(spec: RobotSpec, lib: Any) -> dict[str, Any]:
                     s_computed = (s_computed or 0.0) + g.mass_computed_g
                 if g.mass_replaced_g is not None:
                     s_replaced = (s_replaced or 0.0) + g.mass_replaced_g
+                c = g.mass_center()
+                for k in range(3):
+                    s_moment[k] += g.mass_g * c[k]
+                if g.shape == "mesh":  # a pushed solid, weighed with its own material
+                    s_solids.append(
+                        {"id": g.id, "label": g.label or g.id, "material": g.material, "mass_g": round(g.mass_g, 2), "verified": verified}
+                    )
         source = next((k for k in SOURCES if k in s_sources), None)  # the most specific one present
+        materials = sorted(s_materials)
         bodies.append(
             {
                 "body": b.id,
@@ -93,7 +103,14 @@ def mass_breakdown(spec: RobotSpec, lib: Any) -> dict[str, Any]:
                     "mass_g": round(s_mass, 2),
                     "source": source,
                     "source_label": SOURCES.get(source or "", ""),
-                    "material": next(iter(s_materials)) if len(s_materials) == 1 else None,
+                    "material": materials[0] if len(materials) == 1 else None,
+                    #: every material the structure mass was computed with (several for a part of mixed solids)
+                    "materials": materials,
+                    "material_label": " + ".join(materials),
+                    #: the pushed solids behind the mass, each with its own material
+                    "solids": s_solids,
+                    #: centre of mass of the structure in the body frame (mm), mass-weighted over its solids
+                    "com_mm": [round(v / s_mass, 2) for v in s_moment] if s_mass > 0 else None,
                     "computed_g": None if s_computed is None else round(s_computed, 2),
                     "replaced_g": None if s_replaced is None else round(s_replaced, 2),
                     "note": " ".join(sorted(s_notes)),

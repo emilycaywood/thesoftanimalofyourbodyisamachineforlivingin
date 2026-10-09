@@ -184,13 +184,44 @@ part, with real numbers. Each of these is an override: listed in
 **1. Push a closed solid from Rhino.** Model the part in Rhino in its real
 place (pull the calf first, model against it), select it, `CalflabPush`,
 give the body ID (`trunk`, `leg.fl.shank`, ...), choose the layer
-**Structure**, and name a material (Enter takes the part's material; the
-default offered is the object's `calflab.material` user text if it has one).
+**Structure**, and name a material (Enter takes the part's material). An
+object that carries the user text `calflab.material` (a structure material
+key such as `pla`) is weighed with that material and is not asked about.
 If the object is a closed solid the part's structure mass becomes
 **volume x density**, and its centre of mass and inertia follow the solid,
 in the simulation too. Rhino prints the result, for example
 `trunk structure mass is now 1240.0 g (1000.0 cm3 of pla; the estimate it
-replaces was 629.1 g)`.
+replaces was 629.1 g)`, and where the centre of mass is, in the coordinates
+you modelled in.
+
+**A part of several materials (printed PLA with steel rods).** Model each
+piece as its own closed solid, with the rods cut out of the plastic so
+nothing overlaps. Give each solid its material: *Properties > Attribute
+User Text* in Rhino, key `calflab.material`, value the material key (`pla`,
+`stainless_304`, ...). Select **all** the solids of the part and run one
+`CalflabPush`. Each solid is weighed with its own material; a solid without
+the user text takes the material you name at the prompt (the prompt only
+appears when at least one solid has none). The part's mass is the sum of
+volume x own density, and its centre of mass and inertia combine the solids
+with their own densities, so a steel rod pulls the centre of mass towards
+itself. Rhino prints one line per solid and the total:
+
+```
+CALFLAB: trunk structure mass is now 1319.3 g (1010.0 cm3 of pla + stainless_304; the estimate it replaces was 629.1 g)
+CALFLAB:   solid 1 (body): 1000.0 cm3 of pla = 1240.0 g
+CALFLAB:   solid 2 (rod): 10.0 cm3 of stainless_304 = 79.3 g
+CALFLAB: trunk structure centre of mass is at (6.0, 0.0, 379.5) mm
+```
+
+(A 100 mm PLA cube at the trunk origin and a 10 x 10 x 100 mm rod 100 mm in
+front of it, with steel entered as 7.93 g/cm3: the centre of mass is 6.0 mm
+towards the rod, where the centre of the combined volume would be 1.0 mm.
+The name in brackets is the Rhino object's name.) All the solids of one
+push are one override: a second push onto the same part replaces all of
+them, so always select the whole part. If one of the solids is open or its
+material is not in the library, **none** of them is used for mass and the
+warning names the one at fault: a part missing its rods would otherwise be
+too light without saying so.
 
 * The envelope estimate is no longer counted for that part. Motors, boards,
   battery, skin and hooves are separate items and stay.
@@ -203,8 +234,9 @@ replaces was 629.1 g)`.
   infilled print, either model the real walls, or add a material whose
   density is what you measure on a printed sample (mass / outer volume), or
   weigh the part (3 below).
-* Several separate closed objects add up. Objects that overlap are counted
-  twice: `BooleanUnion` them first.
+* Several separate closed objects add up, each with its own material.
+  Objects that overlap are counted twice: `BooleanUnion` them if they are
+  the same material, or `BooleanDifference` the rod out of the plastic.
 * The simulator still collides with the envelope shape, not the solid.
 * A push onto **Skin** changes the look only, as before.
 * Switch the override off in *Overrides* and the part is back at its
@@ -214,7 +246,10 @@ replaces was 629.1 g)`.
 mass* has a **Material** list (the structure materials in
 `config/components/materials.yaml`). On a parametric part the choice is
 recorded as a material override and the envelope estimate uses that density.
-On a part with a pushed solid it changes the solid's material.
+On a part with a pushed solid it changes the solid's material. A part
+pushed as solids of different materials shows them instead of the list
+(`pla + stainless_304`): change a solid's `calflab.material` in Rhino and
+push the part again.
 
 **3. Enter a weighed mass.** Print the part, weigh it, type the grams into
 **Measured** in the same section. That value is used; the computed one stays
@@ -222,15 +257,23 @@ beside it as *Computed*. Clear the field to remove it. It stands for the
 printed structure of that part only, without motor, skin or hoof.
 
 **Read the result.** *Properties > Material and mass* shows the selected
-part's structure mass and its source. The **Mass** panel (Form and Mechanism
+part's structure mass and its source; for a part of several solids also the
+materials, each solid's mass and the centre of mass (in the part's own
+frame). In the **Mass** panel such a part reads `pla + stainless_304` with
+the source `geometry`, and opens to one row per solid. A weighed
+**Measured** mass on top scales the solids together, so the centre of mass
+stays where the geometry and densities put it. The **Mass** panel (Form and Mechanism
 workspaces) lists every part with the source of its structure mass
 (`geometry`, `measured`, `estimate`), opens to its items (click a row), sums
 the total by source, and says how much of it rests on unverified library
 entries. The **target** at the top right of that panel is this project's
 own mass target; 0 returns to the default. `CalflabPull` writes
 `calflab.material`, `calflab.mass_g` and `calflab.mass_source` into each
-object's user text. Every simulation run records which parts had
-geometry-based or weighed mass (`inputs.mass` in `runs/<id>/run.json`).
+object's user text (a part of several solids comes back as one object per
+solid, each with its own material). Every simulation run records which
+parts had geometry-based or weighed mass, and each part's materials and,
+for a part of several solids, each solid's material and mass
+(`inputs.mass.structure` in `runs/<id>/run.json`).
 
 ---
 

@@ -251,6 +251,33 @@ get real mass, at a smaller scale; ADR-050, ADR-051, ADR-052):**
   `LAYOUT_VERSION` is 5 (dock layouts reset once); a body can carry one
   geometry override per layer instead of one in all.
 
+**Added later on 2026-10-08 (researcher's request: parts of printed PLA
+with stainless steel rods; ADR-053):**
+
+* Before: `CalflabPush` joined the selection into one mesh with one
+  material; an object's own `calflab.material` was only the prompt default.
+* Now, on Structure, each selected object is sent, measured, stored and
+  weighed as its own solid with its own `calflab.material` (else the prompt
+  material, else the part's). One override per part still; its
+  `meta.solids` lists them; the design gets one mass geom per solid
+  (`<body>.override.<id>.<n>`). A single-object push is stored as before.
+* Breakdown structure rows carry `materials`, `material_label`, `solids`,
+  `com_mm`; the push reply carries `solids` and `com_world_mm`; runs record
+  `materials` (and `solids`) per part. Properties and the Mass panel show
+  them. If one solid of a push is open, none is used for mass.
+* `set_part_material` refuses a part whose solids have different materials.
+* Tests: three new ones in `tests/test_mass.py` (the first is the
+  researcher's two-box check and reads `stainless_304` from the library), a
+  step in `web/e2e/structure.spec.ts`, a two-solid push in
+  `bridges/rhino/validate_in_rhino.py` (**not yet run in Rhino**).
+* The researcher added `stainless_304` to
+  `config/components/materials.yaml` (7.93 g/cm3; 39.02 USD/kg, from 12
+  rods of 3 mm x 12 in for 8 USD) and marked it **verified** on 2026-10-08:
+  the first verified entry. `tests/test_morphology.py` keeps the guard with
+  an explicit list, `VERIFIED_BY_RESEARCHER`; add a key there only when the
+  researcher says so. A value with unit text in it (`7.93 g/cm³`) stops the
+  whole library from loading; the loader does not yet report that kindly.
+
 **Scaffolded only (interfaces + tests, no behaviour):** PPO training, MJX
 simulator, RemoteSSH and CloudNotebook transports (job bundling is real),
 imitation reward, interactive selection, molds, skin patterns, nesting,
@@ -370,7 +397,7 @@ Journal, Rhino bridge):**
 |---|---|
 | `CLAUDE.md` | Conventions for every session (loaded automatically) |
 | `PLAN.md` | Architecture, module boundaries, data flow, phases, risks, status |
-| `DECISIONS.md` | ADR log: every assumption (52 so far) |
+| `DECISIONS.md` | ADR log: every assumption (53 so far) |
 | `docs/proposals/anatomical-leg.md` | Proposal for a three-segment leg (set aside 2026-10-04; not built) |
 | `docs/USER_GUIDE.md` | How to use the lab |
 | `docs/CHAT_GUIDE_PROMPT.md` | Prompt that makes a chat assistant a guide to the whole lab |

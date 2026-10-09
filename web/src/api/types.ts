@@ -71,7 +71,11 @@ export interface StructureMass {
   mass_g: number;
   source: MassSource | null;
   source_label: string;
-  material: string | null;
+  material: string | null; // null when the part is made of solids in several materials
+  materials: string[]; // every material the structure mass was computed with
+  material_label: string; // e.g. "pla + stainless_304"
+  solids: { id: string; label: string; material: string | null; mass_g: number; verified: boolean | null }[]; // pushed solids
+  com_mm: [number, number, number] | null; // centre of mass of the structure, body frame
   computed_g: number | null; // value a weighed mass replaced
   replaced_g: number | null; // envelope estimate a pushed solid replaced (not counted)
   note: string;
@@ -236,7 +240,12 @@ export interface Override {
   value: number | null;
   asset: string | null;
   material: string | null;
-  meta?: { layer?: string; material?: string; solid?: { closed: boolean; volume_mm3: number } };
+  meta?: {
+    layer?: string;
+    material?: string;
+    solid?: { closed: boolean; volume_mm3: number };
+    solids?: { name: string; material: string; solid: { closed: boolean; volume_mm3: number } }[]; // a push of several solids
+  };
   enabled: boolean;
   source: string;
   created: string;

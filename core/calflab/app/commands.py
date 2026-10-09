@@ -159,6 +159,10 @@ class AddGeometryOverride(Command):
             default_factory=dict, ui="json",
             desc="Solid properties measured when the mesh arrived (closed, volume, centre of mass, inertia).",
         )
+        solids: list[dict[str, Any]] = P(
+            default_factory=list, ui="json",
+            desc="A push of several solids: one {name, asset, material, solid} each (material empty = the one above).",
+        )
 
     def title(self) -> str:
         return f"Geometry override on {self.params.target}"  # type: ignore[attr-defined]
@@ -186,6 +190,11 @@ class AddGeometryOverride(Command):
         if p.material:  # type: ignore[attr-defined]
             _structure_material(p.material)  # type: ignore[attr-defined]
             ov.meta["material"] = p.material  # type: ignore[attr-defined]
+        if p.solids:  # type: ignore[attr-defined]
+            for s in p.solids:  # type: ignore[attr-defined]
+                if s.get("material"):
+                    _structure_material(str(s["material"]))
+            ov.meta["solids"] = [dict(s) for s in p.solids]  # type: ignore[attr-defined]
         state.overrides.append(ov)
         return {"override": ov.id}
 
@@ -242,6 +251,15 @@ class SetPartMaterial(Command):
             None,
         )
         if solid is not None:
+            parts = solid.meta.get("solids") or []
+            own = sorted({str(s["material"]) for s in parts if s.get("material")})
+            if len(own) > 1 or (own and any(not s.get("material") for s in parts)):
+                raise _err(
+                    f"{p.target} is made of pushed solids with their own materials ({' + '.join(own)}). "  # type: ignore[attr-defined]
+                    "Change a solid's calflab.material user text in Rhino and push the part again."
+                )
+            for s in parts:  # solids that share one material follow the part
+                s.pop("material", None)
             if p.material:  # type: ignore[attr-defined]
                 solid.meta["material"] = p.material  # type: ignore[attr-defined]
             else:

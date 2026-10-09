@@ -614,3 +614,69 @@ tuned for the full-size body: at 0.33 with the existing servos it walks at
 about 0.11 m/s without falling, which says little; *Tune for this body*
 after choosing real small servos. Simulator settings (time step, contact
 parameters) were not re-examined for a 200 mm, sub-kilogram body.
+
+## ADR-053 — A part may be pushed as several solids, each with its own material (**VERIFY**)
+Requested by the researcher on 2026-10-08: chassis parts are printed PLA
+with stainless steel rods, modelled in Rhino as separate closed solids (the
+rods cut out of the PLA), and one part's mass, centre of mass and inertia
+must be right for the mix. Extends ADR-050.
+
+*What was wrong.* `CalflabPush` joined the whole selection into one mesh and
+sent one material. Each object's own `calflab.material` user text was used
+only as the default of the prompt (the first one found in the selection).
+The joined mesh was measured once, at unit density, and multiplied by one
+density, so a PLA body with steel rods weighed as if it were all one
+material and its centre of mass was the centroid of the combined volume.
+A second push replaces the first, so there was no other way to give one
+part two materials.
+
+*Decision.* On the Structure layer the bridge sends the selection object by
+object (`parts` of `/api/bridge/rhino/push`: name, own material, mesh,
+Rhino's closedness and exact volume). Each is measured and stored as its own
+solid (its own GLB asset) and kept in the one geometry override of that
+part and layer as `meta.solids` (`name`, `asset`, `material`, `solid`).
+Building the design gives **one mass geom per solid** (`<body>.override.<id>.<n>`),
+with `mass = volume x own density`, its own centre of mass and its own
+inertia. Nothing new is needed downstream: `mass_breakdown` lists them as
+items, the BOM books each to its material, the simulator gets one
+equivalent box per solid and composes the body's inertia itself, a weighed
+mass scales them together, and `CalflabPull` brings each back as its own
+object with its own `calflab.material`. A push of a single object is
+stored exactly as before (`meta.solid`, `meta.material`), so old documents
+and runs need no migration.
+
+*Material of a solid.* Its own `calflab.material` user text; else the
+material named at the push prompt (`meta.material`); else the part's
+material override; else `structure.material`. The prompt is asked only when
+at least one selected solid has no user text of its own. This changes one
+thing for single solids: a tagged object used to offer its tag as the
+prompt's default, which could be overtyped; now the tag decides and the
+prompt is skipped. Chosen so that one rule holds for one solid and for many.
+
+*Assumptions.*
+* *All or nothing.* If any solid of a push is open, or its material is not a
+  structure material in the library, none of them is used for mass: the
+  envelope estimate stays and the warning names the solid. A part-mass that
+  silently lacks its rods would be worse than an estimate that says it is one.
+* *No overlap check.* Overlapping solids are still counted twice (ADR-050);
+  the rods must be cut out of the plastic in Rhino.
+* *One push is the whole part.* The solids of a push are one override; a
+  second push onto the same part and layer replaces all of them.
+* *Properties cannot flatten a mixed part.* `set_part_material` on a part
+  whose solids carry different materials is refused with a message pointing
+  to Rhino; if they all share one material it changes it for the part.
+  Changing one solid's material from the web lab is not built.
+* *Skin pushes are unchanged* (objects joined, look only).
+
+*Reported.* The breakdown's structure row gained `materials`,
+`material_label` ("pla + stainless_304"), `solids` (each pushed solid's
+material and mass) and `com_mm` (centre of mass of the structure in the body
+frame, mass-weighted); `material` is null for a mixed part. The push reply
+adds `solids` (volume, material, mass) and `com_world_mm`, which Rhino
+prints. `inputs.mass.structure.<body>` of a run now also holds `materials`
+and, for a part of several solids, `solids`.
+
+Not checked in Rhino: the typed `CalflabPush` with two tagged Breps. The
+path from the bridge's request format to the masses is covered by
+`tests/test_mass.py` (a 100 mm PLA box and a 10 x 10 x 100 mm box of
+`stainless_304`, densities read from the library).

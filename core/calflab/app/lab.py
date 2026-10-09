@@ -531,7 +531,11 @@ class Lab:
             "geometry_parts": b["geometry_parts"],
             "measured_parts": b["measured_parts"],
             "structure": {
-                r["body"]: {k: r["structure"][k] for k in ("mass_g", "source", "material")}
+                r["body"]: {
+                    **{k: r["structure"][k] for k in ("mass_g", "source", "material", "materials")},
+                    # a part of several pushed solids: what each one weighed, and with which material
+                    **({"solids": r["structure"]["solids"]} if len(r["structure"]["solids"]) > 1 else {}),
+                }
                 for r in b["bodies"]
                 if r["structure"]["source"]
             },
