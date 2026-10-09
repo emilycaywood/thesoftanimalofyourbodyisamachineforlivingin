@@ -280,6 +280,8 @@ export interface GraphEdge {
 }
 
 export interface GraphView {
+  /** the genome as the Form shows it: real values (lengths in mm on the body) and ranges to match */
+  genome_form?: { node: string; schema: Schema; values: Record<string, unknown>; scaled: string[] } | null;
   graph: {
     nodes: GraphNode[];
     edges: GraphEdge[];

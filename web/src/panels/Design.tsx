@@ -23,15 +23,18 @@ function RoleForm({ role, filterGroup }: { role: string; filterGroup?: string })
   const rn = useRoleNode(role);
   const run = useLab((s) => s.run);
   const endGesture = useLab((s) => s.endGesture);
+  const genomeForm = useLab((s) => s.graph?.genome_form);
   if (!rn) return <div className="text-err">The graph has no {role} node. Run ResetGraph.</div>;
   const isGenome = rn.node.type.startsWith("genome:");
+  // genes are shown and typed in real values (lengths in mm on the body); the server converts for the overall scale
+  const form = isGenome && genomeForm?.node === rn.node.id ? genomeForm : null;
   return (
     <SchemaForm
-      schema={rn.type.schema}
-      values={rn.node.params}
+      schema={form?.schema ?? rn.type.schema}
+      values={form?.values ?? rn.node.params}
       filterGroup={filterGroup}
       onChange={(patch, final) => {
-        const req = isGenome ? run("set_genes", { values: patch }) : run("set_node_params", { node: rn.node.id, params: patch });
+        const req = isGenome ? run("set_genes", { values: patch, real: !!form }) : run("set_node_params", { node: rn.node.id, params: patch });
         void req.catch(() => undefined).finally(() => final && endGesture());
       }}
     />

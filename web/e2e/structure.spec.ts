@@ -119,8 +119,38 @@ test("choose a part's material, weigh it, and take the trunk's mass from a pushe
   expect(errors).toEqual([]);
 });
 
+test("a small calf: the Form sliders stay in real millimetres", async ({ page }) => {
+  const errors: string[] = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  await command(page, "reset_genes");
+  await open(page);
+  const field = (name: string) => page.locator(`[data-field="${name}"] input[type="text"]`);
+  const genes = async () => (await (await page.request.get("/api/scene")).json()).genome.values as Record<string, number>;
+  await expect(field("thigh_length")).toHaveValue("170");
+
+  await field("scale").fill("0.33");
+  await field("scale").press("Enter");
+  await expect(field("thigh_length")).toHaveValue("56.1"); // 170 x 0.33, as it measures on the body
+  await expect(field("trunk_length")).toHaveValue("138.6");
+  await expect(field("wall_thickness")).toHaveValue("2"); // a printed wall does not shrink
+  await expect(page.getByTestId("mass-readout")).toContainText("height 201 mm");
+  expect((await genes()).thigh_length).toBe(170); // stored at full size
+
+  await field("thigh_length").fill("60");
+  await field("thigh_length").press("Enter");
+  await expect.poll(async () => (await genes()).thigh_length).toBeCloseTo(60 / 0.33, 3);
+  await expect(field("thigh_length")).toHaveValue("60");
+  await page.locator('[data-tree-id="leg.fl.thigh"]').click();
+  await tab(page, "Properties").click();
+  await expect(page.getByTestId("properties").locator('[data-param="length"] input')).toHaveValue("60"); // the same number
+
+  await command(page, "reset_genes");
+  expect(errors).toEqual([]);
+});
+
 test.afterEach(async ({ page }) => {
   // whatever happened above, the tests that follow start from the plain calf
   await command(page, "clear_overrides");
   await command(page, "set_mass_target", { mass_g: 0 });
+  await command(page, "reset_genes");
 });

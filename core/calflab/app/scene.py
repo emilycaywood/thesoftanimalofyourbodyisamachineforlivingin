@@ -11,7 +11,7 @@ from typing import Any
 
 from calflab.components import library
 from calflab.config import default
-from calflab.design import EvaluatedDesign
+from calflab.design import EvaluatedDesign, genome_definition
 from calflab.model.xform import Vec3, quat_rotate
 from calflab.project.store import LayerState
 
@@ -355,4 +355,6 @@ def build_scene(
         "layers": {k: v.model_dump() for k, v in (layers or {}).items()},
         "warnings": list(design.warnings),
         "genome": design.genome.model_dump(mode="json"),
+        # the same genes as they measure on the body (lengths x overall scale)
+        "genome_real": genome_definition(design.genome.definition).real_values(design.genome.values),
     }

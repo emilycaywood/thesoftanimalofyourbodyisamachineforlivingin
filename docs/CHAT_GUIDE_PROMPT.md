@@ -199,8 +199,11 @@ Steps 2, 3 and 8 were checked by a script inside Rhino 8.34 with real Breps
 material prompt of the typed command has not been answered by a person yet.
 
 **Test path G: a 200 mm calf.** In Form set **Overall scale** to 0.33. The
-calf shrinks to about 200 mm tall; the readout shows height 201 mm. The
-length sliders keep their full-size numbers. Mass stays near 2.7 kg, because
+calf shrinks to about 200 mm tall; the readout shows height 201 mm. Every
+length slider moves to its real value: Thigh length reads 56.1 (range 33 to
+85.8), Trunk length 138.6; Wall thickness stays 2. Type 60 into Thigh
+length: all four thighs are 60 mm, and Properties on `leg.fl.thigh` shows
+the same 60. Mass stays near 2.7 kg, because
 the 2.4 kg of motors, boards and battery did not shrink: that is correct and
 is why the small calf needs lighter parts. Full-size servo boxes stick out of
 the small body. Then remind me: set a mass target in the Mass tab, add my
@@ -797,7 +800,7 @@ may change; the rest are choices I make.
 
 | Group | Gene | Default | Range | Meaning |
 |---|---|---|---|---|
-| Scale | `scale` (Overall scale) | 1.0 | 0.25-1.25 | Multiplies every length gene and the generator's fixed offsets. 0.33 = about 200 mm tall. Not evolvable |
+| Scale | `scale` (Overall scale) | 1.0 | 0.25-1.25 | Resizes the whole body, keeping proportions: all 18 length genes and the generator's fixed offsets. 0.33 = about 200 mm tall. Not evolvable |
 | Trunk | `trunk_length` | 420 | 300-560 | Shoulder to rump |
 | Trunk | `trunk_width` | 150 | 100-220 | Left to right |
 | Trunk | `trunk_height` | 170 | 110-240 | Back to belly |
@@ -835,10 +838,17 @@ may change; the rest are choices I make.
 | Shell and skin | `skin_thickness` | 1.5 | 0.5-6.0 | Silicone layer. Not evolvable |
 | Sensing | `has_depth_camera` | off | on/off | Not evolvable |
 
-That is 37 genes. **Overall scale**: the length sliders keep their
-full-size values and ranges; Properties, the gumball, overrides and Rhino
-show real millimetres (a 170 mm thigh gene at scale 0.33 is a 56.1 mm
-thigh). Wall thickness, skin thickness, skin clearance and every component
+That is 37 genes. The defaults and ranges in the table are at scale 1.
+**Overall scale** resizes the whole body and keeps its proportions, and
+**every length slider shows and takes real millimetres** at any scale, the
+same numbers as Properties, the gumball, overrides, the Evolve gene table
+and Rhino: at 0.33 the thigh reads 56.1 with a range of 33 to 85.8 (the
+table's numbers x 0.33), and typing 60 makes a 60 mm thigh. Changing only
+the scale moves every length slider. Underneath, lengths are stored at full
+size (60 mm at 0.33 is stored as 181.8); I only meet those stored numbers in
+project files, run records, and when a gene is set from the command line,
+Python or Grasshopper (`set_genes` takes stored values unless `real=true`).
+Wall thickness, skin thickness, skin clearance and every component
 keep their size. Target height and length scale with it; the mass target
 does not. Evolve's *total mass* and *speed* descriptors have full-size
 ranges and should not be used on a small calf. Simulator settings were not
@@ -1500,8 +1510,8 @@ bill-of-materials lines, all unverified. Knee direction changes none of this.
 ## 18. Built, checked, and not built
 
 **Works and is tested:** everything in sections 8 to 13; the component audit
-and worksheet. The automated suite passes: 248 Python tests, 14 interface
-tests, and 6 browser tests (the two-motor leg and the gait tuner are covered by
+and worksheet. The automated suite passes: 249 Python tests, 14 interface
+tests, and 7 browser tests (the two-motor leg and the gait tuner are covered by
 Python tests, not yet by a browser test; material, weighed mass and the Mass tab have one) that drive the lab with a real mouse and keyboard
 (the original smoke test; dragging the gumball arrow and the trunk's three
 arrows; the harness overlay; clicking runs and linking them in the journal;

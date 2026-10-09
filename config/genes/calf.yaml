@@ -15,37 +15,38 @@ description: >
 
 genes:
   # ------------------------------------------------------------- scale
-  # Multiplies every length (mm) gene below and the generator's fixed offsets,
-  # so the ranges keep describing proportions. 0.33 gives a calf about 200 mm
-  # tall. Wall and skin thickness do not scale. (ADR-052)
+  # Multiplies every gene marked `scale_by: scale` and the generator's fixed
+  # offsets, so the ranges keep describing proportions. 0.33 gives a calf about
+  # 200 mm tall. Wall and skin thickness do not scale. Those genes are stored
+  # at full size; the Form sliders show and take real millimetres (ADR-052).
   - {id: scale, default: 1.0, min: 0.25, max: 1.25, step: 0.01, group: Scale, evolvable: false,
      label: "Overall scale",
-     description: "Multiplies every length gene (they stay written at full size). 1 = the 610 mm calf; 0.33 = about 200 mm tall. Wall and skin thickness are not scaled."}
+     description: "Resizes the whole calf, keeping its proportions. 1 = the 610 mm calf; 0.33 = about 200 mm tall. The length sliders below follow it and stay in real millimetres. Wall and skin thickness, and all components, keep their size."}
 
   # ------------------------------------------------------------- trunk
-  - {id: trunk_length, default: 420, min: 300, max: 560, unit: mm, group: Trunk,
+  - {id: trunk_length, scale_by: scale, default: 420, min: 300, max: 560, unit: mm, group: Trunk,
      description: "Shoulder-to-rump length of the trunk."}
-  - {id: trunk_width, default: 150, min: 100, max: 220, unit: mm, group: Trunk,
+  - {id: trunk_width, scale_by: scale, default: 150, min: 100, max: 220, unit: mm, group: Trunk,
      description: "Trunk width (left-right)."}
-  - {id: trunk_height, default: 170, min: 110, max: 240, unit: mm, group: Trunk,
+  - {id: trunk_height, scale_by: scale, default: 170, min: 110, max: 240, unit: mm, group: Trunk,
      description: "Trunk depth (back to belly)."}
 
   # ------------------------------------------------------------- legs
-  - {id: stance_width, default: 170, min: 110, max: 260, unit: mm, group: Legs,
+  - {id: stance_width, scale_by: scale, default: 170, min: 110, max: 260, unit: mm, group: Legs,
      description: "Left-right distance between hip abduction axes."}
-  - {id: hip_inset, default: 35, min: 10, max: 90, unit: mm, group: Legs,
+  - {id: hip_inset, scale_by: scale, default: 35, min: 10, max: 90, unit: mm, group: Legs,
      description: "Distance of the hips from the front/rear end of the trunk."}
-  - {id: hip_drop, default: 40, min: 0, max: 90, unit: mm, group: Legs,
+  - {id: hip_drop, scale_by: scale, default: 40, min: 0, max: 90, unit: mm, group: Legs,
      description: "Height of the hip axis below the trunk centre line."}
-  - {id: leg_offset, default: 30, min: 10, max: 60, unit: mm, group: Legs,
+  - {id: leg_offset, scale_by: scale, default: 30, min: 10, max: 60, unit: mm, group: Legs,
      description: "Sideways offset of the leg plane from the abduction axis."}
-  - {id: thigh_length, default: 170, min: 100, max: 260, unit: mm, group: Legs,
+  - {id: thigh_length, scale_by: scale, default: 170, min: 100, max: 260, unit: mm, group: Legs,
      description: "Hip to knee."}
-  - {id: shank_length, default: 170, min: 100, max: 260, unit: mm, group: Legs,
+  - {id: shank_length, scale_by: scale, default: 170, min: 100, max: 260, unit: mm, group: Legs,
      description: "Knee to hoof centre."}
-  - {id: leg_radius, default: 16, min: 10, max: 28, unit: mm, group: Legs,
+  - {id: leg_radius, scale_by: scale, default: 16, min: 10, max: 28, unit: mm, group: Legs,
      description: "Radius of the leg segments."}
-  - {id: hoof_radius, default: 20, min: 12, max: 32, unit: mm, group: Legs,
+  - {id: hoof_radius, scale_by: scale, default: 20, min: 12, max: 32, unit: mm, group: Legs,
      description: "Radius of the (cast silicone) hoof."}
   - {id: knee_bend, default: 40, min: 10, max: 80, unit: deg, group: Legs,
      description: "Knee flexion in the standing pose."}
@@ -63,17 +64,17 @@ genes:
      description: "Front legs have a hip-flexion motor. Off = two motors per front leg (abduction and knee/elbow); the upper segment is fixed."}
 
   # ------------------------------------------------------------- neck and head
-  - {id: neck_length, default: 160, min: 80, max: 260, unit: mm, group: Neck and head,
+  - {id: neck_length, scale_by: scale, default: 160, min: 80, max: 260, unit: mm, group: Neck and head,
      description: "Length of the neck."}
   - {id: neck_angle, default: 50, min: 10, max: 80, unit: deg, group: Neck and head,
      description: "Neck elevation above horizontal in the standing pose."}
-  - {id: neck_radius, default: 32, min: 20, max: 50, unit: mm, group: Neck and head,
+  - {id: neck_radius, scale_by: scale, default: 32, min: 20, max: 50, unit: mm, group: Neck and head,
      description: "Radius of the neck."}
-  - {id: head_length, default: 190, min: 120, max: 260, unit: mm, group: Neck and head,
+  - {id: head_length, scale_by: scale, default: 190, min: 120, max: 260, unit: mm, group: Neck and head,
      description: "Poll to muzzle."}
-  - {id: head_width, default: 100, min: 70, max: 140, unit: mm, group: Neck and head,
+  - {id: head_width, scale_by: scale, default: 100, min: 70, max: 140, unit: mm, group: Neck and head,
      description: "Head width."}
-  - {id: head_height, default: 110, min: 70, max: 150, unit: mm, group: Neck and head,
+  - {id: head_height, scale_by: scale, default: 110, min: 70, max: 150, unit: mm, group: Neck and head,
      description: "Head depth."}
   - {id: head_tilt, default: 25, min: 0, max: 60, unit: deg, group: Neck and head,
      description: "Nose-down tilt of the head in the standing pose."}
@@ -81,11 +82,11 @@ genes:
   # ------------------------------------------------------------- tail and ears
   - {id: has_tail, type: bool, default: true, group: Tail and ears, evolvable: false,
      description: "Include a 1-DOF tail."}
-  - {id: tail_length, default: 180, min: 60, max: 300, unit: mm, group: Tail and ears,
+  - {id: tail_length, scale_by: scale, default: 180, min: 60, max: 300, unit: mm, group: Tail and ears,
      description: "Length of the tail."}
   - {id: has_ears, type: bool, default: true, group: Tail and ears, evolvable: false,
      description: "Include two 1-DOF ears (cosmetic)."}
-  - {id: ear_length, default: 70, min: 30, max: 120, unit: mm, group: Tail and ears,
+  - {id: ear_length, scale_by: scale, default: 70, min: 30, max: 120, unit: mm, group: Tail and ears,
      description: "Length of each ear."}
 
   # ------------------------------------------------------------- mechanism

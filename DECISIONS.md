@@ -572,11 +572,22 @@ Requested 2026-10-08: a calf about 200 mm tall for testing with lighter
 parts. Almost every length gene's minimum stops at about half size.
 
 *Decision.* One gene, `scale` (0.25 to 1.25, default 1, not evolvable),
-multiplies every gene whose unit is mm and the generator's fixed millimetre
-constants (motor offsets, ear and tail radius, the belt). Length genes stay
-written at full size; element parameters, overrides, the gumball and
-everything pulled into Rhino are in real millimetres, and *Internalize*
-converts back. `scale = 0.33` gives a calf 200.6 mm tall.
+multiplies every gene marked `scale_by: scale` in the gene file (the 18
+length genes) and the generator's fixed millimetre constants (motor offsets,
+ear and tail radius, the belt). `scale = 0.33` gives a calf 200.6 mm tall.
+
+*Stored at full size, shown in real millimetres* (the researcher's choice,
+2026-10-08). The stored value of a length gene is the full-size one, so
+proportions, ranges and evolution's search space do not depend on the scale.
+Everything a person reads or types is real: the Form sliders and their
+ranges (`Lab.genome_form`, edits through `set_genes real=true`), Properties,
+the gumball, overrides, the gene table in Evolve, and Rhino. A 170 mm thigh
+gene at scale 0.33 reads 56.1 with a range of 33 to 85.8; typing 60 stores
+181.8. Changing only the scale keeps the proportions, so every length
+slider moves. What still carries stored (full-size) values: the project
+file, run and design records, `scene.genome` (its real twin is
+`scene.genome_real`), and `set_genes` without `real=true`, which is what
+the command line, the Python client, Grasshopper and Hops send.
 
 *Why not lower the minimums.* The ranges are also the evolution search
 space and the proportions of ADR-015. Widening each by a factor of three

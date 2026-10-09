@@ -85,7 +85,6 @@ class CalfGenerator(PartGenerator):
         from calflab.config import gene_definition_files
 
         gdef = gene_definition_files()["calf"]
-        s = float(genes.get("scale", 1.0))  # type: ignore[arg-type]
 
         def pv(
             gene: str,
@@ -94,7 +93,7 @@ class CalfGenerator(PartGenerator):
             frac: float = 1.0,
         ) -> ParamValue:
             g = gdef.gene(gene)
-            k = s if g.unit == "mm" else 1.0  # lengths follow the overall scale
+            k = gdef.factor(gene, genes)  # lengths follow the overall scale
             return ParamValue(
                 value=float(genes[gene]) * k,  # type: ignore[arg-type]
                 unit=g.unit,

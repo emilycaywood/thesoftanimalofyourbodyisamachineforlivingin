@@ -139,7 +139,10 @@ every value `null`). Actuators and batteries are then selectable through
 represents a library part must set `mass_source="component"`, and anything
 that changes mass must keep `calflab.model.mass.mass_breakdown` adding up to
 `RobotSpec.total_mass_g()`. Lengths in a part generator follow the `scale`
-gene (ADR-052): multiply fixed millimetre constants by it.
+gene (ADR-052): multiply fixed millimetre constants by it, and mark a new
+length gene `scale_by: scale`. Such genes are stored at full size; anything a
+person reads or types must be the real value (`GenomeDefinition.real_values`,
+`Lab.genome_form`, `set_genes real=true`).
 
 To change the **genome**: edit/add `config/genes/<name>.yaml`, bump
 `version`, and add a migration in `calflab/model/migrations.py` plus a test in

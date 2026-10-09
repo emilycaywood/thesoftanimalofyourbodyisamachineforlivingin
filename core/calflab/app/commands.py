@@ -38,6 +38,11 @@ class SetGenes(Command):
 
     class Params(BaseModel):
         values: dict[str, Any] = P(default_factory=dict, ui="json", desc="Gene id -> new value.")
+        real: bool = P(
+            False,
+            desc="The values are real ones, as the Form sliders show them: a length is in millimetres on the body "
+            "and is divided by the overall scale before it is stored. Off = stored (full-size) values.",
+        )
 
     def coalesce_key(self) -> str:
         return "genes:" + ",".join(sorted(self.params.values))  # type: ignore[attr-defined]
@@ -49,12 +54,19 @@ class SetGenes(Command):
     def run(self, lab: Any, state: DocumentState) -> Any:
         node = state.graph.role("genome")
         nt = node_types()[node.type]
-        merged = {**node.params, **self.params.values}  # type: ignore[attr-defined]
+        values = dict(self.params.values)  # type: ignore[attr-defined]
+        definition = getattr(nt, "definition", None)
         try:
-            node.params = nt.clean_params(merged)
+            if self.params.real and definition is not None:  # type: ignore[attr-defined]
+                values = definition.stored_values(values, node.params)
+            node.params = nt.clean_params({**node.params, **values})
         except Exception as exc:
             raise _err(f"Invalid gene value: {exc}") from exc
-        return {"genes": {k: node.params[k] for k in self.params.values if k in node.params}}  # type: ignore[attr-defined]
+        out = {"genes": {k: node.params[k] for k in values if k in node.params}}
+        if definition is not None:
+            real = definition.real_values(node.params)
+            out["real"] = {k: real[k] for k in values if k in real}
+        return out
 
 
 @register

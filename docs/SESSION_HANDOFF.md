@@ -107,9 +107,10 @@ researcher merges. The 2026-10-08 work is on the local branch
 `chassis-mass`, branched from `phase-1-vertical-slice`; it is **not pushed**
 (the researcher did not ask for a push).
 
-**Tests:** `calflab test` passes: ruff, 248 pytest tests, mypy, web typecheck
-and eslint, 14 Vitest tests, 6 Playwright tests (smoke, material / weighed
-mass / pushed solid / Mass panel, gumball drag and harness overlay with a
+**Tests:** `calflab test` passes: ruff, 249 pytest tests, mypy, web typecheck
+and eslint, 14 Vitest tests, 7 Playwright tests (smoke, material / weighed
+mass / pushed solid / Mass panel, real-millimetre sliders at scale 0.33,
+gumball drag and harness overlay with a
 real mouse, runs + journal, evolve from a design).
 `calflab doctor` is clean apart from three optional warnings (Graphviz, no
 CUDA, unverified components). It used to warn "uv not found" as well: that
@@ -232,7 +233,11 @@ get real mass, at a smaller scale; ADR-050, ADR-051, ADR-052):**
   resulting mass or a warning; `CalflabPull` writes `calflab.material`,
   `calflab.mass_g`, `calflab.mass_source`. `bridge rhino --check` now also
   pushes a box, a sphere and an open box (passed in Rhino 8.34).
-* Gene `scale` (0.25-1.25): 0.33 gives a 200.6 mm calf. Gene `battery`.
+* Gene `scale` (0.25-1.25): 0.33 gives a 200.6 mm calf. Length genes are
+  marked `scale_by: scale`, stored at full size and shown in real
+  millimetres everywhere a person reads them (`Lab.genome_form`,
+  `set_genes real=true`; the researcher chose this on 2026-10-08 over
+  lowering the gene minimums). Gene `battery`.
   Actuator and battery choices come from the library (`choices_from`).
 * Component entries never take a value silently: incomplete entries,
   `guessed:`, "default assumed"; `calflab components new <kind> <key>`.
@@ -291,8 +296,9 @@ Journal, Rhino bridge):**
   them; nobody has looked).
 * That weighing a pushed solid as fully dense is what is wanted; a printed
   part with infill needs a measured effective density or a weighed mass.
-* Whether one `scale` gene (rather than lower gene minimums) suits the way
-  the small calf will be used; simulation settings and the default gait were
+* The small calf in use: the sliders in real millimetres (chosen by the
+  researcher, checked by a browser test, not yet used by hand); simulation
+  settings and the default gait were
   not re-examined for a 200 mm body, and no real small servo has been tried.
 * Whether the `guessed:` lists added to the existing entries match what the
   files meant (only values the files already called guesses were listed).

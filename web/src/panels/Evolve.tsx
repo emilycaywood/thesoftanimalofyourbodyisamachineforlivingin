@@ -367,7 +367,7 @@ function GeneTable({ view }: { view: GeneView }) {
       {view.overrides.length > 0 && (
         <div className="mt-1 text-[10px] text-dim" data-testid="candidate-overrides">
           Fixed by override in every candidate of this run:{" "}
-          {view.overrides.map((o) => (o.kind === "param" ? `${o.target}.${o.param} = ${fmt(o.value)}` : `${o.target} (sculpted geometry)`)).join(", ")}
+          {view.overrides.map((o) => (o.kind === "param" ? `${o.target}.${o.param} = ${fmt(o.value)}` : o.kind === "mass" ? `${o.target} (weighed ${fmt(o.value)} g)` : o.kind === "material" ? `${o.target} (material)` : `${o.target} (pushed geometry)`)).join(", ")}
         </div>
       )}
     </div>

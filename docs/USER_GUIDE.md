@@ -243,10 +243,15 @@ length and centre of mass, and a line of warnings when the design has any.
 The **Mass** tab beside it is the breakdown (section 4).
 *(planned: reference images on view planes)*
 
-**Overall scale** makes a small test calf. It multiplies every length gene;
-the sliders below keep their full-size values, while Properties, the
-gumball, overrides and Rhino are in real millimetres. 0.33 gives a calf
-about 200 mm tall. Wall thickness, skin thickness and all components keep
+**Overall scale** makes a small test calf: 0.33 gives one about 200 mm
+tall. It resizes the whole body and keeps its proportions, so every length
+slider below it moves when you change it. All of those sliders are in **real
+millimetres**, the same numbers as Properties, the gumball and Rhino: at
+0.33 the thigh reads 56.1 with a range of 33 to 85.8, and typing 60 makes a
+60 mm thigh. (Underneath, lengths are stored at full size, which is what
+keeps the proportions and what evolution searches; project files and run
+records show those stored values, and so do `set_genes` from the command
+line, the Python client and Grasshopper unless they pass `real=true`.) Wall thickness, skin thickness and all components keep
 their size, so at a small scale the motors, boards and battery are nearly
 all of the mass: choose lighter ones in Mechanism (section 9 says how to add
 them), set the project's mass target in the Mass panel, and press *Tune for

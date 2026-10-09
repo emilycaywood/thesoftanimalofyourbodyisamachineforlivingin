@@ -208,6 +208,7 @@ function NodeProps({ nodeId }: { nodeId: string }) {
   const nt = nodeTypes.find((t) => t.type === node.type);
   const st = graph.status[nodeId];
   const cmd = node.type.startsWith("genome:") ? "set_genes" : "set_node_params";
+  const form = cmd === "set_genes" && graph.genome_form?.node === node.id ? graph.genome_form : null;
   return (
     <>
       <Section title="Graph node" right={<Badge tone={st?.status === "ok" ? "ok" : st?.status === "error" ? "err" : "warn"}>{st?.status}</Badge>}>
@@ -221,10 +222,10 @@ function NodeProps({ nodeId }: { nodeId: string }) {
       {nt && (
         <Section title="Parameters">
           <SchemaForm
-            schema={nt.schema}
-            values={node.params}
+            schema={form?.schema ?? nt.schema}
+            values={form?.values ?? node.params}
             onChange={(patch, final) => {
-              const params = cmd === "set_genes" ? { values: patch } : { node: node.id, params: patch };
+              const params = cmd === "set_genes" ? { values: patch, real: !!form } : { node: node.id, params: patch };
               void run(cmd, params).catch(() => undefined).finally(() => final && endGesture());
             }}
           />

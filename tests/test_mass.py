@@ -338,6 +338,48 @@ def test_d_a_200_mm_calf_builds_without_range_errors(lab):
     assert rhino_build_list(lab.design())["objects"], "the small calf pulls into Rhino"
 
 
+def test_d_form_shows_and_takes_real_millimetres(lab):
+    """Lengths are stored at full size and shown as they measure on the body (ADR-052)."""
+    form = lab.graph_view()["genome_form"]
+    fields = {f["name"]: f for f in form["schema"]["fields"]}
+    assert form["values"]["thigh_length"] == 170 and form["scaled"] == []
+    assert (fields["thigh_length"]["min"], fields["thigh_length"]["max"]) == (100, 260)
+
+    lab.execute("set_genes", {"values": {"scale": 0.33}, "real": True})
+    form = lab.graph_view()["genome_form"]
+    fields = {f["name"]: f for f in form["schema"]["fields"]}
+    assert form["values"]["thigh_length"] == pytest.approx(56.1) and form["values"]["scale"] == 0.33
+    assert fields["thigh_length"]["min"] == pytest.approx(33.0) and fields["thigh_length"]["max"] == pytest.approx(85.8)
+    assert fields["thigh_length"]["default"] == pytest.approx(56.1)
+    assert form["values"]["neck_angle"] == 50 and fields["neck_angle"]["max"] == 80, "angles are not scaled"
+    assert form["values"]["wall_thickness"] == 2.0 and fields["wall_thickness"]["min"] == 1.0, "nor is the printed wall"
+    assert "thigh_length" in form["scaled"] and "wall_thickness" not in form["scaled"]
+    assert lab.scene()["genome_real"]["thigh_length"] == pytest.approx(56.1)
+
+    # typing 60 in the slider is a 60 mm thigh; the stored gene is its full-size equivalent
+    res = lab.execute("set_genes", {"values": {"thigh_length": 60.0}, "real": True})["result"]
+    assert res["real"]["thigh_length"] == pytest.approx(60.0)
+    assert res["genes"]["thigh_length"] == pytest.approx(60.0 / 0.33)
+    assert lab.design().element_params["leg.fl.thigh"]["length"].value == pytest.approx(60.0)
+    assert lab.graph_view()["genome_form"]["values"]["thigh_length"] == pytest.approx(60.0)
+    # beyond the (scaled) range it stops at the range, as before
+    res = lab.execute("set_genes", {"values": {"thigh_length": 500.0}, "real": True})["result"]
+    assert res["real"]["thigh_length"] == pytest.approx(85.8)
+    # unscaled genes pass straight through; without real=true values are stored ones, as scripts send them
+    lab.execute("set_genes", {"values": {"wall_thickness": 1.2, "knee_bend": 35}, "real": True})
+    assert lab.state.graph.role("genome").params["wall_thickness"] == 1.2
+    lab.execute("set_genes", {"values": {"shank_length": 200}})
+    assert lab.graph_view()["genome_form"]["values"]["shank_length"] == pytest.approx(66.0)
+    # a new scale and a length in one edit: the length is real at the new scale
+    lab.execute("set_genes", {"values": {"scale": 0.5, "trunk_length": 200.0}, "real": True})
+    params = lab.state.graph.role("genome").params
+    assert params["scale"] == 0.5 and params["trunk_length"] == pytest.approx(400.0)
+    # changing only the scale keeps the proportions: every real length follows
+    assert lab.graph_view()["genome_form"]["values"]["shank_length"] == pytest.approx(100.0)
+    lab.execute("reset_genes")
+    assert lab.graph_view()["genome_form"]["values"]["thigh_length"] == 170
+
+
 # ---------------------------------------------------------------------- C: new components
 @pytest.fixture()
 def own_config(tmp_path, monkeypatch):

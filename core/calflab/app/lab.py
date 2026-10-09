@@ -294,8 +294,10 @@ class Lab:
             "parent": parent_src,
             "compare": other["genome"]["values"] if other else None,
         }
-        refs = {k: gdef.complete(v) if v is not None else None for k, v in columns.items()}
-        values = gdef.complete(c["genome"]["values"])
+        # every column in real values (each body's lengths at its own scale), so the
+        # table agrees with the Form sliders and Properties (ADR-052)
+        refs = {k: gdef.real_values(gdef.complete(v)) if v is not None else None for k, v in columns.items()}
+        values = gdef.real_values(gdef.complete(c["genome"]["values"]))
         only = list((run.inputs.get("params") or {}).get("genes") or []) if run else []
         evolved = {g.id for g in gdef.evolvable(only or None)}
 
@@ -359,7 +361,28 @@ class Lab:
                 "outputs": [s.__dict__ for s in nt.outputs_for(n.params)] if nt else [],
                 "expensive": nt.expensive if nt else False,
             }
-        return {"graph": graph.model_dump(mode="json"), "status": status, "revision": self.revision}
+        return {"graph": graph.model_dump(mode="json"), "status": status, "revision": self.revision,
+                "genome_form": self.genome_form(graph, types)}
+
+    @staticmethod
+    def genome_form(graph: Graph, types: dict[str, Any] | None = None) -> dict[str, Any] | None:
+        """What the Form sliders show: the genome in real values (a length is
+        the millimetres on the body, whatever the overall scale), with ranges
+        to match. Edits come back through ``set_genes real=true``. (ADR-052)"""
+        try:
+            node = graph.role("genome")
+        except KeyError:
+            return None
+        definition = getattr((types or node_types()).get(node.type), "definition", None)
+        if definition is None:
+            return None
+        values = definition.complete(node.params)
+        return {
+            "node": node.id,
+            "schema": definition.real_ui_schema(values),
+            "values": definition.real_values(values),
+            "scaled": [g.id for g in definition.genes if definition.factor(g.id, values) != 1.0],
+        }
 
     def node_output(self, node_id: str) -> dict[str, Any]:
         res = self.evaluate(targets=[node_id]).get(node_id)
