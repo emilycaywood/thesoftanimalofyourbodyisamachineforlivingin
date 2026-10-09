@@ -1,8 +1,8 @@
 # CALFLAB session handoff
 
 Everything a new Claude Code session (or a new collaborator) needs to pick up
-CALFLAB. Last updated 2026-10-08 on branch `chassis-mass` (local, on top of
-`phase-1-vertical-slice`), after the session that made mass come from solids
+CALFLAB. Last updated 2026-10-08 on branch `chassis-mass` (on top of
+`phase-1-vertical-slice`, pushed to GitHub), after the session that made mass come from solids
 pushed from Rhino, per-part materials and weighed parts, and added a scale
 gene for a small test calf (section 4; run `git log --oneline -12` for the
 current state).
@@ -103,9 +103,10 @@ Working rules (from the original brief):
 pull request #1 into `main`
 (https://github.com/emilycaywood/thesoftanimalofyourbodyisamachineforlivingin/pull/1).
 The repository is **public**. `main` still has only the initial commit; the
-researcher merges. The 2026-10-08 work is on the local branch
-`chassis-mass`, branched from `phase-1-vertical-slice`; it is **not pushed**
-(the researcher did not ask for a push).
+researcher merges. The 2026-10-08 work is on the branch `chassis-mass`,
+branched from `phase-1-vertical-slice`, pushed to GitHub and open as a pull
+request into `phase-1-vertical-slice` (so it joins pull request #1 when the
+researcher merges it).
 
 **Tests:** `calflab test` passes: ruff, 249 pytest tests, mypy, web typecheck
 and eslint, 14 Vitest tests, 7 Playwright tests (smoke, material / weighed
@@ -372,6 +373,8 @@ Journal, Rhino bridge):**
 | `DECISIONS.md` | ADR log: every assumption (52 so far) |
 | `docs/proposals/anatomical-leg.md` | Proposal for a three-segment leg (set aside 2026-10-04; not built) |
 | `docs/USER_GUIDE.md` | How to use the lab |
+| `docs/CHAT_GUIDE_PROMPT.md` | Prompt that makes a chat assistant a guide to the whole lab |
+| `docs/CHAT_GUIDE_CHASSIS.md` | The same for one workflow: chassis parts from Rhino, real mass, own components, the small calf |
 | `docs/component_verification.csv` | Datasheet verification worksheet (the researcher fills it in) |
 | `bridges/rhino/README.md`, `bridges/blender/README.md` | Bridge install, conventions, what is verified |
 | `docs/notebooks/quickstart.ipynb` | Driving the lab from Python |

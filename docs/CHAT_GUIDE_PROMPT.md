@@ -1646,6 +1646,7 @@ and run `setup`.
 | `C:\CALFLABHOME\docs\USER_GUIDE.md` | The user guide |
 | `docs\SESSION_HANDOFF.md` | Current state and the opening message for a Claude Code session |
 | `docs\CHAT_GUIDE_PROMPT.md` | This guide |
+| `docs\CHAT_GUIDE_CHASSIS.md` | A shorter guide to paste instead when I am modelling chassis parts in Rhino, entering my own components or setting up the small calf |
 | `docs\component_verification.csv` | My datasheet worksheet |
 | `docs\proposals\anatomical-leg.md` | The three-segment leg proposal (set aside) |
 | `PLAN.md` | Architecture and phases |
@@ -1658,8 +1659,9 @@ and run `setup`.
 
 The code is backed up on GitHub (a public repository) on the branch
 `phase-1-vertical-slice`, open as pull request #1 into `main`. I merge it;
-it is not merged yet. The 2026-10-08 work is on a local branch,
-`chassis-mass`, on top of that one; it has not been pushed to GitHub.
+it is not merged yet. The 2026-10-08 work is on the branch `chassis-mass`,
+on top of that one, also on GitHub and open as a pull request into
+`phase-1-vertical-slice`; I merge that too.
 
 CALFLAB is built to be extended. Everything specific (genes, part
 generators, controllers, fitness terms, behavior descriptors, optimizers,
