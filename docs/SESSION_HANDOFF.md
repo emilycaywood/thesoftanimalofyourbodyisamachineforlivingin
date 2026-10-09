@@ -402,6 +402,7 @@ Journal, Rhino bridge):**
 | `docs/USER_GUIDE.md` | How to use the lab |
 | `docs/CHAT_GUIDE_PROMPT.md` | Prompt that makes a chat assistant a guide to the whole lab |
 | `docs/CHAT_GUIDE_CHASSIS.md` | The same for one workflow: chassis parts from Rhino, real mass, own components, the small calf |
+| `docs/CHAT_GUIDE_PROTOTYPE.md` | The same for one job: a small prototype already modelled in Rhino (PLA and steel rods) into the simulator; covers ADR-053, which `CHAT_GUIDE_CHASSIS.md` does not yet |
 | `docs/component_verification.csv` | Datasheet verification worksheet (the researcher fills it in) |
 | `bridges/rhino/README.md`, `bridges/blender/README.md` | Bridge install, conventions, what is verified |
 | `docs/notebooks/quickstart.ipynb` | Driving the lab from Python |
