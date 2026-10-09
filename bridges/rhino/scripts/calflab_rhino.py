@@ -404,8 +404,8 @@ def push_report(reply, target):
         line = "CALFLAB: %s structure mass is now %.1f g (%.1f cm3 of %s; the estimate it replaces was %.1f g)" % (
             target, reply["mass_g"], reply["solid"]["volume_mm3"] / 1000.0, reply["material"], reply.get("replaced_g") or 0.0)
         lines.append(line)
-        if reply.get("volume_error") is not None:
-            lines.append("CALFLAB: the mesh volume differs from Rhino's exact volume by %+.2f %%" % (reply["volume_error"] * 100.0))
+        if reply["solid"].get("volume_source") == "host":
+            lines.append("CALFLAB: the volume is Rhino's exact one (the mesh alone would be %+.2f %% off)" % (reply["volume_error"] * 100.0))
     if reply.get("warning"):
         lines.append("CALFLAB WARNING: %s" % reply["warning"])
     if reply.get("note"):

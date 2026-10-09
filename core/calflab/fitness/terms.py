@@ -184,7 +184,8 @@ class LegLength(BehaviorDescriptor):
     unit = "mm"
 
     def describe_candidate(self, spec: RobotSpec, metrics: dict[str, Any], controller_params: dict[str, Any]) -> float:
-        return _leg_length_mm(spec)
+        # at full size, so the range holds for a scaled calf (ADR-052)
+        return _leg_length_mm(spec) / float(spec.metadata.get("scale") or 1.0)
 
 
 @register

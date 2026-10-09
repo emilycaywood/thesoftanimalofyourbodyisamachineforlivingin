@@ -1,10 +1,11 @@
 # CALFLAB session handoff
 
 Everything a new Claude Code session (or a new collaborator) needs to pick up
-CALFLAB. Last updated 2026-10-04 on branch `phase-1-vertical-slice`, after the
-session that worked through the researcher's first walkthrough by hand (six
-fixes) and then made forward front knees, with a gait tuned for them, the
-default (section 4; run `git log --oneline -12` for the current state).
+CALFLAB. Last updated 2026-10-08 on branch `chassis-mass` (local, on top of
+`phase-1-vertical-slice`), after the session that made mass come from solids
+pushed from Rhino, per-part materials and weighed parts, and added a scale
+gene for a small test calf (section 4; run `git log --oneline -12` for the
+current state).
 
 ---
 
@@ -26,7 +27,8 @@ claude
 ```
 
 Check you are in the right place: the first thing the session should report is
-working directory `C:\CALFLABHOME`, branch `phase-1-vertical-slice`.
+working directory `C:\CALFLABHOME`, branch `chassis-mass` (or
+`phase-1-vertical-slice` once the researcher has merged it in).
 
 ### Paste this as the first message of a new session
 
@@ -101,11 +103,14 @@ Working rules (from the original brief):
 pull request #1 into `main`
 (https://github.com/emilycaywood/thesoftanimalofyourbodyisamachineforlivingin/pull/1).
 The repository is **public**. `main` still has only the initial commit; the
-researcher merges.
+researcher merges. The 2026-10-08 work is on the local branch
+`chassis-mass`, branched from `phase-1-vertical-slice`; it is **not pushed**
+(the researcher did not ask for a push).
 
-**Tests:** `calflab test` passes: ruff, 227 pytest tests, mypy, web typecheck
-and eslint, 14 Vitest tests, 5 Playwright tests (smoke, gumball drag and
-harness overlay with a real mouse, runs + journal, evolve from a design).
+**Tests:** `calflab test` passes: ruff, 248 pytest tests, mypy, web typecheck
+and eslint, 14 Vitest tests, 6 Playwright tests (smoke, material / weighed
+mass / pushed solid / Mass panel, gumball drag and harness overlay with a
+real mouse, runs + journal, evolve from a design).
 `calflab doctor` is clean apart from three optional warnings (Graphviz, no
 CUDA, unverified components). It used to warn "uv not found" as well: that
 was a false alarm, fixed 2026-10-03. uv is installed and is what
@@ -206,6 +211,40 @@ motors):**
 * The forward-knee default of the morning is therefore likely to be
   superseded; it is still what a new project gets.
 
+**Added 2026-10-08 (researcher's request: model the chassis in Rhino and
+get real mass, at a smaller scale; ADR-050, ADR-051, ADR-052):**
+
+* Before: a solid pushed onto `Structure` was display only (it replaced
+  nothing, weighed nothing, and was a 5 mm sphere in the simulator).
+* Every geom has a `mass_source` (`parametric`, `component`, `geometry`,
+  `measured`). `calflab.model.mass.mass_breakdown` sums them; it is in
+  `scene.mass.breakdown`, in the new **Mass** panel (Form, Mechanism) and in
+  `inputs.mass` of sim, evolve and tune runs.
+* A pushed mesh is measured on arrival (`calflab.model.solid`): closed?,
+  volume, centre of mass, inertia, stored in the override's `meta.solid`.
+  Closed + Structure = mass from volume x material density; the simulator
+  gets the box with the same mass, centre and inertia tensor; the envelope
+  stays as a massless collision shape. Open = shown, not used, warned about.
+* Override kinds `material` and `mass` (weighed part); commands
+  `set_part_material`, `set_measured_mass`, `set_mass_target`.
+  Properties > *Material and mass*.
+* Rhino: `CalflabPush` asks for a material on Structure and prints the
+  resulting mass or a warning; `CalflabPull` writes `calflab.material`,
+  `calflab.mass_g`, `calflab.mass_source`. `bridge rhino --check` now also
+  pushes a box, a sphere and an open box (passed in Rhino 8.34).
+* Gene `scale` (0.25-1.25): 0.33 gives a 200.6 mm calf. Gene `battery`.
+  Actuator and battery choices come from the library (`choices_from`).
+* Component entries never take a value silently: incomplete entries,
+  `guessed:`, "default assumed"; `calflab components new <kind> <key>`.
+* **No component or material was added.** The researcher's request had
+  placeholders where the list of small servos, board, battery and materials
+  should be. Ask for it; do not invent one.
+* Side effects to know: hooves are booked as cast silicone in the BOM (they
+  were printed PETG by mistake), BOM total 5253 -> 5256 USD; the worksheet
+  has a `flag` column (the committed CSV was not regenerated);
+  `LAYOUT_VERSION` is 5 (dock layouts reset once); a body can carry one
+  geometry override per layer instead of one in all.
+
 **Scaffolded only (interfaces + tests, no behaviour):** PPO training, MJX
 simulator, RemoteSSH and CloudNotebook transports (job bundling is real),
 imitation reward, interactive selection, molds, skin patterns, nesting,
@@ -243,6 +282,20 @@ Journal, Rhino bridge):**
   Properties, entry in Overrides).
 * `doctor` warned "uv not found" on top of the three expected warnings:
   false alarm, fixed (see Tests above).
+
+**The researcher must verify (new on 2026-10-08):**
+
+* `CalflabPush` by hand with the new material prompt (a script exercised the
+  bridge function with real Breps, not the typed prompts), and the look of
+  Properties > *Material and mass* and the Mass panel (a browser test drives
+  them; nobody has looked).
+* That weighing a pushed solid as fully dense is what is wanted; a printed
+  part with infill needs a measured effective density or a weighed mass.
+* Whether one `scale` gene (rather than lower gene minimums) suits the way
+  the small calf will be used; simulation settings and the default gait were
+  not re-examined for a 200 mm body, and no real small servo has been tried.
+* Whether the `guessed:` lists added to the existing entries match what the
+  files meant (only values the files already called guesses were listed).
 
 **The researcher must verify:**
 
@@ -310,7 +363,7 @@ Journal, Rhino bridge):**
 |---|---|
 | `CLAUDE.md` | Conventions for every session (loaded automatically) |
 | `PLAN.md` | Architecture, module boundaries, data flow, phases, risks, status |
-| `DECISIONS.md` | ADR log: every assumption (49 so far) |
+| `DECISIONS.md` | ADR log: every assumption (52 so far) |
 | `docs/proposals/anatomical-leg.md` | Proposal for a three-segment leg (set aside 2026-10-04; not built) |
 | `docs/USER_GUIDE.md` | How to use the lab |
 | `docs/component_verification.csv` | Datasheet verification worksheet (the researcher fills it in) |
@@ -377,6 +430,25 @@ Prefix each with the opening message from section 1.
 > whether the 120 deg/s cap used for the default was too cautious or not
 > cautious enough. Do not change component values; flag which results rest
 > on unverified speeds.
+
+**H. Enter my small components and tune the small calf**
+> Here are my parts for the 200 mm test calf: <servo models with datasheet
+> links, board, battery, materials with densities>. For each, run
+> `calflab components new`, enter only the values I give or that are on the
+> linked datasheet, leave everything else blank or in `guessed:` as I say,
+> and keep `verified: false`. Then in a new project set scale 0.33, choose
+> them in Mechanism, set a mass target, run *Tune for this body*, and show me
+> the mass breakdown, the torque-margin table and the speed. Tell me which
+> results rest on guessed or defaulted values, and whether the simulator's
+> time step and contact settings still make sense for a body this small.
+
+**I. Boards and sensors per project; skin mass from sculpted skin**
+> Boards and sensors are still chosen for all projects in
+> config/robot_defaults.yaml because their geom IDs contain the component key
+> (ADR-051). Propose stable IDs (e.g. `elec.control`, `elec.compute`), make
+> them genes with `choices_from`, migrate, and keep old runs loading. Then
+> give a sculpted Skin push a mass from its own area x skin thickness, with
+> the same open/closed honesty as structure solids (ADR-050).
 
 **G. Make the elbow body the default**
 > I have settled the front leg: joint facing backward, upper segment <N> mm,

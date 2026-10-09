@@ -439,3 +439,167 @@ start standing whatever the document's start pose. A run record of kind
 `tune` keeps the settings, the caps, the before and after figures and the
 gait. The speed cap is a stand-in for a torque-speed curve in the servo
 model, which is still missing; Evolve's inner loop is still uncapped.
+
+## ADR-050 — Mass comes from pushed solids, per-part materials and weighed parts (**VERIFY**)
+Requested by the researcher on 2026-10-08: model the chassis in Rhino part by
+part and have the lab's mass come from that geometry and real materials, not
+from the envelope estimate of ADR-017.
+
+*What was wrong.* A solid pushed onto a body's `Structure` layer replaced
+nothing (the code replaced only `visual` geoms; structure geoms are `both`),
+weighed nothing, and reached the simulator as a 5 mm sphere at the body
+origin. Pushed geometry was display only.
+
+*Every geom now says where its mass comes from* (`Geom.mass_source`):
+`parametric` (the envelope estimate), `component` (a library entry),
+`geometry` (a pushed closed solid x material density) or `measured` (a
+weighed part). `calflab.model.mass.mass_breakdown` only groups and sums the
+geoms, so the breakdown always adds up to the total.
+
+*Pushed solids.* A pushed mesh is measured once, when it arrives
+(`calflab.model.solid.analyze_mesh`): vertices closer than 0.0001 mm are
+welded; it is a solid if every edge is then shared by exactly two faces, the
+faces can be oriented consistently and it encloses a volume. Volume, centre
+of mass and unit-density inertia, in the body frame, are stored on the
+override (`meta.solid`). They are stored, not recomputed, because building a
+design must not need the project folder (evolution workers build from a JSON
+payload) and so that a run record carries what its masses were computed from.
+On the Structure layer a closed solid gives the part
+`mass = volume x density`. The envelope primitives of that body's structure
+stay as **massless collision shapes** (`role = "collision"`, same IDs), so
+nothing is counted twice and the simulator's contact geometry does not
+change; they are drawn only with the collision overlay and are not pulled
+into Rhino. An open or invalid solid is shown but **not used for mass**: the
+envelope estimate stays, and a warning goes to the pushing client, the log,
+the design's warnings, Properties and the Mass panel. Assumptions:
+
+* *Solid means solid.* Volume x density is the mass of a fully dense part. A
+  hollow or infilled print needs either a model of its real walls or a
+  material entry with the effective density measured on a printed sample.
+* *Separate closed shells add up; overlapping ones are counted twice.* Join
+  them in Rhino first.
+* *Hooves, motors, boards, belts and skin are separate parts.* A structure
+  solid replaces the printed structure of its body only (`structure_geoms`).
+* *A Skin push still changes the look only* and keeps the envelope's skin
+  mass, as before. Skin mass from sculpted area x thickness is not built.
+* *Exact volume from Rhino.* The bridge also sends what Rhino says about the
+  selection (closed? exact volume). A meshed curved solid is a little small
+  (a 40 mm sphere at Rhino's default meshing: -1.6 %), so when the two
+  volumes agree within 5 % the exact one is used and the inertia is scaled
+  with it; beyond 5 % the mesh volume is used and a warning says so. The
+  centre of mass is always the mesh's.
+* A body may now carry one geometry override per layer (a structure solid
+  and a skin sculpt together); before, the last push on a body hid the other.
+
+*In the simulator.* MuJoCo composes body inertia from primitives. A pushed
+solid is emitted as the non-colliding box with the same mass, centre of mass
+and inertia tensor (`equivalent_box`: extents `a^2 = 6 (I2 + I3 - I1) / m`
+along the principal axes), which is dynamically identical to the solid.
+Collision still uses the envelope, so a part modelled much larger or smaller
+than its envelope collides as the envelope does.
+
+*Material per part.* Structure only. A material named at push time belongs
+to that solid (`meta.material` of the geometry override), so switching the
+solid off returns the part exactly to its parametric value. A material
+chosen in Properties on a part without a solid is its own override
+(`kind = "material"`); on a part with a solid it changes the solid's
+material. Resolution: the solid's material, else the part's material
+override, else `structure.material`. The BOM books structure mass to the
+material each part was computed with; hooves are now booked as cast silicone
+instead of printed PETG (BOM total 5253 -> 5256 USD).
+
+*Weighed parts.* `set_measured_mass` (override `kind = "mass"`) replaces the
+structure mass of one body. The masses, and inertias, of its structure geoms
+are scaled to the weighed total, so centre of mass and inertia keep the shape
+the geometry gave them. The computed value stays visible beside it.
+
+*Recorded with runs.* `inputs.mass` of sim, evolve and tune runs lists the
+parts with geometry-based and with measured mass, mass by source, and each
+part's structure mass, source and material.
+
+*Also.* A project may set its own mass target (`set_mass_target`, stored in
+the document settings); the default stays in `robot_defaults.yaml`. Sensors
+without a body in the model (foot FSRs, touch zones) carry no mass; the
+breakdown lists them as "not in the mass model" rather than hiding that.
+
+Checked in Rhino 8.34 by `bridge rhino --check` (2026-10-08): a 100 mm box
+Brep in PLA gives 1240.0 g; a 40 mm sphere gives 332.42 g (exact); a box with
+a face removed is refused with "it is open (4 naked edges)".
+
+## ADR-051 — Component entries never take a value silently; choices come from the library (**VERIFY**)
+*Problem.* A field left out of a component entry took the code's default
+without a trace (a servo with no armature got 0.005 kg*m^2; one with no mass
+weighed 0 g), and a new actuator had to be added by hand to four `choices`
+lists in the gene file before it could be selected.
+
+*Rules, enforced by the loader.*
+* A required value that is missing or `null` makes the entry **incomplete**:
+  it is not in the library, cannot be selected, and the audit lists it with
+  the fields still to enter. Mass is required for every kind but materials.
+* An optional value that is missing takes the model default and the field is
+  recorded in `defaulted` ("default assumed").
+* A value that is not on the datasheet is entered as the researcher's best
+  guess and named in the entry's `guessed:` list.
+Both lists show in `calflab components audit`, the worksheet (`flag`
+column) and as badges on the component card in Properties. The existing
+entries got `guessed:` lists for exactly what their files already called a
+guess (servo thermal parameters, skin coefficients, the Pi's power draw). No
+value was changed. Nothing sets `verified`.
+
+`calflab components new <kind> <key>` appends an entry with every spec field
+blank, a comment giving its unit, `verified: false` and `guessed: []`.
+
+*Choices.* An enum gene may carry `choices_from: <kind>`: its listed choices
+come first, then every other complete library entry of that kind. The four
+actuator genes use it, and a new gene `battery` (default `lipo_3s_5000`,
+which is what `robot_defaults.yaml` named and every existing genome
+therefore had) makes the battery a per-project choice. The power budget's bus
+voltage is the chosen battery's. Boards and sensors are still set in
+`robot_defaults.yaml` for all projects: their geom IDs contain the component
+key and the harness names the two boards, so making them genes needs an ID
+decision first.
+
+A design that names a component later removed from the library fails to
+build with a message naming it, as an unknown enum value always did.
+
+Not checked on a real part: no small servo, board, battery or material was
+added, because the researcher's list was not given and specs are never
+invented. The mechanism is covered by tests with a made-up fixture entry in
+a private copy of `config/`.
+
+## ADR-052 — A `scale` gene for small test calves (**VERIFY**)
+Requested 2026-10-08: a calf about 200 mm tall for testing with lighter
+parts. Almost every length gene's minimum stops at about half size.
+
+*Decision.* One gene, `scale` (0.25 to 1.25, default 1, not evolvable),
+multiplies every gene whose unit is mm and the generator's fixed millimetre
+constants (motor offsets, ear and tail radius, the belt). Length genes stay
+written at full size; element parameters, overrides, the gumball and
+everything pulled into Rhino are in real millimetres, and *Internalize*
+converts back. `scale = 0.33` gives a calf 200.6 mm tall.
+
+*Why not lower the minimums.* The ranges are also the evolution search
+space and the proportions of ADR-015. Widening each by a factor of three
+would make evolution from the default body search mostly absurd shapes, and
+a small calf would sit at the floor of every range with no room to vary.
+
+*What does not scale.* Wall thickness and skin thickness (a printer's wall
+does not shrink with the model), skin clearance, per-part offset overrides,
+and every component: at 0.33 the 2.4 kg of full-size motors, boards and
+battery are unchanged, which is the point of choosing lighter ones (ADR-051).
+Component boxes are drawn at their library size, so full-size servos stick
+out of a small calf.
+
+*Targets.* Target height and length scale with the gene. The mass target
+does not (structure scales roughly with the square, components not at all):
+set the project's own with `set_mass_target`.
+
+*Known limits.* Evolve's `trunk_length` and `leg_length` descriptors report
+the full-size value, so their ranges still hold; the `body_mass`
+(3500-8000 g) and `speed` (0-1 m/s) descriptor ranges are for the full-size
+calf and are not rescaled, so do not use those two on a small calf. The
+default gait was
+tuned for the full-size body: at 0.33 with the existing servos it walks at
+about 0.11 m/s without falling, which says little; *Tune for this body*
+after choosing real small servos. Simulator settings (time step, contact
+parameters) were not re-examined for a 200 mm, sub-kilogram body.

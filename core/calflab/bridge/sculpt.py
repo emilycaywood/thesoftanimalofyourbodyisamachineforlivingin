@@ -31,13 +31,15 @@ def save_pushed_mesh(
     for display and reported in ``warning``.
 
     ``host`` is what the sending program says about the selection
-    (``{"closed": bool, "volume_mm3": float}``), used only to word the warning
-    and to report how far the mesh volume is from the exact one.
+    (``{"closed": bool, "volume_mm3": float}``). Its exact volume is used for
+    the mass when it agrees with the mesh volume within 5 % (a meshed curved
+    solid is a little small); a larger difference is reported and the mesh
+    volume is kept.
     """
     import trimesh
 
     from calflab.app.lab import LabError
-    from calflab.model.solid import analyze_mesh
+    from calflab.model.solid import HOST_VOLUME_TOLERANCE, analyze_mesh, use_host_volume
 
     design = lab.design()
     try:
@@ -52,6 +54,7 @@ def save_pushed_mesh(
     r = quat_to_matrix(q)
     local = (v - np.asarray(p)) @ r  # R^T (v - p), written for row vectors
     solid = analyze_mesh(local, f)
+    volume_error = use_host_volume(solid, float((host or {}).get("volume_mm3") or 0.0)) if layer == "Structure" else None
     mesh = trimesh.Trimesh(vertices=local, faces=f, process=False)
     stamp = now_iso().replace(":", "").replace("-", "")
     rel = f"assets/sculpts/{slugify(target)}-{stamp}.glb"
@@ -81,9 +84,15 @@ def save_pushed_mesh(
     out.update({"mass_g": st["mass_g"], "material": st["material"], "replaced_g": st["replaced_g"]})
     if st["source"] == "geometry":
         out["mass_from_geometry"] = True
-        exact = float((host or {}).get("volume_mm3") or 0.0)
-        if exact > 0:
-            out["volume_error"] = round(solid.volume_mm3 / exact - 1.0, 5)  # meshing error against the exact solid
+        if volume_error is not None:
+            out["volume_error"] = round(volume_error, 5)  # mesh volume against the sender's exact volume
+            if abs(volume_error) > HOST_VOLUME_TOLERANCE:
+                out["warning"] = (
+                    f"The mesh of the solid pushed onto {target} has a different volume ({volume_error * 100:+.1f} %) than "
+                    "the sender reports for the object. The mesh volume is used; check the object for overlapping or "
+                    "inside-out pieces."
+                )
+                lab.bus.emit("log", level="warn", source="push", message=out["warning"])
     else:
         out["warning"] = st["note"]
         if (host or {}).get("closed") and not solid.closed:

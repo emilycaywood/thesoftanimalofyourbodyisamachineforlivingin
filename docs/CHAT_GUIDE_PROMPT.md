@@ -1,7 +1,8 @@
 # CALFLAB guide prompt for a chat assistant
 
 Paste everything below the line into a new chat. It is a snapshot of CALFLAB
-as of the afternoon of 2026-10-04 (branch `phase-1-vertical-slice`).
+as of 2026-10-08 (branch `chassis-mass`, which builds on
+`phase-1-vertical-slice`).
 Regenerate it after a session that changes the tool.
 
 ---
@@ -126,6 +127,7 @@ All commands:
 | `.\calflab.ps1 test` | All tests. `--py`, `--web`, `--e2e`, `--fast` select subsets |
 | `.\calflab.ps1 demo <name>` | Headless smoke demos: `walk`, `override`, `evolve`, `export`, `wire`, `bridges`, `all`. They run on the default project (`projects/sample-calf`) unless `--project <folder>` is given, and they add runs to it |
 | `.\calflab.ps1 components audit` | Unverified components, the results that rest on them, torque margins. `--simulate` simulates first, `--run <id>` picks a run |
+| `.\calflab.ps1 components new <kind> <key>` | Appends a blank entry (every value empty, `verified: false`) to the component library for me to fill in. Kinds: `actuator`, `sensor`, `board`, `battery`, `material`. `--name "..."` sets the display name |
 | `.\calflab.ps1 components worksheet` | Writes the datasheet worksheet CSV. Refuses to overwrite unless `--force` or `--out <file>` |
 | `.\calflab.ps1 new-plugin <type> <name>` | Generates a plugin template and its test |
 | `.\calflab.ps1 plugins` | Lists plugins as ready or planned |
@@ -141,9 +143,69 @@ the check with `--url http://127.0.0.1:8000`.
 
 ## 4. What is new in this version, and how to test it
 
-This version follows my first walkthrough by hand (2026-10-03) and my
-decision about the front knees (2026-10-04). Thirteen things changed. Walk me
-through the test path below in order unless I ask for something else.
+This version follows my first walkthrough by hand (2026-10-03), my decision
+about the front knees (2026-10-04) and my request of 2026-10-08 to model the
+chassis in Rhino and get real mass at a smaller scale. Walk me through the
+test paths below, newest first, unless I ask for something else.
+
+**Newest, added on 2026-10-08: mass from my own parts, and a small calf.**
+
+- A **closed solid pushed from Rhino onto a part's Structure layer now gives
+  that part its mass**: volume x the density of a material I name. Its centre
+  of mass and inertia go into the simulation. Before this, a pushed solid was
+  for display only and a Structure push did not even replace the envelope.
+  An open object is shown but not used for mass, with a warning (section 9).
+- **Properties > Material and mass** on a selected part: a Material list, the
+  structure mass with its source, and a Measured field for a weighed print.
+- A **Mass** tab (Form and Mechanism workspaces): every part with the source
+  of its mass, totals by source, and this project's own mass target.
+- Form has **Overall scale** (gene `scale`, section 10): 0.33 makes a calf
+  about 200 mm tall.
+- Mechanism has a **battery** list, and its lists now offer whatever complete
+  actuators and batteries are in the library. `components new` adds a blank
+  entry for me to fill in (section 16).
+- No new servo, board, battery or material was added: I have not given my
+  list yet, and CALFLAB never fills in a specification. The only structure
+  materials are still `petg` (1.27) and `pla` (1.24), both unverified.
+
+**Test path F: a box with a known mass.** (This is the acceptance test.)
+
+1. Start the lab on a scratch project and type `CalflabPull` in Rhino.
+2. Draw a 100 x 100 x 100 mm box (`Box`) anywhere near the trunk. Select it,
+   type `CalflabPush`. Answer: body `trunk`; layer `Structure`; any name;
+   material `pla`. Rhino should print
+   `CALFLAB: trunk structure mass is now 1240.0 g (1000.0 cm3 of pla; the
+   estimate it replaces was 629.1 g)`. 1240.0 is 1000 cm3 x 1.24 g/cm3.
+3. In the web lab select `trunk` in the Scene tree and open Properties:
+   *Structure mass* 1240 g, *Source* "Pushed solid x material density",
+   *Envelope estimate* 629.1 g (not counted). The total rose by
+   1240 - 629.1 = 610.9 g (5045 to 5656 g on the default calf).
+4. Open the Mass tab: `trunk` shows `geometry`; click the row to see its
+   motors, boards and battery (`component`) and its skin (`estimate`).
+5. Overrides tab: untick the box override. The trunk is back at 629.1 g.
+   Tick it again. Ctrl+Z steps back through each of these.
+6. In Properties change Material to PETG: 1270 g.
+7. Type 300 into Measured: the structure mass is 300 g, *Computed* shows
+   1270 g. Clear the field to remove it.
+8. Explode the box in Rhino, delete one face, `Join` the rest, push it the
+   same way. Rhino should print `CALFLAB WARNING: The solid pushed onto
+   trunk is not used for mass: it is open (4 naked edges). The parametric
+   estimate is kept.` The same warning shows in the Mass tab.
+9. F5. The run's record (`runs/<id>/run.json`, under `inputs.mass`) lists
+   `trunk` under `geometry_parts` when the closed box is on.
+
+Steps 2, 3 and 8 were checked by a script inside Rhino 8.34 with real Breps
+(box 1240.0 g, a 40 mm sphere 332.42 g, an open box refused). The new
+material prompt of the typed command has not been answered by a person yet.
+
+**Test path G: a 200 mm calf.** In Form set **Overall scale** to 0.33. The
+calf shrinks to about 200 mm tall; the readout shows height 201 mm. The
+length sliders keep their full-size numbers. Mass stays near 2.7 kg, because
+the 2.4 kg of motors, boards and battery did not shrink: that is correct and
+is why the small calf needs lighter parts. Full-size servo boxes stick out of
+the small body. Then remind me: set a mass target in the Mass tab, add my
+real small components (section 16), choose them in Mechanism, and press
+*Tune for this body* before reading any speed.
 
 **Latest, added on the afternoon of 2026-10-04** (after I revised my idea of
 the front legs: the joint should face backward, sit high like an elbow, and
@@ -286,7 +348,7 @@ project alone).
 4. Click a coloured cell. On the right, under the lineage, a **Genes** table
    lists each gene that differs: its value, *vs current design*, and *vs
    starting design* (or *vs parent ...* for later generations). Tick *show
-   unchanged* to list all 34 genes. If the starting design had overrides,
+   unchanged* to list all 37 genes. If the starting design had overrides,
    they are listed under the table as "Fixed by override in every candidate
    of this run".
 5. Press **Pin to compare**, then click a different cell: a third column,
@@ -650,6 +712,46 @@ to parametric) and **Internalize** (write the value into the gene and delete
 the override). The Overrides panel lists them all with an enable checkbox.
 Geometry pushed from Rhino appears there as a geometry override.
 
+**Mass from my own parts.** By default a printed part's mass is an estimate
+from its envelope: surface area x wall thickness x density. Three kinds of
+override replace it, part by part. All are in the Overrides panel, can be
+switched off, and undo.
+
+- **A pushed solid.** `CalflabPush` onto the **Structure** layer (section
+  14). If the object is closed, structure mass = volume x density, and the
+  centre of mass and inertia follow the solid, in the simulation too. The
+  envelope estimate is then not counted (it is shown as "not counted").
+  Motors, boards, battery, skin and hooves are separate items and stay. If
+  the object is **open or invalid** it is displayed but **not** used for
+  mass; the estimate stays and a warning appears in Rhino, under the mass
+  readout in Form, in the Mass tab and in Properties.
+  Things to tell me when they matter: volume x density is a **fully dense**
+  part, so a hollow or infilled print needs its real walls modelled, or a
+  material with the density measured on a printed sample, or a weighed mass;
+  separate closed objects add up, but **overlapping ones are counted twice**
+  (BooleanUnion first); the simulator still **collides with the envelope**,
+  not with my solid; a push onto **Skin** changes the look only.
+- **A material.** Select a part; Properties > *Material and mass* >
+  **Material**. On a parametric part this is a material override and the
+  estimate uses that density. On a part with a pushed solid it changes the
+  solid's material. Structure materials only (not skin).
+- **A weighed mass.** Properties > *Material and mass* > **Measured**, in
+  grams. It replaces the computed structure mass of that part (not its motor,
+  skin or hoof); *Computed* stays visible beside it. Clear the field to
+  remove it.
+
+A material given at push time belongs to that solid, so switching the solid
+off returns the part exactly to its parametric value.
+
+The **Mass** tab lists every part with the source of its structure mass:
+`geometry` (pushed solid), `measured`, `estimate` (the envelope), and inside
+each part `component` (a library entry). Click a row to open it. The top
+shows the total by source, how many grams rest on unverified library entries
+(today: nearly all), and a **target** box: this project's own mass target
+(0 = the default 7000 g). It also lists what is *not* in the mass model: the
+4 foot sensors and 4 touch zones have no body, so their 20 g are not in the
+total.
+
 **Undo / redo** is a log kept on the server and shared by every client, so
 Ctrl+Z in the browser also undoes an edit made from Rhino. A slider drag is
 one step. The log is kept as `commands.jsonl` in the project as a record of
@@ -695,6 +797,7 @@ may change; the rest are choices I make.
 
 | Group | Gene | Default | Range | Meaning |
 |---|---|---|---|---|
+| Scale | `scale` (Overall scale) | 1.0 | 0.25-1.25 | Multiplies every length gene and the generator's fixed offsets. 0.33 = about 200 mm tall. Not evolvable |
 | Trunk | `trunk_length` | 420 | 300-560 | Shoulder to rump |
 | Trunk | `trunk_width` | 150 | 100-220 | Left to right |
 | Trunk | `trunk_height` | 170 | 110-240 | Back to belly |
@@ -722,17 +825,29 @@ may change; the rest are choices I make.
 | Tail and ears | `has_ears` | on | on/off | Not evolvable |
 | Tail and ears | `ear_length` | 70 | 30-120 | |
 | Mechanism | `knee_drive` | direct | direct / belt | Motor at the knee, or at the hip driving the knee by belt. Not evolvable |
-| Mechanism | `act_hip_abd` | xm430_w350 | 4 actuators | Not evolvable |
-| Mechanism | `act_hip_flex` | xh540_w270 | 4 actuators | Not evolvable |
-| Mechanism | `act_knee` | xh540_w270 | 4 actuators | Not evolvable |
-| Mechanism | `act_small` | sts3215 | sts3215 / xm430_w350 | Neck, head, tail, ears. Not evolvable |
+| Mechanism | `act_hip_abd` | xm430_w350 | every actuator in the library (4 today) | Not evolvable |
+| Mechanism | `act_hip_flex` | xh540_w270 | every actuator in the library | Not evolvable |
+| Mechanism | `act_knee` | xh540_w270 | every actuator in the library | Not evolvable |
+| Mechanism | `act_small` | sts3215 | every actuator in the library | Neck, head, tail, ears. Not evolvable |
+| Mechanism | `battery` | lipo_3s_5000 | every battery in the library (1 today) | Its voltage is the bus voltage of the power budget. Not evolvable |
 | Shell and skin | `wall_thickness` | 2.0 | 1.0-4.0 | Printed wall; drives structure mass. Not evolvable |
 | Shell and skin | `skin_material` | knit_silicone_laminate | or cast_silicone | Not evolvable |
 | Shell and skin | `skin_thickness` | 1.5 | 0.5-6.0 | Silicone layer. Not evolvable |
 | Sensing | `has_depth_camera` | off | on/off | Not evolvable |
 
-That is 35 genes. The Form workspace also shows live mass against the 7 kg
-target, height, length and centre of mass, and two buttons: *Reset to
+That is 37 genes. **Overall scale**: the length sliders keep their
+full-size values and ranges; Properties, the gumball, overrides and Rhino
+show real millimetres (a 170 mm thigh gene at scale 0.33 is a 56.1 mm
+thigh). Wall thickness, skin thickness, skin clearance and every component
+keep their size. Target height and length scale with it; the mass target
+does not. Evolve's *total mass* and *speed* descriptors have full-size
+ranges and should not be used on a small calf. Simulator settings were not
+re-examined for a 200 mm body, and the default gait was tuned for the
+full-size calf.
+
+The Form workspace also shows live mass against the
+target, height, length and centre of mass, a line of warnings when the
+design has any, and two buttons: *Reset to
 defaults* (all genes) and *Bake design*. Reference images on view planes are
 planned.
 
@@ -789,10 +904,11 @@ bodies were. Only new projects, and *Reset to defaults*, get "on".
 ## 11. Workspaces
 
 ### Form
-Section 10.
+Section 10 (the sliders) and the **Mass** tab beside them (section 9).
 
 ### Mechanism
-Actuator choice per joint group, knee drive, and the **torque-margin table**:
+Actuator choice per joint group, knee drive, battery, the Mass tab, and the
+**torque-margin table**:
 the peak torque each joint needed in a chosen simulation run (the list at the
 top right of the table; "latest run" by default) against the torque
 available. Red means the motor saturates in that run. Every actuator carries
@@ -1161,8 +1277,8 @@ The aliases are already installed on my machine.
 | Command | What it does |
 |---|---|
 | `CalflabConnect` | Set or check the server URL (default `http://127.0.0.1:8000`) |
-| `CalflabPull` | Brings in the current design as layered geometry. Layers `CALFLAB::Structure`, `::Actuators`, `::Transmission`, `::Electronics`, `::Sensors`, `::Skin`, `::Harness`, `::Annotations`. Repeated components are block instances named `calflab.<component>`. Every object has user text `calflab.id`, `calflab.body`, `calflab.layer`, and for components `calflab.component` and `calflab.verified`. **Harness routes are polylines on `CALFLAB::Harness`**, named by route id (`harness.bus.fl`), with user text `calflab.src`, `calflab.dst`, `calflab.length_mm` (cut length, with slack), `calflab.connector`, `calflab.wires`. The drawn polyline is the path without slack, so it is shorter than `calflab.length_mm` by the factor 1.25 |
-| `CalflabPush` | Sends selected geometry (mesh, Brep, extrusion or SubD) back as a named geometry override on a body. It asks for the body ID (for example `head`), the layer to replace (Skin or Structure) and a name |
+| `CalflabPull` | Brings in the current design as layered geometry. Layers `CALFLAB::Structure`, `::Actuators`, `::Transmission`, `::Electronics`, `::Sensors`, `::Skin`, `::Harness`, `::Annotations`. Repeated components are block instances named `calflab.<component>`. Every object has user text `calflab.id`, `calflab.body`, `calflab.layer`, `calflab.mass_g`, `calflab.mass_source` (`parametric`, `component`, `geometry` or `measured`), `calflab.material` where one applies, and for components `calflab.component` and `calflab.verified`. **Harness routes are polylines on `CALFLAB::Harness`**, named by route id (`harness.bus.fl`), with user text `calflab.src`, `calflab.dst`, `calflab.length_mm` (cut length, with slack), `calflab.connector`, `calflab.wires`. The drawn polyline is the path without slack, so it is shorter than `calflab.length_mm` by the factor 1.25 |
+| `CalflabPush` | Sends selected geometry (mesh, Brep, extrusion or SubD) back as a named geometry override on a body. It asks for the body ID (for example `head`), the layer to replace (Skin or Structure), a name and, for Structure only, a **material** (`Default` = the part's material; the default offered is the object's `calflab.material` user text). On Structure a closed solid gives the part its mass and the command prints it; an open one prints `CALFLAB WARNING: ...` (section 9) |
 | `CalflabLiveSync` | Toggles live updates: Rhino re-pulls whenever the design changes in any client. Run again to turn off |
 
 Pulling again replaces only objects that carry `calflab.id` (the harness
@@ -1171,6 +1287,15 @@ model a head shell or skin surface on my own layer, select it, `CalflabPush`.
 It then shows in the web lab's Properties and Overrides and can be toggled or
 removed there. A pushed sculpt replaces the Skin (or Structure) geometry of
 that part, so it is visible in the web lab only while that layer is on.
+
+The workflow for a chassis part: pull, model the part in place on my own
+layer as a closed solid, optionally give it the user text `calflab.material`
+(for example `pla`), select it, `CalflabPush`, body ID, `Structure`, name,
+material. The lab measures the mesh Rhino makes of the object and takes the
+volume from Rhino's exact figure when the two agree within 5 % (the command
+says so). After a Structure push the envelope shape of that part is no
+longer pulled into Rhino; it remains the simulator's collision shape and can
+be seen in the web lab with the *collision geometry* overlay.
 
 Pulled spheres and capsules are NURBS surfaces. The lab must be running. A
 pull shows whatever the working document is: forward or backward knees.
@@ -1252,7 +1377,7 @@ Nothing about hardware is trusted by default. Every entry in
 `verified: false`, and shows an orange **unverified** badge in the lab.
 
 Right now **all 17 library components are unverified, including all 14 the
-design uses**. So these results are placeholders: the $5,253 bill of
+design uses**. So these results are placeholders: the $5,256 bill of
 materials, the 5.0 kg mass, the 31.8 minute battery runtime (default gait),
 every torque margin, the motor temperature estimates, and the motor speeds
 behind the 120 deg/s cap in section 5.
@@ -1266,22 +1391,62 @@ the real robot until motors and skin are measured.
 Excel. It has 122 rows, one per recorded value, with columns `component`,
 `kind`, `name`, `field`, `unit`, `recorded_value`, `used_for`, `source`,
 `url`, and four blank ones for me: `datasheet_value`, `datasheet_reference`
-(document and page), `ok`, `notes`. Rows saying "not used by any calculation
-yet" can wait; note that the actuators' no-load speed is such a row for the
-simulator, yet the default gait's speed cap was chosen from it, so it is
-worth checking early. Then I correct the YAML and set `verified: true`
+(document and page), `ok`, `notes`. (A worksheet written from 2026-10-08 on
+also has a `flag` column: `guess` or `default assumed`. My existing file was
+not rewritten.) Rows saying "not used by any calculation yet" can wait. The
+actuators' no-load speed is used: it sets the joint speed cap of *Tune for
+this body*, so it is worth checking early. Then I correct the YAML and set `verified: true`
 myself. Only I set that flag; no code or assistant does. The lab re-reads
 the library on the next edit or page reload.
 
-`.\calflab.ps1 components audit` prints three tables: every component and
-whether it is verified; the headline results with the unverified components
-each rests on; and torque margins per joint, lowest first.
+`.\calflab.ps1 components audit` prints: every component and whether it is
+verified; the values that are **guesses** or **assumed defaults**; any
+**incomplete** entries and what they are missing; the headline results with
+the unverified components each rests on; and torque margins per joint,
+lowest first.
+
+**Adding my own component or material.** `.\calflab.ps1 components new
+actuator my_servo --name "..."` appends a blank entry to
+`config\components\actuators.yaml` (sensors, boards and batteries go to
+`electronics.yaml`, materials to `materials.yaml`). I open the file and
+enter each value from the datasheet; a comment on each line gives the unit.
+The rules, which you must hold me to:
+
+- `verified: false` stays until I have checked every value and set it.
+- A REQUIRED value still blank keeps the entry **incomplete**: it is offered
+  nowhere and the audit lists what is missing. For an actuator the required
+  values are mass, stall torque, stall current, no-load speed and voltage;
+  for a battery mass, voltage and capacity; for a material density; for a
+  board or sensor mass (and a sensor's type).
+- A value the datasheet does not give: I enter my best guess **and add the
+  field's name to `guessed:`** (for example `guessed: [armature_kgm2]`).
+- An optional value left blank uses the program's default and is reported
+  as **default assumed**. For a small servo those defaults (armature
+  inertia 0.005 kg*m^2, thermal values) belong to a much larger motor, so I
+  should not leave them blank.
+- Never suggest a number for any of these from your own memory.
+
+Once complete, an actuator is in the four actuator lists in Mechanism, a
+battery in the battery list, a structure material in Properties > Material
+and in the `CalflabPush` prompt. The bill of materials, the mass, the
+torque-margin table, the power budget and *Tune for this body* all read the
+entry; its no-load speed is the gait tuner's joint speed cap (section 5).
+Guessed and defaulted values carry a badge on the component card in
+Properties. Boards and sensors cannot be chosen per project yet: they are set
+for all projects in `config\robot_defaults.yaml`.
+
+In the existing entries these are marked as guesses, because the files
+already said so: the servos' two thermal constants, the skin materials'
+stiffness and damping coefficients, and the Raspberry Pi's power draw.
 
 **Current torque and speed findings.** Section 5.
 
 **Other assumptions I must check** (recorded as numbered decisions in
 `DECISIONS.md`): the calf proportions and the two-segment leg (ADR-015); the
-mass model (ADR-017: surface area x wall thickness x density); the skin
+mass model (ADR-017: surface area x wall thickness x density, replaced
+part by part by pushed solids, materials and weighed masses, ADR-050); that
+a pushed solid is fully dense and collides as its envelope (ADR-050); the
+scale gene and what does not scale (ADR-052); the skin
 model (ADR-018: skin adds stiffness, damping and mass at each joint, with
 guessed coefficients); the servo and thermal model (ADR-019); the gait and
 fitness defaults (ADR-032, ADR-047); that harness paths are schematic
@@ -1327,16 +1492,17 @@ are guesses.
 
 In the current design: 8 x XH540 ($3,600), 4 x XM430 ($1,160), 6 x STS3215
 ($150), Raspberry Pi 5 ($80), Teensy 4.1 ($32), battery ($45), IMU ($25),
-4 touch zones ($32), 4 foot sensors ($36), microphone ($7), about 1,515 g of
-PETG ($38), 854 g of laminate skin ($38), 209 g of cast silicone ($9). 14
+4 touch zones ($32), 4 foot sensors ($36), microphone ($7), about 1,372 g of
+PETG ($34), 854 g of laminate skin ($38), 352 g of cast silicone ($16: 143 g
+of hooves, which used to be booked as PETG, and 209 g of face skin). 15
 bill-of-materials lines, all unverified. Knee direction changes none of this.
 
 ## 18. Built, checked, and not built
 
 **Works and is tested:** everything in sections 8 to 13; the component audit
-and worksheet. The automated suite passes: 219 Python tests, 14 interface
-tests, and 5 browser tests (the two-motor leg and the gait tuner are covered by
-Python tests, not yet by a browser test) that drive the lab with a real mouse and keyboard
+and worksheet. The automated suite passes: 248 Python tests, 14 interface
+tests, and 6 browser tests (the two-motor leg and the gait tuner are covered by
+Python tests, not yet by a browser test; material, weighed mass and the Mass tab have one) that drive the lab with a real mouse and keyboard
 (the original smoke test; dragging the gumball arrow and the trunk's three
 arrows; the harness overlay; clicking runs and linking them in the journal;
 evolving from a baked design, the gene table, pin to compare, and Load).
@@ -1359,7 +1525,15 @@ inspection; `CalflabPush` with a Brep (two boolean-unioned spheres, 2810
 faces) works; `CalflabLiveSync` follows override toggles and gene edits;
 typing a value in the gumball bar makes an override.
 
-**New in this version and not yet tried by me, so my first use is a test:**
+**New on 2026-10-08 and not yet tried by me:** everything in test paths F
+and G. A script inside Rhino 8.34 pushed a box, a sphere and an open box
+through the bridge and got the right masses and the warning, and a browser
+test chooses a material, enters a weighed mass and reads the Mass tab; but
+no person has typed `CalflabPush` with the material prompt, and **no real
+small servo, battery, board or material has been entered**, so nothing about
+a 200 mm calf's mass, torque or gait is known yet.
+
+**New in the earlier version and not yet tried by me, so my first use is a test:**
 the gumball arrows; the harness lines in the web viewport and the harness
 curves in Rhino; Load and Evolve from on a design; the gene table and Pin to
 compare; Adopt replacing overrides; run rows and journal pickers; the Reset
@@ -1375,6 +1549,10 @@ the navigation presets other than Rhino. Hops is untested and not installed.
 
 **Known gaps in this version:**
 
+- A pushed solid is weighed as fully dense, and collides as its envelope.
+- Skin mass still comes from the envelope even when a skin is sculpted.
+- Boards and sensors cannot be chosen per project.
+- Component boxes are drawn at library size at any scale.
 - No steering and no feedback in the gait (section 5).
 - Joint speed is not simulated (section 5).
 - In the Evolve workspace the Archive and the Viewport are tabs of one
@@ -1461,7 +1639,7 @@ and run `setup`.
 | `docs\component_verification.csv` | My datasheet worksheet |
 | `docs\proposals\anatomical-leg.md` | The three-segment leg proposal (set aside) |
 | `PLAN.md` | Architecture and phases |
-| `DECISIONS.md` | Every assumption, as numbered decisions (ADR-001 to ADR-049). ADR-041 to ADR-049 belong to this version; ADR-047 is the forward-knee default, the gait and the speed limitation; ADR-048 the two-motor front leg; ADR-049 gait tuning |
+| `DECISIONS.md` | Every assumption, as numbered decisions (ADR-001 to ADR-052). ADR-047 is the forward-knee default, the gait and the speed limitation; ADR-048 the two-motor front leg; ADR-049 gait tuning; ADR-050 mass from pushed solids, per-part materials and weighed parts; ADR-051 component entries and library-driven choices; ADR-052 the scale gene |
 | `config\components\*.yaml` | Component data |
 | `config\genes\calf.yaml` | Gene definitions |
 | `config\fitness\*.yaml` | Fitness presets |
@@ -1470,7 +1648,8 @@ and run `setup`.
 
 The code is backed up on GitHub (a public repository) on the branch
 `phase-1-vertical-slice`, open as pull request #1 into `main`. I merge it;
-it is not merged yet.
+it is not merged yet. The 2026-10-08 work is on a local branch,
+`chassis-mass`, on top of that one; it has not been pushed to GitHub.
 
 CALFLAB is built to be extended. Everything specific (genes, part
 generators, controllers, fitness terms, behavior descriptors, optimizers,

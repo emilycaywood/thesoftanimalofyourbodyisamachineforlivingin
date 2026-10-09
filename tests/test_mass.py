@@ -504,6 +504,23 @@ def test_push_over_http_takes_a_material_and_reports_the_mass(tmp_path):
             lines = script.push_report(reply, "trunk")
             assert "trunk structure mass is now 1240.0 g (1000.0 cm3 of pla" in lines[1]
 
+            # a curved solid meshes a little small: the sender's exact volume is used when the two agree
+            ball = trimesh.creation.icosphere(subdivisions=3, radius=40.0)
+            exact = 4 / 3 * np.pi * 40.0**3
+            curved = {**body, "vertices": (ball.vertices + origin).tolist(), "faces": ball.faces.tolist(),
+                      "host": {"closed": True, "volume_mm3": exact}}
+            reply = client.post("/api/bridge/rhino/push", json=curved).json()
+            assert -0.02 < reply["volume_error"] < 0 and reply["solid"]["volume_source"] == "host"
+            assert reply["mass_g"] == pytest.approx(exact / 1000 * 1.24, abs=0.01) and reply["warning"] == ""
+            assert "Rhino's exact one" in script.push_report(reply, "trunk")[2]
+            geom = next(g for g in lab.design().spec.body("trunk").geoms if g.shape == "mesh")
+            assert geom.inertia[0] == pytest.approx(0.4 * geom.mass_g * 40.0**2, rel=0.02), "inertia scaled with the volume"
+            # ... and not when they disagree about what the object is
+            curved["host"] = {"closed": True, "volume_mm3": exact * 2}
+            reply = client.post("/api/bridge/rhino/push", json=curved).json()
+            assert reply["solid"]["volume_source"] == "mesh" and "different volume" in reply["warning"]
+            assert reply["mass_g"] == pytest.approx(ball.volume / 1000 * 1.24, abs=0.01)
+
             body["faces"] = box.faces[:-2].tolist()
             reply = client.post("/api/bridge/rhino/push", json=body).json()
             assert not reply["mass_from_geometry"]

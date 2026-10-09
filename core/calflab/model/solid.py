@@ -13,7 +13,7 @@ in g/mm^3 to get g*mm^2).
 from __future__ import annotations
 
 import math
-from typing import Any
+from typing import Any, Literal
 
 import numpy as np
 from pydantic import BaseModel
@@ -22,6 +22,7 @@ from calflab.model.spec import Inertia6
 from calflab.model.xform import IDENTITY, Quat, Vec3
 
 WELD_DIGITS = 4  # vertices closer than 0.0001 mm are one vertex
+HOST_VOLUME_TOLERANCE = 0.05  # the sender's exact volume is trusted within 5 % of the mesh volume
 MIN_BOX_MM = 0.1  # thinnest equivalent box the simulator is given
 
 
@@ -34,6 +35,10 @@ class SolidInfo(BaseModel):
     open_edges: int = 0
     area_mm2: float = 0.0
     volume_mm3: float = 0.0
+    #: ``host`` = the exact volume reported by the modelling program (the mesh of a
+    #: curved solid is a little small); ``mesh`` = measured on the triangles
+    volume_source: Literal["mesh", "host"] = "mesh"
+    mesh_volume_mm3: float = 0.0
     com_mm: Vec3 = (0.0, 0.0, 0.0)
     #: inertia about the centre of mass for density 1 (mm^5), body axes
     inertia_mm5: Inertia6 = (0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
@@ -78,10 +83,29 @@ def analyze_mesh(vertices: Any, faces: Any) -> SolidInfo:
     props = mesh.mass_properties  # density 1, inertia about the centre of mass
     i = np.asarray(props["inertia"], dtype=float)
     info.closed = True
-    info.volume_mm3 = volume
+    info.volume_mm3 = info.mesh_volume_mm3 = volume
     info.com_mm = (float(props["center_mass"][0]), float(props["center_mass"][1]), float(props["center_mass"][2]))
     info.inertia_mm5 = (float(i[0, 0]), float(i[1, 1]), float(i[2, 2]), float(i[0, 1]), float(i[0, 2]), float(i[1, 2]))
     return info
+
+
+def use_host_volume(info: SolidInfo, host_volume_mm3: float) -> float | None:
+    """Take the exact volume the modelling program reports for a closed solid.
+
+    Returns the relative error of the mesh volume (``mesh / exact - 1``), or
+    None if nothing was reported. Within :data:`HOST_VOLUME_TOLERANCE` the
+    exact volume replaces the mesh volume (the inertia is scaled with it);
+    beyond it the two disagree about what the object is, and the mesh, which
+    is what is stored and shown, is kept.
+    """
+    if not info.closed or host_volume_mm3 <= 0 or info.mesh_volume_mm3 <= 0:
+        return None
+    error = info.mesh_volume_mm3 / host_volume_mm3 - 1.0
+    if abs(error) <= HOST_VOLUME_TOLERANCE:
+        info.inertia_mm5 = scaled_inertia(info.inertia_mm5, host_volume_mm3 / info.mesh_volume_mm3)
+        info.volume_mm3 = host_volume_mm3
+        info.volume_source = "host"
+    return error
 
 
 def inertia_matrix(i: Inertia6) -> np.ndarray:

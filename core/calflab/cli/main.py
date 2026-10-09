@@ -399,17 +399,20 @@ def components_audit(
                         f"({rep['in_design_unverified']} used by this design)")
     for col in ("Component", "Kind", "Verified", "Quantity", "Cost USD", "Mass g"):
         table.add_column(col, no_wrap=True)
-    table.add_column("Not from a datasheet", overflow="fold")
     for c in rep["components"]:
         qty = f"{c['qty']:g} {c['qty_unit']}".strip() if c["in_design"] else "not used"
-        flags = "; ".join(x for x in (
-            "guessed: " + ", ".join(c["guessed"]) if c["guessed"] else "",
-            "default assumed: " + ", ".join(c["defaulted"]) if c["defaulted"] else "",
-        ) if x)
         table.add_row(c["key"], c["kind"], "[green]yes[/]" if c["verified"] else "[yellow]no[/]", qty,
-                      f"{c['cost_usd']:.0f}" if c["in_design"] else "", f"{c['mass_g']:.0f}" if c["in_design"] else "",
-                      flags or "-")
+                      f"{c['cost_usd']:.0f}" if c["in_design"] else "", f"{c['mass_g']:.0f}" if c["in_design"] else "")
     console.print(table)
+    flagged = [c for c in rep["components"] if c["guessed"] or c["defaulted"]]
+    if flagged:
+        table = Table(title="Values that are not datasheet values")
+        table.add_column("Component", no_wrap=True)
+        table.add_column("Guessed (named in the entry's 'guessed:')", overflow="fold")
+        table.add_column("Default assumed (not entered)", overflow="fold")
+        for c in flagged:
+            table.add_row(c["key"], ", ".join(c["guessed"]) or "-", ", ".join(c["defaulted"]) or "-")
+        console.print(table)
     if rep["incomplete"]:
         table = Table(title="Incomplete entries (not selectable until these values are entered)")
         for col in ("Component", "Kind", "File", "Missing"):
@@ -616,7 +619,7 @@ def _rhino_check(url: str, timeout: float, grasshopper: bool = False) -> None:
         raise typer.Exit(1)
     script = repo_root() / "bridges" / "rhino" / "validate_in_rhino.py"
     macro = f"_-ScriptEditor _Run {script} CalflabPush head Skin head_sculpt _-ScriptEditor _Run {script}"
-    keys = ("rhino", "install", "connect", "pull", "geometry", "push", "repull", "livesync")
+    keys: tuple[str, ...] = ("rhino", "install", "connect", "pull", "geometry", "push", "repull", "solid", "livesync")
     if grasshopper:
         script = repo_root() / "bridges" / "rhino" / "grasshopper" / "build_example.py"
         macro = f"_-ScriptEditor _Run {script}"

@@ -13,9 +13,12 @@ CalflabPush command typed in between):
 Pass 1 installs the aliases (CalflabInstall), connects, pulls, and models a
 stand-in "sculpted" head shell that it leaves selected. Pass 2 checks that the
 push arrived as a geometry override, that a second pull brings it back as a
-mesh in the same place and leaves the user's own object alone, then turns
+mesh in the same place and leaves the user's own object alone. It then pushes
+three Breps onto the trunk's Structure layer (a 100 mm box, a sphere, a box
+with a face removed) and checks that the closed ones give the trunk its mass
+as volume x density and the open one is refused with a warning. Last it turns
 CalflabLiveSync on, edits a gene on the server and waits for Rhino to follow.
-It undoes its two edits, writes a JSON report and closes Rhino.
+It undoes its edits, writes a JSON report and closes Rhino.
 
 Use a scratch project: the check adds (and undoes) an override and a gene edit.
 """
@@ -116,6 +119,51 @@ def check_geometry(doc):
     }
 
 
+def check_solid_push(doc):
+    """Closed Breps pushed onto Structure weigh volume x density; an open one is refused, with a warning."""
+    import math
+
+    rg = Rhino.Geometry
+    scene = cr.request("/api/scene")
+    trunk = [b for b in scene["bodies"] if b["id"] == "trunk"][0]
+    density = [m for m in scene["materials"] if m["key"] == "pla"][0]["density_g_cm3"]
+    assert "pla" in cr.structure_materials(), "the material list for the CalflabPush prompt has no pla"
+    c = rg.Point3d(trunk["pos"][0], trunk["pos"][1], trunk["pos"][2])
+    side = rg.Interval(-50.0, 50.0)
+    box = rg.Box(rg.Plane(c, rg.Vector3d.ZAxis), side, side, side).ToBrep()
+    open_box = box.DuplicateBrep()
+    open_box.Faces.RemoveAt(0)
+    shapes = [
+        ("box", box, 1000.0 * density),
+        ("sphere", rg.Sphere(c, 40.0).ToBrep(), 4.0 / 3.0 * math.pi * 40.0**3 / 1000.0 * density),
+        ("open_box", open_box, None),
+    ]
+    out = {}
+    for name, brep, want in shapes:
+        attrs = Rhino.DocObjects.ObjectAttributes()
+        attrs.Name = "calflab validation " + name
+        attrs.SetUserString("calflab.material", "pla")
+        oid = doc.Objects.AddBrep(brep, attrs)
+        obj = doc.Objects.FindId(oid)
+        assert cr.guess_material([obj]) == "pla", "calflab.material user text was not read"
+        try:
+            reply = cr.push([obj], "trunk", attrs.Name, "Structure", cr.guess_material([obj]))
+        finally:
+            doc.Objects.Delete(oid, True)
+        cr.request("/api/undo", {})
+        row = {"closed": reply["solid"]["closed"], "from_geometry": reply["mass_from_geometry"],
+               "mass_g": reply.get("mass_g"), "volume_error": reply.get("volume_error"), "warning": reply.get("warning", ""),
+               "report": cr.push_report(reply, "trunk")}
+        out[name] = row
+        if want is None:
+            assert not row["from_geometry"] and "not used for mass" in row["warning"], "an open Brep was used for mass: %s" % row
+        else:
+            assert row["from_geometry"], "a closed %s was not used for mass: %s" % (name, row["warning"])
+            # exact for the sphere too: the mass uses Rhino's volume, not the (slightly small) mesh volume
+            assert abs(row["mass_g"] - want) <= 0.02, "%s weighs %.2f g, expected %.2f g" % (name, row["mass_g"], want)
+    return out
+
+
 def finish(report):
     with open(REPORT, "w", encoding="utf-8") as fh:
         json.dump(report, fh, indent=2)
@@ -200,6 +248,8 @@ def pass2(rep):
     err = max(abs(a - b) for a, b in zip(want, got))
     rep["repull"] = {"objects": summary["objects"], "mesh_objects": len(pulled), "bbox_error_mm": round(err, 4)}
     assert err <= TOL_MM, "pushed mesh came back %.3f mm away from where it was modelled" % err
+
+    rep["solid"] = check_solid_push(doc)
 
     # live sync: on, edit a gene on the server, wait for Rhino to follow while idle
     run_command_script("CalflabLiveSync")
