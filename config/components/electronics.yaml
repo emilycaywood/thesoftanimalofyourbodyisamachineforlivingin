@@ -135,3 +135,19 @@
   url: ""
   source: Typical figures for hobby 3S 5000 mAh packs
   verified: false
+
+- key: lipo_2s_1100
+  kind: battery
+  name: "2S 1100 mAh 35C LiPo (7.4 V)"
+  manufacturer: ""    # not given
+  mass_g: 51.3    # g; "~51.3 g (1.8 oz)"
+  dims_mm: [55.0, 30.0, 16.0]    # mm; "~55 x 30 x 16 mm"
+  cost_usd: null    # USD; not given (default assumed, and reported)
+  voltage_v: 7.4    # V nominal (2S, 3.7 V per cell); 8.4 V fully charged
+  capacity_mah: 1100    # mAh
+  max_current_a: 38.5    # A, continuous discharge; "35C (approx. 38.5A)"; burst 70C (approx. 77 A)
+  url: ""    # none given
+  source: "Technical specifications pasted by the researcher on 2026-10-09 (seller's listing; maker and model not named)"
+  guessed: []
+  verified: false    # set to true yourself once every value is checked
+  notes: Deans-style T-plug discharge connector, JST-XH balance connector, 18 AWG leads. Weight and dimensions are given as approximate.

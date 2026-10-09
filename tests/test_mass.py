@@ -645,7 +645,8 @@ def test_c_battery_gene_and_new_material(own_config, tmp_path):
     mats.write_text(mats.read_text(encoding="utf-8") + "\n" + yaml.safe_dump([mat]), encoding="utf-8")
     lib = library()
     assert lib.material("test_pla").defaulted == ["cost_usd_per_kg"]
-    assert genome_definition("calf").gene("battery").choices == ["lipo_3s_5000", "test_pack"]
+    choices = genome_definition("calf").gene("battery").choices  # the default, then every other battery in the library
+    assert choices[0] == "lipo_3s_5000" and choices[-1] == "test_pack" and len(choices) == len(set(choices))
     lab = Lab.open(tmp_path / "p")
     try:
         before = lab.scene()["mass"]["total_g"]
