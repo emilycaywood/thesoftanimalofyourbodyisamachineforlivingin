@@ -3,10 +3,10 @@
 Paste everything below the line into a new chat. It covers one job: I have
 modelled a small prototype calf in Rhino (printed PLA with stainless steel
 rods) and want it in CALFLAB's simulator with its real mass. It is a snapshot
-of CALFLAB as of 2026-10-09 (branch `chassis-mass`, after ADR-056: the
-infill estimate, the neck and head switches, and front and hind legs of
-their own proportions) and stands
-on its own. For entering components in detail, the Mass tab in depth, or the
+of CALFLAB as of 2026-10-09 (branch `chassis-mass`, commit `5275683`,
+after ADR-056: the infill estimate, the neck and head switches, my two
+servos in the library, and front and hind legs of their own proportions)
+and stands on its own. For entering components in detail, the Mass tab in depth, or the
 rest of the lab, see `docs/CHAT_GUIDE_CHASSIS.md` and
 `docs/CHAT_GUIDE_PROMPT.md`. Regenerate this file after a session that
 changes what it describes.
@@ -95,8 +95,19 @@ thigh" off (section 4) the front legs have only `leg.fl.hip`, `leg.fl.shank`,
 to push onto. The hind legs always have all three. What moves with what:
 `leg.<k>.hip` is everything between the abduction axis and the next pitch
 axis; `leg.<k>.thigh` is between the hip flexion axis and the knee axis;
-`leg.<k>.shank` is everything below the last pitch axis, down to the foot. The tail and ears (`tail`,
-`ear.l`, `ear.r`) have no printed structure in the model.
+`leg.<k>.shank` is everything below the last pitch axis, down to the foot.
+The tail and ears (`tail`, `ear.l`, `ear.r`) have no printed structure in
+the model.
+
+**What I already told the Claude Code session about my prototype** (check
+it with me, do not take it as measured): scale 0.337, about 205 mm tall.
+Hind legs: three motors each (hip abduction `mg996r`, hip flexion
+`scs0009`, knee `scs0009`), with the hip flexion and knee axes almost on
+top of each other. Front legs: two motors each (hip abduction `mg996r`,
+then one pitch joint driving the shank, `scs0009`), no thigh at all. Front
+and hind knees point backward. No neck or head motors. Printed PLA at 15 %
+infill, 2 perimeters, 0.4 mm line width, with stainless steel rods. I have
+not yet given anyone my leg measurements in millimetres: ask me for them.
 
 ## 2. Ask me these first
 
@@ -116,14 +127,17 @@ axis; `leg.<k>.thigh` is between the hip flexion axis and the knee axis;
    settings on 2026-10-08: 15 %, 2 perimeters, 0.4 mm. Ask me; do not
    assume them for a part.)
 7. Leg layout: do the front knees point forward or backward? Do the front
-   legs have three motors each or two? Does the neck turn (yaw) or nod
+   legs have three motors each or two? Do the front legs have a thigh at
+   all? Are front and hind legs the same lengths? For each leg type, in
+   millimetres: hip flexion axis to knee axis, and the last pitch axis to
+   the ground contact. Does the neck turn (yaw) or nod
    (pitch), and does the head nod, each with its own motor, or are they
    fixed? Is there a tail motor, are there ear motors?
 8. Which motors, board and battery does the prototype use, and are they in
    the component library yet? (Section 7.)
 9. Is the lab running, and when was it started? It must have been started
-   after the 2026-10-08 updates that weigh each solid with its own material
-   and estimate infilled prints (section 3).
+   after the 2026-10-09 updates (infill estimate, neck and head switches,
+   leg settings, my servos); otherwise restart it (section 3).
 
 ## 3. Start the lab on a project for the prototype
 
@@ -138,7 +152,10 @@ The lab opens in the browser. Leave that window running. If a lab was
 already running from before the update, stop it with Ctrl+C in its window
 and start it again: changes to the program only take effect on a restart.
 `projects\mass-test` is my scratch project for trying things; the prototype
-should have its own.
+should have its own. If the new settings of section 4 or the `infill est.`
+badge are missing after a restart, I run `.\calflab.ps1 setup` once and
+start the lab again. If Rhino was open, I restart it too (and run
+`CalflabInstall` once if `CalflabPush` still behaves the old way).
 
 In Rhino, `CalflabConnect` checks the link (address normally
 `http://127.0.0.1:8000`).
@@ -146,8 +163,8 @@ In Rhino, `CalflabConnect` checks the link (address normally
 ## 4. Make the lab's skeleton match my prototype
 
 1. **Form** tab, group *Scale*: set **Overall scale** (range 0.25 to 1.25).
-   0.33 gives a calf about 201 mm tall. Pick the scale that brings the
-   height readout close to my prototype.
+   0.33 gives a calf about 201 mm tall; I use 0.337. Pick the scale that
+   brings the height readout close to my prototype.
 2. The length sliders then show **real millimetres** (at 0.33: Thigh length
    56.1 with a range of 33 to 85.8, Trunk length 138.6). Typing 60 into
    Thigh length makes 60 mm thighs. Set the lengths to my prototype's
@@ -404,11 +421,41 @@ Repeat for each body. A body I do not push keeps its estimate.
 These are not in my Rhino solids; they come from the component library and
 are chosen in the **Mechanism** workspace (four actuator lists: hip
 abduction, hip flexion, knee, and "small" for neck, head, tail and ears; and
-a battery list). The library today holds full-size parts, all unverified.
-With those, a 0.33 calf still carries about 2.4 kg of components, which
-makes any simulation of it meaningless.
+a battery list). Apart from my two servos the library holds full-size
+parts, all unverified. With all of those, a 0.33 calf carries about 2.4 kg
+of components; with my servos chosen but the full-size battery and boards
+it is still about 1 kg, which my small servos cannot walk.
 
-So before reading any result, my real small parts must be entered:
+**My two servos are in the library** (entered 2026-10-09 from the documents
+I supplied, both `verified: false`; only I set that to true):
+
+| | `scs0009` (Feetech SCS0009) | `mg996r` (MG996R) |
+|---|---|---|
+| Mass | 13.2 g | 55 g |
+| Housing | 23.2 x 12.1 x 25.25 mm | 40.7 x 19.7 x 42.9 mm |
+| Stall torque at 6 V | 0.2256 N*m (2.3 kg.cm) | 1.0787 N*m (11 kgf.cm) |
+| Stall current at 6 V | 1.0 A | 2.5 A |
+| No-load speed at 6 V | 100 rpm (0.1 s/60 deg) | 71.4 rpm (0.14 s/60 deg) |
+| No-load current | 0.15 A | not entered |
+| Protocol | TTL serial bus | PWM |
+| Source | Feetech product page | a reseller's user guide (Handson Technology), not the maker's datasheet |
+
+Left blank in both, so the lab runs on its defaults and says "default
+assumed": cost, gear ratio, rotor inertia, winding resistance, the two
+thermal values, maximum temperature. The BOM cost and motor-temperature
+numbers for these servos therefore mean nothing yet. For the MG996R the
+guide's "Running Current: 500mA" was not entered because it does not say at
+what load, and the guide says it turns only about 120 degrees (60 each
+way), which nothing in the lab checks against the joint ranges. Both are
+entered at 6 V, while the only battery in the library is a 3S pack (11.1 V
+nominal) that the power budget uses as the bus voltage.
+
+In Mechanism for my prototype: `act_hip_abd` = `mg996r`, `act_hip_flex` =
+`scs0009`, `act_knee` = `scs0009` (this one also drives the front shoulder
+pitch joints).
+
+**Still missing: my real battery and board.** Until they are entered, mass,
+power and walking results are placeholders. A new part starts like this:
 
 ```
 .\calflab.ps1 components new actuator my_servo --name "Maker Model 123"
