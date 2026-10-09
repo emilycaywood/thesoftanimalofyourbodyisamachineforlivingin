@@ -54,6 +54,11 @@ export function MassReadout() {
       <div className="mt-1 h-1.5 overflow-hidden rounded bg-bg3">
         <div className={scene.mass.over_budget ? "h-full bg-err" : "h-full bg-ok"} style={{ width: `${pct}%` }} />
       </div>
+      {scene.warnings.length > 0 && (
+        <div className="mt-1 text-[10px] text-warn" data-testid="mass-warning" title={scene.warnings.join("\n")}>
+          {scene.warnings.length} warning{scene.warnings.length > 1 ? "s" : ""}: {scene.warnings[0]}
+        </div>
+      )}
       <div className="mt-1 flex justify-between text-[10px] text-dim">
         <span>height {fmt(scene.extents.height_mm, 0)} mm</span>
         <span>length {fmt(scene.extents.length_mm, 0)} mm</span>

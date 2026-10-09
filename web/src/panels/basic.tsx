@@ -259,8 +259,8 @@ export function OverridesPanel() {
   if (!overrides.length) {
     return (
       <Empty title="No overrides">
-        Direct edits (a gumball drag, a typed value, geometry pushed from Rhino) are stored here as named records layered over the
-        parametric design. Select a leg segment and drag its handle to make one.
+        Direct edits (a gumball drag, a typed value, geometry pushed from Rhino, a part's material or weighed mass) are stored
+        here as named records layered over the parametric design. Select a leg segment and drag its handle to make one.
       </Empty>
     );
   }
@@ -272,7 +272,12 @@ export function OverridesPanel() {
           <div className="min-w-0 flex-1">
             <div className="truncate">{o.name}</div>
             <div className="truncate font-mono text-[10px] text-dim">
-              {o.target}{o.kind === "param" ? `.${o.param} = ${fmt(o.value)}` : ` · geometry (${o.asset})`} · from {o.source}
+              {o.target}
+              {o.kind === "param" && `.${o.param} = ${fmt(o.value)}`}
+              {o.kind === "geometry" && ` · ${o.meta?.layer ?? "Skin"} geometry${o.meta?.solid ? (o.meta.solid.closed ? `, closed solid ${fmt(o.meta.solid.volume_mm3 / 1000, 1)} cm3` : ", open: not used for mass") : ""}${o.meta?.material ? `, ${o.meta.material}` : ""}`}
+              {o.kind === "material" && ` · material = ${o.material}`}
+              {o.kind === "mass" && ` · measured ${fmt(o.value)} g`}
+              {" "}· from {o.source}
             </div>
           </div>
           {o.kind === "param" && (

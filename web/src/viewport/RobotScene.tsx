@@ -270,6 +270,8 @@ export function RobotScene({
               if (layer && !layer.visible) return null;
               if (hid.has(geom.id)) return null;
               if (overlays.collision && geom.role === "visual") return null;
+              // the envelope under a pushed solid is a collision shape only: drawn with the collision overlay
+              if (!overlays.collision && geom.role === "collision") return null;
               const color = overlays.massColors
                 ? massColor((scene.mass.by_body_g[body.id] ?? 0) / total)
                 : (geom.color ?? layer?.color ?? "#b9c0c9");

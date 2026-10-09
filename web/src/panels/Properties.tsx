@@ -2,11 +2,12 @@
 // selected (a part, a component, a joint, a graph node). Shows the parametric
 // value, override status with internalize / remove, and unverified-spec badges.
 import { useEffect, useState } from "react";
-import type { ComponentInfo, ElementInfo, ParamValue } from "@/api/types";
+import type { ComponentInfo, ElementInfo, ParamValue, StructureMass } from "@/api/types";
 import { SchemaForm } from "@/components/SchemaForm";
 import { Badge, Button, Empty, PanelScroll, Row, Section, Unverified, fmt } from "@/components/ui";
 import { useLab } from "@/store/lab";
 import { useView } from "@/store/view";
+import { SourceBadge } from "./Mass";
 
 function ParamRow({ element, name, pv }: { element: string; name: string; pv: ParamValue }) {
   const run = useLab((s) => s.run);
@@ -58,7 +59,67 @@ function ParamRow({ element, name, pv }: { element: string; name: string; pv: Pa
   );
 }
 
-const HIDDEN_SPECS = new Set(["key", "kind", "name", "manufacturer", "url", "source", "verified", "notes"]);
+const HIDDEN_SPECS = new Set(["key", "kind", "name", "manufacturer", "url", "source", "verified", "notes", "guessed", "defaulted"]);
+
+/** Material and mass of a part's printed structure: choose the material, see where the mass comes from, enter a weighed value. */
+function StructureCard({ id, st }: { id: string; st: StructureMass }) {
+  const materials = useLab((s) => s.scene?.materials) ?? [];
+  const run = useLab((s) => s.run);
+  const [text, setText] = useState("");
+  const measured = st.source === "measured" ? st.mass_g : null;
+  useEffect(() => setText(measured === null ? "" : String(measured)), [measured]);
+  const commit = () => {
+    const v = text.trim() === "" ? 0 : Number(text);
+    if (Number.isNaN(v) || v === (measured ?? 0)) return setText(measured === null ? "" : String(measured));
+    void run("set_measured_mass", { target: id, mass_g: v }).catch(() => setText(measured === null ? "" : String(measured)));
+  };
+  const current = materials.find((m) => m.key === st.material);
+  return (
+    <Section title="Material and mass" right={st.source ? <SourceBadge source={st.source} label={st.source_label} /> : undefined}>
+      <Row label="Material" title="Structure material of this part (config/components/materials.yaml)">
+        <select
+          className="min-w-0 flex-1"
+          data-testid="part-material"
+          value={st.material ?? ""}
+          onChange={(e) => void run("set_part_material", { target: id, material: e.target.value }).catch(() => undefined)}
+        >
+          {materials.map((m) => (
+            <option key={m.key} value={m.key}>{m.name} · {m.density_g_cm3} g/cm3{m.default ? " (default)" : ""}</option>
+          ))}
+        </select>
+        {current && !current.verified && <Unverified />}
+      </Row>
+      <Row label="Structure mass" title="Mass of the printed part, without motors, electronics, skin or hoof">
+        <b data-testid="part-mass">{fmt(st.mass_g, 1)} g</b>
+      </Row>
+      <Row label="Source"><span className="selectable" data-testid="part-mass-source">{st.source_label}</span></Row>
+      {st.replaced_g !== null && (
+        <Row label="Envelope estimate" title="The parametric estimate the pushed solid replaced: not counted">
+          <span className="text-dim">{fmt(st.replaced_g, 1)} g (not counted)</span>
+        </Row>
+      )}
+      {st.computed_g !== null && (
+        <Row label="Computed" title="What the geometry and material give; the weighed value is used instead">
+          <span className="text-dim" data-testid="part-mass-computed">{fmt(st.computed_g, 1)} g</span>
+        </Row>
+      )}
+      <Row label="Measured" title="Weigh the printed part and enter it here; it replaces the computed structure mass. Empty = not weighed.">
+        <input
+          type="text"
+          className="min-w-0 flex-1 text-right"
+          data-testid="part-measured"
+          placeholder="not weighed"
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onBlur={commit}
+          onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
+        />
+        <span className="w-7 text-[10px] text-dim">g</span>
+      </Row>
+      {st.note && <div className="mt-1 text-warn" data-testid="part-mass-note">{st.note}</div>}
+    </Section>
+  );
+}
 
 function ComponentCard({ c }: { c: ComponentInfo }) {
   return (
@@ -71,6 +132,8 @@ function ComponentCard({ c }: { c: ComponentInfo }) {
           .map(([k, v]) => (
             <Row key={k} label={k.replace(/_/g, " ")}>
               <span className="selectable truncate">{Array.isArray(v) ? v.join(" x ") : fmt(v)}</span>
+              {c.guessed?.includes(k) && <Badge tone="warn" title="A guess: this value is not on the datasheet">guess</Badge>}
+              {c.defaulted?.includes(k) && <Badge tone="warn" title="Not entered: this is the program's default, not a value of this part">default</Badge>}
             </Row>
           ))}
       </div>
@@ -90,7 +153,7 @@ function ElementProps({ id, el }: { id: string; el: ElementInfo }) {
   const params = Object.entries(el.params ?? {});
   const joint = el.kind === "joint" ? scene.joints.find((j) => j.id === id) : undefined;
   const info = Object.entries(el).filter(
-    ([k, v]) => !["kind", "name", "layer", "params", "component", "transmission", "wires"].includes(k) && v !== null && typeof v !== "object",
+    ([k, v]) => !["kind", "name", "layer", "params", "component", "transmission", "wires", "structure"].includes(k) && v !== null && typeof v !== "object",
   );
   return (
     <>
@@ -121,6 +184,7 @@ function ElementProps({ id, el }: { id: string; el: ElementInfo }) {
           </>
         )}
       </Section>
+      {el.structure && <StructureCard id={id} st={el.structure} />}
       {params.length > 0 && (
         <Section title="Parameters">
           {params.map(([name, pv]) => (
