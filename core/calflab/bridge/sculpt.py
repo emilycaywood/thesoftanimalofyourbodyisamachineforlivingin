@@ -43,10 +43,18 @@ def save_pushed_mesh(
     own material (empty = ``material``), so a part of printed plastic and
     steel rods gets the right mass, centre of mass and inertia (ADR-053). On
     any other layer the parts are simply joined.
+
+    A part may carry ``print``: its ``calflab.print.*`` user text as sent
+    (``{"infill": "15", "perimeters": "2", "line_width": "0.4"}``). Such a
+    solid is weighed as printed, a shell of the wall thickness at full density
+    plus the core at the infill percentage (ADR-054); the core is measured
+    here and stored with the solid. A solid without print tags stays fully
+    dense. Incomplete or unreadable tags refuse the push: no value is assumed.
     """
     import trimesh
 
     from calflab.app.lab import LabError
+    from calflab.model.infill import PrintSettings, measure_core, parse_print_tags, scale_core
     from calflab.model.solid import HOST_VOLUME_TOLERANCE, analyze_mesh, use_host_volume
 
     design = lab.design()
@@ -55,18 +63,34 @@ def save_pushed_mesh(
     except KeyError as exc:
         raise LabError(f"{target!r} is not a body; push geometry onto a body id such as 'head'") from exc
     parts = [p for p in parts or [] if p.get("faces")]
+
+    def print_settings(part: dict[str, Any], label: str) -> PrintSettings | None:
+        """The part's print tags, read before anything is stored."""
+        if layer != "Structure" or not isinstance(part.get("print"), dict):
+            return None
+        try:
+            return parse_print_tags(part["print"])
+        except ValueError as exc:
+            raise LabError(f"{label}: {exc}. Nothing was pushed.") from exc
+
+    settings = [print_settings(part, f"Solid {str(part.get('name') or n)!r}") for n, part in enumerate(parts, start=1)]
+    single: PrintSettings | None = None
     if len(parts) == 1 or (parts and layer != "Structure"):
         if len(parts) == 1:  # one solid: exactly a plain push with that object's material
             material = str(parts[0].get("material") or material)
             host = parts[0].get("host") if isinstance(parts[0].get("host"), dict) else host
+            single = settings[0]
         vertices, faces = _joined(parts)
         parts = []
     p, q = design.spec.world_poses()[target]
     r = quat_to_matrix(q)
     stamp = now_iso().replace(":", "").replace("-", "")
 
-    def measure(vertices: Any, faces: Any, host: dict[str, Any] | None, suffix: str) -> tuple[Any, float | None, str]:
-        """Analyse one world-space mesh in the body frame and store it; (solid, volume error, asset)."""
+    def measure(
+        vertices: Any, faces: Any, host: dict[str, Any] | None, suffix: str, how: PrintSettings | None
+    ) -> tuple[Any, float | None, str, dict[str, Any]]:
+        """Analyse one world-space mesh in the body frame and store it; (solid, volume error, asset,
+        print settings and measured core of a solid tagged with them)."""
         v = np.asarray(vertices, dtype=float)
         f = np.asarray(faces, dtype=int)
         if v.ndim != 2 or v.shape[1] != 3 or f.ndim != 2 or f.shape[1] != 3 or len(v) == 0:
@@ -78,7 +102,15 @@ def save_pushed_mesh(
         path = lab.project.path / rel
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(trimesh.Scene(trimesh.Trimesh(vertices=local, faces=f, process=False)).export(file_type="glb"))
-        return solid, error, rel
+        printed: dict[str, Any] = {}
+        if how is not None:
+            printed["print"] = how.model_dump(mode="json")
+            if solid.closed:
+                core = measure_core(local, f, how.wall_mm)
+                if solid.volume_source == "host":  # the core follows the solid to the sender's exact volume
+                    scale_core(core, solid.volume_mm3 / solid.mesh_volume_mm3)
+                printed["print_core"] = core.model_dump(mode="json")
+        return solid, error, rel, printed
 
     args: dict[str, Any] = {"target": target, "name": name or f"{target} sculpt", "layer": layer, "source": source,
                             "material": material}
@@ -86,12 +118,12 @@ def save_pushed_mesh(
     if parts:
         for n, part in enumerate(parts, start=1):
             part_host = part.get("host") if isinstance(part.get("host"), dict) else None
-            solid, error, rel = measure(part.get("vertices", []), part.get("faces", []), part_host, f"-{n}")
+            solid, error, rel, printed = measure(part.get("vertices", []), part.get("faces", []), part_host, f"-{n}", settings[n - 1])
             measured.append({"name": str(part.get("name") or f"solid {n}"), "asset": rel, "material": str(part.get("material") or ""),
-                             "solid": solid, "error": error, "host_closed": bool((part_host or {}).get("closed"))})
+                             "solid": solid, "error": error, "host_closed": bool((part_host or {}).get("closed")), "printed": printed})
         args.update({
             "asset": measured[0]["asset"],
-            "solids": [{**{k: m[k] for k in ("name", "asset", "material")}, "solid": m["solid"].model_dump(mode="json")}
+            "solids": [{**{k: m[k] for k in ("name", "asset", "material")}, "solid": m["solid"].model_dump(mode="json"), **m["printed"]}
                        for m in measured],
         })
         n_vertices = sum(len(part.get("vertices", [])) for part in parts)
@@ -103,8 +135,9 @@ def save_pushed_mesh(
         }
         volume_error = None
     else:
-        solid, volume_error, rel = measure(vertices, faces, host, "")
-        args.update({"asset": rel, "solid": solid.model_dump(mode="json")})
+        solid, volume_error, rel, printed = measure(vertices, faces, host, "", single)
+        args.update({"asset": rel, "solid": solid.model_dump(mode="json"),
+                     "print_settings": printed.get("print", {}), "print_core": printed.get("print_core", {})})
         n_vertices, n_faces = len(vertices), len(faces)
         summary = solid.model_dump(mode="json")
     res = lab.execute("add_geometry_override", args, client=source)
@@ -125,8 +158,18 @@ def save_pushed_mesh(
     out.update({"mass_g": st["mass_g"], "material": st["material"] or st["material_label"], "materials": st["materials"],
                 "replaced_g": st["replaced_g"]})
     warnings: list[str] = []
-    if st["source"] == "geometry":
+    if st["source"] in ("geometry", "infill"):
         out["mass_from_geometry"] = True
+        if st["source"] == "infill":
+            # the mass is an estimate of the printed part, not volume x density: every printout says so
+            out["estimate"] = "infill"
+            out["estimate_note"] = st["estimate_note"]
+            if not measured:
+                out["infill"] = st["solids"][0]["infill"]
+        unused = sorted({key for row in st["solids"] for key in (row["infill"] or {}).get("ignored", [])})
+        if unused:
+            out["note"] = (f"{', '.join(unused)} {'is' if len(unused) == 1 else 'are'} not used: the infill estimate takes one wall "
+                           "thickness all round (perimeters x line width).")
         if st["com_mm"] is not None:
             out["com_mm"] = st["com_mm"]  # body frame
             c = quat_rotate(q, tuple(st["com_mm"]))
@@ -139,7 +182,7 @@ def save_pushed_mesh(
                 out["solids"].append(
                     {"name": m["name"], "material": row["material"], "mass_g": row["mass_g"],
                      "volume_mm3": m["solid"].volume_mm3, "volume_source": m["solid"].volume_source,
-                     "volume_error": None if m["error"] is None else round(m["error"], 5)}
+                     "volume_error": None if m["error"] is None else round(m["error"], 5), "infill": row["infill"]}
                 )
         if volume_error is not None:
             out["volume_error"] = round(volume_error, 5)  # mesh volume against the sender's exact volume

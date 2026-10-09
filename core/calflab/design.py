@@ -104,6 +104,7 @@ def _apply_geometry_override(
     *Any other layer* (a skin sculpt): the mesh replaces the visible surface
     and keeps the mass the envelope estimate gave it.
     """
+    from calflab.model.infill import PrintCore, PrintSettings, estimate_info, printed_solid
     from calflab.model.solid import SolidInfo, scaled_inertia
 
     try:
@@ -136,11 +137,12 @@ def _apply_geometry_override(
     estimate = sum(g.mass_g for g in replaced)
     # one entry per pushed solid; a push of a single solid has no list (ADR-053)
     entries: list[dict[str, Any]] = list(ov.meta.get("solids") or []) or [
-        {"asset": ov.asset, "material": ov.meta.get("material"), "solid": ov.meta.get("solid")}
+        {"asset": ov.asset, "material": ov.meta.get("material"), "solid": ov.meta.get("solid"),
+         "print": ov.meta.get("print"), "print_core": ov.meta.get("print_core")}
     ]
     several = len(entries) > 1
     meshes: list[Geom] = []
-    measured: list[tuple[SolidInfo, MaterialSpec | None]] = []
+    measured: list[tuple[SolidInfo, MaterialSpec | None, PrintSettings | None, PrintCore | None]] = []
     problems: list[str] = []
     for n, entry in enumerate(entries, start=1):
         label = str(entry.get("name") or f"solid {n}")
@@ -154,9 +156,14 @@ def _apply_geometry_override(
             problem = solid.problem or "it is not a closed solid"
         elif mat is None:
             problem = f"{key!r} is not a structure material in the library"
+        # a solid tagged with print settings is weighed as printed: shell + infilled core (ADR-054)
+        how = PrintSettings.model_validate(entry["print"]) if entry.get("print") else None
+        core = PrintCore.model_validate(entry["print_core"]) if how and entry.get("print_core") else None
+        if how and core is None and not problem:
+            problem = "its print settings arrived without the measured core (push it again)"
         if problem:
             problems.append(f"{label}: {problem}" if several else problem)
-        measured.append((solid, mat))
+        measured.append((solid, mat, how, core))
         meshes.append(
             mesh.model_copy(update={"id": f"{mesh.id}.{n}", "mesh": entry.get("asset") or ov.asset, "label": f"{ov.name}: {label}"})
             if several
@@ -176,14 +183,20 @@ def _apply_geometry_override(
         for g in [*meshes, *replaced]:
             g.mass_note = note
     else:
-        for g, (solid, mat) in zip(meshes, measured, strict=True):
+        for g, (solid, mat, how, core) in zip(meshes, measured, strict=True):
             assert mat is not None
             density = mat.density_g_cm3 / 1000.0  # g/mm^3: each solid with its own material
-            g.mass_g = solid.volume_mm3 * density
+            volume, com, inertia = solid.volume_mm3, solid.com_mm, solid.inertia_mm5
             g.mass_source = "geometry"
+            if how is not None and core is not None:
+                # the density stays the material's; the estimate removes what the infill leaves empty
+                volume, com, inertia = printed_solid(solid, core, how.fraction)
+                g.mass_source = "infill"
+                g.infill = estimate_info(solid, core, how, mat.density_g_cm3)
+            g.mass_g = volume * density
             g.material = mat.key
-            g.com = solid.com_mm
-            g.inertia = scaled_inertia(solid.inertia_mm5, density)
+            g.com = com
+            g.inertia = scaled_inertia(inertia, density)
         meshes[0].mass_replaced_g = estimate
         for g in replaced:
             g.mass_g = 0.0

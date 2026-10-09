@@ -42,8 +42,9 @@ LAYER_COLORS: dict[str, str] = {
 GeomShape = Literal["box", "capsule", "cylinder", "sphere", "ellipsoid", "mesh"]
 
 #: Where a geom's mass comes from (ADR-050). ``parametric`` is the envelope
-#: estimate of ADR-017; ``geometry`` is a pushed closed solid x material density.
-MassSource = Literal["parametric", "component", "geometry", "measured"]
+#: estimate of ADR-017; ``geometry`` is a pushed closed solid x material density;
+#: ``infill`` is such a solid weighed as printed, shell + infilled core (ADR-054).
+MassSource = Literal["parametric", "component", "geometry", "infill", "measured"]
 #: (ixx, iyy, izz, ixy, ixz, iyz)
 Inertia6 = tuple[float, float, float, float, float, float]
 
@@ -79,6 +80,8 @@ class Geom(BaseModel):
     mass_computed_g: float | None = None  # value a measured mass replaced
     mass_replaced_g: float | None = None  # envelope estimate a pushed solid replaced (not counted)
     mass_note: str = ""  # e.g. why a pushed solid was not used for mass
+    #: what an infill estimate was made from (``calflab.model.infill.estimate_info``); None = not printed with infill
+    infill: dict[str, Any] | None = None
 
     def mass_center(self) -> Vec3:
         """Centre of mass in the body frame (mm)."""

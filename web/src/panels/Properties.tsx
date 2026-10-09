@@ -99,15 +99,22 @@ function StructureCard({ id, st }: { id: string; st: StructureMass }) {
         <Row key={s.id} label="" title={s.id}>
           <span className="min-w-0 flex-1 truncate text-[10px] text-dim" data-part-solid={s.id}>
             {s.label} · {s.material}{s.verified === false && <span className="text-warn" title="Unverified library entry"> *</span>}
+            {s.infill && " · infill estimate"}
           </span>
           <span className="text-dim">{fmt(s.mass_g, 1)} g</span>
         </Row>
       ))}
+      {st.solids.filter((s) => s.infill).map((s) => (
+        <div key={s.id} className="selectable py-0.5 text-[10px] text-dim" data-part-infill={s.id}>
+          {st.solids.length > 1 && `${s.label}: `}{s.infill!.label}
+        </div>
+      ))}
       <Row label="Structure mass" title="Mass of the printed part, without motors, electronics, skin or hoof">
         <b data-testid="part-mass">{fmt(st.mass_g, 1)} g</b>
+        {st.source === "infill" && <Badge tone="warn" title={st.estimate_note}>infill estimate</Badge>}
       </Row>
       <Row label="Source"><span className="selectable" data-testid="part-mass-source">{st.source_label}</span></Row>
-      {st.source === "geometry" && st.com_mm && (
+      {(st.source === "geometry" || st.source === "infill") && st.com_mm && (
         <Row label="Centre of mass" title="Centre of mass of the pushed solids, each with its own density, in this part's own frame (mm)">
           <span className="selectable text-dim" data-testid="part-com">{st.com_mm.map((v) => fmt(v, 1)).join(", ")} mm</span>
         </Row>
@@ -135,6 +142,7 @@ function StructureCard({ id, st }: { id: string; st: StructureMass }) {
         />
         <span className="w-7 text-[10px] text-dim">g</span>
       </Row>
+      {st.estimate_note && <div className="mt-1 text-warn" data-testid="part-estimate-note">{st.estimate_note}</div>}
       {st.note && <div className="mt-1 text-warn" data-testid="part-mass-note">{st.note}</div>}
     </Section>
   );

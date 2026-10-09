@@ -223,6 +223,93 @@ material is not in the library, **none** of them is used for mass and the
 warning names the one at fault: a part missing its rods would otherwise be
 too light without saying so.
 
+**A part printed with infill (the infill estimate).** A solid modelled full
+but printed with infill is much lighter than volume x density. Tag the solid
+with how it is printed, the same way as its material (*Properties >
+Attribute User Text* in Rhino). All three keys are needed; nothing has a
+default:
+
+| Key | Value | Example |
+|---|---|---|
+| `calflab.print.infill` | infill percentage, 0 to 100 (`15` or `15 %`, not `0.15`) | `15` |
+| `calflab.print.perimeters` | number of perimeters (walls), a whole number, 1 or more | `2` |
+| `calflab.print.line_width` | line (extrusion) width in mm | `0.4` |
+
+`CalflabPush` then weighs that solid as printed:
+
+* **Shell:** everything within one wall thickness (perimeters x line width,
+  here 0.8 mm) of the solid's surface, at the material's full density.
+* **Core:** everything deeper than that, at the infill percentage of the
+  density.
+* mass = density x (shell volume + infill x core volume). The density is
+  still the material's own (`pla` 1.24 g/cm3, unverified); the estimate is
+  applied on top of it, and choosing another material in Properties keeps
+  the estimate.
+* Centre of mass and inertia follow the same split (the dense solid minus
+  the missing part of the core), not a uniform solid scaled down: a part
+  with a thick end and a thin end has its centre of mass nearer the thin
+  end, and a hollow-ish part is harder to swing than its mass suggests.
+
+A solid without the three tags is weighed fully dense, exactly as before,
+so steel rods need nothing. A solid tagged `100` weighs exactly what an
+untagged one does. Rhino prints, for a 100 mm PLA cube at 15 %, 2 perimeters,
+0.4 mm:
+
+```
+CALFLAB: trunk structure mass is now 235.7 g, an INFILL ESTIMATE (1000.0 cm3 outer volume of pla; the envelope estimate it replaces was 629.1 g)
+CALFLAB:   infill estimate: 15 % infill, 2 perimeters x 0.4 mm = 0.8 mm wall; shell 47.2 cm3 at full density + core 952.8 cm3 at 15 %; fully dense it would be 1240.0 g
+CALFLAB: the volume is Rhino's exact one (the mesh alone would be +0.00 % off)
+CALFLAB: trunk structure centre of mass is at (0.0, 0.0, 379.5) mm
+CALFLAB: Infill estimate, not a weighed mass: a shell of the wall thickness at full material density plus the core inside it at the infill percentage. It ignores the infill pattern and the slicer's real path. Weigh the print and enter it in Measured for the real value.
+```
+
+Check by hand: the core of the cube is 98.4 x 98.4 x 98.4 mm = 952.8 cm3,
+the shell 1000 - 952.8 = 47.2 cm3, and (47.2 + 0.15 x 952.8) x 1.24 =
+235.8 g. (CALFLAB measures the core on a grid of half the wall thickness
+and lands within about 0.1 % of that; all infill would be 186 g, fully
+dense 1240 g.) In a push of several solids each tagged solid's line ends
+in `(infill estimate)` and is followed by its own `infill estimate: ...`
+line; untagged solids print as before.
+
+How it is computed and what it leaves out:
+
+* *Thin features.* Where the solid is thinner than two walls (1.6 mm here)
+  there is no point deeper than a wall, so there is no core there: that
+  feature counts as fully dense, which is how it prints. The core can never
+  be negative or larger than the solid, so the estimate always lies between
+  all infill and fully dense. A solid that is thin everywhere prints `no
+  core (nowhere thicker than two walls), so all 3.6 cm3 count at full
+  density`. Features only just thicker than two walls (up to about one
+  grid step, 0.4 mm, more) are counted to within a few percent.
+* *One wall thickness all round.* Top and bottom layers are taken to be as
+  thick as the walls; the print direction is not known to CALFLAB. Your
+  choice on 2026-10-08. If a solid also carries `calflab.print.top_layers`,
+  `calflab.print.bottom_layers` or `calflab.print.layer_height`, Rhino
+  prints that they `are not used`. A flat part whose top and bottom skins
+  are thicker than 0.8 mm (3 layers of 0.2 mm are 0.6 mm, so with your
+  settings they are thinner) will differ from the slicer accordingly.
+* *It ignores* the infill pattern, the slicer's real path (gap fill, extra
+  perimeters around holes, solid layers above and below sloped surfaces),
+  supports, brims, and under- or over-extrusion. Compare a few parts with
+  your slicer's filament weight at the same settings before relying on it.
+* *Internal holes and voids* get walls like any other surface.
+* *Incomplete or unreadable tags refuse the push*, naming the solid and the
+  tag: `Solid 'cube': it has print tags but not calflab.print.perimeters,
+  calflab.print.line_width. An infill estimate needs all of
+  calflab.print.infill, calflab.print.perimeters, calflab.print.line_width;
+  no value is assumed. Nothing was pushed.`
+* A large solid takes a few seconds to push (a 100 mm cube about 5 s).
+* **Weighing the print and typing the grams into Measured (3 below) is
+  still the most accurate.** The estimate then stays visible as *Computed*.
+
+In the web lab the mass is never shown as a dense or weighed one:
+*Properties > Material and mass* carries the badge `infill est.`, an
+`infill estimate` marker beside the structure mass, the Source "Pushed
+solid, infill estimate (shell + infilled core)", the `infill estimate: ...`
+line of each tagged solid, and the note that it is not a weighed mass. The
+**Mass** panel shows the part with the badge `infill est.` and sums such
+masses on their own line, apart from `geometry`.
+
 * The envelope estimate is no longer counted for that part. Motors, boards,
   battery, skin and hooves are separate items and stay.
 * **An open or invalid object is shown but not used for mass.** Rhino prints
@@ -230,10 +317,9 @@ too light without saying so.
   is kept.` and the same warning appears under the mass readout in Form, in
   the Mass panel and in Properties. Close it (`ShowEdges`, `Cap`, `Join`)
   and push again.
-* Volume x density is the mass of a **fully dense** part. For a hollow or
-  infilled print, either model the real walls, or add a material whose
-  density is what you measure on a printed sample (mass / outer volume), or
-  weigh the part (3 below).
+* Without print tags, volume x density is the mass of a **fully dense**
+  part. For an infilled print, tag the solid (above) or weigh the part (3
+  below); for a hollow one, model the real walls.
 * Several separate closed objects add up, each with its own material.
   Objects that overlap are counted twice: `BooleanUnion` them if they are
   the same material, or `BooleanDifference` the rod out of the plastic.
@@ -264,16 +350,23 @@ the source `geometry`, and opens to one row per solid. A weighed
 **Measured** mass on top scales the solids together, so the centre of mass
 stays where the geometry and densities put it. The **Mass** panel (Form and Mechanism
 workspaces) lists every part with the source of its structure mass
-(`geometry`, `measured`, `estimate`), opens to its items (click a row), sums
+(`infill est.`, `geometry`, `measured`, `estimate`), opens to its items (click a row), sums
 the total by source, and says how much of it rests on unverified library
 entries. The **target** at the top right of that panel is this project's
 own mass target; 0 returns to the default. `CalflabPull` writes
 `calflab.material`, `calflab.mass_g` and `calflab.mass_source` into each
 object's user text (a part of several solids comes back as one object per
-solid, each with its own material). Every simulation run records which
-parts had geometry-based or weighed mass, and each part's materials and,
-for a part of several solids, each solid's material and mass
-(`inputs.mass.structure` in `runs/<id>/run.json`).
+solid, each with its own material; a solid weighed with an infill estimate
+also gets its three `calflab.print.*` tags back, and `calflab.mass_source`
+`infill`). Every simulation run records which parts had geometry-based or
+weighed mass (`geometry_parts`, `infill_parts`, `measured_parts`), and each
+part's materials and, for a part of several solids, each solid's material
+and mass (`inputs.mass.structure` in `runs/<id>/run.json`). For a solid
+weighed with an infill estimate the record holds, under
+`inputs.mass.structure.<body>.solids[n]`, its estimated `mass_g` and an
+`infill` entry with the print settings (`infill_pct`, `perimeters`,
+`line_width_mm`, `wall_mm`), the outer, shell and core volumes and the
+fully dense mass (`dense_g`); the part's `source` is `infill`.
 
 ---
 

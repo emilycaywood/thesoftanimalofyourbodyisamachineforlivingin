@@ -161,7 +161,16 @@ class AddGeometryOverride(Command):
         )
         solids: list[dict[str, Any]] = P(
             default_factory=list, ui="json",
-            desc="A push of several solids: one {name, asset, material, solid} each (material empty = the one above).",
+            desc="A push of several solids: one {name, asset, material, solid} each (material empty = the one above), "
+                 "with {print, print_core} for a solid weighed as printed with infill.",
+        )
+        print_settings: dict[str, Any] = P(
+            default_factory=dict, ui="json",
+            desc="Print settings of a single pushed solid (infill_pct, perimeters, line_width_mm); empty = fully dense.",
+        )
+        print_core: dict[str, Any] = P(
+            default_factory=dict, ui="json",
+            desc="The part of that solid deeper than the wall, measured when the mesh arrived (volume, centre, inertia).",
         )
 
     def title(self) -> str:
@@ -187,6 +196,10 @@ class AddGeometryOverride(Command):
         )
         if p.solid:  # type: ignore[attr-defined]
             ov.meta["solid"] = dict(p.solid)  # type: ignore[attr-defined]
+        if p.print_settings:  # type: ignore[attr-defined]
+            ov.meta["print"] = dict(p.print_settings)  # type: ignore[attr-defined]
+            if p.print_core:  # type: ignore[attr-defined]
+                ov.meta["print_core"] = dict(p.print_core)  # type: ignore[attr-defined]
         if p.material:  # type: ignore[attr-defined]
             _structure_material(p.material)  # type: ignore[attr-defined]
             ov.meta["material"] = p.material  # type: ignore[attr-defined]

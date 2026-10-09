@@ -59,7 +59,7 @@ core/calflab/
   units.py            unit conversion (single place)
   schema.py           P(...) fields + ui_schema()
   plugins/            base classes, registry, discovery, templates, contracts
-  model/              RobotSpec, Genome, overrides, Design
+  model/              RobotSpec, Genome, overrides, Design, pushed solids, infill estimate
   components/         YAML library loader
   morphology/         part generators (reference calf)
   sim/                MJCF/URDF compile, MuJoCo rollouts, metrics, skin
@@ -138,7 +138,9 @@ every value `null`). Actuators and batteries are then selectable through
 **Mass** (ADR-050): every `Geom` carries `mass_source`; a new geom that
 represents a library part must set `mass_source="component"`, and anything
 that changes mass must keep `calflab.model.mass.mass_breakdown` adding up to
-`RobotSpec.total_mass_g()`. Lengths in a part generator follow the `scale`
+`RobotSpec.total_mass_g()`. A mass that is an estimate must say so wherever
+it is shown (`mass_source="infill"`, ADR-054), never pass as a dense or
+weighed one. Lengths in a part generator follow the `scale`
 gene (ADR-052): multiply fixed millimetre constants by it, and mark a new
 length gene `scale_by: scale`. Such genes are stored at full size; anything a
 person reads or types must be the real value (`GenomeDefinition.real_values`,

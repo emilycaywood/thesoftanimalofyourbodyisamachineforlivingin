@@ -53,6 +53,11 @@ def rhino_build_list(design: EvaluatedDesign, revision: int = 0) -> dict[str, An
             if g.material:
                 # CalflabPush offers this as the material of whatever is pushed back
                 user_text["calflab.material"] = g.material
+            if g.infill:
+                # the print settings the solid was weighed with, so pushing it back keeps the infill estimate
+                user_text["calflab.print.infill"] = f"{g.infill['infill_pct']:g}"
+                user_text["calflab.print.perimeters"] = str(g.infill["perimeters"])
+                user_text["calflab.print.line_width"] = f"{g.infill['line_width_mm']:g}"
             obj: dict[str, Any] = {
                 "id": g.id,
                 "name": g.id,

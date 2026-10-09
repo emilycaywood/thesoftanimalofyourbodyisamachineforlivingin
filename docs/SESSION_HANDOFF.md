@@ -108,7 +108,7 @@ branched from `phase-1-vertical-slice`, pushed to GitHub and open as a pull
 request into `phase-1-vertical-slice` (so it joins pull request #1 when the
 researcher merges it).
 
-**Tests:** `calflab test` passes: ruff, 249 pytest tests, mypy, web typecheck
+**Tests:** `calflab test` passes: ruff, 258 pytest tests, mypy, web typecheck
 and eslint, 14 Vitest tests, 7 Playwright tests (smoke, material / weighed
 mass / pushed solid / Mass panel, real-millimetre sliders at scale 0.33,
 gumball drag and harness overlay with a
@@ -269,7 +269,7 @@ with stainless steel rods; ADR-053):**
 * Tests: three new ones in `tests/test_mass.py` (the first is the
   researcher's two-box check and reads `stainless_304` from the library), a
   step in `web/e2e/structure.spec.ts`, a two-solid push in
-  `bridges/rhino/validate_in_rhino.py` (**not yet run in Rhino**).
+  `bridges/rhino/validate_in_rhino.py` (run in Rhino on 2026-10-09: passed).
 * The researcher added `stainless_304` to
   `config/components/materials.yaml` (7.93 g/cm3; 39.02 USD/kg, from 12
   rods of 3 mm x 12 in for 8 USD) and marked it **verified** on 2026-10-08:
@@ -277,6 +277,31 @@ with stainless steel rods; ADR-053):**
   an explicit list, `VERIFIED_BY_RESEARCHER`; add a key there only when the
   researcher says so. A value with unit text in it (`7.93 g/cm³`) stops the
   whole library from loading; the loader does not yet report that kindly.
+
+**Added after that (researcher's request of 2026-10-08: PLA parts are
+modelled full but printed with infill; ADR-054):**
+
+* A solid tagged `calflab.print.infill`, `calflab.print.perimeters` and
+  `calflab.print.line_width` is weighed with an **infill estimate**: a shell
+  of perimeters x line width at full density plus the core at the infill
+  percentage. Centre of mass and inertia follow the same split. Untagged
+  solids are fully dense as before; 100 % equals untagged exactly.
+* `calflab.model.infill`: `parse_print_tags` (no defaults; bad tags refuse
+  the push), `measure_core` (grid, at the push; a 100 mm cube takes about
+  5 s), `printed_solid`, `estimate_info`. Stored in the override as
+  `meta.print` / `meta.print_core` (or per entry of `meta.solids`).
+* New mass source `infill`, shown as `infill est.` in the web lab and as
+  `an INFILL ESTIMATE` in Rhino; `Geom.infill`; `infill_parts` and
+  per-solid `infill` in the breakdown and in `inputs.mass` of runs;
+  `CalflabPull` writes the print tags back.
+* The researcher chose **one wall thickness all round**: top/bottom layers
+  and layer height are not used (no print direction is known). Their
+  settings: 15 %, 2 perimeters, 0.4 mm (3 top / 3 bottom layers, 0.2 mm).
+  These are not defaults anywhere in the code.
+* Tests: `tests/test_infill.py` (6), a step in `web/e2e/structure.spec.ts`,
+  a step in `bridges/rhino/validate_in_rhino.py`. `bridge rhino --check`
+  passed in Rhino 8.34 on 2026-10-09 with that step and with the two-solid
+  push of ADR-053.
 
 **Scaffolded only (interfaces + tests, no behaviour):** PPO training, MJX
 simulator, RemoteSSH and CloudNotebook transports (job bundling is real),
@@ -322,8 +347,10 @@ Journal, Rhino bridge):**
   bridge function with real Breps, not the typed prompts), and the look of
   Properties > *Material and mass* and the Mass panel (a browser test drives
   them; nobody has looked).
-* That weighing a pushed solid as fully dense is what is wanted; a printed
-  part with infill needs a measured effective density or a weighed mass.
+* The infill estimate against reality: compare two or three real parts with
+  the slicer's filament weight at the same settings, and with a scale. Tag
+  a solid in Rhino by hand (Attribute User Text) and read the printout and
+  Properties: a script did both, nobody has by hand.
 * The small calf in use: the sliders in real millimetres (chosen by the
   researcher, checked by a browser test, not yet used by hand); simulation
   settings and the default gait were
@@ -397,12 +424,12 @@ Journal, Rhino bridge):**
 |---|---|
 | `CLAUDE.md` | Conventions for every session (loaded automatically) |
 | `PLAN.md` | Architecture, module boundaries, data flow, phases, risks, status |
-| `DECISIONS.md` | ADR log: every assumption (53 so far) |
+| `DECISIONS.md` | ADR log: every assumption (54 so far) |
 | `docs/proposals/anatomical-leg.md` | Proposal for a three-segment leg (set aside 2026-10-04; not built) |
 | `docs/USER_GUIDE.md` | How to use the lab |
 | `docs/CHAT_GUIDE_PROMPT.md` | Prompt that makes a chat assistant a guide to the whole lab |
 | `docs/CHAT_GUIDE_CHASSIS.md` | The same for one workflow: chassis parts from Rhino, real mass, own components, the small calf |
-| `docs/CHAT_GUIDE_PROTOTYPE.md` | The same for one job: a small prototype already modelled in Rhino (PLA and steel rods) into the simulator; covers ADR-053, which `CHAT_GUIDE_CHASSIS.md` does not yet |
+| `docs/CHAT_GUIDE_PROTOTYPE.md` | The same for one job: a small prototype already modelled in Rhino (PLA and steel rods) into the simulator; covers ADR-053 and the infill estimate of ADR-054, which `CHAT_GUIDE_CHASSIS.md` only points to |
 | `docs/component_verification.csv` | Datasheet verification worksheet (the researcher fills it in) |
 | `bridges/rhino/README.md`, `bridges/blender/README.md` | Bridge install, conventions, what is verified |
 | `docs/notebooks/quickstart.ipynb` | Driving the lab from Python |

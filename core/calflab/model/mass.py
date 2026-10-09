@@ -1,7 +1,8 @@
 """Mass breakdown: every gram of a design, with where the number comes from.
 
 Each geom carries its mass and a ``mass_source`` (ADR-050): a pushed closed
-solid x material density (``geometry``), a component-library entry
+solid x material density (``geometry``), such a solid weighed as printed with
+infill (``infill``, an estimate: ADR-054), a component-library entry
 (``component``), the parametric envelope estimate of ADR-017 (``parametric``)
 or a weighed value (``measured``). This module only groups and sums them, so
 the breakdown always adds up to :meth:`RobotSpec.total_mass_g` and nothing is
@@ -18,11 +19,19 @@ from typing import Any
 from calflab.model.spec import RobotSpec
 
 SOURCES: dict[str, str] = {
+    "infill": "Pushed solid, infill estimate (shell + infilled core)",
     "geometry": "Pushed solid x material density",
     "measured": "Measured (weighed)",
     "component": "Component library entry",
     "parametric": "Parametric estimate (envelope)",
 }
+
+#: shown wherever a structure mass rests on an infill estimate
+INFILL_NOTE = (
+    "Infill estimate, not a weighed mass: a shell of the wall thickness at full material density plus the core "
+    "inside it at the infill percentage. It ignores the infill pattern and the slicer's real path. Weigh the print "
+    "and enter it in Measured for the real value."
+)
 
 
 def mass_breakdown(spec: RobotSpec, lib: Any) -> dict[str, Any]:
@@ -73,6 +82,8 @@ def mass_breakdown(spec: RobotSpec, lib: Any) -> dict[str, Any]:
                     "computed_g": None if g.mass_computed_g is None else round(g.mass_computed_g, 2),
                     "replaced_g": None if g.mass_replaced_g is None else round(g.mass_replaced_g, 2),
                     "note": g.mass_note,
+                    #: settings and volumes behind an infill estimate (None = not one)
+                    "infill": g.infill,
                 }
             )
             if in_structure:
@@ -89,7 +100,8 @@ def mass_breakdown(spec: RobotSpec, lib: Any) -> dict[str, Any]:
                     s_moment[k] += g.mass_g * c[k]
                 if g.shape == "mesh":  # a pushed solid, weighed with its own material
                     s_solids.append(
-                        {"id": g.id, "label": g.label or g.id, "material": g.material, "mass_g": round(g.mass_g, 2), "verified": verified}
+                        {"id": g.id, "label": g.label or g.id, "material": g.material, "mass_g": round(g.mass_g, 2), "verified": verified,
+                         "infill": g.infill}
                     )
         source = next((k for k in SOURCES if k in s_sources), None)  # the most specific one present
         materials = sorted(s_materials)
@@ -114,6 +126,8 @@ def mass_breakdown(spec: RobotSpec, lib: Any) -> dict[str, Any]:
                     "computed_g": None if s_computed is None else round(s_computed, 2),
                     "replaced_g": None if s_replaced is None else round(s_replaced, 2),
                     "note": " ".join(sorted(s_notes)),
+                    #: said beside a structure mass that is an infill estimate
+                    "estimate_note": INFILL_NOTE if source == "infill" else "",
                 },
                 "items": items,
             }
@@ -133,7 +147,9 @@ def mass_breakdown(spec: RobotSpec, lib: Any) -> dict[str, Any]:
         "total_g": round(total, 2),
         "by_source_g": {k: round(v, 2) for k, v in by_source.items()},
         "source_labels": SOURCES,
-        "geometry_parts": [r["body"] for r in bodies if r["structure"]["source"] == "geometry"],
+        "geometry_parts": [r["body"] for r in bodies if r["structure"]["source"] in ("geometry", "infill")],
+        #: the parts among them whose mass is an infill estimate
+        "infill_parts": [r["body"] for r in bodies if r["structure"]["source"] == "infill"],
         "measured_parts": [r["body"] for r in bodies if r["structure"]["source"] == "measured"],
         "unverified_g": round(unverified, 2),
         "bodies": bodies,

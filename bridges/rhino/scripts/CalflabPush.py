@@ -10,6 +10,12 @@ volume x the density of the object's ``calflab.material`` user text, or of
 the material you name here if it has none. Several solids pushed together
 are each weighed with their own material (PLA body, steel rods). An open
 object is shown but not used for mass, and the command says so.
+
+A solid printed with infill: give it the user text ``calflab.print.infill``
+(percent), ``calflab.print.perimeters`` and ``calflab.print.line_width`` (mm).
+It is then weighed as a shell of that wall thickness at full density plus the
+core at the infill percentage, and the printout marks the mass as an infill
+estimate. A solid without these tags is weighed fully dense.
 """
 import os
 import sys

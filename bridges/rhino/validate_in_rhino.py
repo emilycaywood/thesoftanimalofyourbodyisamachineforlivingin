@@ -186,6 +186,27 @@ def check_solid_push(doc):
     assert [s["material"] for s in reply["solids"]] == ["pla", "petg"], "the solids did not keep their own materials"
     assert abs(reply["mass_g"] - want) <= 0.02, "two solids weigh %.2f g, expected %.2f g" % (reply["mass_g"], want)
     assert abs(reply["com_world_mm"][0] - (c.X + x)) <= 0.05, "the centre of mass is not weighted by the solids' masses"
+
+    # a solid tagged with print settings (ADR-054): weighed as a 0.8 mm shell plus the core at 15 %, and marked as an estimate
+    attrs = Rhino.DocObjects.ObjectAttributes()
+    attrs.Name = "printed"
+    attrs.SetUserString("calflab.material", "pla")
+    for key, value in (("infill", "15"), ("perimeters", "2"), ("line_width", "0.4")):
+        attrs.SetUserString("calflab.print." + key, value)
+    oid = doc.Objects.AddBrep(box, attrs)
+    try:
+        obj = doc.Objects.FindId(oid)
+        assert cr.own_print(obj) == {"infill": "15", "perimeters": "2", "line_width": "0.4"}, "calflab.print.* user text was not read"
+        reply = cr.push([obj], "trunk", "calflab validation infill", "Structure", "")
+    finally:
+        doc.Objects.Delete(oid, True)
+    cr.request("/api/undo", {})
+    want = (100.0**3 - 98.4**3 + 0.15 * 98.4**3) / 1000.0 * density
+    out["infill"] = {"mass_g": reply.get("mass_g"), "infill": reply.get("infill"), "warning": reply.get("warning", ""),
+                     "report": cr.push_report(reply, "trunk")}
+    assert reply.get("estimate") == "infill", "a solid with print tags was not weighed as printed: %s" % out["infill"]
+    assert abs(reply["mass_g"] - want) <= 0.002 * want, "the printed cube weighs %.2f g, expected %.2f g" % (reply["mass_g"], want)
+    assert "INFILL ESTIMATE" in out["infill"]["report"][1], "the printout does not mark the mass as an infill estimate"
     return out
 
 

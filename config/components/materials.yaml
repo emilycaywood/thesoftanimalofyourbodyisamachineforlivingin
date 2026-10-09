@@ -8,9 +8,11 @@
 # physical tests in Phase 3.
 #
 # A structure material's density gives the mass of a part: a pushed closed
-# solid weighs volume x density (ADR-050). For a printed part that is not
-# solid, enter the effective density you measure (mass of a printed sample /
-# its outer volume) as its own entry, e.g. `pla_20pct_infill`.
+# solid weighs volume x density (ADR-050). A part printed with infill keeps
+# the material's own density here; tag the solid in Rhino with
+# calflab.print.infill / .perimeters / .line_width and the infill estimate is
+# applied on top of it (ADR-054). (An effective density measured on a printed
+# sample, entered as its own material, still works too.)
 # Add an entry with: calflab components new material <key>
 
 - key: petg

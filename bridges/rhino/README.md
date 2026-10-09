@@ -33,7 +33,12 @@ is left alone. Sculpt on your own layer, then `CalflabPush` it.
    `config/components/materials.yaml`). It is then weighed with that
    material. A part of several materials (PLA body, steel rods) is several
    closed solids, each with its own `calflab.material`, selected together
-   and pushed in one go (ADR-053).
+   and pushed in one go (ADR-053). A solid printed with infill also gets
+   `calflab.print.infill` (percent), `calflab.print.perimeters` and
+   `calflab.print.line_width` (mm): all three, no defaults. It is then
+   weighed as a shell of that wall thickness at full density plus the core
+   at the infill percentage, and the printout says `an INFILL ESTIMATE`
+   (ADR-054; user guide, section 4).
 3. Select it, `CalflabPush`, body ID (for example `trunk`), layer
    `Structure`, a name and, only if a selected solid has no
    `calflab.material`, the material for those (`Default` = the part's
@@ -49,7 +54,8 @@ is left alone. Sculpt on your own layer, then `CalflabPush` it.
 The lab measures the mesh Rhino makes of the object, and takes the volume
 from Rhino's own exact figure when the two agree within 5 % (a meshed sphere
 is about 1.6 % small). Objects that overlap are counted twice: union them
-first. The mass is that of a fully dense part; see the user guide, section 4.
+first. Without print tags the mass is that of a fully dense part; see the
+user guide, section 4.
 The envelope the solid replaces is not pulled into Rhino any more; in the
 simulator it remains the collision shape.
 

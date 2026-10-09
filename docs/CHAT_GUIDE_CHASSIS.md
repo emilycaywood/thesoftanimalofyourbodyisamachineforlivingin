@@ -349,9 +349,11 @@ Python or Grasshopper.
 
 Say these when they apply.
 
-- **A pushed solid is weighed as fully dense.** A hollow or infilled print
-  weighs less. Model the real walls, or use a material with a measured
-  effective density, or enter the weighed mass.
+- **A pushed solid without print tags is weighed as fully dense.** Since
+  ADR-054 a solid tagged `calflab.print.infill`, `calflab.print.perimeters`
+  and `calflab.print.line_width` is weighed with an infill estimate (shell +
+  infilled core) and marked as one; `docs/CHAT_GUIDE_PROTOTYPE.md` has the
+  details. A weighed mass is still the most accurate.
 - **Overlapping solids are counted twice.** `BooleanUnion` first.
 - **The simulator still collides with the envelope**, the simple box or
   capsule, not with my solid. A part modelled much bigger or smaller than

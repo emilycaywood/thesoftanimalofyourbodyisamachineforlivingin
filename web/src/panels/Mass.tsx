@@ -1,5 +1,6 @@
 // Mass breakdown: every part's mass with where the number comes from (pushed
-// solid x material, weighed, component entry, or the parametric estimate) and
+// solid x material, a pushed solid estimated as printed with infill, weighed,
+// component entry, or the parametric estimate) and
 // the total against the target. The rows, sums and labels are computed by the
 // server (scene.mass.breakdown); this panel only lays them out.
 import { useEffect, useState } from "react";
@@ -9,12 +10,14 @@ import { useLab } from "@/store/lab";
 import { useView } from "@/store/view";
 
 const TONE: Record<MassSource, "ok" | "info" | "neutral" | "warn"> = {
+  infill: "warn",
   geometry: "ok",
   measured: "info",
   component: "neutral",
   parametric: "warn",
 };
 const SHORT: Record<MassSource, string> = {
+  infill: "infill est.",
   geometry: "geometry",
   measured: "measured",
   component: "component",
@@ -29,12 +32,13 @@ function ItemRow({ item, labels }: { item: MassItem; labels: Record<MassSource, 
   const of = item.component ?? item.material;
   return (
     <tr className="text-dim" data-mass-item={item.id}>
-      <td className="truncate pl-4 font-mono text-[10px]" title={item.note || item.id}>{item.id}</td>
+      <td className="truncate pl-4 font-mono text-[10px]" title={item.note || item.infill?.label || item.id}>{item.id}</td>
       <td className="truncate text-[10px]">{of}{item.verified === false && <span className="text-warn" title="Unverified library entry"> *</span>}</td>
       <td><SourceBadge source={item.source} label={labels[item.source]} /></td>
       <td className="text-right">
         {fmt(item.mass_g, 1)}
         {item.computed_g !== null && <span className="text-[10px]" title="Computed value the weighed mass replaced"> (calc. {fmt(item.computed_g, 1)})</span>}
+        {item.infill && <span className="text-[10px]" title={item.infill.label}> ({fmt(item.infill.infill_pct)} % infill, dense {fmt(item.infill.dense_g, 1)})</span>}
         {item.replaced_g !== null && <span className="text-[10px]" title="Envelope estimate this solid replaced: not counted"> (est. {fmt(item.replaced_g, 1)})</span>}
       </td>
     </tr>
@@ -123,7 +127,8 @@ export function MassPanel() {
         </table>
         <div className="mt-2 text-[10px] text-dim">
           The Source column is that of the part's printed structure; open a part for its motors, electronics, skin and hoof. A
-          pushed solid replaces the envelope estimate (shown as "est.", not counted). Select a part to change its material or
+          pushed solid replaces the envelope estimate (shown as "est.", not counted). "infill est." is a pushed solid weighed
+          as printed, a dense shell plus an infilled core: an estimate, not a weighed mass. Select a part to change its material or
           enter a weighed mass in Properties.
         </div>
       </Section>

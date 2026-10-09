@@ -124,6 +124,24 @@ test("choose a part's material, weigh it, and take the trunk's mass from a pushe
   await expect(props.getByTestId("part-com")).toContainText("mm");
   await tab(page, "Mass").click();
 
+  // --- a solid tagged with print settings is weighed as printed and marked as an estimate, never as a dense or weighed mass
+  await page.request.post("/api/bridge/rhino/push", {
+    data: {
+      target: "trunk", layer: "Structure", name: "printed cube",
+      parts: [{ name: "cube", material: "pla", print: { infill: "15", perimeters: "2", line_width: "0.4" }, ...cube(origin) }],
+    },
+  });
+  await expect(panel.locator('[data-mass-body="trunk"]')).toContainText("infill est.");
+  await expect(panel.locator('[data-mass-source="infill"]')).toContainText("infill estimate");
+  await expect(panel.locator('[data-mass-source="geometry"]')).toHaveCount(0);
+  await tab(page, "Properties").click();
+  await expect.poll(() => grams(page, "part-mass")).toBeCloseTo(235.8, 0); // (47.2 cm3 shell + 15 % of 952.8 cm3) x 1.24
+  await expect(props.getByTestId("part-mass-source")).toContainText("infill estimate");
+  await expect(props.locator("[data-part-infill]")).toContainText("15 % infill, 2 perimeters x 0.4 mm = 0.8 mm wall");
+  await expect(props.locator("[data-part-infill]")).toContainText("fully dense it would be 1240.0 g");
+  await expect(props.getByTestId("part-estimate-note")).toContainText("not a weighed mass");
+  await tab(page, "Mass").click();
+
   // --- an open solid is shown, warned about, and not used for mass
   await push(true);
   await expect(panel.getByTestId("design-warning")).toContainText("not used for mass: it is open (4 naked edges)");

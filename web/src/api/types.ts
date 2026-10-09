@@ -64,8 +64,21 @@ export interface ComponentInfo {
   [spec: string]: unknown;
 }
 
-/** Where a mass comes from: pushed solid x material, weighed, library entry, or the envelope estimate. */
-export type MassSource = "geometry" | "measured" | "component" | "parametric";
+/** Where a mass comes from: pushed solid x material, such a solid estimated as printed with infill, weighed, library entry, or the envelope estimate. */
+export type MassSource = "infill" | "geometry" | "measured" | "component" | "parametric";
+
+/** What an infill estimate was made from (computed and worded by the server). */
+export interface InfillEstimate {
+  infill_pct: number;
+  perimeters: number;
+  line_width_mm: number;
+  wall_mm: number;
+  volume_mm3: number; // outer volume of the solid
+  shell_volume_mm3: number;
+  core_volume_mm3: number;
+  dense_g: number; // what the solid would weigh fully dense
+  label: string; // one line saying all of it
+}
 
 export interface StructureMass {
   mass_g: number;
@@ -74,11 +87,12 @@ export interface StructureMass {
   material: string | null; // null when the part is made of solids in several materials
   materials: string[]; // every material the structure mass was computed with
   material_label: string; // e.g. "pla + stainless_304"
-  solids: { id: string; label: string; material: string | null; mass_g: number; verified: boolean | null }[]; // pushed solids
+  solids: { id: string; label: string; material: string | null; mass_g: number; verified: boolean | null; infill: InfillEstimate | null }[]; // pushed solids
   com_mm: [number, number, number] | null; // centre of mass of the structure, body frame
   computed_g: number | null; // value a weighed mass replaced
   replaced_g: number | null; // envelope estimate a pushed solid replaced (not counted)
   note: string;
+  estimate_note: string; // said beside a structure mass that is an infill estimate
 }
 
 export interface MassItem {
@@ -93,6 +107,7 @@ export interface MassItem {
   computed_g: number | null;
   replaced_g: number | null;
   note: string;
+  infill: InfillEstimate | null;
 }
 
 export interface MassBodyRow {
@@ -109,6 +124,7 @@ export interface MassBreakdown {
   by_source_g: Record<MassSource, number>;
   source_labels: Record<MassSource, string>;
   geometry_parts: string[];
+  infill_parts: string[];
   measured_parts: string[];
   unverified_g: number;
   bodies: MassBodyRow[];

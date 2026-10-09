@@ -680,3 +680,78 @@ Not checked in Rhino: the typed `CalflabPush` with two tagged Breps. The
 path from the bridge's request format to the masses is covered by
 `tests/test_mass.py` (a 100 mm PLA box and a 10 x 10 x 100 mm box of
 `stainless_304`, densities read from the library).
+
+## ADR-054 — A pushed solid tagged with print settings is weighed with an infill estimate (**VERIFY**)
+Requested by the researcher on 2026-10-08: PLA parts are modelled as full
+solids but printed with infill, so volume x density (ADR-050) overestimates
+them several times over. Extends ADR-050 and ADR-053.
+
+*Decision.* A solid that carries the user text `calflab.print.infill`
+(percent), `calflab.print.perimeters` and `calflab.print.line_width` (mm) is
+weighed as printed: a **shell** of the wall thickness (perimeters x line
+width) all round the solid at the material's full density, plus the **core**
+inside it at the infill fraction of that density. The density stays the
+material's own; nothing is baked into a new material. A solid without these
+tags is fully dense, exactly as before.
+
+*No defaults.* All three tags or none. An incomplete, unreadable or
+out-of-range tag refuses the push with a message naming the solid and the
+tag. An infill between 0 and 1 is refused as a probable fraction. The
+researcher's own settings (15 %, 2 perimeters, 0.4 mm; also 3 top and 3
+bottom layers of 0.2 mm) are used in tests and documentation only.
+
+*One wall thickness all round* (the researcher's choice, 2026-10-08, asked
+because the request left it open). Top and bottom layers would need the
+print direction of each solid, which is not the direction it is modelled in.
+The alternatives offered were a required or optional
+`calflab.print.up` tag. So top and bottom skins are taken to be as thick as
+the walls; `calflab.print.*` tags other than the three are reported as not
+used.
+
+*The core* is the set of points of the solid deeper than the wall thickness
+below its surface (`calflab.model.infill.measure_core`). It is measured once,
+at the push, and stored beside the solid (`meta.print`, `meta.print_core`,
+or the same keys in each entry of `meta.solids`): building a design still
+needs no file access. Method: a grid of pitch wall / 2 (coarser above 16
+million cells); inside or outside by counting surface crossings along Z;
+cells far from the surface count whole; cells near the wall depth get the
+exact distance to the surface and count in proportion (so a flat wall is
+exact at any pitch). A 100 mm cube with a 0.8 mm wall: shell within 0.1 % of
+100^3 - 98.4^3, about 5 s.
+
+*Thin features.* Where the solid is thinner than two walls no point is that
+deep, so there is no core and the feature is fully dense. A cell a little
+short of the wall depth counts only if the solid does reach that depth just
+beyond it, which keeps a 1.5 mm fin from getting a sliver of core. The core
+is a subset of the solid and is clamped to its volume, so the estimate lies
+between all infill and fully dense. Features between two walls and two walls
+plus one pitch thick are counted to within a few percent.
+
+*Centre of mass and inertia* are those of the dense solid minus
+(1 - infill) x the core (`printed_solid`), not a uniform solid scaled down.
+The simulator gets the equivalent box of that inertia, as for any solid.
+100 % infill returns the dense solid's values unchanged.
+
+*Never shown as dense or weighed.* A fifth mass source, `infill` ("Pushed
+solid, infill estimate (shell + infilled core)"), listed before `geometry`
+so a body with one tagged solid reads as an estimate. `geometry_parts` still
+lists every body whose mass comes from pushed solids; `infill_parts` lists
+those resting on an estimate. Each such geom carries `Geom.infill`
+(settings, outer / shell / core volume, dense mass, one line of text), which
+the breakdown, the push reply, Rhino's printout, the web panels and the run
+record (`inputs.mass.structure.<body>.solids[n].infill`) all show.
+`CalflabPull` writes the three tags back.
+
+*Assumptions and limits.* The infill pattern, the slicer's real path (gap
+fill, extra perimeters round holes, solid layers under slopes), supports and
+extrusion error are ignored. The printed walls are taken at full material
+density. Print tags can only be set in Rhino. A weighed mass (`measured`)
+still replaces the estimate and is the most accurate.
+
+Not checked: against a slicer's filament weight (the researcher will compare
+two or three real parts), and `CalflabPush` typed by hand on a tagged
+object. Checked: `tests/test_infill.py`, a step in
+`web/e2e/structure.spec.ts`, and `bridge rhino --check` in Rhino 8.34 on
+2026-10-09 (a Brep cube with the three tags, read with
+`Attributes.GetUserStrings()`, pushed and printed as an infill estimate;
+the two-solid push of ADR-053 passed in the same run).
