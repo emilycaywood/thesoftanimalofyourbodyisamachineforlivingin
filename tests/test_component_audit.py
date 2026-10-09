@@ -44,7 +44,7 @@ def test_audit_reports_dependencies_and_saturated_actuators(calf_design, calf_mo
     lib = library()
     idle = component_audit(calf_design.spec, lib, None)
     assert idle["from_run"] is False and idle["at_limit"] == []
-    assert idle["unverified"] == idle["total"] == len(lib.all())
+    assert idle["total"] == len(lib.all()) and idle["unverified"] == len([c for c in lib.all() if not c.verified])
     by_key = {c["key"]: c for c in idle["components"]}
     assert by_key["xh540_w270"]["in_design"] and by_key["xh540_w270"]["qty"] == 8
     assert not by_key["qdd_bldc_generic"]["in_design"]
