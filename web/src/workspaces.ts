@@ -17,8 +17,8 @@ const LEFT = ["layers", "tree"];
 const BOTTOM = ["console", "jobs"];
 
 export const WORKSPACES: WorkspaceDef[] = [
-  { id: "form", label: "Form", ready: true, center: ["viewport", "graph"], left: LEFT, right: ["genome", "properties", "overrides"], bottom: [...BOTTOM, "designs"] },
-  { id: "mechanism", label: "Mechanism", ready: true, center: ["viewport"], left: LEFT, right: ["mechanism", "properties"], bottom: BOTTOM },
+  { id: "form", label: "Form", ready: true, center: ["viewport", "graph"], left: LEFT, right: ["genome", "properties", "overrides", "mass"], bottom: [...BOTTOM, "designs"] },
+  { id: "mechanism", label: "Mechanism", ready: true, center: ["viewport"], left: LEFT, right: ["mechanism", "properties", "mass"], bottom: BOTTOM },
   { id: "simulate", label: "Simulate", ready: true, center: ["viewport", "graph"], left: LEFT, right: ["simulate", "properties"], bottom: ["timeline", "runs", ...BOTTOM] },
   { id: "evolve", label: "Evolve", ready: true, center: ["viewport", "archive"], left: LEFT, right: ["evolve", "properties"], bottom: ["timeline", "designs", ...BOTTOM] },
   { id: "behave", label: "Behave", ready: false, center: ["viewport"], left: LEFT, right: ["behave"], bottom: ["timeline", ...BOTTOM] },

@@ -174,14 +174,238 @@ working document's genes, graph and overrides with the design's (also
 starts an evolution from the design without touching the document (see
 Evolve below).
 
+### Mass from your own parts: solids, materials, weighed prints
+
+By default every printed part's mass is an estimate from its envelope
+(surface area x wall thickness x density). You can replace that, part by
+part, with real numbers. Each of these is an override: listed in
+*Overrides*, switchable, undoable.
+
+**1. Push a closed solid from Rhino.** Model the part in Rhino in its real
+place (pull the calf first, model against it), select it, `CalflabPush`,
+give the body ID (`trunk`, `leg.fl.shank`, ...), choose the layer
+**Structure**, and name a material (Enter takes the part's material). An
+object that carries the user text `calflab.material` (a structure material
+key such as `pla`) is weighed with that material and is not asked about.
+If the object is a closed solid the part's structure mass becomes
+**volume x density**, and its centre of mass and inertia follow the solid,
+in the simulation too. Rhino prints the result, for example
+`trunk structure mass is now 1240.0 g (1000.0 cm3 of pla; the estimate it
+replaces was 629.1 g)`, and where the centre of mass is, in the coordinates
+you modelled in.
+
+**A part of several materials (printed PLA with steel rods).** Model each
+piece as its own closed solid, with the rods cut out of the plastic so
+nothing overlaps. Give each solid its material: *Properties > Attribute
+User Text* in Rhino, key `calflab.material`, value the material key (`pla`,
+`stainless_304`, ...). Select **all** the solids of the part and run one
+`CalflabPush`. Each solid is weighed with its own material; a solid without
+the user text takes the material you name at the prompt (the prompt only
+appears when at least one solid has none). The part's mass is the sum of
+volume x own density, and its centre of mass and inertia combine the solids
+with their own densities, so a steel rod pulls the centre of mass towards
+itself. Rhino prints one line per solid and the total:
+
+```
+CALFLAB: trunk structure mass is now 1319.3 g (1010.0 cm3 of pla + stainless_304; the estimate it replaces was 629.1 g)
+CALFLAB:   solid 1 (body): 1000.0 cm3 of pla = 1240.0 g
+CALFLAB:   solid 2 (rod): 10.0 cm3 of stainless_304 = 79.3 g
+CALFLAB: trunk structure centre of mass is at (6.0, 0.0, 379.5) mm
+```
+
+(A 100 mm PLA cube at the trunk origin and a 10 x 10 x 100 mm rod 100 mm in
+front of it, with steel entered as 7.93 g/cm3: the centre of mass is 6.0 mm
+towards the rod, where the centre of the combined volume would be 1.0 mm.
+The name in brackets is the Rhino object's name.) All the solids of one
+push are one override: a second push onto the same part replaces all of
+them, so always select the whole part. If one of the solids is open or its
+material is not in the library, **none** of them is used for mass and the
+warning names the one at fault: a part missing its rods would otherwise be
+too light without saying so.
+
+**A part printed with infill (the infill estimate).** A solid modelled full
+but printed with infill is much lighter than volume x density. Tag the solid
+with how it is printed, the same way as its material (*Properties >
+Attribute User Text* in Rhino). All three keys are needed; nothing has a
+default:
+
+| Key | Value | Example |
+|---|---|---|
+| `calflab.print.infill` | infill percentage, 0 to 100 (`15` or `15 %`, not `0.15`) | `15` |
+| `calflab.print.perimeters` | number of perimeters (walls), a whole number, 1 or more | `2` |
+| `calflab.print.line_width` | line (extrusion) width in mm | `0.4` |
+
+`CalflabPush` then weighs that solid as printed:
+
+* **Shell:** everything within one wall thickness (perimeters x line width,
+  here 0.8 mm) of the solid's surface, at the material's full density.
+* **Core:** everything deeper than that, at the infill percentage of the
+  density.
+* mass = density x (shell volume + infill x core volume). The density is
+  still the material's own (`pla` 1.24 g/cm3, unverified); the estimate is
+  applied on top of it, and choosing another material in Properties keeps
+  the estimate.
+* Centre of mass and inertia follow the same split (the dense solid minus
+  the missing part of the core), not a uniform solid scaled down: a part
+  with a thick end and a thin end has its centre of mass nearer the thin
+  end, and a hollow-ish part is harder to swing than its mass suggests.
+
+A solid without the three tags is weighed fully dense, exactly as before,
+so steel rods need nothing. A solid tagged `100` weighs exactly what an
+untagged one does. Rhino prints, for a 100 mm PLA cube at 15 %, 2 perimeters,
+0.4 mm:
+
+```
+CALFLAB: trunk structure mass is now 235.7 g, an INFILL ESTIMATE (1000.0 cm3 outer volume of pla; the envelope estimate it replaces was 629.1 g)
+CALFLAB:   infill estimate: 15 % infill, 2 perimeters x 0.4 mm = 0.8 mm wall; shell 47.2 cm3 at full density + core 952.8 cm3 at 15 %; fully dense it would be 1240.0 g
+CALFLAB: the volume is Rhino's exact one (the mesh alone would be +0.00 % off)
+CALFLAB: trunk structure centre of mass is at (0.0, 0.0, 379.5) mm
+CALFLAB: Infill estimate, not a weighed mass: a shell of the wall thickness at full material density plus the core inside it at the infill percentage. It ignores the infill pattern and the slicer's real path. Weigh the print and enter it in Measured for the real value.
+```
+
+Check by hand: the core of the cube is 98.4 x 98.4 x 98.4 mm = 952.8 cm3,
+the shell 1000 - 952.8 = 47.2 cm3, and (47.2 + 0.15 x 952.8) x 1.24 =
+235.8 g. (CALFLAB measures the core on a grid of half the wall thickness
+and lands within about 0.1 % of that; all infill would be 186 g, fully
+dense 1240 g.) In a push of several solids each tagged solid's line ends
+in `(infill estimate)` and is followed by its own `infill estimate: ...`
+line; untagged solids print as before.
+
+How it is computed and what it leaves out:
+
+* *Thin features.* Where the solid is thinner than two walls (1.6 mm here)
+  there is no point deeper than a wall, so there is no core there: that
+  feature counts as fully dense, which is how it prints. The core can never
+  be negative or larger than the solid, so the estimate always lies between
+  all infill and fully dense. A solid that is thin everywhere prints `no
+  core (nowhere thicker than two walls), so all 3.6 cm3 count at full
+  density`. Features only just thicker than two walls (up to about one
+  grid step, 0.4 mm, more) are counted to within a few percent.
+* *One wall thickness all round.* Top and bottom layers are taken to be as
+  thick as the walls; the print direction is not known to CALFLAB. Your
+  choice on 2026-10-08. If a solid also carries `calflab.print.top_layers`,
+  `calflab.print.bottom_layers` or `calflab.print.layer_height`, Rhino
+  prints that they `are not used`. A flat part whose top and bottom skins
+  are thicker than 0.8 mm (3 layers of 0.2 mm are 0.6 mm, so with your
+  settings they are thinner) will differ from the slicer accordingly.
+* *It ignores* the infill pattern, the slicer's real path (gap fill, extra
+  perimeters around holes, solid layers above and below sloped surfaces),
+  supports, brims, and under- or over-extrusion. Compare a few parts with
+  your slicer's filament weight at the same settings before relying on it.
+* *Internal holes and voids* get walls like any other surface.
+* *Incomplete or unreadable tags refuse the push*, naming the solid and the
+  tag: `Solid 'cube': it has print tags but not calflab.print.perimeters,
+  calflab.print.line_width. An infill estimate needs all of
+  calflab.print.infill, calflab.print.perimeters, calflab.print.line_width;
+  no value is assumed. Nothing was pushed.`
+* A large solid takes a few seconds to push (a 100 mm cube about 5 s).
+* **Weighing the print and typing the grams into Measured (3 below) is
+  still the most accurate.** The estimate then stays visible as *Computed*.
+
+In the web lab the mass is never shown as a dense or weighed one:
+*Properties > Material and mass* carries the badge `infill est.`, an
+`infill estimate` marker beside the structure mass, the Source "Pushed
+solid, infill estimate (shell + infilled core)", the `infill estimate: ...`
+line of each tagged solid, and the note that it is not a weighed mass. The
+**Mass** panel shows the part with the badge `infill est.` and sums such
+masses on their own line, apart from `geometry`.
+
+* The envelope estimate is no longer counted for that part. Motors, boards,
+  battery, skin and hooves are separate items and stay.
+* **An open or invalid object is shown but not used for mass.** Rhino prints
+  `CALFLAB WARNING: ... it is open (4 naked edges). The parametric estimate
+  is kept.` and the same warning appears under the mass readout in Form, in
+  the Mass panel and in Properties. Close it (`ShowEdges`, `Cap`, `Join`)
+  and push again.
+* Without print tags, volume x density is the mass of a **fully dense**
+  part. For an infilled print, tag the solid (above) or weigh the part (3
+  below); for a hollow one, model the real walls.
+* Several separate closed objects add up, each with its own material.
+  Objects that overlap are counted twice: `BooleanUnion` them if they are
+  the same material, or `BooleanDifference` the rod out of the plastic.
+* The simulator still collides with the envelope shape, not the solid.
+* A push onto **Skin** changes the look only, as before.
+* Switch the override off in *Overrides* and the part is back at its
+  parametric value.
+
+**2. Choose a part's material.** Select a part; *Properties > Material and
+mass* has a **Material** list (the structure materials in
+`config/components/materials.yaml`). On a parametric part the choice is
+recorded as a material override and the envelope estimate uses that density.
+On a part with a pushed solid it changes the solid's material. A part
+pushed as solids of different materials shows them instead of the list
+(`pla + stainless_304`): change a solid's `calflab.material` in Rhino and
+push the part again.
+
+**3. Enter a weighed mass.** Print the part, weigh it, type the grams into
+**Measured** in the same section. That value is used; the computed one stays
+beside it as *Computed*. Clear the field to remove it. It stands for the
+printed structure of that part only, without motor, skin or hoof.
+
+**Read the result.** *Properties > Material and mass* shows the selected
+part's structure mass and its source; for a part of several solids also the
+materials, each solid's mass and the centre of mass (in the part's own
+frame). In the **Mass** panel such a part reads `pla + stainless_304` with
+the source `geometry`, and opens to one row per solid. A weighed
+**Measured** mass on top scales the solids together, so the centre of mass
+stays where the geometry and densities put it. The **Mass** panel (Form and Mechanism
+workspaces) lists every part with the source of its structure mass
+(`infill est.`, `geometry`, `measured`, `estimate`), opens to its items (click a row), sums
+the total by source, and says how much of it rests on unverified library
+entries. The **target** at the top right of that panel is this project's
+own mass target; 0 returns to the default. `CalflabPull` writes
+`calflab.material`, `calflab.mass_g` and `calflab.mass_source` into each
+object's user text (a part of several solids comes back as one object per
+solid, each with its own material; a solid weighed with an infill estimate
+also gets its three `calflab.print.*` tags back, and `calflab.mass_source`
+`infill`). Every simulation run records which parts had geometry-based or
+weighed mass (`geometry_parts`, `infill_parts`, `measured_parts`), and each
+part's materials and, for a part of several solids, each solid's material
+and mass (`inputs.mass.structure` in `runs/<id>/run.json`). For a solid
+weighed with an infill estimate the record holds, under
+`inputs.mass.structure.<body>.solids[n]`, its estimated `mass_g` and an
+`infill` entry with the print settings (`infill_pct`, `perimeters`,
+`line_width_mm`, `wall_mm`), the outer, shell and core volumes and the
+fully dense mass (`dense_g`); the part's `source` is `infill`.
+
 ---
 
 ## 5. Workspaces
 
 ### Form
-Genome sliders grouped by Trunk, Legs, Neck and head, Tail and ears, Mechanism,
-Shell and skin, Sensing; live mass against the 7 kg target, height, length and
-centre of mass. *(planned: reference images on view planes)*
+Genome sliders grouped by Scale, Trunk, Legs, Neck and head, Tail and ears,
+Mechanism, Shell and skin, Sensing; live mass against the target, height,
+length and centre of mass, and a line of warnings when the design has any.
+The **Mass** tab beside it is the breakdown (section 4).
+*(planned: reference images on view planes)*
+
+**Overall scale** makes a small test calf: 0.33 gives one about 200 mm
+tall. It resizes the whole body and keeps its proportions, so every length
+slider below it moves when you change it. All of those sliders are in **real
+millimetres**, the same numbers as Properties, the gumball and Rhino: at
+0.33 the thigh reads 56.1 with a range of 33 to 85.8, and typing 60 makes a
+60 mm thigh. (Underneath, lengths are stored at full size, which is what
+keeps the proportions and what evolution searches; project files and run
+records show those stored values, and so do `set_genes` from the command
+line, the Python client and Grasshopper unless they pass `real=true`.) Wall thickness, skin thickness and all components keep
+their size, so at a small scale the motors, boards and battery are nearly
+all of the mass: choose lighter ones in Mechanism (section 9 says how to add
+them), set the project's mass target in the Mass panel, and press *Tune for
+this body* in Simulate, since the default gait was tuned for the full-size
+calf. Simulation settings have not been examined for a body this small.
+
+Under Neck and head, three switches say which of those joints the body
+really has: **Neck yaw motor**, **Neck pitch motor**, **Head pitch motor**
+(genes `has_neck_yaw`, `has_neck_pitch`, `has_head_pitch`; all on by
+default). Switching one off removes that joint and its motor: nothing to
+drive, no motor in the BOM, the power budget or the mass (55 g each with the
+default STS3215, unverified), and the neck servo bus in Wire ends at the
+furthest motor that is left, or disappears. The neck and head themselves
+stay, fixed where they stand (at the *Neck angle* and *Head tilt* sliders),
+with the same IDs (`neck.base`, `neck`, `head`), so solids pushed onto them
+still attach and still weigh. With all three off, and **Has tail** and **Has
+ears** off under Tail and ears, the only motors left are the legs'. A motion
+clip from Blender that moves a removed joint simply has nothing to move.
 
 Under Legs, **Front knee forward** and **Hind knee forward** choose which way
 each pair of knees bends. New projects start with front knees forward and
@@ -200,6 +424,48 @@ It walks acceptably when the front joint is high and points backward
 with overrides on `leg.fl.thigh`, `leg.fr.thigh`, `leg.fl.shank`,
 `leg.fr.shank`), and poorly with the knee mid-leg pointing forward.
 
+**Front and hind legs that differ** (all off or unused by default; a calf
+that leaves them alone is built exactly as before):
+
+| Setting in Form > Legs | Gene | Range (default) | At scale 0.337 |
+|---|---|---|---|
+| Front legs have a thigh | `front_thigh` | on / off (on) | |
+| Front and hind legs have their own lengths | `own_leg_lengths` | on / off (off) | |
+| Front thigh length | `front_thigh_length` | 5 to 300 mm (170) | 1.69 to 101.1 mm |
+| Front shank length | `front_shank_length` | 30 to 450 mm (170) | 10.11 to 151.65 mm |
+| Hind thigh length | `hind_thigh_length` | 5 to 300 mm (170) | 1.69 to 101.1 mm |
+| Hind shank length | `hind_shank_length` | 30 to 450 mm (170) | 10.11 to 151.65 mm |
+
+* **Front and hind legs have their own lengths**: on, the four lengths in
+  the table are used and **Thigh length** / **Shank length** are ignored (the
+  two sliders stay in the panel and do nothing). Like every length they
+  follow *Overall scale* and are shown in real millimetres. A thigh is
+  measured from the hip flexion axis to the knee axis; a shank from the knee
+  axis to the centre of the hoof ball, so *axis to the ground = shank length
+  + hoof radius* (the **Hoof radius** slider).
+* The thigh sliders go down to 5 mm at full size (1.7 mm at scale 0.337),
+  for a leg whose hip flexion and knee axes nearly coincide. The shared
+  **Thigh length** still stops at 100 mm.
+* **Every hoof stands on the ground.** *Hip drop* is the height of the hip
+  axes of the longest legs below the trunk centre line; the hips of the
+  shorter pair sit lower by the difference. The trunk stays level. (Without
+  the switch, a leg shortened by an override still hangs short, as before.)
+* **Front legs have a thigh**: off, a front leg has no thigh body at all.
+  It is `leg.fl.hip` (abduction), then one pitch joint, then `leg.fl.shank`
+  hanging straight down, with the hoof directly below the pitch axis. The
+  pitch joint keeps the IDs `joint.fl.knee` / `act.fl.knee` and is named
+  *Shoulder pitch*; its motor is the one chosen as **act knee** in
+  Mechanism (shared with the hind knees), drawn in the hip, and it has its
+  own row in the torque-margin table. It may swing 75 degrees each way.
+  **Front knee forward**, **Front hip flex** and a belt knee drive have no
+  effect on such a leg. There is no `leg.fl.thigh` / `leg.fr.thigh` in the
+  Scene tree, the Mass tab, Rhino or Blender; an override or a pushed solid
+  that still targets one is reported as a warning and otherwise ignored.
+  The thigh's printed shell and skin leave the mass, its collision capsule
+  is gone, and the hip-flexion motors go with it if they were on.
+* The four lengths and the two switches are not varied by Evolve.
+* After changing the leg layout, press *Tune for this body* in Simulate.
+
 Projects, runs, candidates and baked designs made before 2026-10-04 keep the
 backward front knees they were made with. To bring an older document to the
 new default: *Reset to defaults* in Form (genes, including the knees) and
@@ -207,8 +473,9 @@ new default: *Reset to defaults* in Form (genes, including the knees) and
 switch **Front knee forward** on and reset the gait. Each is one undo step.
 
 ### Mechanism
-Actuator choice per joint group and knee drive (direct or belt), and a
-**torque-margin table**: required peak torque from a chosen simulation run
+Actuator choice per joint group, knee drive (direct or belt) and battery.
+The lists offer every complete actuator and battery entry in
+`config/components` (section 9). Then a **torque-margin table**: required peak torque from a chosen simulation run
 against available torque (stall x derating). Red means the actuator saturates
 in that run. Every actuator carries an **unverified** badge until you check
 its data (section 9). *(planned: range-of-motion sweep, interference check)*
@@ -376,9 +643,11 @@ registry rebuild` recreates the index from the text files.
 All clients talk to the same running lab; an edit in one appears in the others.
 
 * **Rhino 8**: see `bridges/rhino/README.md`. `CalflabPull` brings the design in
-  as layered geometry with blocks and ID user text, and the harness routes as
-  polylines on `CALFLAB::Harness`; `CalflabPush` sends sculpted
-  geometry back as an override; `CalflabLiveSync` follows changes.
+  as layered geometry with blocks and ID user text (and each object's
+  material, mass and mass source), and the harness routes as polylines on
+  `CALFLAB::Harness`; `CalflabPush` sends geometry back as an override: a
+  sculpted skin, or a closed solid that gives a part its mass (section 4);
+  `CalflabLiveSync` follows changes.
 * **Grasshopper**: open `bridges/rhino/grasshopper/calflab_example.gh` with the
   lab running: GetDesign shows the genome and mass; move the slider and switch
   `apply` on to change a gene; `run` simulates and GetMetrics shows the result;
@@ -420,10 +689,40 @@ any calculation yet" can wait. `calflab components worksheet` regenerates the
 file from the YAML; it refuses to overwrite an existing worksheet unless you
 pass `--force` or `--out <other file>`, so your filled-in columns are safe.
 
-**The audit.** `calflab components audit` prints three tables:
+**Adding your own component or material.**
+
+```powershell
+.\calflab.ps1 components new actuator my_servo --name "Maker Model 123"
+```
+
+appends a blank entry to `config/components/actuators.yaml` (kinds:
+`actuator`, `sensor`, `board`, `battery`, `material`). Open the file and
+enter each value from the datasheet; the comment on each line gives the unit.
+
+* `verified: false` stays until you have checked every value and set it.
+* A value marked REQUIRED that is still blank keeps the entry **incomplete**:
+  it is not offered anywhere and the audit lists what is missing. Nothing is
+  filled in for you.
+* A value the datasheet does not give: enter your best guess and add the
+  field's name to `guessed:` (for example `guessed: [armature_kgm2]`).
+* An optional value left blank uses the program's default and is reported as
+  **default assumed**. For a small servo the defaults (armature inertia,
+  thermal values) are those of a much larger motor, so do not leave them.
+
+Once complete, an actuator appears in the four actuator lists in Mechanism
+and a battery in the battery list, with no other file to edit; a structure
+material appears in *Properties > Material* and in the `CalflabPush` prompt.
+The bill of materials, mass, torque-margin table, power budget and *Tune for
+this body* all read the entry: its no-load speed is the joint speed cap of
+gait tuning. Guessed and defaulted values carry a badge on the component
+card in Properties. Boards and sensors are chosen for all projects in
+`config/robot_defaults.yaml` (not yet per project).
+
+**The audit.** `calflab components audit` prints these tables:
 
 1. every library component, whether it is verified and how much of it the
-   current design uses;
+   current design uses; then the values that are guesses or assumed
+   defaults, and any incomplete entries with what they are missing;
 2. the headline results (BOM total, mass, worst torque margin, mean power,
    battery runtime) with the unverified components each one rests on;
 3. torque margins per joint from the latest sim run, lowest first. Red rows

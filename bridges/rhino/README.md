@@ -18,12 +18,46 @@ and RhinoCommon.
 | Command | What it does |
 |---|---|
 | `CalflabConnect` | Set/check the server URL (default `http://127.0.0.1:8000`) |
-| `CalflabPull` | Fetch the current design as layered geometry. Layers: `CALFLAB::Structure`, `::Actuators`, `::Transmission`, `::Electronics`, `::Sensors`, `::Skin`, `::Harness`, `::Annotations`. Repeated components are block instances (`calflab.<component>`). Every object has user text `calflab.id` (stable ID), `calflab.body`, `calflab.layer`, and for components `calflab.component` and `calflab.verified`. Harness routes are polylines on `CALFLAB::Harness` named by route id (`harness.bus.fl`), with user text `calflab.src`, `calflab.dst`, `calflab.length_mm` (cut length, with slack), `calflab.connector` and `calflab.wires`. |
-| `CalflabPush` | Send selected geometry (mesh, Brep, extrusion or SubD) back as a named **geometry override** on a body, e.g. a sculpted head shell or skin surface. It shows up in the web app's Properties and can be toggled or removed there. |
+| `CalflabPull` | Fetch the current design as layered geometry. Layers: `CALFLAB::Structure`, `::Actuators`, `::Transmission`, `::Electronics`, `::Sensors`, `::Skin`, `::Harness`, `::Annotations`. Repeated components are block instances (`calflab.<component>`). Every object has user text `calflab.id` (stable ID), `calflab.body`, `calflab.layer`, `calflab.mass_g`, `calflab.mass_source` (`parametric`, `component`, `geometry` or `measured`) and, where a material applies, `calflab.material`; for components also `calflab.component` and `calflab.verified`. Harness routes are polylines on `CALFLAB::Harness` named by route id (`harness.bus.fl`), with user text `calflab.src`, `calflab.dst`, `calflab.length_mm` (cut length, with slack), `calflab.connector` and `calflab.wires`. |
+| `CalflabPush` | Send selected geometry (mesh, Brep, extrusion or SubD) back as a named **geometry override** on a body. It asks for the body ID, the layer (Skin or Structure), a name and, for Structure, a material. On **Skin** it is a sculpt: look only. On **Structure** a closed solid gives the part its mass (volume x material density), centre of mass and inertia; an open one is shown, not used for mass, and the command prints a warning. It shows up in the web app's Properties and Overrides and can be toggled or removed there. |
 | `CalflabLiveSync` | Toggle live updates: Rhino re-pulls whenever the design changes in any client. |
 
 Pulling again replaces only objects that carry `calflab.id`; your own geometry
 is left alone. Sculpt on your own layer, then `CalflabPush` it.
+
+### Chassis parts with real mass
+
+1. `CalflabPull`, then model the part on your own layer, in place.
+2. Optional: give the object the user text `calflab.material` = a structure
+   material key (`pla`, `petg`, or one you added to
+   `config/components/materials.yaml`). It is then weighed with that
+   material. A part of several materials (PLA body, steel rods) is several
+   closed solids, each with its own `calflab.material`, selected together
+   and pushed in one go (ADR-053). A solid printed with infill also gets
+   `calflab.print.infill` (percent), `calflab.print.perimeters` and
+   `calflab.print.line_width` (mm): all three, no defaults. It is then
+   weighed as a shell of that wall thickness at full density plus the core
+   at the infill percentage, and the printout says `an INFILL ESTIMATE`
+   (ADR-054; user guide, section 4).
+3. Select it, `CalflabPush`, body ID (for example `trunk`), layer
+   `Structure`, a name and, only if a selected solid has no
+   `calflab.material`, the material for those (`Default` = the part's
+   material).
+4. Read the command line. A closed solid:
+   `CALFLAB: trunk structure mass is now 1240.0 g (1000.0 cm3 of pla; the
+   estimate it replaces was 629.1 g)`, then one line per solid if there are
+   several (`solid 2 (rod): 10.0 cm3 of stainless_304 = ... g`) and the
+   centre of mass in Rhino's coordinates. An open one:
+   `CALFLAB WARNING: The solid pushed onto trunk is not used for mass: it is
+   open (4 naked edges). The parametric estimate is kept.`
+
+The lab measures the mesh Rhino makes of the object, and takes the volume
+from Rhino's own exact figure when the two agree within 5 % (a meshed sphere
+is about 1.6 % small). Objects that overlap are counted twice: union them
+first. Without print tags the mass is that of a fully dense part; see the
+user guide, section 4.
+The envelope the solid replaces is not pulled into Rhino any more; in the
+simulator it remains the collision shape.
 
 ## Grasshopper
 
@@ -97,7 +131,9 @@ and re-test it (use a scratch project; it edits and undoes one gene):
 starts Rhino, runs `validate_in_rhino.py` and closes Rhino again. The script
 installs the aliases, connects, pulls, models a stand-in head shell, lets the
 real `CalflabPush` command push it (the prompts are answered from the macro),
-pulls again, then turns `CalflabLiveSync` on and edits a gene on the server.
+pulls again, pushes a box, a sphere and an open box onto the trunk's
+Structure layer and checks the masses and the warning, then turns
+`CalflabLiveSync` on and edits a gene on the server.
 Re-run it after a Rhino update or after changing the bridge.
 
 ## Status (Rhino 8.34, checked 2026-10-01 and again 2026-10-03, against a live server)
@@ -113,6 +149,16 @@ Verified by `bridge rhino --check`:
 * `CalflabPush`, typed as a command: a 384-face head shell became a geometry
   override on `head`; the next pull brought it back as a mesh in exactly the
   same place (0.0 mm) and left the original object alone.
+* Structure solids (checked 2026-10-08): a 100 mm box Brep pushed onto
+  `trunk` with `pla` gave 1240.0 g (36 mesh faces, closed); a 40 mm sphere
+  Brep gave 332.42 g, exact, from Rhino's volume (its 960-face mesh alone is
+  1.60 % small); a box with one face removed was refused for mass with "it
+  is open (4 naked edges)". These went through the bridge's `push` function
+  with real Breps; the new material prompt of the typed command has not been
+  answered by hand yet.
+* Several solids with their own materials (ADR-053, added 2026-10-08):
+  **not yet run in Rhino.** `bridge rhino --check` now also pushes a box
+  tagged `pla` with a rod tagged `petg`; run it once to confirm.
 * `CalflabLiveSync`: Rhino followed a `shank_length` edit made on the server
   within about a second (shank bounding box moved 20 mm for a 20 mm edit, no
   object lost), and the command turns it off again.

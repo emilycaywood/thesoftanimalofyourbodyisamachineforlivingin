@@ -35,14 +35,27 @@ def default(path: str, fallback: Any = None) -> Any:
 
 
 @lru_cache(maxsize=16)
-def _load_def(path: str, mtime: float) -> GenomeDefinition:
-    return load_definition_file(Path(path))
+def _load_def(path: str, mtime: float, components: tuple[tuple[str, float], ...]) -> GenomeDefinition:
+    """A gene definition with ``choices_from`` resolved against the component
+    library: the listed choices first, then every other complete entry of that kind."""
+    from calflab.components import library
+
+    definition = load_definition_file(Path(path))
+    lib = library()
+    for g in definition.genes:
+        if g.type == "enum" and g.choices_from:
+            keys = [c.key for c in lib.by_kind(g.choices_from)]
+            g.choices = list(dict.fromkeys([*(g.choices or []), *keys]))
+    return definition
 
 
 def gene_definition_files() -> dict[str, GenomeDefinition]:
+    from calflab.components.library import _stamp
+
+    stamp = _stamp(config_dir() / "components")  # a new component is a new choice
     out: dict[str, GenomeDefinition] = {}
     for p in sorted((config_dir() / "genes").glob("*.yaml")):
-        d = _load_def(str(p), p.stat().st_mtime)
+        d = _load_def(str(p), p.stat().st_mtime, stamp)
         out[d.name] = d
     return out
 

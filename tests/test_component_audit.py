@@ -7,14 +7,13 @@ import io
 
 import pytest
 from calflab.components import library
-from calflab.components.library import _MODELS
+from calflab.components.library import _MODELS, META_FIELDS
 from calflab.plugins import registry
 from calflab.sim import SimSettings, compute_metrics, run_rollout
 from calflab.wiring import component_audit, component_worksheet, component_worksheet_csv
 from calflab.wiring.audit import FIELD_USES, RESULTS, WORKSHEET_COLUMNS
 
-NOT_SPECS = {"key", "kind", "name", "manufacturer", "url", "source", "verified", "notes",
-             "protocol", "type", "interface", "role", "color"}
+NOT_SPECS = set(META_FIELDS)
 # common fields that mean nothing for a material (it is bought by the kg)
 NOT_FOR_MATERIAL = {"mass_g", "dims_mm", "cost_usd"}
 
@@ -45,11 +44,12 @@ def test_audit_reports_dependencies_and_saturated_actuators(calf_design, calf_mo
     lib = library()
     idle = component_audit(calf_design.spec, lib, None)
     assert idle["from_run"] is False and idle["at_limit"] == []
-    assert idle["unverified"] == idle["total"] == len(lib.all())
+    assert idle["total"] == len(lib.all()) and idle["unverified"] == len([c for c in lib.all() if not c.verified])
     by_key = {c["key"]: c for c in idle["components"]}
     assert by_key["xh540_w270"]["in_design"] and by_key["xh540_w270"]["qty"] == 8
     assert not by_key["qdd_bldc_generic"]["in_design"]
-    assert "no_load_speed_rpm" in by_key["sts3215"]["unused_fields"]
+    assert "gear_ratio" in by_key["sts3215"]["unused_fields"]
+    assert "no_load_speed_rpm" not in by_key["sts3215"]["unused_fields"], "it caps the speed of tuned gaits"
     results = {r["key"]: r for r in idle["results"]}
     assert "lipo_3s_5000" in results["runtime"]["depends_on_unverified"]
     assert "lipo_3s_5000" not in results["torque_margin"]["depends_on_unverified"]

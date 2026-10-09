@@ -350,16 +350,123 @@ def selection_to_mesh(objects):
     return vertices, faces
 
 
-def push(objects, target, name="", layer="Skin"):
-    """Send edited geometry back to CALFLAB as an explicit geometry override."""
-    vertices, faces = selection_to_mesh(objects)
-    if not faces:
-        raise BridgeError("The selection has no surface geometry to push.")
-    return request(
-        "/api/bridge/rhino/push",
-        {"target": target, "name": name, "layer": layer, "vertices": vertices, "faces": faces, "source": CLIENT},
-        timeout=60.0,
-    )
+def selection_solid(objects):
+    """What Rhino itself says about the selection as a solid: are all objects
+    closed, and their exact total volume (mm^3). CALFLAB measures the mesh; it
+    uses this only to word its warning and to report the meshing error."""
+    import Rhino
+
+    rg = Rhino.Geometry
+    closed, volume = bool(objects), 0.0
+    for obj in objects:
+        geom = obj.Geometry
+        if isinstance(geom, rg.Extrusion):
+            geom = geom.ToBrep()
+        if isinstance(geom, rg.Brep):
+            ok = geom.IsSolid
+        elif isinstance(geom, rg.Mesh):
+            ok = geom.IsClosed
+        elif isinstance(geom, rg.SubD):
+            ok = geom.IsSolid
+        else:
+            ok = False
+        closed = closed and bool(ok)
+        if ok:
+            try:
+                props = rg.VolumeMassProperties.Compute(geom)
+                volume += abs(props.Volume) if props is not None else 0.0
+            except Exception:
+                pass
+    return {"closed": closed, "volume_mm3": volume if closed else 0.0}
+
+
+def push(objects, target, name="", layer="Skin", material=""):
+    """Send edited geometry back to CALFLAB as an explicit geometry override.
+
+    On the Structure layer a closed solid gives the part's mass (volume x the
+    density of its material); the reply says whether it did. There each object
+    is sent as its own solid with its own ``calflab.material`` user text, so a
+    part of printed plastic and steel rods is weighed solid by solid;
+    ``material`` is for the objects that carry none. An object's
+    ``calflab.print.*`` user text (infill, perimeters, line_width) is sent as
+    written; the server then weighs that solid as printed with infill.
+    """
+    body = {"target": target, "name": name, "layer": layer, "material": material, "source": CLIENT}
+    if layer == "Structure":
+        parts = []
+        for obj in objects:
+            vertices, faces = selection_to_mesh([obj])
+            if faces:
+                parts.append({"name": obj.Attributes.Name or "", "material": own_material(obj), "vertices": vertices,
+                              "faces": faces, "host": selection_solid([obj]), "print": own_print(obj)})
+        if not parts:
+            raise BridgeError("The selection has no surface geometry to push.")
+        body["parts"] = parts
+    else:
+        vertices, faces = selection_to_mesh(objects)
+        if not faces:
+            raise BridgeError("The selection has no surface geometry to push.")
+        body.update({"vertices": vertices, "faces": faces, "host": selection_solid(objects)})
+    return request("/api/bridge/rhino/push", body, timeout=60.0)
+
+
+def push_report(reply, target):
+    """The lines CalflabPush prints for a reply of ``push`` (all wording comes from the server's fields)."""
+    lines = ["CALFLAB: pushed %d faces as override %s on %s" % (reply["faces"], reply["override"], target)]
+    if reply.get("mass_from_geometry"):
+        wording = "CALFLAB: %s structure mass is now %.1f g (%.1f cm3 of %s; the estimate it replaces was %.1f g)"
+        if reply.get("estimate") == "infill":  # printed with infill: the number is an estimate, and says so
+            wording = ("CALFLAB: %s structure mass is now %.1f g, an INFILL ESTIMATE (%.1f cm3 outer volume of %s; "
+                       "the envelope estimate it replaces was %.1f g)")
+        line = wording % (
+            target, reply["mass_g"], reply["solid"]["volume_mm3"] / 1000.0, reply["material"], reply.get("replaced_g") or 0.0)
+        lines.append(line)
+        if reply.get("infill"):
+            lines.append("CALFLAB:   %s" % reply["infill"]["label"])
+        if reply["solid"].get("volume_source") == "host" and reply.get("volume_error") is not None:
+            lines.append("CALFLAB: the volume is Rhino's exact one (the mesh alone would be %+.2f %% off)" % (reply["volume_error"] * 100.0))
+        for n, solid in enumerate(reply.get("solids") or [], start=1):  # a part of several solids, each with its own material
+            lines.append("CALFLAB:   solid %d (%s): %.1f cm3 of %s = %.1f g%s" % (
+                n, solid["name"], solid["volume_mm3"] / 1000.0, solid["material"], solid["mass_g"],
+                " (infill estimate)" if solid.get("infill") else ""))
+            if solid.get("infill"):
+                lines.append("CALFLAB:     %s" % solid["infill"]["label"])
+        if reply.get("com_world_mm"):
+            lines.append("CALFLAB: %s structure centre of mass is at (%.1f, %.1f, %.1f) mm" % ((target,) + tuple(reply["com_world_mm"])))
+    if reply.get("estimate_note"):
+        lines.append("CALFLAB: %s" % reply["estimate_note"])
+    if reply.get("warning"):
+        lines.append("CALFLAB WARNING: %s" % reply["warning"])
+    if reply.get("note"):
+        lines.append("CALFLAB: %s" % reply["note"])
+    return lines
+
+
+def structure_materials():
+    """Keys of the structure materials in the library (for the CalflabPush prompt)."""
+    return [m["key"] for m in request("/api/bridge/rhino/materials")["materials"]]
+
+
+def own_material(obj):
+    """The object's ``calflab.material`` user text ("" if it has none)."""
+    return obj.Attributes.GetUserString("calflab.material") or ""
+
+
+def own_print(obj):
+    """The object's ``calflab.print.*`` user text as {name: text} (empty if it has none)."""
+    prefix = "calflab.print."
+    strings = obj.Attributes.GetUserStrings()
+    return dict((key[len(prefix):], strings[key]) for key in strings.AllKeys if key.startswith(prefix))
+
+
+def guess_material(objects):
+    """The material recorded on the selection: your own ``calflab.material``
+    user text, or the one CalflabPull wrote."""
+    for obj in objects:
+        material = obj.Attributes.GetUserString("calflab.material")
+        if material:
+            return material
+    return ""
 
 
 def guess_target(objects):

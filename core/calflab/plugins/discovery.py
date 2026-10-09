@@ -54,8 +54,9 @@ def _register_yaml_gene_definitions() -> None:
             if existing.__module__ != "calflab.plugins.yaml_genes":
                 continue  # a code plugin takes precedence
 
-        def _definition(self, _d=definition):  # type: ignore[no-untyped-def]
-            return _d
+        def _definition(self, _d=definition, _name=name):  # type: ignore[no-untyped-def]
+            # read again: the file, or the component library its choices come from, may have changed
+            return gene_definition_files().get(_name, _d)
 
         cls = type(
             f"YamlGenes_{name}",

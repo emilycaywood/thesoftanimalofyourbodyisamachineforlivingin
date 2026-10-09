@@ -140,6 +140,11 @@ class GenomeNode(NodeType):
         self.description = self._definition.description.strip()
         self.version = str(self._definition.version)
 
+    @property
+    def definition(self) -> Any:
+        """The gene definition behind this node."""
+        return self._definition
+
     def schema(self) -> dict[str, Any]:
         return self._definition.ui_schema()
 

@@ -439,3 +439,408 @@ start standing whatever the document's start pose. A run record of kind
 `tune` keeps the settings, the caps, the before and after figures and the
 gait. The speed cap is a stand-in for a torque-speed curve in the servo
 model, which is still missing; Evolve's inner loop is still uncapped.
+
+## ADR-050 — Mass comes from pushed solids, per-part materials and weighed parts (**VERIFY**)
+Requested by the researcher on 2026-10-08: model the chassis in Rhino part by
+part and have the lab's mass come from that geometry and real materials, not
+from the envelope estimate of ADR-017.
+
+*What was wrong.* A solid pushed onto a body's `Structure` layer replaced
+nothing (the code replaced only `visual` geoms; structure geoms are `both`),
+weighed nothing, and reached the simulator as a 5 mm sphere at the body
+origin. Pushed geometry was display only.
+
+*Every geom now says where its mass comes from* (`Geom.mass_source`):
+`parametric` (the envelope estimate), `component` (a library entry),
+`geometry` (a pushed closed solid x material density) or `measured` (a
+weighed part). `calflab.model.mass.mass_breakdown` only groups and sums the
+geoms, so the breakdown always adds up to the total.
+
+*Pushed solids.* A pushed mesh is measured once, when it arrives
+(`calflab.model.solid.analyze_mesh`): vertices closer than 0.0001 mm are
+welded; it is a solid if every edge is then shared by exactly two faces, the
+faces can be oriented consistently and it encloses a volume. Volume, centre
+of mass and unit-density inertia, in the body frame, are stored on the
+override (`meta.solid`). They are stored, not recomputed, because building a
+design must not need the project folder (evolution workers build from a JSON
+payload) and so that a run record carries what its masses were computed from.
+On the Structure layer a closed solid gives the part
+`mass = volume x density`. The envelope primitives of that body's structure
+stay as **massless collision shapes** (`role = "collision"`, same IDs), so
+nothing is counted twice and the simulator's contact geometry does not
+change; they are drawn only with the collision overlay and are not pulled
+into Rhino. An open or invalid solid is shown but **not used for mass**: the
+envelope estimate stays, and a warning goes to the pushing client, the log,
+the design's warnings, Properties and the Mass panel. Assumptions:
+
+* *Solid means solid.* Volume x density is the mass of a fully dense part. A
+  hollow or infilled print needs either a model of its real walls or a
+  material entry with the effective density measured on a printed sample.
+* *Separate closed shells add up; overlapping ones are counted twice.* Join
+  them in Rhino first.
+* *Hooves, motors, boards, belts and skin are separate parts.* A structure
+  solid replaces the printed structure of its body only (`structure_geoms`).
+* *A Skin push still changes the look only* and keeps the envelope's skin
+  mass, as before. Skin mass from sculpted area x thickness is not built.
+* *Exact volume from Rhino.* The bridge also sends what Rhino says about the
+  selection (closed? exact volume). A meshed curved solid is a little small
+  (a 40 mm sphere at Rhino's default meshing: -1.6 %), so when the two
+  volumes agree within 5 % the exact one is used and the inertia is scaled
+  with it; beyond 5 % the mesh volume is used and a warning says so. The
+  centre of mass is always the mesh's.
+* A body may now carry one geometry override per layer (a structure solid
+  and a skin sculpt together); before, the last push on a body hid the other.
+
+*In the simulator.* MuJoCo composes body inertia from primitives. A pushed
+solid is emitted as the non-colliding box with the same mass, centre of mass
+and inertia tensor (`equivalent_box`: extents `a^2 = 6 (I2 + I3 - I1) / m`
+along the principal axes), which is dynamically identical to the solid.
+Collision still uses the envelope, so a part modelled much larger or smaller
+than its envelope collides as the envelope does.
+
+*Material per part.* Structure only. A material named at push time belongs
+to that solid (`meta.material` of the geometry override), so switching the
+solid off returns the part exactly to its parametric value. A material
+chosen in Properties on a part without a solid is its own override
+(`kind = "material"`); on a part with a solid it changes the solid's
+material. Resolution: the solid's material, else the part's material
+override, else `structure.material`. The BOM books structure mass to the
+material each part was computed with; hooves are now booked as cast silicone
+instead of printed PETG (BOM total 5253 -> 5256 USD).
+
+*Weighed parts.* `set_measured_mass` (override `kind = "mass"`) replaces the
+structure mass of one body. The masses, and inertias, of its structure geoms
+are scaled to the weighed total, so centre of mass and inertia keep the shape
+the geometry gave them. The computed value stays visible beside it.
+
+*Recorded with runs.* `inputs.mass` of sim, evolve and tune runs lists the
+parts with geometry-based and with measured mass, mass by source, and each
+part's structure mass, source and material.
+
+*Also.* A project may set its own mass target (`set_mass_target`, stored in
+the document settings); the default stays in `robot_defaults.yaml`. Sensors
+without a body in the model (foot FSRs, touch zones) carry no mass; the
+breakdown lists them as "not in the mass model" rather than hiding that.
+
+Checked in Rhino 8.34 by `bridge rhino --check` (2026-10-08): a 100 mm box
+Brep in PLA gives 1240.0 g; a 40 mm sphere gives 332.42 g (exact); a box with
+a face removed is refused with "it is open (4 naked edges)".
+
+## ADR-051 — Component entries never take a value silently; choices come from the library (**VERIFY**)
+*Problem.* A field left out of a component entry took the code's default
+without a trace (a servo with no armature got 0.005 kg*m^2; one with no mass
+weighed 0 g), and a new actuator had to be added by hand to four `choices`
+lists in the gene file before it could be selected.
+
+*Rules, enforced by the loader.*
+* A required value that is missing or `null` makes the entry **incomplete**:
+  it is not in the library, cannot be selected, and the audit lists it with
+  the fields still to enter. Mass is required for every kind but materials.
+* An optional value that is missing takes the model default and the field is
+  recorded in `defaulted` ("default assumed").
+* A value that is not on the datasheet is entered as the researcher's best
+  guess and named in the entry's `guessed:` list.
+Both lists show in `calflab components audit`, the worksheet (`flag`
+column) and as badges on the component card in Properties. The existing
+entries got `guessed:` lists for exactly what their files already called a
+guess (servo thermal parameters, skin coefficients, the Pi's power draw). No
+value was changed. Nothing sets `verified`.
+
+`calflab components new <kind> <key>` appends an entry with every spec field
+blank, a comment giving its unit, `verified: false` and `guessed: []`.
+
+*Choices.* An enum gene may carry `choices_from: <kind>`: its listed choices
+come first, then every other complete library entry of that kind. The four
+actuator genes use it, and a new gene `battery` (default `lipo_3s_5000`,
+which is what `robot_defaults.yaml` named and every existing genome
+therefore had) makes the battery a per-project choice. The power budget's bus
+voltage is the chosen battery's. Boards and sensors are still set in
+`robot_defaults.yaml` for all projects: their geom IDs contain the component
+key and the harness names the two boards, so making them genes needs an ID
+decision first.
+
+A design that names a component later removed from the library fails to
+build with a message naming it, as an unknown enum value always did.
+
+Not checked on a real part: no small servo, board, battery or material was
+added, because the researcher's list was not given and specs are never
+invented. The mechanism is covered by tests with a made-up fixture entry in
+a private copy of `config/`.
+
+## ADR-052 — A `scale` gene for small test calves (**VERIFY**)
+Requested 2026-10-08: a calf about 200 mm tall for testing with lighter
+parts. Almost every length gene's minimum stops at about half size.
+
+*Decision.* One gene, `scale` (0.25 to 1.25, default 1, not evolvable),
+multiplies every gene marked `scale_by: scale` in the gene file (the 18
+length genes) and the generator's fixed millimetre constants (motor offsets,
+ear and tail radius, the belt). `scale = 0.33` gives a calf 200.6 mm tall.
+
+*Stored at full size, shown in real millimetres* (the researcher's choice,
+2026-10-08). The stored value of a length gene is the full-size one, so
+proportions, ranges and evolution's search space do not depend on the scale.
+Everything a person reads or types is real: the Form sliders and their
+ranges (`Lab.genome_form`, edits through `set_genes real=true`), Properties,
+the gumball, overrides, the gene table in Evolve, and Rhino. A 170 mm thigh
+gene at scale 0.33 reads 56.1 with a range of 33 to 85.8; typing 60 stores
+181.8. Changing only the scale keeps the proportions, so every length
+slider moves. What still carries stored (full-size) values: the project
+file, run and design records, `scene.genome` (its real twin is
+`scene.genome_real`), and `set_genes` without `real=true`, which is what
+the command line, the Python client, Grasshopper and Hops send.
+
+*Why not lower the minimums.* The ranges are also the evolution search
+space and the proportions of ADR-015. Widening each by a factor of three
+would make evolution from the default body search mostly absurd shapes, and
+a small calf would sit at the floor of every range with no room to vary.
+
+*What does not scale.* Wall thickness and skin thickness (a printer's wall
+does not shrink with the model), skin clearance, per-part offset overrides,
+and every component: at 0.33 the 2.4 kg of full-size motors, boards and
+battery are unchanged, which is the point of choosing lighter ones (ADR-051).
+Component boxes are drawn at their library size, so full-size servos stick
+out of a small calf.
+
+*Targets.* Target height and length scale with the gene. The mass target
+does not (structure scales roughly with the square, components not at all):
+set the project's own with `set_mass_target`.
+
+*Known limits.* Evolve's `trunk_length` and `leg_length` descriptors report
+the full-size value, so their ranges still hold; the `body_mass`
+(3500-8000 g) and `speed` (0-1 m/s) descriptor ranges are for the full-size
+calf and are not rescaled, so do not use those two on a small calf. The
+default gait was
+tuned for the full-size body: at 0.33 with the existing servos it walks at
+about 0.11 m/s without falling, which says little; *Tune for this body*
+after choosing real small servos. Simulator settings (time step, contact
+parameters) were not re-examined for a 200 mm, sub-kilogram body.
+
+## ADR-053 — A part may be pushed as several solids, each with its own material (**VERIFY**)
+Requested by the researcher on 2026-10-08: chassis parts are printed PLA
+with stainless steel rods, modelled in Rhino as separate closed solids (the
+rods cut out of the PLA), and one part's mass, centre of mass and inertia
+must be right for the mix. Extends ADR-050.
+
+*What was wrong.* `CalflabPush` joined the whole selection into one mesh and
+sent one material. Each object's own `calflab.material` user text was used
+only as the default of the prompt (the first one found in the selection).
+The joined mesh was measured once, at unit density, and multiplied by one
+density, so a PLA body with steel rods weighed as if it were all one
+material and its centre of mass was the centroid of the combined volume.
+A second push replaces the first, so there was no other way to give one
+part two materials.
+
+*Decision.* On the Structure layer the bridge sends the selection object by
+object (`parts` of `/api/bridge/rhino/push`: name, own material, mesh,
+Rhino's closedness and exact volume). Each is measured and stored as its own
+solid (its own GLB asset) and kept in the one geometry override of that
+part and layer as `meta.solids` (`name`, `asset`, `material`, `solid`).
+Building the design gives **one mass geom per solid** (`<body>.override.<id>.<n>`),
+with `mass = volume x own density`, its own centre of mass and its own
+inertia. Nothing new is needed downstream: `mass_breakdown` lists them as
+items, the BOM books each to its material, the simulator gets one
+equivalent box per solid and composes the body's inertia itself, a weighed
+mass scales them together, and `CalflabPull` brings each back as its own
+object with its own `calflab.material`. A push of a single object is
+stored exactly as before (`meta.solid`, `meta.material`), so old documents
+and runs need no migration.
+
+*Material of a solid.* Its own `calflab.material` user text; else the
+material named at the push prompt (`meta.material`); else the part's
+material override; else `structure.material`. The prompt is asked only when
+at least one selected solid has no user text of its own. This changes one
+thing for single solids: a tagged object used to offer its tag as the
+prompt's default, which could be overtyped; now the tag decides and the
+prompt is skipped. Chosen so that one rule holds for one solid and for many.
+
+*Assumptions.*
+* *All or nothing.* If any solid of a push is open, or its material is not a
+  structure material in the library, none of them is used for mass: the
+  envelope estimate stays and the warning names the solid. A part-mass that
+  silently lacks its rods would be worse than an estimate that says it is one.
+* *No overlap check.* Overlapping solids are still counted twice (ADR-050);
+  the rods must be cut out of the plastic in Rhino.
+* *One push is the whole part.* The solids of a push are one override; a
+  second push onto the same part and layer replaces all of them.
+* *Properties cannot flatten a mixed part.* `set_part_material` on a part
+  whose solids carry different materials is refused with a message pointing
+  to Rhino; if they all share one material it changes it for the part.
+  Changing one solid's material from the web lab is not built.
+* *Skin pushes are unchanged* (objects joined, look only).
+
+*Reported.* The breakdown's structure row gained `materials`,
+`material_label` ("pla + stainless_304"), `solids` (each pushed solid's
+material and mass) and `com_mm` (centre of mass of the structure in the body
+frame, mass-weighted); `material` is null for a mixed part. The push reply
+adds `solids` (volume, material, mass) and `com_world_mm`, which Rhino
+prints. `inputs.mass.structure.<body>` of a run now also holds `materials`
+and, for a part of several solids, `solids`.
+
+Not checked in Rhino: the typed `CalflabPush` with two tagged Breps. The
+path from the bridge's request format to the masses is covered by
+`tests/test_mass.py` (a 100 mm PLA box and a 10 x 10 x 100 mm box of
+`stainless_304`, densities read from the library).
+
+## ADR-054 — A pushed solid tagged with print settings is weighed with an infill estimate (**VERIFY**)
+Requested by the researcher on 2026-10-08: PLA parts are modelled as full
+solids but printed with infill, so volume x density (ADR-050) overestimates
+them several times over. Extends ADR-050 and ADR-053.
+
+*Decision.* A solid that carries the user text `calflab.print.infill`
+(percent), `calflab.print.perimeters` and `calflab.print.line_width` (mm) is
+weighed as printed: a **shell** of the wall thickness (perimeters x line
+width) all round the solid at the material's full density, plus the **core**
+inside it at the infill fraction of that density. The density stays the
+material's own; nothing is baked into a new material. A solid without these
+tags is fully dense, exactly as before.
+
+*No defaults.* All three tags or none. An incomplete, unreadable or
+out-of-range tag refuses the push with a message naming the solid and the
+tag. An infill between 0 and 1 is refused as a probable fraction. The
+researcher's own settings (15 %, 2 perimeters, 0.4 mm; also 3 top and 3
+bottom layers of 0.2 mm) are used in tests and documentation only.
+
+*One wall thickness all round* (the researcher's choice, 2026-10-08, asked
+because the request left it open). Top and bottom layers would need the
+print direction of each solid, which is not the direction it is modelled in.
+The alternatives offered were a required or optional
+`calflab.print.up` tag. So top and bottom skins are taken to be as thick as
+the walls; `calflab.print.*` tags other than the three are reported as not
+used.
+
+*The core* is the set of points of the solid deeper than the wall thickness
+below its surface (`calflab.model.infill.measure_core`). It is measured once,
+at the push, and stored beside the solid (`meta.print`, `meta.print_core`,
+or the same keys in each entry of `meta.solids`): building a design still
+needs no file access. Method: a grid of pitch wall / 2 (coarser above 16
+million cells); inside or outside by counting surface crossings along Z;
+cells far from the surface count whole; cells near the wall depth get the
+exact distance to the surface and count in proportion (so a flat wall is
+exact at any pitch). A 100 mm cube with a 0.8 mm wall: shell within 0.1 % of
+100^3 - 98.4^3, about 5 s.
+
+*Thin features.* Where the solid is thinner than two walls no point is that
+deep, so there is no core and the feature is fully dense. A cell a little
+short of the wall depth counts only if the solid does reach that depth just
+beyond it, which keeps a 1.5 mm fin from getting a sliver of core. The core
+is a subset of the solid and is clamped to its volume, so the estimate lies
+between all infill and fully dense. Features between two walls and two walls
+plus one pitch thick are counted to within a few percent.
+
+*Centre of mass and inertia* are those of the dense solid minus
+(1 - infill) x the core (`printed_solid`), not a uniform solid scaled down.
+The simulator gets the equivalent box of that inertia, as for any solid.
+100 % infill returns the dense solid's values unchanged.
+
+*Never shown as dense or weighed.* A fifth mass source, `infill` ("Pushed
+solid, infill estimate (shell + infilled core)"), listed before `geometry`
+so a body with one tagged solid reads as an estimate. `geometry_parts` still
+lists every body whose mass comes from pushed solids; `infill_parts` lists
+those resting on an estimate. Each such geom carries `Geom.infill`
+(settings, outer / shell / core volume, dense mass, one line of text), which
+the breakdown, the push reply, Rhino's printout, the web panels and the run
+record (`inputs.mass.structure.<body>.solids[n].infill`) all show.
+`CalflabPull` writes the three tags back.
+
+*Assumptions and limits.* The infill pattern, the slicer's real path (gap
+fill, extra perimeters round holes, solid layers under slopes), supports and
+extrusion error are ignored. The printed walls are taken at full material
+density. Print tags can only be set in Rhino. A weighed mass (`measured`)
+still replaces the estimate and is the most accurate.
+
+Not checked: against a slicer's filament weight (the researcher will compare
+two or three real parts), and `CalflabPush` typed by hand on a tagged
+object. Checked: `tests/test_infill.py`, a step in
+`web/e2e/structure.spec.ts`, and `bridge rhino --check` in Rhino 8.34 on
+2026-10-09 (a Brep cube with the three tags, read with
+`Attributes.GetUserStrings()`, pushed and printed as an infill estimate;
+the two-solid push of ADR-053 passed in the same run).
+
+## ADR-055 — A switch per neck and head joint (**VERIFY**)
+Requested by the researcher on 2026-10-09: the small prototype has no neck
+or head motors, and the generator always built three (`act.neck_yaw`,
+`act.neck_pitch`, `act.head_pitch`), 165 g of servos high at the front with
+the default STS3215. Asked whether one switch or several, the researcher
+chose separate ones.
+
+*Decision.* Three bool genes in group *Neck and head*: `has_neck_yaw`,
+`has_neck_pitch`, `has_head_pitch`, named like `has_tail` and `has_ears`.
+Default on, not evolvable, `absent: true` (ADR-047), so every saved genome,
+run and design keeps its three motors and no migration or version bump is
+needed. The request said "pitch and yaw"; there are two pitch joints (neck
+and head), so each got its own switch rather than sharing one.
+
+*Off means* no `joint.<name>`, no `act.<name>` and no motor geom, as for
+`front_hip_flex` (ADR-048). The bodies `neck.base`, `neck` and `head` stay,
+with their IDs, welded to their parent: the neck angle and head tilt are in
+the geometry, so the standing pose is unchanged and pushed solids still
+attach. The neck skin region lists only the joints that exist. The harness's
+neck bus ends at the furthest neck or head motor left (head pitch, else neck
+pitch, else neck yaw) and is omitted when there is none.
+
+*Not changed.* The microphone and the optional depth camera stay in the
+head. `joint_groups.neck` in `config/robot_defaults.yaml` still names all
+three; nothing reads the missing ones. A motion clip that names a removed
+joint has nothing to drive.
+
+Checked by `tests/test_neck_switches.py` (every combination: joints,
+actuators, mass, poses, skin, harness; compile, simulate, Blender plan,
+Rhino build list) and by a script that ran every exporter and analysis on a
+body with all three off. Not looked at in the web lab or in Rhino.
+
+## ADR-056 — Front and hind legs of their own lengths; front legs without a thigh (**VERIFY**)
+Requested by the researcher on 2026-10-09 for a prototype at scale 0.337:
+hind legs whose hip flexion and knee axes nearly coincide, front legs that
+are shoulder abduction, one pitch joint and a shank with no thigh. One
+`thigh_length` served all four legs and stopped at 100 mm (33.7 mm at that
+scale), and a front leg without hip flexion still had its thigh as a strut
+(ADR-048). The request's measurements were placeholders; nothing here
+depends on them.
+
+*Decision: additive, off by default.* `thigh_length` and `shank_length` are
+used throughout tests, the Grasshopper example and saved work, so they were
+not renamed or split by a migration. Instead:
+
+* `own_leg_lengths` (bool, default and `absent` false). On: the front legs
+  read `front_thigh_length` / `front_shank_length` and the hind legs
+  `hind_thigh_length` / `hind_shank_length`; the shared two are ignored.
+* The four lengths: `scale_by: scale`, thigh 5 to 300 mm, shank 30 to
+  450 mm, default 170. Wide on purpose, a hand-built body is not bound by the
+  proportions of ADR-015. **Not evolvable**, so the default calf's search
+  space, and hence its evolution runs, are unchanged; the cost is that Evolve
+  does not vary the leg lengths of a body that uses them.
+* `front_thigh` (bool, default and `absent` true). Off: no `leg.f*.thigh`
+  body. `leg.f*.shank` is a child of `leg.f*.hip` at the lateral leg offset
+  and hangs straight down (rest 0), on `joint.f*.knee`.
+
+*The pitch joint keeps the knee's IDs* (`joint.<k>.knee`, `act.<k>.knee`,
+motor from `act_knee`) and is only named "Shoulder pitch". Stable IDs are
+API: the CPG already steps a leg with a knee and no hip flexion as a
+two-motor leg (knee sweeps, abduction lifts), the torque table, speed caps,
+firmware and bridges key on these IDs, and nothing needed to learn a new
+one. Consequence: its motor cannot be chosen apart from the hind knees'.
+Its range is that of hip flexion (a straight leg swings both ways), not the
+knee's one-sided range. `front_knee_forward`, `front_hip_flex` and a belt
+drive do nothing on such a leg; its motor is drawn in the hip.
+
+*Grounding.* Legs of different standing heights used to leave the shorter
+pair in the air (trunk height follows the longest leg). With
+`own_leg_lengths` on or `front_thigh` off, the hip of each shorter leg is
+lowered in the trunk by the difference, so every hoof stands and the trunk
+stays level; `hip_drop` then belongs to the longest legs. Assumed: the
+prototype's trunk is level and its front and hind pitch axes sit at
+different heights. A tilted trunk is not modelled. Without either switch
+nothing changes: a leg shortened by an override still hangs short, as saved
+projects have it.
+
+*A very short thigh* is an ordinary body (a capsule of length 5 mm full size
+at the least); its direct-drive knee motor is drawn at the hip instead of
+above it.
+
+Checked: specs of six unchanged gene sets hash identically before and after
+the change; `tests/test_leg_layout.py`; every exporter and analysis, a
+simulation and `tune_gait` on a thighless, short-thighed body at scale 0.337
+with stand-in lengths. Simulation settings were left as they are (2 ms): that
+body neither collapsed, sank nor violated joint limits, but nothing was
+re-examined for a 200 mm calf (ADR-052). Not looked at in the web lab, Rhino
+or Blender by anyone.

@@ -14,7 +14,9 @@ from pydantic import BaseModel
 
 from calflab import units as u
 from calflab.components.library import Library
+from calflab.model.solid import equivalent_box
 from calflab.model.spec import Body, Geom, RobotSpec
+from calflab.model.xform import quat_mul
 from calflab.schema import P
 from calflab.sim.skin import skin_joint_effects
 
@@ -224,13 +226,20 @@ def compile_mjcf(
             mass = u.g_to_kg(geom.mass_g) * sc.mass
             total_mass += mass
             shape = "sphere" if geom.shape == "mesh" else geom.shape
+            size, gpos, gquat = _geom_size(geom), geom.pos, geom.quat
+            if geom.inertia is not None and geom.mass_g > 0:
+                # a pushed solid: the box with the same mass, centre of mass and inertia tensor (ADR-050)
+                extents, principal = equivalent_box(geom.mass_g, geom.inertia)
+                shape = "box"
+                size = _vec(tuple(u.mm_to_m(e) / 2 for e in extents))
+                gpos, gquat = geom.mass_center(), quat_mul(geom.quat, principal)
             collide = geom.role in ("collision", "both")
             attrs = {
                 "name": geom.id,
                 "type": shape,
-                "size": _geom_size(geom),
-                "pos": _vec(u.vec_mm_to_m(geom.pos)),
-                "quat": _vec(geom.quat),
+                "size": size,
+                "pos": _vec(u.vec_mm_to_m(gpos)),
+                "quat": _vec(gquat),
                 "mass": _f(mass),
                 "contype": "1" if collide else "0",
                 "conaffinity": "0",

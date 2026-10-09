@@ -55,10 +55,14 @@ def test_hooves_touch_the_ground(calf_design):
                 assert z == pytest.approx(0.0, abs=0.5)
 
 
+#: entries the researcher has marked verified, with the date they said so. Add a key here only when they do.
+VERIFIED_BY_RESEARCHER = {"stainless_304"}  # 2026-10-08
+
+
 def test_components_are_unverified_with_sources():
     for c in library().all():
         assert c.source, f"{c.key} has no source"
-        assert c.verified is False, f"{c.key}: only the researcher may mark specs verified"
+        assert c.verified is (c.key in VERIFIED_BY_RESEARCHER), f"{c.key}: only the researcher may mark specs verified"
 
 
 def test_override_changes_one_segment_only():

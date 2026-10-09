@@ -184,7 +184,8 @@ class LegLength(BehaviorDescriptor):
     unit = "mm"
 
     def describe_candidate(self, spec: RobotSpec, metrics: dict[str, Any], controller_params: dict[str, Any]) -> float:
-        return _leg_length_mm(spec)
+        # at full size, so the range holds for a scaled calf (ADR-052)
+        return _leg_length_mm(spec) / float(spec.metadata.get("scale") or 1.0)
 
 
 @register
@@ -221,7 +222,8 @@ class TrunkLength(BehaviorDescriptor):
 
     def describe_candidate(self, spec: RobotSpec, metrics: dict[str, Any], controller_params: dict[str, Any]) -> float:
         g = next((g for g in spec.root.geoms if g.id.endswith(".shell")), None)
-        return float(g.size[0]) if g else 0.0
+        # at full size, so the range holds for a scaled calf (ADR-052)
+        return float(g.size[0]) / float(spec.metadata.get("scale") or 1.0) if g else 0.0
 
 
 @register

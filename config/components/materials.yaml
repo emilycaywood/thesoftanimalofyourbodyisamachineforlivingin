@@ -6,6 +6,14 @@
 #   joint damping      = joint_damping_nms_per_rad_per_mm * thickness
 # The stiffness/damping coefficients are placeholders to be fitted from
 # physical tests in Phase 3.
+#
+# A structure material's density gives the mass of a part: a pushed closed
+# solid weighs volume x density (ADR-050). A part printed with infill keeps
+# the material's own density here; tag the solid in Rhino with
+# calflab.print.infill / .perimeters / .line_width and the infill estimate is
+# applied on top of it (ADR-054). (An effective density measured on a printed
+# sample, entered as its own material, still works too.)
+# Add an entry with: calflab components new material <key>
 
 - key: petg
   kind: material
@@ -41,6 +49,7 @@
   color: "#d9a48f"
   url: https://www.smooth-on.com/
   source: Platinum silicone density from supplier TDS class values; mechanical coefficients are guesses
+  guessed: [joint_stiffness_nm_per_rad_per_mm, joint_damping_nms_per_rad_per_mm]
   verified: false
 
 - key: cast_silicone
@@ -55,4 +64,18 @@
   color: "#c98f7d"
   url: https://www.smooth-on.com/
   source: Platinum silicone density from supplier TDS class values; mechanical coefficients are guesses
+  guessed: [joint_stiffness_nm_per_rad_per_mm, joint_damping_nms_per_rad_per_mm]
   verified: false
+
+- key: stainless_304
+  kind: material
+  name: "Stainless steel 304"
+  manufacturer: ""
+  role: structure  # structure | skin
+  color: "#c9c4b9"
+  density_g_cm3: 7.93            # g/cm^3 (for a printed part: mass of a sample / its outer volume); REQUIRED
+  cost_usd_per_kg: 39.02         # USD per kg; optional (blank = default assumed, and reported)
+  url: "https://www.amazon.com/dp/B0CTFDYSPJ?ref_=ppx_hzsearch_conn_dt_b_fed_asin_title_3&th=1"                         # datasheet or product page
+  source: "Researcher, 2026-10-08: product page (see url), 12 rods of 3 mm x 12 in for 8 USD; density and cost as given and verified by the researcher"  # which document the values come from (title, revision, date read)
+  guessed: []                     # names of fields whose value is your guess, not a datasheet value
+  verified: true                 # set to true yourself once every value is checked

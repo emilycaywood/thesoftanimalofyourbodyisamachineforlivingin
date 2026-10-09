@@ -8,6 +8,7 @@ export const PANEL_IDS = [
   "properties",
   "overrides",
   "genome",
+  "mass",
   "mechanism",
   "simulate",
   "timeline",

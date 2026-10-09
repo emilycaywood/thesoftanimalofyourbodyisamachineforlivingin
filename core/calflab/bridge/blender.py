@@ -116,7 +116,7 @@ def armature_plan(spec: RobotSpec) -> dict[str, Any]:
         bp, bq = poses[b.id]
         tb = np.array(matrix4(bp, bq))
         for g in b.geoms:
-            if g.shape == "mesh":
+            if g.shape == "mesh" or g.role == "collision":
                 continue
             meshes.append(
                 {

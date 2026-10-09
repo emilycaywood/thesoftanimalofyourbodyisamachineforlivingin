@@ -40,7 +40,7 @@ def test_meta_plugins_and_schemas(client):
     assert freq["ui"] == "slider" and freq["unit"] == "Hz" and freq["description"]
     assert any(p["stub"] for p in plugins["optimizer"])
     comps = client.get("/api/components").json()
-    assert all(c["verified"] is False and c["source"] for c in comps)
+    assert all(c["source"] for c in comps) and not all(c["verified"] for c in comps)
     types = {t["type"] for t in client.get("/api/graph/node-types").json()}
     assert {"genome:calf", "mjcf", "simulator:mujoco"} <= types
 

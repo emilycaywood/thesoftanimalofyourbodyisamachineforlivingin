@@ -7,7 +7,7 @@ import { PANELS } from "@/panels/registry";
 import { useView } from "@/store/view";
 import { workspace, type WorkspaceDef } from "@/workspaces";
 
-const LAYOUT_VERSION = 4;
+const LAYOUT_VERSION = 5;
 const key = (ws: string) => `calflab.layout.v${LAYOUT_VERSION}.${ws}`;
 
 class PanelBoundary extends Component<{ children: ReactNode }, { error: string | null }> {

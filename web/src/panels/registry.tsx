@@ -6,6 +6,7 @@ import { ConsolePanel, DesignsPanel, JobsPanel, LayersPanel, OverridesPanel, Run
 import { GenomePanel, MechanismPanel, PlannedPanel, SimulatePanel } from "./Design";
 import { ArchivePanel, EvolvePanel } from "./Evolve";
 import type { PanelId } from "./ids";
+import { MassPanel } from "./Mass";
 import { NodeEditorPanel } from "./NodeEditor";
 import { FabricatePanel, JournalPanel, WirePanel } from "./Output";
 import { PropertiesPanel } from "./Properties";
@@ -47,6 +48,7 @@ export const PANELS: Record<PanelId, { title: string; component: FC }> = {
   properties: { title: "Properties", component: PropertiesPanel },
   overrides: { title: "Overrides", component: OverridesPanel },
   genome: { title: "Form", component: GenomePanel },
+  mass: { title: "Mass", component: MassPanel },
   mechanism: { title: "Mechanism", component: MechanismPanel },
   simulate: { title: "Simulate", component: SimulatePanel },
   timeline: { title: "Timeline", component: TimelinePanel },

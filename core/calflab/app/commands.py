@@ -38,6 +38,11 @@ class SetGenes(Command):
 
     class Params(BaseModel):
         values: dict[str, Any] = P(default_factory=dict, ui="json", desc="Gene id -> new value.")
+        real: bool = P(
+            False,
+            desc="The values are real ones, as the Form sliders show them: a length is in millimetres on the body "
+            "and is divided by the overall scale before it is stored. Off = stored (full-size) values.",
+        )
 
     def coalesce_key(self) -> str:
         return "genes:" + ",".join(sorted(self.params.values))  # type: ignore[attr-defined]
@@ -49,12 +54,19 @@ class SetGenes(Command):
     def run(self, lab: Any, state: DocumentState) -> Any:
         node = state.graph.role("genome")
         nt = node_types()[node.type]
-        merged = {**node.params, **self.params.values}  # type: ignore[attr-defined]
+        values = dict(self.params.values)  # type: ignore[attr-defined]
+        definition = getattr(nt, "definition", None)
         try:
-            node.params = nt.clean_params(merged)
+            if self.params.real and definition is not None:  # type: ignore[attr-defined]
+                values = definition.stored_values(values, node.params)
+            node.params = nt.clean_params({**node.params, **values})
         except Exception as exc:
             raise _err(f"Invalid gene value: {exc}") from exc
-        return {"genes": {k: node.params[k] for k in self.params.values if k in node.params}}  # type: ignore[attr-defined]
+        out = {"genes": {k: node.params[k] for k in values if k in node.params}}
+        if definition is not None:
+            real = definition.real_values(node.params)
+            out["real"] = {k: real[k] for k in values if k in real}
+        return out
 
 
 @register
@@ -142,6 +154,24 @@ class AddGeometryOverride(Command):
         name: str = P("", desc="Name of the override record.")
         layer: str = P("Skin", desc="Layer whose geometry is replaced.")
         source: str = P("rhino", desc="Client that made the edit.")
+        material: str = P("", desc="Structure material of a pushed solid (empty = the part's material).")
+        solid: dict[str, Any] = P(
+            default_factory=dict, ui="json",
+            desc="Solid properties measured when the mesh arrived (closed, volume, centre of mass, inertia).",
+        )
+        solids: list[dict[str, Any]] = P(
+            default_factory=list, ui="json",
+            desc="A push of several solids: one {name, asset, material, solid} each (material empty = the one above), "
+                 "with {print, print_core} for a solid weighed as printed with infill.",
+        )
+        print_settings: dict[str, Any] = P(
+            default_factory=dict, ui="json",
+            desc="Print settings of a single pushed solid (infill_pct, perimeters, line_width_mm); empty = fully dense.",
+        )
+        print_core: dict[str, Any] = P(
+            default_factory=dict, ui="json",
+            desc="The part of that solid deeper than the wall, measured when the mesh arrived (volume, centre, inertia).",
+        )
 
     def title(self) -> str:
         return f"Geometry override on {self.params.target}"  # type: ignore[attr-defined]
@@ -164,8 +194,181 @@ class AddGeometryOverride(Command):
             created=now_iso(),
             meta={"layer": p.layer},  # type: ignore[attr-defined]
         )
+        if p.solid:  # type: ignore[attr-defined]
+            ov.meta["solid"] = dict(p.solid)  # type: ignore[attr-defined]
+        if p.print_settings:  # type: ignore[attr-defined]
+            ov.meta["print"] = dict(p.print_settings)  # type: ignore[attr-defined]
+            if p.print_core:  # type: ignore[attr-defined]
+                ov.meta["print_core"] = dict(p.print_core)  # type: ignore[attr-defined]
+        if p.material:  # type: ignore[attr-defined]
+            _structure_material(p.material)  # type: ignore[attr-defined]
+            ov.meta["material"] = p.material  # type: ignore[attr-defined]
+        if p.solids:  # type: ignore[attr-defined]
+            for s in p.solids:  # type: ignore[attr-defined]
+                if s.get("material"):
+                    _structure_material(str(s["material"]))
+            ov.meta["solids"] = [dict(s) for s in p.solids]  # type: ignore[attr-defined]
         state.overrides.append(ov)
         return {"override": ov.id}
+
+
+def _structure_material(key: str) -> Any:
+    """The structure material ``key`` names, or a user-facing error listing the choices."""
+    from calflab.components import MaterialSpec, library
+    from calflab.design import structure_material
+
+    lib = library()
+    mat = structure_material(lib, key)
+    if mat is None:
+        known = ", ".join(c.key for c in lib.by_kind("material") if isinstance(c, MaterialSpec) and c.role == "structure")
+        raise _err(f"{key!r} is not a structure material in the library. Choose one of: {known} "
+                   "(add your own to config/components/materials.yaml)")
+    return mat
+
+
+def _body(lab: Any, state: DocumentState, target: str) -> Any:
+    try:
+        return lab.design(state.graph).spec.body(target)
+    except KeyError as exc:
+        raise _err(f"{target!r} is not a part of this design (use a body id such as 'trunk')") from exc
+
+
+@register
+class SetPartMaterial(Command):
+    key = "set_part_material"
+    label = "Set part material"
+    description = (
+        "Choose the structure material of one part. On a part with a pushed solid this is the solid's "
+        "material; otherwise it is recorded as a material override on the parametric part."
+    )
+    category = "Form"
+    mutates = True
+
+    class Params(BaseModel):
+        target: str = P("", desc="Body id, e.g. trunk or leg.fl.shank.")
+        material: str = P("", desc="Material key from the library (empty = back to the default).")
+        source: str = P("web", desc="Client that made the edit.")
+
+    def title(self) -> str:
+        p = self.params
+        return f"Material of {p.target}: {p.material or 'default'}"  # type: ignore[attr-defined]
+
+    def run(self, lab: Any, state: DocumentState) -> Any:
+        p = self.params
+        _body(lab, state, p.target)  # type: ignore[attr-defined]
+        if p.material:  # type: ignore[attr-defined]
+            _structure_material(p.material)  # type: ignore[attr-defined]
+        solid = next(
+            (o for o in reversed(state.overrides)
+             if o.kind == "geometry" and o.enabled and o.target == p.target and o.meta.get("layer") == "Structure"),  # type: ignore[attr-defined]
+            None,
+        )
+        if solid is not None:
+            parts = solid.meta.get("solids") or []
+            own = sorted({str(s["material"]) for s in parts if s.get("material")})
+            if len(own) > 1 or (own and any(not s.get("material") for s in parts)):
+                raise _err(
+                    f"{p.target} is made of pushed solids with their own materials ({' + '.join(own)}). "  # type: ignore[attr-defined]
+                    "Change a solid's calflab.material user text in Rhino and push the part again."
+                )
+            for s in parts:  # solids that share one material follow the part
+                s.pop("material", None)
+            if p.material:  # type: ignore[attr-defined]
+                solid.meta["material"] = p.material  # type: ignore[attr-defined]
+            else:
+                solid.meta.pop("material", None)
+            return {"override": solid.id, "on": "solid"}
+        existing = [o for o in state.overrides if o.kind == "material" and o.target == p.target]  # type: ignore[attr-defined]
+        if not p.material:  # type: ignore[attr-defined]
+            state.overrides = [o for o in state.overrides if o not in existing]
+            return {"removed": [o.id for o in existing]}
+        if existing:
+            existing[-1].material = p.material  # type: ignore[attr-defined]
+            existing[-1].enabled = True
+            return {"override": existing[-1].id, "on": "part", "updated": True}
+        ov = Override(
+            id=f"ov-{uuid.uuid4().hex[:8]}",
+            name=f"{p.target} material",  # type: ignore[attr-defined]
+            target=p.target,  # type: ignore[attr-defined]
+            kind="material",
+            material=p.material,  # type: ignore[attr-defined]
+            source=p.source,  # type: ignore[attr-defined]
+            created=now_iso(),
+        )
+        state.overrides.append(ov)
+        return {"override": ov.id, "on": "part", "updated": False}
+
+
+@register
+class SetMeasuredMass(Command):
+    key = "set_measured_mass"
+    label = "Set measured mass"
+    description = (
+        "Record the weighed mass of one printed part. It replaces the computed structure mass of that part "
+        "(not its motors, electronics, skin or hoof); the computed value stays visible beside it."
+    )
+    category = "Form"
+    mutates = True
+
+    class Params(BaseModel):
+        target: str = P("", desc="Body id, e.g. trunk or leg.fl.shank.")
+        mass_g: float = P(0.0, unit="g", ge=0, le=50000, ui="number", desc="Weighed mass (0 = remove the measurement).")
+        source: str = P("web", desc="Client that made the edit.")
+
+    def title(self) -> str:
+        p = self.params
+        return f"Measured mass of {p.target}: {p.mass_g:g} g" if p.mass_g else f"Remove measured mass of {p.target}"  # type: ignore[attr-defined]
+
+    def run(self, lab: Any, state: DocumentState) -> Any:
+        from calflab.design import structure_geoms
+
+        p = self.params
+        body = _body(lab, state, p.target)  # type: ignore[attr-defined]
+        existing = [o for o in state.overrides if o.kind == "mass" and o.target == p.target]  # type: ignore[attr-defined]
+        if p.mass_g <= 0:  # type: ignore[attr-defined]
+            state.overrides = [o for o in state.overrides if o not in existing]
+            return {"removed": [o.id for o in existing]}
+        if not any(g.mass_g > 0 for g in structure_geoms(body)):
+            raise _err(f"{p.target} has no printed structure whose mass a measurement could replace")  # type: ignore[attr-defined]
+        if existing:
+            existing[-1].value = p.mass_g  # type: ignore[attr-defined]
+            existing[-1].enabled = True
+            return {"override": existing[-1].id, "updated": True}
+        ov = Override(
+            id=f"ov-{uuid.uuid4().hex[:8]}",
+            name=f"{p.target} measured mass",  # type: ignore[attr-defined]
+            target=p.target,  # type: ignore[attr-defined]
+            kind="mass",
+            value=p.mass_g,  # type: ignore[attr-defined]
+            source=p.source,  # type: ignore[attr-defined]
+            created=now_iso(),
+        )
+        state.overrides.append(ov)
+        return {"override": ov.id, "updated": False}
+
+
+@register
+class SetMassTarget(Command):
+    key = "set_mass_target"
+    label = "Set mass target"
+    description = "Set this project's own mass target (the default comes from config/robot_defaults.yaml)."
+    category = "Form"
+    mutates = True
+
+    class Params(BaseModel):
+        mass_g: float = P(0.0, unit="g", ge=0, le=100000, ui="number", desc="Target total mass (0 = use the default).")
+
+    def title(self) -> str:
+        m = self.params.mass_g  # type: ignore[attr-defined]
+        return f"Mass target {m:g} g" if m else "Mass target: default"
+
+    def run(self, lab: Any, state: DocumentState) -> Any:
+        m = float(self.params.mass_g)  # type: ignore[attr-defined]
+        if m > 0:
+            state.settings["max_mass_g"] = m
+        else:
+            state.settings.pop("max_mass_g", None)
+        return {"max_mass_g": state.settings.get("max_mass_g")}
 
 
 def _find_override(state: DocumentState, oid: str) -> Override:
@@ -726,7 +929,8 @@ class AdoptCandidate(Command):
         if run_overrides is not None:
 
             def sig(o: dict[str, Any]) -> tuple[Any, ...]:
-                return (o.get("kind", "param"), o.get("target"), o.get("param"), o.get("value"), o.get("asset"))
+                return (o.get("kind", "param"), o.get("target"), o.get("param"), o.get("value"), o.get("asset"),
+                        o.get("material"), (o.get("meta") or {}).get("material"))
 
             mine = sorted(map(repr, (sig(o.model_dump(mode="json")) for o in state.overrides if o.enabled)))
             if mine != sorted(map(repr, map(sig, run_overrides))):

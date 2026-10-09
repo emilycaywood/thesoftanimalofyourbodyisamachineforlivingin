@@ -12,32 +12,43 @@ version: 2
 description: >
   Reference calf quadruped: trunk, four 3-DOF legs (hip abduction, hip
   flexion, knee), neck (yaw, pitch), head (pitch), optional tail and ears.
+  Front hip flexion and each neck and head joint can be switched off; front
+  and hind legs can have their own lengths, and the front legs no thigh.
 
 genes:
+  # ------------------------------------------------------------- scale
+  # Multiplies every gene marked `scale_by: scale` and the generator's fixed
+  # offsets, so the ranges keep describing proportions. 0.33 gives a calf about
+  # 200 mm tall. Wall and skin thickness do not scale. Those genes are stored
+  # at full size; the Form sliders show and take real millimetres (ADR-052).
+  - {id: scale, default: 1.0, min: 0.25, max: 1.25, step: 0.01, group: Scale, evolvable: false,
+     label: "Overall scale",
+     description: "Resizes the whole calf, keeping its proportions. 1 = the 610 mm calf; 0.33 = about 200 mm tall. The length sliders below follow it and stay in real millimetres. Wall and skin thickness, and all components, keep their size."}
+
   # ------------------------------------------------------------- trunk
-  - {id: trunk_length, default: 420, min: 300, max: 560, unit: mm, group: Trunk,
+  - {id: trunk_length, scale_by: scale, default: 420, min: 300, max: 560, unit: mm, group: Trunk,
      description: "Shoulder-to-rump length of the trunk."}
-  - {id: trunk_width, default: 150, min: 100, max: 220, unit: mm, group: Trunk,
+  - {id: trunk_width, scale_by: scale, default: 150, min: 100, max: 220, unit: mm, group: Trunk,
      description: "Trunk width (left-right)."}
-  - {id: trunk_height, default: 170, min: 110, max: 240, unit: mm, group: Trunk,
+  - {id: trunk_height, scale_by: scale, default: 170, min: 110, max: 240, unit: mm, group: Trunk,
      description: "Trunk depth (back to belly)."}
 
   # ------------------------------------------------------------- legs
-  - {id: stance_width, default: 170, min: 110, max: 260, unit: mm, group: Legs,
+  - {id: stance_width, scale_by: scale, default: 170, min: 110, max: 260, unit: mm, group: Legs,
      description: "Left-right distance between hip abduction axes."}
-  - {id: hip_inset, default: 35, min: 10, max: 90, unit: mm, group: Legs,
+  - {id: hip_inset, scale_by: scale, default: 35, min: 10, max: 90, unit: mm, group: Legs,
      description: "Distance of the hips from the front/rear end of the trunk."}
-  - {id: hip_drop, default: 40, min: 0, max: 90, unit: mm, group: Legs,
+  - {id: hip_drop, scale_by: scale, default: 40, min: 0, max: 90, unit: mm, group: Legs,
      description: "Height of the hip axis below the trunk centre line."}
-  - {id: leg_offset, default: 30, min: 10, max: 60, unit: mm, group: Legs,
+  - {id: leg_offset, scale_by: scale, default: 30, min: 10, max: 60, unit: mm, group: Legs,
      description: "Sideways offset of the leg plane from the abduction axis."}
-  - {id: thigh_length, default: 170, min: 100, max: 260, unit: mm, group: Legs,
+  - {id: thigh_length, scale_by: scale, default: 170, min: 100, max: 260, unit: mm, group: Legs,
      description: "Hip to knee."}
-  - {id: shank_length, default: 170, min: 100, max: 260, unit: mm, group: Legs,
+  - {id: shank_length, scale_by: scale, default: 170, min: 100, max: 260, unit: mm, group: Legs,
      description: "Knee to hoof centre."}
-  - {id: leg_radius, default: 16, min: 10, max: 28, unit: mm, group: Legs,
+  - {id: leg_radius, scale_by: scale, default: 16, min: 10, max: 28, unit: mm, group: Legs,
      description: "Radius of the leg segments."}
-  - {id: hoof_radius, default: 20, min: 12, max: 32, unit: mm, group: Legs,
+  - {id: hoof_radius, scale_by: scale, default: 20, min: 12, max: 32, unit: mm, group: Legs,
      description: "Radius of the (cast silicone) hoof."}
   - {id: knee_bend, default: 40, min: 10, max: 80, unit: deg, group: Legs,
      description: "Knee flexion in the standing pose."}
@@ -54,48 +65,88 @@ genes:
   - {id: front_hip_flex, type: bool, default: true, absent: true, group: Legs, evolvable: false,
      description: "Front legs have a hip-flexion motor. Off = two motors per front leg (abduction and knee/elbow); the upper segment is fixed."}
 
+  # Front and hind legs of their own proportions (ADR-056). All off / unused by
+  # default, and `absent` records that: older genomes build exactly as before.
+  # The four lengths are read only while `own_leg_lengths` is on; they are not
+  # evolvable, so the search space of the default calf is unchanged.
+  - {id: front_thigh, type: bool, default: true, absent: true, group: Legs, evolvable: false,
+     label: "Front legs have a thigh",
+     description: "Off = no front thigh at all: the shank hangs straight down from the shoulder on one pitch joint (joint.fl.knee / joint.fr.knee), driven by the knee actuator. The front knee direction and the front hip-flexion switch then do nothing."}
+  - {id: own_leg_lengths, type: bool, default: false, absent: false, group: Legs, evolvable: false,
+     label: "Front and hind legs have their own lengths",
+     description: "On = the four lengths below are used and Thigh length / Shank length are ignored. The hips of the shorter legs sit lower in the trunk so every hoof stands on the ground."}
+  - {id: front_thigh_length, scale_by: scale, default: 170, min: 5, max: 300, unit: mm, group: Legs, evolvable: false,
+     label: "Front thigh length",
+     description: "Front legs: hip (shoulder) pitch axis to knee axis. Used when front and hind legs have their own lengths and the front legs have a thigh."}
+  - {id: front_shank_length, scale_by: scale, default: 170, min: 30, max: 450, unit: mm, group: Legs, evolvable: false,
+     label: "Front shank length",
+     description: "Front legs: knee axis (without a thigh: the shoulder pitch axis) to hoof centre. Used when front and hind legs have their own lengths."}
+  - {id: hind_thigh_length, scale_by: scale, default: 170, min: 5, max: 300, unit: mm, group: Legs, evolvable: false,
+     label: "Hind thigh length",
+     description: "Hind legs: hip flexion axis to knee axis. Used when front and hind legs have their own lengths."}
+  - {id: hind_shank_length, scale_by: scale, default: 170, min: 30, max: 450, unit: mm, group: Legs, evolvable: false,
+     label: "Hind shank length",
+     description: "Hind legs: knee axis to hoof centre. Used when front and hind legs have their own lengths."}
+
   # ------------------------------------------------------------- neck and head
-  - {id: neck_length, default: 160, min: 80, max: 260, unit: mm, group: Neck and head,
+  - {id: neck_length, scale_by: scale, default: 160, min: 80, max: 260, unit: mm, group: Neck and head,
      description: "Length of the neck."}
   - {id: neck_angle, default: 50, min: 10, max: 80, unit: deg, group: Neck and head,
      description: "Neck elevation above horizontal in the standing pose."}
-  - {id: neck_radius, default: 32, min: 20, max: 50, unit: mm, group: Neck and head,
+  - {id: neck_radius, scale_by: scale, default: 32, min: 20, max: 50, unit: mm, group: Neck and head,
      description: "Radius of the neck."}
-  - {id: head_length, default: 190, min: 120, max: 260, unit: mm, group: Neck and head,
+  - {id: head_length, scale_by: scale, default: 190, min: 120, max: 260, unit: mm, group: Neck and head,
      description: "Poll to muzzle."}
-  - {id: head_width, default: 100, min: 70, max: 140, unit: mm, group: Neck and head,
+  - {id: head_width, scale_by: scale, default: 100, min: 70, max: 140, unit: mm, group: Neck and head,
      description: "Head width."}
-  - {id: head_height, default: 110, min: 70, max: 150, unit: mm, group: Neck and head,
+  - {id: head_height, scale_by: scale, default: 110, min: 70, max: 150, unit: mm, group: Neck and head,
      description: "Head depth."}
   - {id: head_tilt, default: 25, min: 0, max: 60, unit: deg, group: Neck and head,
      description: "Nose-down tilt of the head in the standing pose."}
+  # One switch per neck and head joint. Off = no joint and no motor: the part
+  # is fixed to its parent in the standing pose and keeps its ID. Genomes saved
+  # before the genes existed had all three motors: that is what `absent` records.
+  - {id: has_neck_yaw, type: bool, default: true, absent: true, group: Neck and head, evolvable: false,
+     label: "Neck yaw motor",
+     description: "The neck turns left and right with a motor in the trunk. Off = no yaw joint and no motor."}
+  - {id: has_neck_pitch, type: bool, default: true, absent: true, group: Neck and head, evolvable: false,
+     label: "Neck pitch motor",
+     description: "The neck raises and lowers with a motor at its base. Off = no pitch joint and no motor; the neck stays at its neck angle."}
+  - {id: has_head_pitch, type: bool, default: true, absent: true, group: Neck and head, evolvable: false,
+     label: "Head pitch motor",
+     description: "The head nods with a motor at the top of the neck. Off = no joint and no motor; the head stays at its tilt."}
 
   # ------------------------------------------------------------- tail and ears
   - {id: has_tail, type: bool, default: true, group: Tail and ears, evolvable: false,
      description: "Include a 1-DOF tail."}
-  - {id: tail_length, default: 180, min: 60, max: 300, unit: mm, group: Tail and ears,
+  - {id: tail_length, scale_by: scale, default: 180, min: 60, max: 300, unit: mm, group: Tail and ears,
      description: "Length of the tail."}
   - {id: has_ears, type: bool, default: true, group: Tail and ears, evolvable: false,
      description: "Include two 1-DOF ears (cosmetic)."}
-  - {id: ear_length, default: 70, min: 30, max: 120, unit: mm, group: Tail and ears,
+  - {id: ear_length, scale_by: scale, default: 70, min: 30, max: 120, unit: mm, group: Tail and ears,
      description: "Length of each ear."}
 
   # ------------------------------------------------------------- mechanism
   - {id: knee_drive, type: enum, default: direct, choices: [direct, belt], group: Mechanism,
      evolvable: false,
      description: "direct = knee motor at the knee; belt = motor at the hip driving the knee by belt."}
+  # `choices_from` adds every other complete entry of that kind in
+  # config/components, so a new servo or battery is selectable at once (ADR-051).
   - {id: act_hip_abd, type: enum, default: xm430_w350, group: Mechanism, evolvable: false,
-     choices: [sts3215, xm430_w350, xh540_w270, qdd_bldc_generic],
+     choices: [sts3215, xm430_w350, xh540_w270, qdd_bldc_generic], choices_from: actuator,
      description: "Actuator for hip abduction."}
   - {id: act_hip_flex, type: enum, default: xh540_w270, group: Mechanism, evolvable: false,
-     choices: [sts3215, xm430_w350, xh540_w270, qdd_bldc_generic],
+     choices: [sts3215, xm430_w350, xh540_w270, qdd_bldc_generic], choices_from: actuator,
      description: "Actuator for hip flexion."}
   - {id: act_knee, type: enum, default: xh540_w270, group: Mechanism, evolvable: false,
-     choices: [sts3215, xm430_w350, xh540_w270, qdd_bldc_generic],
+     choices: [sts3215, xm430_w350, xh540_w270, qdd_bldc_generic], choices_from: actuator,
      description: "Actuator for the knee."}
   - {id: act_small, type: enum, default: sts3215, group: Mechanism, evolvable: false,
-     choices: [sts3215, xm430_w350],
+     choices: [sts3215, xm430_w350], choices_from: actuator,
      description: "Actuator for neck, head, tail and ears."}
+  - {id: battery, type: enum, default: lipo_3s_5000, group: Mechanism, evolvable: false,
+     choices: [lipo_3s_5000], choices_from: battery,
+     description: "Battery pack in the trunk. Its voltage is the bus voltage of the power budget."}
 
   # ------------------------------------------------------------- shell and skin
   - {id: wall_thickness, default: 2.0, min: 1.0, max: 4.0, step: 0.1, unit: mm, group: Shell and skin,

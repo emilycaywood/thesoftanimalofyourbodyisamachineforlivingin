@@ -38,6 +38,12 @@ class GeneDef(BaseModel):
     label: str | None = None
     description: str = ""
     choices: list[str] | None = None
+    #: component kind whose library keys are also choices (e.g. ``actuator``), so a
+    #: component added to config/components is selectable without editing the genes
+    choices_from: str | None = None
+    #: id of the gene this one is multiplied by to give its real value (ADR-052).
+    #: The stored value is the full-size one; forms show and take the real one.
+    scale_by: str | None = None
     evolvable: bool = True
 
     @model_validator(mode="after")
@@ -109,6 +115,46 @@ class GenomeDefinition(BaseModel):
             if self.has(k):
                 out[k] = self.gene(k).coerce(v)
         return out
+
+    # ---- real values: what a scaled gene measures on the body (ADR-052)
+    def factor(self, gene_id: str, values: dict[str, Any]) -> float:
+        """What the stored value of ``gene_id`` is multiplied by to give its real value."""
+        g = self.gene(gene_id)
+        if not g.scale_by or g.type not in ("float", "int"):
+            return 1.0
+        by = values.get(g.scale_by)
+        return float(by) if isinstance(by, int | float) and not isinstance(by, bool) and by > 0 else 1.0
+
+    def real_values(self, values: dict[str, Any]) -> dict[str, GeneValue]:
+        """Stored values -> real values (a 170 mm thigh gene at scale 0.33 is 56.1)."""
+        out: dict[str, GeneValue] = {}
+        for g in self.genes:
+            if g.id not in values:
+                continue
+            k = self.factor(g.id, values)
+            out[g.id] = values[g.id] if k == 1.0 else round(float(values[g.id]) * k, 3)
+        return out
+
+    def stored_values(self, real: dict[str, Any], current: dict[str, Any]) -> dict[str, Any]:
+        """Real values (a partial edit) -> stored values, using the scale the
+        edit itself sets, else the current one. Unknown genes pass through."""
+        merged = {**current, **{k: v for k, v in real.items() if self.has(k) and not self.gene(k).scale_by}}
+        out: dict[str, Any] = {}
+        for k, v in real.items():
+            f = self.factor(k, merged) if self.has(k) else 1.0
+            out[k] = v if f == 1.0 else float(v) / f
+        return out
+
+    def real_ui_schema(self, values: dict[str, Any]) -> dict[str, Any]:
+        """The form schema with the ranges and defaults of scaled genes in real units."""
+        schema = self.ui_schema()
+        for f in schema["fields"]:
+            k = self.factor(f["name"], values)
+            if k != 1.0:
+                for key in ("min", "max", "default"):
+                    if f.get(key) is not None:
+                        f[key] = round(float(f[key]) * k, 3)
+        return schema
 
     def default_genome(self) -> Genome:
         return Genome(definition=self.name, version=self.version, values=self.defaults())

@@ -221,7 +221,7 @@ class Lab:
         return g
 
     def scene(self, graph: Graph | None = None, overrides: list[Override] | None = None) -> dict[str, Any]:
-        s = build_scene(self.design(graph, overrides), self.state.layers)
+        s = build_scene(self.design(graph, overrides), self.state.layers, self.state.settings)
         s["revision"] = self.revision
         return s
 
@@ -294,8 +294,10 @@ class Lab:
             "parent": parent_src,
             "compare": other["genome"]["values"] if other else None,
         }
-        refs = {k: gdef.complete(v) if v is not None else None for k, v in columns.items()}
-        values = gdef.complete(c["genome"]["values"])
+        # every column in real values (each body's lengths at its own scale), so the
+        # table agrees with the Form sliders and Properties (ADR-052)
+        refs = {k: gdef.real_values(gdef.complete(v)) if v is not None else None for k, v in columns.items()}
+        values = gdef.real_values(gdef.complete(c["genome"]["values"]))
         only = list((run.inputs.get("params") or {}).get("genes") or []) if run else []
         evolved = {g.id for g in gdef.evolvable(only or None)}
 
@@ -359,7 +361,28 @@ class Lab:
                 "outputs": [s.__dict__ for s in nt.outputs_for(n.params)] if nt else [],
                 "expensive": nt.expensive if nt else False,
             }
-        return {"graph": graph.model_dump(mode="json"), "status": status, "revision": self.revision}
+        return {"graph": graph.model_dump(mode="json"), "status": status, "revision": self.revision,
+                "genome_form": self.genome_form(graph, types)}
+
+    @staticmethod
+    def genome_form(graph: Graph, types: dict[str, Any] | None = None) -> dict[str, Any] | None:
+        """What the Form sliders show: the genome in real values (a length is
+        the millimetres on the body, whatever the overall scale), with ranges
+        to match. Edits come back through ``set_genes real=true``. (ADR-052)"""
+        try:
+            node = graph.role("genome")
+        except KeyError:
+            return None
+        definition = getattr((types or node_types()).get(node.type), "definition", None)
+        if definition is None:
+            return None
+        values = definition.complete(node.params)
+        return {
+            "node": node.id,
+            "schema": definition.real_ui_schema(values),
+            "values": definition.real_values(values),
+            "scaled": [g.id for g in definition.genes if definition.factor(g.id, values) != 1.0],
+        }
 
     def node_output(self, node_id: str) -> dict[str, Any]:
         res = self.evaluate(targets=[node_id]).get(node_id)
@@ -424,7 +447,7 @@ class Lab:
             t0 = time.perf_counter()
             design = self._role_output("design", "design", g, state)
             model = self._role_output("model", "model", g, state)
-            self.bus.emit("sim.started", job=job.job.id, body_ids=model.body_ids, scene=build_scene(design, state.layers))
+            self.bus.emit("sim.started", job=job.job.id, body_ids=model.body_ids, scene=build_scene(design, state.layers, state.settings))
             streamed = [0]
 
             def on_frames(chunk: dict[str, Any]) -> None:
@@ -451,7 +474,7 @@ class Lab:
             run_id = self.registry.new_run_id("sim")
             run_dir = self.registry.run_dir(run_id)
             rollout.save(run_dir / "rollout.npz")
-            write_json(run_dir / "scene.json", build_scene(design, state.layers))
+            write_json(run_dir / "scene.json", build_scene(design, state.layers, state.settings))
             (run_dir / "model.xml").write_text(model.xml, encoding="utf-8")
             sim_node = g.node(sim_id)
             preset = None
@@ -472,6 +495,7 @@ class Lab:
                     "compile": g.role("model").params,
                     "generator": g.role("design").type,
                     "generator_params": g.role("design").params,
+                    "mass": self._mass_record(design),
                 },
                 genome=design.genome.model_dump(mode="json"),
                 overrides=[o.model_dump(mode="json") for o in state.overrides if o.enabled],
@@ -493,6 +517,32 @@ class Lab:
             return {"run_id": run_id, "cached": False, "metrics": record.metrics}
 
         return self.jobs.submit("sim", title, work)
+
+    @staticmethod
+    def _mass_record(design: EvaluatedDesign) -> dict[str, Any]:
+        """Where a run's masses came from: stored with the run so a result can
+        be traced to pushed geometry, weighed parts or envelope estimates."""
+        from calflab.model.mass import mass_breakdown
+
+        b = mass_breakdown(design.spec, library())
+        return {
+            "total_g": b["total_g"],
+            "by_source_g": b["by_source_g"],
+            "geometry_parts": b["geometry_parts"],
+            "infill_parts": b["infill_parts"],
+            "measured_parts": b["measured_parts"],
+            "structure": {
+                r["body"]: {
+                    **{k: r["structure"][k] for k in ("mass_g", "source", "material", "materials")},
+                    # a part of several pushed solids: what each one weighed, and with which material
+                    # ... and for a solid weighed as printed, the print settings and volumes of its infill estimate
+                    **({"solids": r["structure"]["solids"]}
+                       if len(r["structure"]["solids"]) > 1 or any(s["infill"] for s in r["structure"]["solids"]) else {}),
+                }
+                for r in b["bodies"]
+                if r["structure"]["source"]
+            },
+        }
 
     @staticmethod
     def _ok_output(results: dict[str, NodeResult], g: Graph, role: str, socket: str) -> Any:
@@ -598,7 +648,7 @@ class Lab:
                 backend=bkey,
                 inputs={"optimizer": optimizer, "params": opt.params.model_dump(mode="json"), "sim": sim_params,
                         "compile": g.role("model").params, "generator_params": g.role("design").params,
-                        "start": start},
+                        "start": start, "mass": self._mass_record(start_design)},
                 genome=start_design.genome.model_dump(mode="json"),
                 overrides=[o.model_dump(mode="json") for o in state.overrides if o.enabled],
                 controller=ctrl,
@@ -725,6 +775,7 @@ class Lab:
                     seed=cfg.seed,
                     backend=bkey,
                     inputs={"settings": cfg.model_dump(mode="json"), "sim": payload["sim"], "compile": payload["compile"],
+                            "mass": self._mass_record(design),
                             "speed_caps_deg_s": result["speed_caps_deg_s"], "before": before, "tried": result["tried"]},
                     genome=payload["genome"],
                     overrides=overrides,

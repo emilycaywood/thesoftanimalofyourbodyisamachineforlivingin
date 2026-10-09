@@ -1,10 +1,11 @@
 # CALFLAB session handoff
 
 Everything a new Claude Code session (or a new collaborator) needs to pick up
-CALFLAB. Last updated 2026-10-04 on branch `phase-1-vertical-slice`, after the
-session that worked through the researcher's first walkthrough by hand (six
-fixes) and then made forward front knees, with a gait tuned for them, the
-default (section 4; run `git log --oneline -12` for the current state).
+CALFLAB. Last updated 2026-10-08 on branch `chassis-mass` (on top of
+`phase-1-vertical-slice`, pushed to GitHub), after the session that made mass come from solids
+pushed from Rhino, per-part materials and weighed parts, and added a scale
+gene for a small test calf (section 4; run `git log --oneline -12` for the
+current state).
 
 ---
 
@@ -26,7 +27,8 @@ claude
 ```
 
 Check you are in the right place: the first thing the session should report is
-working directory `C:\CALFLABHOME`, branch `phase-1-vertical-slice`.
+working directory `C:\CALFLABHOME`, branch `chassis-mass` (or
+`phase-1-vertical-slice` once the researcher has merged it in).
 
 ### Paste this as the first message of a new session
 
@@ -101,11 +103,16 @@ Working rules (from the original brief):
 pull request #1 into `main`
 (https://github.com/emilycaywood/thesoftanimalofyourbodyisamachineforlivingin/pull/1).
 The repository is **public**. `main` still has only the initial commit; the
-researcher merges.
+researcher merges. The 2026-10-08 work is on the branch `chassis-mass`,
+branched from `phase-1-vertical-slice`, pushed to GitHub and open as a pull
+request into `phase-1-vertical-slice` (so it joins pull request #1 when the
+researcher merges it).
 
-**Tests:** `calflab test` passes: ruff, 227 pytest tests, mypy, web typecheck
-and eslint, 14 Vitest tests, 5 Playwright tests (smoke, gumball drag and
-harness overlay with a real mouse, runs + journal, evolve from a design).
+**Tests:** `calflab test` passes: ruff, 273 pytest tests, mypy, web typecheck
+and eslint, 14 Vitest tests, 7 Playwright tests (smoke, material / weighed
+mass / pushed solid / Mass panel, real-millimetre sliders at scale 0.33,
+gumball drag and harness overlay with a
+real mouse, runs + journal, evolve from a design).
 `calflab doctor` is clean apart from three optional warnings (Graphviz, no
 CUDA, unverified components). It used to warn "uv not found" as well: that
 was a false alarm, fixed 2026-10-03. uv is installed and is what
@@ -206,6 +213,126 @@ motors):**
 * The forward-knee default of the morning is therefore likely to be
   superseded; it is still what a new project gets.
 
+**Added 2026-10-08 (researcher's request: model the chassis in Rhino and
+get real mass, at a smaller scale; ADR-050, ADR-051, ADR-052):**
+
+* Before: a solid pushed onto `Structure` was display only (it replaced
+  nothing, weighed nothing, and was a 5 mm sphere in the simulator).
+* Every geom has a `mass_source` (`parametric`, `component`, `geometry`,
+  `measured`). `calflab.model.mass.mass_breakdown` sums them; it is in
+  `scene.mass.breakdown`, in the new **Mass** panel (Form, Mechanism) and in
+  `inputs.mass` of sim, evolve and tune runs.
+* A pushed mesh is measured on arrival (`calflab.model.solid`): closed?,
+  volume, centre of mass, inertia, stored in the override's `meta.solid`.
+  Closed + Structure = mass from volume x material density; the simulator
+  gets the box with the same mass, centre and inertia tensor; the envelope
+  stays as a massless collision shape. Open = shown, not used, warned about.
+* Override kinds `material` and `mass` (weighed part); commands
+  `set_part_material`, `set_measured_mass`, `set_mass_target`.
+  Properties > *Material and mass*.
+* Rhino: `CalflabPush` asks for a material on Structure and prints the
+  resulting mass or a warning; `CalflabPull` writes `calflab.material`,
+  `calflab.mass_g`, `calflab.mass_source`. `bridge rhino --check` now also
+  pushes a box, a sphere and an open box (passed in Rhino 8.34).
+* Gene `scale` (0.25-1.25): 0.33 gives a 200.6 mm calf. Length genes are
+  marked `scale_by: scale`, stored at full size and shown in real
+  millimetres everywhere a person reads them (`Lab.genome_form`,
+  `set_genes real=true`; the researcher chose this on 2026-10-08 over
+  lowering the gene minimums). Gene `battery`.
+  Actuator and battery choices come from the library (`choices_from`).
+* Component entries never take a value silently: incomplete entries,
+  `guessed:`, "default assumed"; `calflab components new <kind> <key>`.
+* **No component or material was added.** The researcher's request had
+  placeholders where the list of small servos, board, battery and materials
+  should be. Ask for it; do not invent one.
+* Side effects to know: hooves are booked as cast silicone in the BOM (they
+  were printed PETG by mistake), BOM total 5253 -> 5256 USD; the worksheet
+  has a `flag` column (the committed CSV was not regenerated);
+  `LAYOUT_VERSION` is 5 (dock layouts reset once); a body can carry one
+  geometry override per layer instead of one in all.
+
+**Added later on 2026-10-08 (researcher's request: parts of printed PLA
+with stainless steel rods; ADR-053):**
+
+* Before: `CalflabPush` joined the selection into one mesh with one
+  material; an object's own `calflab.material` was only the prompt default.
+* Now, on Structure, each selected object is sent, measured, stored and
+  weighed as its own solid with its own `calflab.material` (else the prompt
+  material, else the part's). One override per part still; its
+  `meta.solids` lists them; the design gets one mass geom per solid
+  (`<body>.override.<id>.<n>`). A single-object push is stored as before.
+* Breakdown structure rows carry `materials`, `material_label`, `solids`,
+  `com_mm`; the push reply carries `solids` and `com_world_mm`; runs record
+  `materials` (and `solids`) per part. Properties and the Mass panel show
+  them. If one solid of a push is open, none is used for mass.
+* `set_part_material` refuses a part whose solids have different materials.
+* Tests: three new ones in `tests/test_mass.py` (the first is the
+  researcher's two-box check and reads `stainless_304` from the library), a
+  step in `web/e2e/structure.spec.ts`, a two-solid push in
+  `bridges/rhino/validate_in_rhino.py` (run in Rhino on 2026-10-09: passed).
+* The researcher added `stainless_304` to
+  `config/components/materials.yaml` (7.93 g/cm3; 39.02 USD/kg, from 12
+  rods of 3 mm x 12 in for 8 USD) and marked it **verified** on 2026-10-08:
+  the first verified entry. `tests/test_morphology.py` keeps the guard with
+  an explicit list, `VERIFIED_BY_RESEARCHER`; add a key there only when the
+  researcher says so. A value with unit text in it (`7.93 g/cm³`) stops the
+  whole library from loading; the loader does not yet report that kindly.
+
+**Added after that (researcher's request of 2026-10-08: PLA parts are
+modelled full but printed with infill; ADR-054):**
+
+* A solid tagged `calflab.print.infill`, `calflab.print.perimeters` and
+  `calflab.print.line_width` is weighed with an **infill estimate**: a shell
+  of perimeters x line width at full density plus the core at the infill
+  percentage. Centre of mass and inertia follow the same split. Untagged
+  solids are fully dense as before; 100 % equals untagged exactly.
+* `calflab.model.infill`: `parse_print_tags` (no defaults; bad tags refuse
+  the push), `measure_core` (grid, at the push; a 100 mm cube takes about
+  5 s), `printed_solid`, `estimate_info`. Stored in the override as
+  `meta.print` / `meta.print_core` (or per entry of `meta.solids`).
+* New mass source `infill`, shown as `infill est.` in the web lab and as
+  `an INFILL ESTIMATE` in Rhino; `Geom.infill`; `infill_parts` and
+  per-solid `infill` in the breakdown and in `inputs.mass` of runs;
+  `CalflabPull` writes the print tags back.
+* The researcher chose **one wall thickness all round**: top/bottom layers
+  and layer height are not used (no print direction is known). Their
+  settings: 15 %, 2 perimeters, 0.4 mm (3 top / 3 bottom layers, 0.2 mm).
+  These are not defaults anywhere in the code.
+* Tests: `tests/test_infill.py` (6), a step in `web/e2e/structure.spec.ts`,
+  a step in `bridges/rhino/validate_in_rhino.py`. `bridge rhino --check`
+  passed in Rhino 8.34 on 2026-10-09 with that step and with the two-solid
+  push of ADR-053.
+
+**Added 2026-10-09 (researcher's request: the prototype has no neck or head
+motors; ADR-055):**
+
+* Genes `has_neck_yaw`, `has_neck_pitch`, `has_head_pitch` (Form > Neck and
+  head, on by default, `absent: true`). Off = no joint, actuator or motor;
+  the parts stay, fixed in the standing pose, IDs unchanged. The neck bus in
+  the harness ends at the furthest motor left. No genome version bump.
+* `tests/test_neck_switches.py` (9); every exporter and analysis, a
+  simulation and undo were run by script on a body with all three off.
+  Not looked at in the web lab or Rhino by anyone.
+
+**Added later on 2026-10-09 (researcher's request: the prototype's legs do
+not fit the skeleton; ADR-056; and its two servos):**
+
+* `scs0009` and `mg996r` in `config/components/actuators.yaml`, from the
+  two documents the researcher supplied; unverified, blanks left blank.
+* Form > Legs: `own_leg_lengths` (off) with `front_thigh_length`,
+  `front_shank_length`, `hind_thigh_length`, `hind_shank_length` (thigh
+  down to 5 mm full size), and `front_thigh` (on; off = no front thigh body,
+  the shank hangs from the hip on `joint.f*.knee`, named Shoulder pitch).
+  With either in use the shorter legs' hips sit lower so all hooves stand.
+  None is evolvable; no genome version bump. This supersedes next session G
+  for the lengths (the default body was not changed).
+* The request's three leg measurements were placeholders: the body was
+  tested with stand-in lengths. With scs0009 on the pitch joints and the
+  full-size battery and boards it stands but hardly walks (servos at their
+  limit); with mg996r everywhere it trots at 0.09 m/s. A small battery and
+  board are still not in the library.
+* `tests/test_leg_layout.py` (6).
+
 **Scaffolded only (interfaces + tests, no behaviour):** PPO training, MJX
 simulator, RemoteSSH and CloudNotebook transports (job bundling is real),
 imitation reward, interactive selection, molds, skin patterns, nesting,
@@ -243,6 +370,23 @@ Journal, Rhino bridge):**
   Properties, entry in Overrides).
 * `doctor` warned "uv not found" on top of the three expected warnings:
   false alarm, fixed (see Tests above).
+
+**The researcher must verify (new on 2026-10-08):**
+
+* `CalflabPush` by hand with the new material prompt (a script exercised the
+  bridge function with real Breps, not the typed prompts), and the look of
+  Properties > *Material and mass* and the Mass panel (a browser test drives
+  them; nobody has looked).
+* The infill estimate against reality: compare two or three real parts with
+  the slicer's filament weight at the same settings, and with a scale. Tag
+  a solid in Rhino by hand (Attribute User Text) and read the printout and
+  Properties: a script did both, nobody has by hand.
+* The small calf in use: the sliders in real millimetres (chosen by the
+  researcher, checked by a browser test, not yet used by hand); simulation
+  settings and the default gait were
+  not re-examined for a 200 mm body, and no real small servo has been tried.
+* Whether the `guessed:` lists added to the existing entries match what the
+  files meant (only values the files already called guesses were listed).
 
 **The researcher must verify:**
 
@@ -310,9 +454,12 @@ Journal, Rhino bridge):**
 |---|---|
 | `CLAUDE.md` | Conventions for every session (loaded automatically) |
 | `PLAN.md` | Architecture, module boundaries, data flow, phases, risks, status |
-| `DECISIONS.md` | ADR log: every assumption (49 so far) |
+| `DECISIONS.md` | ADR log: every assumption (56 so far) |
 | `docs/proposals/anatomical-leg.md` | Proposal for a three-segment leg (set aside 2026-10-04; not built) |
 | `docs/USER_GUIDE.md` | How to use the lab |
+| `docs/CHAT_GUIDE_PROMPT.md` | Prompt that makes a chat assistant a guide to the whole lab |
+| `docs/CHAT_GUIDE_CHASSIS.md` | The same for one workflow: chassis parts from Rhino, real mass, own components, the small calf |
+| `docs/CHAT_GUIDE_PROTOTYPE.md` | The same for one job: a small prototype already modelled in Rhino (PLA and steel rods) into the simulator; covers ADR-053 and the infill estimate of ADR-054, which `CHAT_GUIDE_CHASSIS.md` only points to |
 | `docs/component_verification.csv` | Datasheet verification worksheet (the researcher fills it in) |
 | `bridges/rhino/README.md`, `bridges/blender/README.md` | Bridge install, conventions, what is verified |
 | `docs/notebooks/quickstart.ipynb` | Driving the lab from Python |
@@ -377,6 +524,25 @@ Prefix each with the opening message from section 1.
 > whether the 120 deg/s cap used for the default was too cautious or not
 > cautious enough. Do not change component values; flag which results rest
 > on unverified speeds.
+
+**H. Enter my small components and tune the small calf**
+> Here are my parts for the 200 mm test calf: <servo models with datasheet
+> links, board, battery, materials with densities>. For each, run
+> `calflab components new`, enter only the values I give or that are on the
+> linked datasheet, leave everything else blank or in `guessed:` as I say,
+> and keep `verified: false`. Then in a new project set scale 0.33, choose
+> them in Mechanism, set a mass target, run *Tune for this body*, and show me
+> the mass breakdown, the torque-margin table and the speed. Tell me which
+> results rest on guessed or defaulted values, and whether the simulator's
+> time step and contact settings still make sense for a body this small.
+
+**I. Boards and sensors per project; skin mass from sculpted skin**
+> Boards and sensors are still chosen for all projects in
+> config/robot_defaults.yaml because their geom IDs contain the component key
+> (ADR-051). Propose stable IDs (e.g. `elec.control`, `elec.compute`), make
+> them genes with `choices_from`, migrate, and keep old runs loading. Then
+> give a sculpted Skin push a mass from its own area x skin thickness, with
+> the same open/closed honesty as structure solids (ADR-050).
 
 **G. Make the elbow body the default**
 > I have settled the front leg: joint facing backward, upper segment <N> mm,

@@ -57,7 +57,86 @@ export interface ComponentInfo {
   source: string;
   verified: boolean;
   notes: string;
+  /** spec fields whose value is a guess, not a datasheet value */
+  guessed?: string[];
+  /** spec fields the entry does not give: the code's default is in use */
+  defaulted?: string[];
   [spec: string]: unknown;
+}
+
+/** Where a mass comes from: pushed solid x material, such a solid estimated as printed with infill, weighed, library entry, or the envelope estimate. */
+export type MassSource = "infill" | "geometry" | "measured" | "component" | "parametric";
+
+/** What an infill estimate was made from (computed and worded by the server). */
+export interface InfillEstimate {
+  infill_pct: number;
+  perimeters: number;
+  line_width_mm: number;
+  wall_mm: number;
+  volume_mm3: number; // outer volume of the solid
+  shell_volume_mm3: number;
+  core_volume_mm3: number;
+  dense_g: number; // what the solid would weigh fully dense
+  label: string; // one line saying all of it
+}
+
+export interface StructureMass {
+  mass_g: number;
+  source: MassSource | null;
+  source_label: string;
+  material: string | null; // null when the part is made of solids in several materials
+  materials: string[]; // every material the structure mass was computed with
+  material_label: string; // e.g. "pla + stainless_304"
+  solids: { id: string; label: string; material: string | null; mass_g: number; verified: boolean | null; infill: InfillEstimate | null }[]; // pushed solids
+  com_mm: [number, number, number] | null; // centre of mass of the structure, body frame
+  computed_g: number | null; // value a weighed mass replaced
+  replaced_g: number | null; // envelope estimate a pushed solid replaced (not counted)
+  note: string;
+  estimate_note: string; // said beside a structure mass that is an infill estimate
+}
+
+export interface MassItem {
+  id: string;
+  label: string;
+  layer: string;
+  mass_g: number;
+  source: MassSource;
+  material: string | null;
+  component: string | null;
+  verified: boolean | null;
+  computed_g: number | null;
+  replaced_g: number | null;
+  note: string;
+  infill: InfillEstimate | null;
+}
+
+export interface MassBodyRow {
+  body: string;
+  name: string;
+  total_g: number;
+  by_source_g: Partial<Record<MassSource, number>>;
+  structure: StructureMass;
+  items: MassItem[];
+}
+
+export interface MassBreakdown {
+  total_g: number;
+  by_source_g: Record<MassSource, number>;
+  source_labels: Record<MassSource, string>;
+  geometry_parts: string[];
+  infill_parts: string[];
+  measured_parts: string[];
+  unverified_g: number;
+  bodies: MassBodyRow[];
+  not_counted: { component: string; name: string; qty: number; mass_g: number }[];
+}
+
+export interface MaterialChoice {
+  key: string;
+  name: string;
+  density_g_cm3: number;
+  verified: boolean;
+  default: boolean;
 }
 
 export interface GeomInfo {
@@ -72,6 +151,8 @@ export interface GeomInfo {
   component: string | null;
   label: string | null;
   mass_g: number;
+  mass_source: MassSource;
+  material: string | null;
   foot: boolean;
   mesh: string | null;
 }
@@ -126,6 +207,8 @@ export interface ElementInfo {
   layer: string;
   params?: Record<string, ParamValue>;
   component?: ComponentInfo | null;
+  /** bodies with a fabricated structure: its material and where its mass comes from */
+  structure?: StructureMass;
   [k: string]: unknown;
 }
 
@@ -149,11 +232,15 @@ export interface Scene {
   mass: {
     total_g: number;
     target_g: number;
+    target_source: "project" | "default";
     over_budget: boolean;
     by_layer_g: Record<string, number>;
     by_body_g: Record<string, number>;
+    breakdown: MassBreakdown;
   };
-  extents: { height_mm: number; length_mm: number; target_height_mm: number; target_length_mm: number };
+  /** structure materials a part can be given */
+  materials: MaterialChoice[];
+  extents: { height_mm: number; length_mm: number; scale: number; target_height_mm: number; target_length_mm: number };
   elements: Record<string, ElementInfo>;
   layers: Record<string, LayerState>;
   warnings: string[];
@@ -164,10 +251,17 @@ export interface Override {
   id: string;
   name: string;
   target: string;
-  kind: "param" | "geometry";
+  kind: "param" | "geometry" | "material" | "mass";
   param: string | null;
   value: number | null;
   asset: string | null;
+  material: string | null;
+  meta?: {
+    layer?: string;
+    material?: string;
+    solid?: { closed: boolean; volume_mm3: number };
+    solids?: { name: string; material: string; solid: { closed: boolean; volume_mm3: number } }[]; // a push of several solids
+  };
   enabled: boolean;
   source: string;
   created: string;
@@ -211,6 +305,8 @@ export interface GraphEdge {
 }
 
 export interface GraphView {
+  /** the genome as the Form shows it: real values (lengths in mm on the body) and ranges to match */
+  genome_form?: { node: string; schema: Schema; values: Record<string, unknown>; scaled: string[] } | null;
   graph: {
     nodes: GraphNode[];
     edges: GraphEdge[];
