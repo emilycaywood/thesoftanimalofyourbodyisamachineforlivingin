@@ -11,6 +11,11 @@ A front leg may have two motors instead of three (gene ``front_hip_flex`` off):
 the thigh is then fixed to the hip at its standing angle, there is no
 ``joint.<k>.hip_flex`` / ``act.<k>.hip_flex``, and the knee works as an elbow.
 
+Each neck and head joint has its own switch (genes ``has_neck_yaw``,
+``has_neck_pitch``, ``has_head_pitch``; ADR-055). Off: no joint, no actuator
+and no motor mass; ``neck.base``, ``neck`` and ``head`` keep their IDs and
+are fixed to their parent in the standing pose.
+
 Proportions and the mass model are assumptions (ADR-015, ADR-017).
 
 Gene ``scale`` multiplies every length (mm) gene and the fixed millimetre
@@ -527,26 +532,34 @@ class CalfGenerator(PartGenerator):
         nl, nr, na = val("neck", "length"), val("neck", "radius"), val("neck", "angle")
         nd = (math.cos(math.radians(na)), 0.0, math.sin(math.radians(na)))
         neck_root: Vec3 = (L / 2.0 - nr * 0.5, 0.0, H * 0.4 - nr * 0.5)
-        trunk.geoms.append(motor("act.neck_yaw", act_small, (neck_root[0] - 30.0 * s, 0.0, neck_root[2] - 10.0 * s)))
+        # each of the three neck and head joints can be left out (ADR-055): no joint, no motor, the part is
+        # fixed to its parent in the standing pose and keeps its ID
+        neck_yaws = bool(genes.get("has_neck_yaw", True))
+        neck_pitches = bool(genes.get("has_neck_pitch", True))
+        head_pitches = bool(genes.get("has_head_pitch", True))
+        if neck_yaws:
+            trunk.geoms.append(motor("act.neck_yaw", act_small, (neck_root[0] - 30.0 * s, 0.0, neck_root[2] - 10.0 * s)))
 
         base = Body(id="neck.base", name="Neck base", parent="trunk", pos=add(neck_root, off("neck")), part=False)
         base.geoms.append(
             shell(Geom(id="neck.base.block", shape="sphere", size=(nr * 0.7, 0, 0), label="Neck base"), "neck.base")
         )
-        base.geoms.append(motor("act.neck_pitch", act_small, (0.0, 0.0, 0.0)))
+        if neck_pitches:
+            base.geoms.append(motor("act.neck_pitch", act_small, (0.0, 0.0, 0.0)))
         bodies.append(base)
-        joints.append(
-            Joint(
-                id="joint.neck_yaw",
-                name="Neck yaw",
-                body="neck.base",
-                axis=(0.0, 0.0, 1.0),
-                range_deg=lim("neck_yaw", (-50, 50)),
-                group="neck",
-                damping=jd,
-                friction=jf,
+        if neck_yaws:
+            joints.append(
+                Joint(
+                    id="joint.neck_yaw",
+                    name="Neck yaw",
+                    body="neck.base",
+                    axis=(0.0, 0.0, 1.0),
+                    range_deg=lim("neck_yaw", (-50, 50)),
+                    group="neck",
+                    damping=jd,
+                    friction=jf,
+                )
             )
-        )
 
         neck = Body(id="neck", name="Neck", parent="neck.base")
         nq = quat_from_z_to(nd)
@@ -564,7 +577,8 @@ class CalfGenerator(PartGenerator):
             )
         )
         neck_end: Vec3 = (nd[0] * nl, 0.0, nd[2] * nl)
-        neck.geoms.append(motor("act.head_pitch", act_small, (neck_end[0] * 0.9, 0.0, neck_end[2] * 0.9)))
+        if head_pitches:
+            neck.geoms.append(motor("act.head_pitch", act_small, (neck_end[0] * 0.9, 0.0, neck_end[2] * 0.9)))
         nsk = Geom(
             id="neck.skin",
             shape="capsule",
@@ -581,23 +595,29 @@ class CalfGenerator(PartGenerator):
         if gp.show_skin:  # type: ignore[attr-defined]
             neck.geoms.append(nsk)
         bodies.append(neck)
-        joints.append(
-            Joint(
-                id="joint.neck_pitch",
-                name="Neck pitch",
-                body="neck",
-                axis=(0.0, 1.0, 0.0),
-                range_deg=lim("neck_pitch", (-40, 40)),
-                group="neck",
-                damping=jd,
-                friction=jf,
+        if neck_pitches:
+            joints.append(
+                Joint(
+                    id="joint.neck_pitch",
+                    name="Neck pitch",
+                    body="neck",
+                    axis=(0.0, 1.0, 0.0),
+                    range_deg=lim("neck_pitch", (-40, 40)),
+                    group="neck",
+                    damping=jd,
+                    friction=jf,
+                )
             )
-        )
+        neck_joints = [
+            jid
+            for jid, there in (("joint.neck_yaw", neck_yaws), ("joint.neck_pitch", neck_pitches), ("joint.head_pitch", head_pitches))
+            if there
+        ]
         skins.append(
             SkinRegion(
                 id="skin.neck",
                 bodies=["neck"],
-                joints=["joint.neck_yaw", "joint.neck_pitch", "joint.head_pitch"],
+                joints=neck_joints,
                 material=skin_mat.key,
                 thickness_mm=skin_t,
                 area_mm2=nsk.area_mm2(),
@@ -648,18 +668,19 @@ class CalfGenerator(PartGenerator):
         if gp.show_skin:  # type: ignore[attr-defined]
             head.geoms.append(hsk)
         bodies.append(head)
-        joints.append(
-            Joint(
-                id="joint.head_pitch",
-                name="Head pitch",
-                body="head",
-                axis=(0.0, 1.0, 0.0),
-                range_deg=lim("head_pitch", (-35, 35)),
-                group="neck",
-                damping=jd,
-                friction=jf,
+        if head_pitches:
+            joints.append(
+                Joint(
+                    id="joint.head_pitch",
+                    name="Head pitch",
+                    body="head",
+                    axis=(0.0, 1.0, 0.0),
+                    range_deg=lim("head_pitch", (-35, 35)),
+                    group="neck",
+                    damping=jd,
+                    friction=jf,
+                )
             )
-        )
         skins.append(
             SkinRegion(
                 id="skin.head",
@@ -669,11 +690,7 @@ class CalfGenerator(PartGenerator):
                 area_mm2=hsk.area_mm2(),
             )
         )
-        actuators += [
-            Actuator(id="act.neck_yaw", joint="joint.neck_yaw", component=act_small),
-            Actuator(id="act.neck_pitch", joint="joint.neck_pitch", component=act_small),
-            Actuator(id="act.head_pitch", joint="joint.head_pitch", component=act_small),
-        ]
+        actuators += [Actuator(id=jid.replace("joint.", "act."), joint=jid, component=act_small) for jid in neck_joints]
         sd = d.get("sensors", {})
         for zone in sd.get("touch_zones", []):
             if zone == "head":
@@ -859,8 +876,11 @@ def _harness(spec: RobotSpec, defaults: dict[str, Any]) -> list[HarnessRoute]:
         dst = f"act.{k}.knee.motor"
         if dst in geom_ids:
             route(f"harness.bus.{k}", mcu, dst, [f"leg.{k}.hip", f"leg.{k}.thigh"], list(bus), "JST-EH-3")
-    if "act.head_pitch.motor" in geom_ids:
-        route("harness.bus.neck", mcu, "act.head_pitch.motor", ["neck.base"], list(bus), "JST-EH-3")
+    # the neck bus runs to the furthest neck or head motor there is; none, no bus
+    for dst, via in (("act.head_pitch.motor", ["neck.base"]), ("act.neck_pitch.motor", []), ("act.neck_yaw.motor", [])):
+        if dst in geom_ids:
+            route("harness.bus.neck", mcu, dst, via, list(bus), "JST-EH-3")
+            break
     if "sensor.imu.board" in geom_ids:
         route(
             "harness.imu",

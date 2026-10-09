@@ -394,6 +394,19 @@ them), set the project's mass target in the Mass panel, and press *Tune for
 this body* in Simulate, since the default gait was tuned for the full-size
 calf. Simulation settings have not been examined for a body this small.
 
+Under Neck and head, three switches say which of those joints the body
+really has: **Neck yaw motor**, **Neck pitch motor**, **Head pitch motor**
+(genes `has_neck_yaw`, `has_neck_pitch`, `has_head_pitch`; all on by
+default). Switching one off removes that joint and its motor: nothing to
+drive, no motor in the BOM, the power budget or the mass (55 g each with the
+default STS3215, unverified), and the neck servo bus in Wire ends at the
+furthest motor that is left, or disappears. The neck and head themselves
+stay, fixed where they stand (at the *Neck angle* and *Head tilt* sliders),
+with the same IDs (`neck.base`, `neck`, `head`), so solids pushed onto them
+still attach and still weigh. With all three off, and **Has tail** and **Has
+ears** off under Tail and ears, the only motors left are the legs'. A motion
+clip from Blender that moves a removed joint simply has nothing to move.
+
 Under Legs, **Front knee forward** and **Hind knee forward** choose which way
 each pair of knees bends. New projects start with front knees forward and
 hind knees backward, and with a trot tuned for that body. Turn on the *Joint

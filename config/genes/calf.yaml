@@ -12,6 +12,7 @@ version: 2
 description: >
   Reference calf quadruped: trunk, four 3-DOF legs (hip abduction, hip
   flexion, knee), neck (yaw, pitch), head (pitch), optional tail and ears.
+  Front hip flexion and each neck and head joint can be switched off.
 
 genes:
   # ------------------------------------------------------------- scale
@@ -78,6 +79,18 @@ genes:
      description: "Head depth."}
   - {id: head_tilt, default: 25, min: 0, max: 60, unit: deg, group: Neck and head,
      description: "Nose-down tilt of the head in the standing pose."}
+  # One switch per neck and head joint. Off = no joint and no motor: the part
+  # is fixed to its parent in the standing pose and keeps its ID. Genomes saved
+  # before the genes existed had all three motors: that is what `absent` records.
+  - {id: has_neck_yaw, type: bool, default: true, absent: true, group: Neck and head, evolvable: false,
+     label: "Neck yaw motor",
+     description: "The neck turns left and right with a motor in the trunk. Off = no yaw joint and no motor."}
+  - {id: has_neck_pitch, type: bool, default: true, absent: true, group: Neck and head, evolvable: false,
+     label: "Neck pitch motor",
+     description: "The neck raises and lowers with a motor at its base. Off = no pitch joint and no motor; the neck stays at its neck angle."}
+  - {id: has_head_pitch, type: bool, default: true, absent: true, group: Neck and head, evolvable: false,
+     label: "Head pitch motor",
+     description: "The head nods with a motor at the top of the neck. Off = no joint and no motor; the head stays at its tilt."}
 
   # ------------------------------------------------------------- tail and ears
   - {id: has_tail, type: bool, default: true, group: Tail and ears, evolvable: false,

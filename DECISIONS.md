@@ -755,3 +755,35 @@ object. Checked: `tests/test_infill.py`, a step in
 2026-10-09 (a Brep cube with the three tags, read with
 `Attributes.GetUserStrings()`, pushed and printed as an infill estimate;
 the two-solid push of ADR-053 passed in the same run).
+
+## ADR-055 — A switch per neck and head joint (**VERIFY**)
+Requested by the researcher on 2026-10-09: the small prototype has no neck
+or head motors, and the generator always built three (`act.neck_yaw`,
+`act.neck_pitch`, `act.head_pitch`), 165 g of servos high at the front with
+the default STS3215. Asked whether one switch or several, the researcher
+chose separate ones.
+
+*Decision.* Three bool genes in group *Neck and head*: `has_neck_yaw`,
+`has_neck_pitch`, `has_head_pitch`, named like `has_tail` and `has_ears`.
+Default on, not evolvable, `absent: true` (ADR-047), so every saved genome,
+run and design keeps its three motors and no migration or version bump is
+needed. The request said "pitch and yaw"; there are two pitch joints (neck
+and head), so each got its own switch rather than sharing one.
+
+*Off means* no `joint.<name>`, no `act.<name>` and no motor geom, as for
+`front_hip_flex` (ADR-048). The bodies `neck.base`, `neck` and `head` stay,
+with their IDs, welded to their parent: the neck angle and head tilt are in
+the geometry, so the standing pose is unchanged and pushed solids still
+attach. The neck skin region lists only the joints that exist. The harness's
+neck bus ends at the furthest neck or head motor left (head pitch, else neck
+pitch, else neck yaw) and is omitted when there is none.
+
+*Not changed.* The microphone and the optional depth camera stay in the
+head. `joint_groups.neck` in `config/robot_defaults.yaml` still names all
+three; nothing reads the missing ones. A motion clip that names a removed
+joint has nothing to drive.
+
+Checked by `tests/test_neck_switches.py` (every combination: joints,
+actuators, mass, poses, skin, harness; compile, simulate, Blender plan,
+Rhino build list) and by a script that ran every exporter and analysis on a
+body with all three off. Not looked at in the web lab or in Rhino.

@@ -109,7 +109,9 @@ battery, skin and hooves are separate items.
    settings on 2026-10-08: 15 %, 2 perimeters, 0.4 mm. Ask me; do not
    assume them for a part.)
 7. Leg layout: do the front knees point forward or backward? Do the front
-   legs have three motors each or two?
+   legs have three motors each or two? Does the neck turn (yaw) or nod
+   (pitch), and does the head nod, each with its own motor, or are they
+   fixed? Is there a tail motor, are there ear motors?
 8. Which motors, board and battery does the prototype use, and are they in
    the component library yet? (Section 7.)
 9. Is the lab running, and when was it started? It must have been started
@@ -146,6 +148,17 @@ In Rhino, `CalflabConnect` checks the link (address normally
 3. Form, group *Legs*: `front_knee_forward` (front knees forward or
    backward) and `front_hip_flex` (on = three motors per front leg, off =
    two, the thigh a fixed strut).
+   Form, group *Neck and head*: three switches, **Neck yaw motor**
+   (`has_neck_yaw`), **Neck pitch motor** (`has_neck_pitch`) and **Head
+   pitch motor** (`has_head_pitch`), all on by default. Off = that joint and
+   its motor are gone (no mass, no BOM line, nothing to drive); the neck and
+   head stay as fixed parts at the *Neck angle* and *Head tilt* sliders and
+   keep their IDs (`neck.base`, `neck`, `head`), so I can still push solids
+   onto them. Form, group *Tail and ears*: `has_tail` and `has_ears` remove
+   the tail and the ears with their motors. A prototype with leg motors only
+   has all five off. Each neck or head motor left on by mistake adds the
+   mass of one "small" actuator (55 g with the library's default, unverified)
+   high up at the front.
 4. In Rhino, `CalflabPull`. The lab's calf appears on layers under
    `CALFLAB`, in its standing pose. Pulling never touches my own objects.
 5. **Compare.** Move and rotate my prototype so it sits on the pulled calf:

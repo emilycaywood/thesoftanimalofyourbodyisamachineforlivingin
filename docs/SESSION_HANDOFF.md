@@ -108,7 +108,7 @@ branched from `phase-1-vertical-slice`, pushed to GitHub and open as a pull
 request into `phase-1-vertical-slice` (so it joins pull request #1 when the
 researcher merges it).
 
-**Tests:** `calflab test` passes: ruff, 258 pytest tests, mypy, web typecheck
+**Tests:** `calflab test` passes: ruff, 267 pytest tests, mypy, web typecheck
 and eslint, 14 Vitest tests, 7 Playwright tests (smoke, material / weighed
 mass / pushed solid / Mass panel, real-millimetre sliders at scale 0.33,
 gumball drag and harness overlay with a
@@ -303,6 +303,17 @@ modelled full but printed with infill; ADR-054):**
   passed in Rhino 8.34 on 2026-10-09 with that step and with the two-solid
   push of ADR-053.
 
+**Added 2026-10-09 (researcher's request: the prototype has no neck or head
+motors; ADR-055):**
+
+* Genes `has_neck_yaw`, `has_neck_pitch`, `has_head_pitch` (Form > Neck and
+  head, on by default, `absent: true`). Off = no joint, actuator or motor;
+  the parts stay, fixed in the standing pose, IDs unchanged. The neck bus in
+  the harness ends at the furthest motor left. No genome version bump.
+* `tests/test_neck_switches.py` (9); every exporter and analysis, a
+  simulation and undo were run by script on a body with all three off.
+  Not looked at in the web lab or Rhino by anyone.
+
 **Scaffolded only (interfaces + tests, no behaviour):** PPO training, MJX
 simulator, RemoteSSH and CloudNotebook transports (job bundling is real),
 imitation reward, interactive selection, molds, skin patterns, nesting,
@@ -424,7 +435,7 @@ Journal, Rhino bridge):**
 |---|---|
 | `CLAUDE.md` | Conventions for every session (loaded automatically) |
 | `PLAN.md` | Architecture, module boundaries, data flow, phases, risks, status |
-| `DECISIONS.md` | ADR log: every assumption (54 so far) |
+| `DECISIONS.md` | ADR log: every assumption (55 so far) |
 | `docs/proposals/anatomical-leg.md` | Proposal for a three-segment leg (set aside 2026-10-04; not built) |
 | `docs/USER_GUIDE.md` | How to use the lab |
 | `docs/CHAT_GUIDE_PROMPT.md` | Prompt that makes a chat assistant a guide to the whole lab |
