@@ -38,7 +38,7 @@ class ProportionStudySettings(BaseModel):
     shank_min: float = P(0.0, unit="mm", ui="number", ge=0, le=500, group="Shank length", label="From", desc="Shortest shank to try (knee axis to hoof centre, real mm).")
     shank_max: float = P(0.0, unit="mm", ui="number", ge=0, le=500, group="Shank length", label="To", desc="Longest shank to try. 0 to 0 = keep the design's shanks.")
     front_hind_differ: bool = P(
-        False, group="Shank length", label="Front and hind legs vary separately",
+        False, group="Front and hind legs", label="Vary separately",
         desc="Off = one thigh and one shank length for all four legs. On = front and hind legs each get their own (twice as many unknowns: use more bodies).",
     )
     trunk_length_min: float = P(0.0, unit="mm", ui="number", ge=0, le=800, group="Trunk length", label="From", desc="Shortest trunk to try (real mm).")

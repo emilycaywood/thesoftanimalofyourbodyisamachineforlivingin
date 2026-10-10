@@ -228,7 +228,7 @@ export function StudyPanel() {
                     const g = b.gaits[gait];
                     return (
                       <tr key={b.id} className={`cursor-default border-t border-line/40 hover:bg-bg3 ${b.id === picked ? "bg-bg3" : ""}`} data-study-body={b.id} onClick={() => setPicked(b.id)}>
-                        <td className="px-1 font-mono text-[11px]">
+                        <td className="px-1 font-mono text-[11px] whitespace-nowrap">
                           {b.id} {b.baseline && <Badge title="The working design as it was when the study started">design</Badge>}{" "}
                           {summary?.front.includes(b.id) && <Badge tone="info" title="No other working body is both faster and has more torque margin">front</Badge>}
                         </td>
