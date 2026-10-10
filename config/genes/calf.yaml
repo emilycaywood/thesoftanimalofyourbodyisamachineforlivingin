@@ -12,8 +12,9 @@ version: 2
 description: >
   Reference calf quadruped: trunk, four 3-DOF legs (hip abduction, hip
   flexion, knee), neck (yaw, pitch), head (pitch), optional tail and ears.
-  Front hip flexion and each neck and head joint can be switched off; front
-  and hind legs can have their own lengths, and the front legs no thigh.
+  Front hip flexion, hip abduction (per pair of legs) and each neck and head
+  joint can be switched off; front and hind legs can have their own lengths,
+  and the front legs no thigh.
 
 genes:
   # ------------------------------------------------------------- scale
@@ -64,6 +65,17 @@ genes:
   # before the gene existed had three motors: that is what `absent` records.
   - {id: front_hip_flex, type: bool, default: true, absent: true, group: Legs, evolvable: false,
      description: "Front legs have a hip-flexion motor. Off = two motors per front leg (abduction and knee/elbow); the upper segment is fixed."}
+
+  # Hip abduction per pair of legs (ADR-057). Off = that pair has no abduction
+  # joint, actuator or motor: leg.<k>.hip stays as a part fixed to the trunk,
+  # and the leg is hip pitch (joint.<k>.hip_flex) then knee. Genomes saved
+  # before the genes existed had abduction on all four legs: that is `absent`.
+  - {id: front_hip_abd, type: bool, default: true, absent: true, group: Legs, evolvable: false,
+     label: "Front legs have hip abduction",
+     description: "Off = no abduction joint or motor on the front legs: each is hip pitch then knee, and its hip block is fixed to the trunk. The legs can then only swing fore and aft. With the front hip-flexion motor also off, only the knee is left."}
+  - {id: hind_hip_abd, type: bool, default: true, absent: true, group: Legs, evolvable: false,
+     label: "Hind legs have hip abduction",
+     description: "Off = no abduction joint or motor on the hind legs: each is hip pitch then knee, and its hip block is fixed to the trunk. The legs can then only swing fore and aft."}
 
   # Front and hind legs of their own proportions (ADR-056). All off / unused by
   # default, and `absent` records that: older genomes build exactly as before.

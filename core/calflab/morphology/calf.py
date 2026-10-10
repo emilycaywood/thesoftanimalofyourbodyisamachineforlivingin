@@ -20,6 +20,11 @@ has no thigh body at all; ``leg.<k>.shank`` hangs straight down from
 ``act.<k>.knee``. In either case the hips of the shorter legs sit lower in
 the trunk so that every hoof stands on the ground.
 
+Hip abduction has a switch per pair of legs (genes ``front_hip_abd``,
+``hind_hip_abd``; ADR-057). Off: no ``joint.<k>.hip_abd``, no actuator and no
+motor mass; ``leg.<k>.hip`` keeps its ID and is fixed to the trunk, so the leg
+is hip pitch (``joint.<k>.hip_flex``) then knee.
+
 Each neck and head joint has its own switch (genes ``has_neck_yaw``,
 ``has_neck_pitch``, ``has_head_pitch``; ADR-055). Off: no joint, no actuator
 and no motor mass; ``neck.base``, ``neck`` and ``head`` keep their IDs and
@@ -80,11 +85,11 @@ def standing_leg_height(l1: float, l2: float, bend_deg: float) -> float:
 
 @register
 class CalfGenerator(PartGenerator):
-    """Trunk + four 3-DOF legs + neck/head + optional tail and ears."""
+    """Trunk + four legs (up to 3 DOF each) + neck/head + optional tail and ears."""
 
     key = "calf"
     label = "Reference calf"
-    description = "Quadruped calf: trunk, 4 legs (hip abduction, hip flexion, knee; front hip flexion optional), neck, head, tail, ears."
+    description = "Quadruped calf: trunk, 4 legs (hip abduction, hip flexion, knee; abduction and front hip flexion optional), neck, head, tail, ears."
     version = "1"
     genome_definition = "calf"
 
@@ -354,6 +359,7 @@ class CalfGenerator(PartGenerator):
             forward = bool(genes.get("hind_knee_forward" if hind else "front_knee_forward"))
             thighless = not hind and not front_thigh  # the shank hangs from the hip on one pitch joint
             hip_flexes = (hind or bool(genes.get("front_hip_flex", True))) and not thighless
+            abducts = bool(genes.get("hind_hip_abd" if hind else "front_hip_abd", True))
             hip_id, thigh_id, shank_id = f"leg.{k}.hip", f"leg.{k}.thigh", f"leg.{k}.shank"
             sl, sr = val(shank_id, "length"), val(shank_id, "radius")
             tl, tr = (0.0, sr) if thighless else (val(thigh_id, "length"), val(thigh_id, "radius"))
@@ -366,10 +372,12 @@ class CalfGenerator(PartGenerator):
             hy = sy * stance / 2.0
             a_abd, a_flex, a_knee = f"act.{k}.hip_abd", f"act.{k}.hip_flex", f"act.{k}.knee"
 
-            # hip abduction motor lives in the trunk
-            trunk.geoms.append(
-                motor(a_abd, str(genes["act_hip_abd"]), (hx - sx * 30.0 * s, hy * 0.6, hip_z))
-            )
+            # hip abduction motor lives in the trunk; without abduction (ADR-057) there is none, and the hip
+            # block is a part fixed to the trunk
+            if abducts:
+                trunk.geoms.append(
+                    motor(a_abd, str(genes["act_hip_abd"]), (hx - sx * 30.0 * s, hy * 0.6, hip_z))
+                )
 
             hip = Body(
                 id=hip_id,
@@ -385,17 +393,18 @@ class CalfGenerator(PartGenerator):
             if thighless:  # the pitch motor sits in the hip, where a hip-flexion motor would
                 hip.geoms.append(motor(a_knee, str(genes["act_knee"]), (0.0, sy * leg_off * 0.4, 0.0)))
             bodies.append(hip)
-            joints.append(
-                Joint(
-                    id=f"joint.{k}.hip_abd",
-                    name=f"Hip abduction ({LEG_NAMES[k]})",
-                    body=hip_id,
-                    axis=(1.0, 0.0, 0.0),
-                    range_deg=lim("hip_abd", (-30, 30)),
-                    damping=jd,
-                    friction=jf,
+            if abducts:
+                joints.append(
+                    Joint(
+                        id=f"joint.{k}.hip_abd",
+                        name=f"Hip abduction ({LEG_NAMES[k]})",
+                        body=hip_id,
+                        axis=(1.0, 0.0, 0.0),
+                        range_deg=lim("hip_abd", (-30, 30)),
+                        damping=jd,
+                        friction=jf,
+                    )
                 )
-            )
 
             belt = str(genes["knee_drive"]) == "belt" and not thighless
             thigh: Body | None = None
@@ -537,7 +546,8 @@ class CalfGenerator(PartGenerator):
                 transmissions.append(
                     Transmission(id=tr_id, type="belt", ratio=1.0, efficiency=0.95, motor_body=thigh_id)
                 )
-            actuators.append(Actuator(id=a_abd, joint=f"joint.{k}.hip_abd", component=str(genes["act_hip_abd"])))
+            if abducts:
+                actuators.append(Actuator(id=a_abd, joint=f"joint.{k}.hip_abd", component=str(genes["act_hip_abd"])))
             if hip_flexes:
                 actuators.append(
                     Actuator(id=a_flex, joint=f"joint.{k}.hip_flex", component=str(genes["act_hip_flex"]))
