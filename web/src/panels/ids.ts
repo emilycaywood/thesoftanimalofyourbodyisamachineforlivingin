@@ -15,6 +15,7 @@ export const PANEL_IDS = [
   "runs",
   "evolve",
   "archive",
+  "study",
   "fabricate",
   "wire",
   "journal",

@@ -10,6 +10,7 @@ import { MassPanel } from "./Mass";
 import { NodeEditorPanel } from "./NodeEditor";
 import { FabricatePanel, JournalPanel, WirePanel } from "./Output";
 import { PropertiesPanel } from "./Properties";
+import { StudyPanel } from "./Study";
 import { TimelinePanel } from "./Timeline";
 
 const BehavePanel: FC = () => (
@@ -55,6 +56,7 @@ export const PANELS: Record<PanelId, { title: string; component: FC }> = {
   runs: { title: "Runs", component: RunsPanel },
   evolve: { title: "Evolve", component: EvolvePanel },
   archive: { title: "Archive", component: ArchivePanel },
+  study: { title: "Proportions", component: StudyPanel },
   fabricate: { title: "Fabricate", component: FabricatePanel },
   wire: { title: "Wire", component: WirePanel },
   journal: { title: "Journal", component: JournalPanel },

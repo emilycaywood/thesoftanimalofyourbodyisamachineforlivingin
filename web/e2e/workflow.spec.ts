@@ -139,3 +139,61 @@ test("evolve from a baked design and compare candidates by their genes", async (
 
   expect(errors).toEqual([]);
 });
+
+test("a proportion study on the two-joint body is read per gait and one body is taken over", async ({ page }) => {
+  await open(page);
+  const errors: string[] = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  // the simplified prototype: no hip abduction, eight small servos, a small battery, no skin
+  await command(page, "set_genes", {
+    values: {
+      scale: 0.337, front_hip_abd: false, hind_hip_abd: false, has_neck_yaw: false, has_neck_pitch: false, has_head_pitch: false,
+      has_tail: false, has_ears: false, act_hip_flex: "scs0009", act_knee: "scs0009", battery: "lipo_2s_1100",
+    },
+  });
+  const graph = (await (await page.request.get("/api/graph")).json()).graph as { roles: Record<string, string> };
+  await command(page, "set_node_params", { node: graph.roles.model, params: { include_skin: false } });
+  const scene = await (await page.request.get("/api/scene")).json();
+  expect(scene.joints.map((j: { id: string }) => j.id).filter((id: string) => id.includes(".fl."))).toEqual(["joint.fl.hip_flex", "joint.fl.knee"]);
+  expect(scene.joints.length).toBe(8);
+
+  await page.locator('[data-workspace="evolve"]').click();
+  await tab(page, "Proportions").click();
+  const panel = page.getByTestId("study-panel");
+  await expect(panel).toContainText("Compares many bodies instead of looking for one winner");
+  const field = async (name: string, value: string) => {
+    const input = panel.locator(`[data-field="${name}"] input`).last();
+    await input.fill(value);
+    await input.blur();
+  };
+  await field("thigh_min", "30");
+  await field("thigh_max", "90");
+  await field("shank_min", "30");
+  await field("shank_max", "90");
+  await field("bodies", "2");
+  await field("iterations", "0");
+  await field("duration_s", "2");
+  await page.getByTestId("study-start").click();
+  await expect(panel.getByTestId("study-table").locator("[data-study-body]")).toHaveCount(3, { timeout: 110_000 });
+  await expect(panel.getByTestId("study-notes")).toContainText("scs0009");
+  await expect(panel.getByTestId("study-notes")).toContainText("entered at 6 V");
+  await expect(panel.getByTestId("study-header")).toContainText("3 bodies");
+  for (const gait of ["walk", "trot", "bound"]) await expect(panel.locator(`[data-study-gait="${gait}"]`)).toBeVisible();
+
+  // one body, one gait: eight joints with torque and speed against the motor, and the battery
+  await panel.locator('[data-study-gait="trot"]').click();
+  await panel.locator('[data-study-body="b01"]').click();
+  await expect(panel.getByTestId("study-joints").locator("[data-joint]")).toHaveCount(8);
+  await expect(panel.locator('[data-joint="joint.hl.knee"]')).toContainText("scs0009");
+  await expect(panel.getByTestId("study-battery")).toContainText("of 38.5 A allowed");
+
+  // the study did not touch the document; taking a body over does, and can be undone
+  const genes = async () => (await (await page.request.get("/api/graph")).json()).genome_form.values as Record<string, unknown>;
+  expect((await genes()).own_leg_lengths).toBe(false);
+  await panel.getByTestId("study-adopt").click();
+  await expect.poll(async () => (await genes()).own_leg_lengths).toBe(true);
+  await page.getByTestId("undo").click();
+  await expect.poll(async () => (await genes()).own_leg_lengths).toBe(false);
+  await command(page, "reset_genes");
+  expect(errors).toEqual([]);
+});
