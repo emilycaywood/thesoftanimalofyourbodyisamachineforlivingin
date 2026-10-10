@@ -424,11 +424,18 @@ board is an ESP32; ADR-061):**
 * On a scratch copy of `projects/small-calf-two-joint` with only the ESP32:
   378.2 g -> 329.2 g, idle budget 2.09 A -> 1.26 A at 7.4 V. Seen in the
   lab's browser pane (Mechanism lists, trunk row of the Mass tab, Ctrl+Z
-  twice). **No project was changed**: the researcher's message described
-  the two-joint body but named `projects/small-calf`, whose document is a
-  different one (scale 0.5, `mg996r` abduction, `lipo_3s_5000`, saved before
-  the abduction switches). The board choice, a new *Tune for this body* and
-  the proportion study are theirs to make in whichever project they mean.
+  twice). The researcher's message named `projects/small-calf`, whose
+  document is a different body (scale 0.5, `mg996r` abduction,
+  `lipo_3s_5000`); asked, they confirmed they meant the two-joint project.
+* Then, at the researcher's request, in `projects/small-calf-two-joint`
+  itself: ESP32 chosen as the only board (two undo steps) and *Tune for
+  this body* re-run with the first tune's settings (run
+  `20261010-172610-tune-fd7c`, then sim `20261010-172610-sim-7dac`).
+  329 g: trot 0.117 m/s (was 0.111 at 378 g), no fall, hip-pitch servos at
+  their torque limit 54 to 60 % of the time (was 55 to 59 %), knee margins
+  54 to 62 %. So 49 g less changes almost nothing, as ADR-058 would
+  predict. The two studies there are still the 378 g ones; not re-run.
+  `projects/small-calf` was not touched.
 * `calflab components new` no longer turns the YAML file's line endings
   into CRLF.
 * Not done: sensors per project (the IMU and microphone boards and the

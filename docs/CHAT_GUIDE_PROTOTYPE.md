@@ -543,6 +543,16 @@ the BOM); both show as "default assumed".
 - The lab must have been restarted since the update for the lists to show.
   Results made before I chose the ESP32 (runs, studies, tuned gaits) were
   made with the Teensy and the Pi on board and stay that way: I re-run them.
+- **Where my project stands (2026-10-10).** In
+  `projects\small-calf-two-joint` the ESP32 is chosen as the only board and
+  the gait was tuned again for the 329 g body (tune run
+  `20261010-172610-tune-fd7c`, sim run `20261010-172610-sim-7dac`). The
+  lighter body walks almost the same: 0.117 m/s against 0.111 m/s at 378 g,
+  no fall, no joint limit, and the four hip-pitch servos still at their
+  torque limit 54 to 60 % of the time. The two proportion studies in that
+  project are from before (378 g, Teensy and Pi) and have not been re-run.
+  `projects\small-calf` is a different, older body (scale 0.5) and still
+  has the Teensy and the Pi.
 
 A new part starts like this:
 
@@ -691,6 +701,11 @@ Help me read the result as a first look, not a prediction (section 9).
   with (`inputs.boards` in its `run.json`). Everything from before
   2026-10-10 has the two full-size boards: on a 330 g calf that is 49 g too
   much, so re-run before comparing.
+- **A lighter board did not make it walk better.** Taking those 49 g off
+  changed speed and the hip-pitch servos' time at their torque limit by
+  next to nothing (section 7). In the model, joint friction and the
+  servos' assumed rotor inertia hold this body back, not its weight
+  (section 8), so do not let me expect more from shaving grams.
 - **My board's numbers are thin.** `esp_wroom_32` has a weighed mass, a
   supply voltage and an approximate current, nothing else, and is
   unverified. Its 0.33 W is the board alone at 3.3 V with no regulator
