@@ -216,6 +216,10 @@ def create_app(lab: Lab, web_dist: Path | None = None, watch_plugins: bool = Tru
     def evolve(run_id: str) -> dict[str, Any]:
         return lab.evolve_view(run_id)
 
+    @app.get("/api/study/{run_id}")
+    def study(run_id: str) -> dict[str, Any]:
+        return lab.study_view(run_id)
+
     @app.get("/api/evolve/{run_id}/candidates")
     def evolve_candidates(run_id: str) -> list[dict[str, Any]]:
         return lab.registry.list_candidates(run_id)

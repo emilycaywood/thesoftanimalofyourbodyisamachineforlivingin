@@ -14,6 +14,7 @@ from typing import Any
 from pydantic import BaseModel
 
 from calflab.evolve.gait import GaitTuneSettings
+from calflab.evolve.study import ProportionStudySettings
 from calflab.graph import Graph, GraphEdge, GraphGroup, GraphNode, default_graph, node_types
 from calflab.model.overrides import Override
 from calflab.plugins import Command, register
@@ -911,39 +912,82 @@ class AdoptCandidate(Command):
             c = lab.registry.get_candidate(self.params.id)  # type: ignore[attr-defined]
         except KeyError as exc:
             raise _err(str(exc)) from exc
-        types = node_types()
-        gnode = state.graph.role("genome")
-        gnode.params = types[gnode.type].clean_params(c["genome"]["values"])
-        cnode = state.graph.role("controller")
-        ctype = f"controller:{c['controller']['key']}"
-        if ctype in types:
-            cnode.type = ctype
-            cnode.params = types[ctype].clean_params(c["controller"].get("params", {}))
+        _adopt_body(state, c["genome"]["values"], c["controller"])
         # The candidate was built with the overrides of its run. If the document
         # carries different ones, adopting only the genes would give another body.
-        replaced = False
         try:
             run_overrides = lab.registry.get_run(str(c.get("run_id"))).overrides
         except KeyError:
             run_overrides = None
-        if run_overrides is not None:
-
-            def sig(o: dict[str, Any]) -> tuple[Any, ...]:
-                return (o.get("kind", "param"), o.get("target"), o.get("param"), o.get("value"), o.get("asset"),
-                        o.get("material"), (o.get("meta") or {}).get("material"))
-
-            mine = sorted(map(repr, (sig(o.model_dump(mode="json")) for o in state.overrides if o.enabled)))
-            if mine != sorted(map(repr, map(sig, run_overrides))):
-                state.overrides = [Override.model_validate(o) for o in run_overrides]
-                replaced = True
-                lab.bus.emit(
-                    "log",
-                    level="warn",
-                    source="adopt",
-                    message=f"Adopt {c['id']}: the document's overrides were replaced by the {len(run_overrides)} "
-                    "this candidate was evaluated with (Ctrl+Z restores them).",
-                )
+        replaced = _take_run_overrides(lab, state, run_overrides, c["id"], "candidate")
         return {"candidate": c["id"], "fitness": c.get("fitness"), "overrides_replaced": replaced}
+
+
+def _adopt_body(state: DocumentState, genes: dict[str, Any], controller: dict[str, Any] | None) -> None:
+    """Put a genome and (optionally) a controller into the document's graph."""
+    types = node_types()
+    gnode = state.graph.role("genome")
+    gnode.params = types[gnode.type].clean_params(genes)
+    if controller:
+        cnode = state.graph.role("controller")
+        ctype = f"controller:{controller['key']}"
+        if ctype in types:
+            cnode.type = ctype
+            cnode.params = types[ctype].clean_params(controller.get("params", {}))
+
+
+def _take_run_overrides(lab: Any, state: DocumentState, run_overrides: list[dict[str, Any]] | None, what: str, noun: str) -> bool:
+    """A body from a run was evaluated with that run's overrides: if the
+    document carries different ones, replace them (and say so)."""
+    if run_overrides is None:
+        return False
+
+    def sig(o: dict[str, Any]) -> tuple[Any, ...]:
+        return (o.get("kind", "param"), o.get("target"), o.get("param"), o.get("value"), o.get("asset"),
+                o.get("material"), (o.get("meta") or {}).get("material"))
+
+    mine = sorted(map(repr, (sig(o.model_dump(mode="json")) for o in state.overrides if o.enabled)))
+    if mine == sorted(map(repr, map(sig, run_overrides))):
+        return False
+    state.overrides = [Override.model_validate(o) for o in run_overrides]
+    lab.bus.emit(
+        "log",
+        level="warn",
+        source="adopt",
+        message=f"Adopt {what}: the document's overrides were replaced by the {len(run_overrides)} "
+        f"this {noun} was evaluated with (Ctrl+Z restores them).",
+    )
+    return True
+
+
+@register
+class AdoptStudyBody(Command):
+    key = "adopt_study_body"
+    label = "Use study body"
+    description = "Load one body of a proportion study, and the gait found for it, into the document (undoable)."
+    category = "Evolve"
+    mutates = True
+
+    class Params(BaseModel):
+        run: str = P("", desc="Study run id.")
+        body: str = P("", desc="Body id in that study, e.g. b07.")
+        gait: str = P("", desc="Gait whose tuned numbers to take as well (empty = keep the document's gait).")
+
+    def title(self) -> str:
+        p = self.params
+        return f"Use study body {p.body}" + (f" ({p.gait})" if p.gait else "")  # type: ignore[attr-defined]
+
+    def run(self, lab: Any, state: DocumentState) -> Any:
+        p = self.params
+        view = lab.study_view(p.run)  # type: ignore[attr-defined]
+        body = next((b for b in view["bodies"] if b["id"] == p.body), None)  # type: ignore[attr-defined]
+        if body is None:
+            raise _err(f"Study {p.run} has no body {p.body!r}")  # type: ignore[attr-defined]
+        if p.gait and p.gait not in body["gaits"]:  # type: ignore[attr-defined]
+            raise _err(f"Body {p.body} was not tried in gait {p.gait!r}")  # type: ignore[attr-defined]
+        _adopt_body(state, body["genome"]["values"], body["gaits"][p.gait]["controller"] if p.gait else None)  # type: ignore[attr-defined]
+        replaced = _take_run_overrides(lab, state, view["run"]["overrides"], f"{p.run} {p.body}", "body")  # type: ignore[attr-defined]
+        return {"body": p.body, "gait": p.gait or None, "overrides_replaced": replaced}  # type: ignore[attr-defined]
 
 
 @register
@@ -1059,6 +1103,41 @@ class TuneGait(Command):
 
     def run(self, lab: Any, state: DocumentState) -> Any:
         return {"job": lab.tune_gait(self.params.model_dump(mode="json")).id}
+
+
+@register
+class RunStudy(Command):
+    key = "run_study"
+    label = "Proportion study"
+    description = (
+        "Try many bodies within ranges you set for thigh, shank, trunk, stance and hip drop, each in several gaits "
+        "with a gait tuned for it, and record speed, per-joint torque and speed against the motors, and battery "
+        "current. The document does not change."
+    )
+    category = "Evolve"
+    aliases = ["study"]
+    Params = ProportionStudySettings
+
+    def run(self, lab: Any, state: DocumentState) -> Any:
+        job = lab.run_study(self.params.model_dump(mode="json"))
+        return {"job": job.id, "run_id": job.result.get("run_id")}
+
+
+@register
+class SimulateStudyBody(Command):
+    key = "simulate_study_body"
+    label = "Simulate study body"
+    description = "Replay one body of a proportion study in one gait, without changing the document."
+    category = "Evolve"
+
+    class Params(BaseModel):
+        run: str = P("", desc="Study run id.")
+        body: str = P("", desc="Body id in that study, e.g. b07.")
+        gait: str = P("trot", desc="Gait to replay.")
+
+    def run(self, lab: Any, state: DocumentState) -> Any:
+        p = self.params
+        return {"job": lab.simulate_study_body(p.run, p.body, p.gait).id}  # type: ignore[attr-defined]
 
 
 @register

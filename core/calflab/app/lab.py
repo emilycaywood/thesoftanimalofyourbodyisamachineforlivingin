@@ -812,6 +812,198 @@ class Lab:
 
         return self.jobs.submit("tune", "Tune gait for this body", work, backend=bkey)
 
+    # ------------------------------------------------------------------ proportion study
+    def run_study(self, settings: dict[str, Any] | None = None, backend: str | None = None) -> Job:
+        """Try many bodies within ranges of a few lengths, each in several gaits
+        (ADR-059). The document is not changed; the table is stored with the run."""
+        from calflab.design import build_design
+        from calflab.evolve.study import (
+            ProportionStudySettings,
+            design_real,
+            sample_unit,
+            study_dimensions,
+            study_notes,
+            summarize,
+            variant_genes,
+        )
+        from calflab.fitness import presets
+        from calflab.plugins import Task
+
+        try:
+            cfg = ProportionStudySettings.model_validate(settings or {})
+        except Exception as exc:
+            raise LabError(f"run_study: invalid parameters: {exc}") from exc
+        g = self.state.graph.model_copy(deep=True)
+        state = self.state.model_copy(deep=True)
+        design = self._role_output("design", "design", g, state)
+        ctrl = self._role_output("controller", "controller", g, state)
+        preset = presets().get(str(g.role("fitness").params.get("preset")))
+        if preset is None:
+            raise LabError("The fitness node has no valid preset")
+        gdef = genome_definition(design.genome.definition)
+        dims = study_dimensions(gdef, design.genome.values, cfg)
+        if not dims:
+            raise LabError(
+                "Nothing to vary: give at least one range, e.g. run_study thigh_min=20 thigh_max=100 "
+                "(a range of 0 to 0 keeps that length as it is)."
+            )
+        bkey = backend or self.backend_key
+        backend_obj = registry.get("compute_backend", bkey)()
+        ok, reason = backend_obj.available()  # type: ignore[attr-defined]
+        if not ok:
+            raise LabError(f"Compute backend {bkey!r} is not available: {reason}")
+        overrides = [o.model_dump(mode="json") for o in state.overrides if o.enabled]
+        enabled = [o for o in state.overrides if o.enabled]
+        generator = g.role("design").type.split(":", 1)[1]
+        common = {
+            "overrides": overrides,
+            "generator": generator,
+            "generator_params": g.role("design").params,
+            "compile": g.role("model").params,
+            "sim": {**g.role("simulation").params, "duration_s": cfg.duration_s},
+            "controller": ctrl,
+            "fitness": preset.model_dump(mode="json"),
+            "gaits": list(cfg.gaits),
+            "inner": {"iterations": cfg.iterations, "popsize": cfg.popsize, "sigma": cfg.sigma},
+            "speed_fraction": cfg.speed_fraction,
+            "check_s": max(15.0, 2.5 * cfg.duration_s),
+            "min_speed_mps": cfg.min_speed_mps,
+            "seed": cfg.seed,
+        }
+        run_id = self.registry.new_run_id("study")
+
+        def genome_of(values: dict[str, Any]) -> dict[str, Any]:
+            return {**design.genome.model_dump(mode="json"), "values": values}
+
+        def work(job: JobContext) -> dict[str, Any]:
+            t0 = time.perf_counter()
+            lo_h, hi_h = cfg.height_min, cfg.height_max
+            rng = np.random.default_rng(cfg.seed)
+            base_values = dict(design.genome.values)
+            bodies: list[dict[str, Any]] = [{
+                "id": "b00", "baseline": True, "real": design_real(gdef, base_values, dims), "genome": genome_of(base_values),
+                "height_mm": round(design.spec.standing_height_mm(), 1),
+            }]
+            too_low = too_tall = 0
+            for _ in range(40):  # resample until enough bodies stand within the height range
+                if len(bodies) > cfg.bodies or job.cancelled():
+                    break
+                for row in sample_unit(cfg.bodies, len(dims), rng):
+                    real = {d["key"]: round(d["min"] + float(x) * (d["max"] - d["min"]), 2) for d, x in zip(dims, row, strict=True)}
+                    values = variant_genes(gdef, base_values, dims, real)
+                    h = build_design(Genome.model_validate(genome_of(values)), enabled, generator,
+                                     g.role("design").params).spec.standing_height_mm()
+                    if hi_h > 0 and not (lo_h <= h <= hi_h):
+                        too_low += h < lo_h
+                        too_tall += h > hi_h
+                        continue
+                    bodies.append({"id": f"b{len(bodies):02d}", "baseline": False, "real": real, "genome": genome_of(values),
+                                   "height_mm": round(h, 1)})
+                    if len(bodies) > cfg.bodies:
+                        break
+            if len(bodies) == 1 and (too_low or too_tall):
+                raise LabError(
+                    f"No body within these ranges stands between {lo_h:g} and {hi_h:g} mm "
+                    f"({too_low} were lower, {too_tall} taller). Widen the height or the length ranges."
+                )
+            tasks = [Task(fn="calflab.evolve.study:study_body", payload={**common, "genome": b["genome"]}, id=f"{run_id}-{b['id']}")
+                     for b in bodies]
+            done = [0]
+
+            def on_result(_i: int, _r: Any) -> None:
+                done[0] += 1
+                job.report(done[0] / (len(tasks) + 1), f"{done[0]} of {len(tasks)} bodies")
+
+            job.report(0.0, f"0 of {len(tasks)} bodies")
+            results = backend_obj.map(tasks, on_result=on_result, cancelled=job.cancelled)  # type: ignore[attr-defined]
+            evals = 0
+            for b, r in zip(bodies, results, strict=True):
+                if isinstance(r, dict) and not r.get("error"):
+                    b.update({k: r[k] for k in ("mass_g", "height_mm", "gaits", "warnings")})
+                    evals += int(r.get("evals", 0))
+                else:
+                    b.update({"error": str(r.get("error") if isinstance(r, dict) else r), "gaits": {}})
+                b["genes_real"] = {gene: v for gene, v in gdef.real_values(b["genome"]["values"]).items()
+                                   if any(gene in d["genes"] for d in dims)}
+            cancelled = job.cancelled()
+            summary = summarize(bodies, dims, list(cfg.gaits))
+            notes = study_notes(design.spec, library(), common["compile"], dims)
+            if too_low or too_tall:
+                notes.insert(0, f"{too_low + too_tall} sampled bodies were left out for their height "
+                                f"({too_low} under {lo_h:g} mm, {too_tall} over {hi_h:g} mm).")
+            run_dir = self.registry.run_dir(run_id)
+            write_json(run_dir / "study.json", {
+                "run_id": run_id, "settings": cfg.model_dump(mode="json"), "dimensions": dims, "gaits": list(cfg.gaits),
+                "bodies": bodies, "summary": summary, "notes": notes,
+            })
+            self.registry.save_run(
+                RunRecord(
+                    id=run_id,
+                    kind="study",
+                    title="Proportion study",
+                    status="cancelled" if cancelled else "done",
+                    duration_s=time.perf_counter() - t0,
+                    seed=cfg.seed,
+                    backend=bkey,
+                    inputs={"settings": cfg.model_dump(mode="json"), "dimensions": dims, "sim": common["sim"],
+                            "compile": common["compile"], "generator": g.role("design").type,
+                            "generator_params": common["generator_params"], "check_s": common["check_s"],
+                            "mass": self._mass_record(design), "notes": notes,
+                            "start": {"source": "document", "revision": self.revision}},
+                    genome=design.genome.model_dump(mode="json"),
+                    overrides=overrides,
+                    controller=ctrl,
+                    fitness={"preset": preset.model_dump(mode="json")},
+                    metrics={"bodies": len(bodies), "evals": evals, "left_out_for_height": too_low + too_tall,
+                             "working": {k: v["working"] for k, v in summary["gaits"].items()},
+                             "works_in_all": len(summary["works_in_all"])},
+                    artifacts={"study": f"runs/{run_id}/study.json"},
+                )
+            )
+            self.bus.emit("runs.changed", run_id=run_id)
+            for gait, s in summary["gaits"].items():
+                job.log(f"{gait}: {s['working']} of {s['tried']} bodies work" + (f"; fastest {s['fastest']}" if s["fastest"] else ""))
+            return {"run_id": run_id, "bodies": len(bodies), "evals": evals, "cancelled": cancelled}
+
+        job = self.jobs.submit("study", "Proportion study", work, backend=bkey)
+        job.result = {"run_id": run_id}
+        return job
+
+    def study_view(self, run_id: str) -> dict[str, Any]:
+        """A proportion study as stored: settings, dimensions, bodies, summary, notes."""
+        from calflab.project.store import read_json
+
+        rec = self.registry.get_run(run_id)
+        rel = rec.artifacts.get("study")
+        if rec.kind != "study" or not rel:
+            raise LabError(f"Run {run_id} is not a proportion study")
+        return {**read_json(self.project.resolve(rel)), "run": rec.model_dump(mode="json")}
+
+    def study_body(self, run_id: str, body_id: str, gait: str | None = None) -> tuple[dict[str, Any], Graph, list[Override]]:
+        """One body of a study as it was tried: its genes, the gait found for
+        ``gait`` (None = the document's controller), on the model settings and
+        overrides of the study run."""
+        view = self.study_view(run_id)
+        body = next((b for b in view["bodies"] if b["id"] == body_id), None)
+        if body is None:
+            raise LabError(f"Study {run_id} has no body {body_id!r}")
+        if gait and gait not in body["gaits"]:
+            raise LabError(f"Body {body_id} was not tried in gait {gait!r}")
+        graph = self.variant_graph(body["genome"]["values"], body["gaits"][gait]["controller"] if gait else None)
+        run = view["run"]
+        types = node_types()
+        for role, key in (("model", "compile"), ("design", "generator_params")):
+            if isinstance(run["inputs"].get(key), dict):
+                node = graph.role(role)
+                nt = types.get(node.type)
+                node.params = nt.clean_params(run["inputs"][key]) if nt else dict(run["inputs"][key])
+        return body, graph, [Override.model_validate(o) for o in run["overrides"]]
+
+    def simulate_study_body(self, run_id: str, body_id: str, gait: str) -> Job:
+        """Replay one body of a study in one gait, without editing the document."""
+        _, graph, overrides = self.study_body(run_id, body_id, gait)
+        return self.run_sim(graph, title=f"Study {body_id} {gait}", parent=run_id, overrides=overrides)
+
     def evolve_view(self, run_id: str) -> dict[str, Any]:
         from calflab.project.store import read_json
 
