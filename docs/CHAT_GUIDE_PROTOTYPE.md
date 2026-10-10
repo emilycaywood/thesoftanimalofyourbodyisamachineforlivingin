@@ -3,10 +3,11 @@
 Paste everything below the line into a new chat. It covers one job: I have
 modelled a small prototype calf in Rhino (printed PLA with stainless steel
 rods) and want it in CALFLAB's simulator with its real mass. It is a snapshot
-of CALFLAB as of 2026-10-09 (branch `chassis-mass`, commit `5275683`,
-after ADR-056: the infill estimate, the neck and head switches, my two
-servos in the library, and front and hind legs of their own proportions)
-and stands on its own. For entering components in detail, the Mass tab in depth, or the
+of CALFLAB as of 2026-10-10 (branch `chassis-mass`, after ADR-059: the
+infill estimate, the neck and head switches, my two servos and my battery in
+the library, front and hind legs of their own proportions, the
+hip-abduction switches for a two-joint leg, the model settings for a small
+body and the proportion study) and stands on its own. For entering components in detail, the Mass tab in depth, or the
 rest of the lab, see `docs/CHAT_GUIDE_CHASSIS.md` and
 `docs/CHAT_GUIDE_PROMPT.md`. Regenerate this file after a session that
 changes what it describes.
@@ -172,6 +173,27 @@ In Rhino, `CalflabConnect` checks the link (address normally
 3. Form, group *Legs*: `front_knee_forward` (front knees forward or
    backward) and `front_hip_flex` (on = three motors per front leg, off =
    two, the thigh a fixed strut).
+   **If my legs have no sideways (abduction) joint**, the same group has
+   two switches, both on by default: **Front legs have hip abduction**
+   (`front_hip_abd`) and **Hind legs have hip abduction** (`hind_hip_abd`).
+   Off = that pair has no abduction joint, actuator or motor. My simplified
+   prototype (since 2026-10-10: eight motors, two joints per leg) has both
+   off, *Front legs have a thigh* on, `front_hip_flex` on,
+   `front_knee_forward` on and hind knee forward off. Each leg is then:
+
+   | Joint | ID | Shown as | Actuator | Motor chosen in Mechanism as |
+   |---|---|---|---|---|
+   | hip pitch | `joint.<leg>.hip_flex` | Hip flexion | `act.<leg>.hip_flex` | **act hip flex** |
+   | knee | `joint.<leg>.knee` | Knee | `act.<leg>.knee` | **act knee** |
+
+   with `<leg>` one of `fl`, `fr`, `hl`, `hr`. The bodies I push solids
+   onto keep their IDs: `trunk`; `leg.<leg>.hip` (the hip block: now fixed
+   to the trunk, it carries the hip-pitch motor; a solid pushed here or
+   onto `trunk` ends up in the same rigid piece); `leg.<leg>.thigh` (moves
+   with hip pitch, carries the knee motor); `leg.<leg>.shank` (moves with
+   the knee, ends in the hoof). The Mechanism list **act hip abd** then
+   chooses nothing: whatever it says, no such motor is built, weighed or
+   listed in the Mass tab. Mechanism lists eight actuators.
    **If my front and hind legs differ, or a leg has no thigh or a very
    short one**, the same group has these (labels as in the Form tab, all
    off or unused by default):
@@ -446,16 +468,36 @@ thermal values, maximum temperature. The BOM cost and motor-temperature
 numbers for these servos therefore mean nothing yet. For the MG996R the
 guide's "Running Current: 500mA" was not entered because it does not say at
 what load, and the guide says it turns only about 120 degrees (60 each
-way), which nothing in the lab checks against the joint ranges. Both are
-entered at 6 V, while the only battery in the library is a 3S pack (11.1 V
-nominal) that the power budget uses as the bus voltage.
+way), which nothing in the lab checks against the joint ranges.
 
-In Mechanism for my prototype: `act_hip_abd` = `mg996r`, `act_hip_flex` =
+**My battery is in the library** as `lipo_2s_1100` (2S LiPo, 7.4 V nominal,
+1100 mAh, 51.3 g, 55 x 30 x 16 mm, 38.5 A continuous; from the seller's
+listing, not weighed, `verified: false`). Choose it in Mechanism under
+**battery**.
+
+**6 V servos on a 7.4 V battery.** The lab converts nothing. Torque, speed
+and current of a servo are used exactly as its entry gives them (the 6 V
+figures), the bus voltage is the battery's nominal 7.4 V, the battery
+current is the motors' currents added up (plus the boards' watts divided by
+7.4 V), and power is that current times 7.4 V. The power budget and every
+proportion study print a note saying so. If my servos really sit straight
+on the 2S pack they are stronger and faster than entered; if they sit
+behind a 6 V regulator the battery current is lower than the sum. Either
+way the fix is mine: enter the servo's figures at the voltage it really
+gets (a second entry, e.g. `scs0009_7v4`, from the maker's page).
+
+In Mechanism for my prototype of 2026-10-09 (three-motor hind legs,
+thighless front legs): `act_hip_abd` = `mg996r`, `act_hip_flex` =
 `scs0009`, `act_knee` = `scs0009` (this one also drives the front shoulder
-pitch joints).
+pitch joints). For the two-joint prototype of 2026-10-10: `act_hip_flex` =
+`scs0009`, `act_knee` = `scs0009`, **battery** = `lipo_2s_1100`; no MG996R
+anywhere.
 
-**Still missing: my real battery and board.** Until they are entered, mass,
-power and walking results are placeholders. A new part starts like this:
+**Still missing: my real board.** The trunk still carries the lab's
+full-size boards (a Teensy 4.1 and a Raspberry Pi 5, 56 g together,
+unverified), which cannot be chosen per project yet. Until that is fixed,
+mass, power and walking results carry that placeholder. A new part starts
+like this:
 
 ```
 .\calflab.ps1 components new actuator my_servo --name "Maker Model 123"
@@ -502,6 +544,69 @@ estimate then stays visible as *Computed*, and the source reads `measured`.
 4. In **Mechanism**, after a run, read the torque-margin table: which
    motors are near their limit.
 
+**Before step 2 on a small bare prototype**, open *Simulate > Model
+(terrain, servos, skin)*:
+
+- **Include skin**: switch it off if my prototype has no skin. On, the
+  simulator adds the skin's mass (154 g on a 190 mm calf) and its stiffness
+  at every joint. (To take the skin out of the Mass tab as well, switch
+  **Show skin** off in the Graph tab's part-generator node.)
+- **Joint loss scale** and **Armature scale**, both 1: leave them at 1 for
+  the lab's standard result, and know what that means. The joint friction
+  and damping were chosen for the 5 kg calf and take most of a 0.23 N*m
+  servo's usable torque; and a servo whose entry has no `armature_kgm2`
+  (mine have none) runs on a library default made for servos four to twelve
+  times heavier. On my small calf these two decide the walking speed more
+  than any proportion does. Lowering them is a "what if", recorded with the
+  run; the real fix is a measured or guessed `armature_kgm2` in the servo's
+  entry (a guess goes in `guessed:`). If I lower *Armature scale*, have me
+  set **Timestep ms** to 1.
+- Do not give me a value for either. If I ask what to try, say that 1 is
+  the lab's standard and that any other value is my assumption.
+
+**Comparing proportions** (Evolve workspace, tab **Proportions**, beside
+*Archive*). This tries many bodies and shows them all, instead of looking
+for one winner:
+
+1. Under *Ranges and search*, type **From** and **To** in real millimetres
+   for the lengths to vary: *Thigh length*, *Shank length*, *Trunk length*,
+   *Stance width*, *Hip drop*. 0 to 0 leaves a length as it is. *Overall
+   height* From / To leaves out bodies standing outside it (the Form height
+   readout: 187 mm for my calf without ears at scale 0.337, not the 205 mm
+   of a calf with ears). *Front and hind legs* > **Vary separately** if I
+   want front and hind legs to differ. Under *Search*: **Bodies** (40 is a good
+   start), **Gaits** (`["walk", "trot", "bound"]`), **Iterations**,
+   **Popsize**, **Duration s**, **Speed fraction**, **Min speed mps**.
+2. **Run proportion study.** A job with a progress bar and Cancel; 40 bodies
+   take about five minutes. My document is not changed. A range wider than
+   a slider is cut and reported (at scale 0.337 the trunk can be 101 to
+   189 mm, the thigh 1.7 to 101 mm, the shank 10 to 152 mm, stance width 37
+   to 88 mm, hip drop 0 to 30 mm).
+3. **Read this first** at the top lists what the numbers rest on. Have me
+   read it to you.
+4. The buttons **walk n/m**, **trot n/m**, **bound n/m** switch the gait.
+   The table *Bodies in <gait>* has one row per body (`b00`, badge
+   *design*, is my current design): the lengths, **Height**, **Mass**,
+   **Works**, **Speed** (m/s), **Torque margin** and **Speed margin** (each
+   the worst joint), **Battery peak** (A). Click a header to sort.
+   *Works* = stayed up 15 s, moved forward, stayed off the joint limits and
+   within the motors' speed; hovering *no* gives the reason. The badge
+   **front** marks bodies that no other working body beats on both speed
+   and torque margin: those are the trade-off. *Trends in <gait>* says which
+   lengths go with more or less speed, torque margin and stability.
+5. Click a row: the **torque-margin table per joint** (*Peak torque*,
+   *Usable*, *Margin*, *At limit*, *Peak speed*, *No-load*, *Margin*) and
+   the battery line. **Replay** simulates that body (click the *Viewport*
+   tab to watch); **Use this body** loads it and its gait into my document
+   (Ctrl+Z undoes).
+6. It is recorded like any run: `runs\<id>\run.json` and
+   `runs\<id>\study.json` in the project.
+
+How to read it with me: compare groups of bodies, not two neighbours (the
+gait search per body is short and partly luck); a torque margin of 0 % with
+a small *At limit* is a brief peak, with a large one the motor is working
+flat out; check the *Read this first* notes before believing a speed.
+
 Help me read the result as a first look, not a prediction (section 9).
 
 ## 9. Cautions to raise
@@ -532,10 +637,26 @@ Help me read the result as a first look, not a prediction (section 9).
   barely walks, 0.02 m/s, with those servos at their torque limit; with
   stronger servos the same body trots at about 0.09 m/s. So the result
   depends on entering my real battery and board.
-- **The small calf is untested ground.** My two servos (`scs0009`,
-  `mg996r`) are in the library, unverified; no small battery or board is. The simulator's time step and contact settings were
-  chosen for a 5 kg, 600 mm body and have not been re-examined for a 200 mm
-  one. Treat speed and torque margins as a first look.
+- **The small calf rests on two numbers nobody has measured.** My servos
+  (`scs0009`, `mg996r`) and battery (`lipo_2s_1100`) are in the library,
+  unverified; no small board is. The simulator's time step (2 ms) and
+  contact settings were re-examined on 2026-10-10 for a 0.4 kg, 190 mm body
+  and are fine (halving the step changes nothing; hooves sink 0.1 mm). What
+  is not fine is that joint friction and the servos' assumed rotor inertia
+  are sized for the big calf (section 8). Treat speeds as a first look, and
+  torque margins near 0 % as "this servo is at its limit in the model".
+- **No abduction means no sideways control.** With both abduction switches
+  off every joint turns about the same sideways axis: the legs cannot step
+  sideways or push back against a roll. In the simulation this shows as
+  *sideways drift* and *roll* in a body's detail line that nothing
+  corrects, and as falls to the side; *Stance width* is the only setting
+  that widens the base. On a real floor (slopes, bumps, a push) it will
+  show more than in the simulation, whose ground is flat.
+- **"Bound" is a footfall pattern, not a bound.** The controller moves the
+  front pair together and the hind pair together, open loop, with no
+  flight phase and no pitch feedback. A body that "works in bound" shuffles
+  forward with that pattern. A real bounding controller is a request for a
+  Claude Code session.
 - **The simulator limits torque, not joint speed.** *Tune for this body*
   respects motor speed; gaits from Evolve do not.
 - **Skin mass is always an estimate**; foot and touch sensors weigh nothing

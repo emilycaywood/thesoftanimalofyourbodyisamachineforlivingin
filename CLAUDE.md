@@ -67,7 +67,7 @@ core/calflab/
   fitness/            terms, presets, behavior descriptors
   graph/              typed DAG, cache, node types
   compute/            LocalProcessPool, RemoteSSH (stub), CloudNotebook (stub)
-  evolve/             CMA-ES inner loop, MAP-Elites outer loop, lineage
+  evolve/             CMA-ES inner loop, MAP-Elites outer loop, gait tuning, proportion study, lineage
   export/             glTF, STL/3MF, STEP, 3dm, URDF
   wiring/             BOM, power budget, harness, WireViz
   project/            project folder, registry, command log, journal

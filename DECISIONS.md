@@ -844,3 +844,190 @@ with stand-in lengths. Simulation settings were left as they are (2 ms): that
 body neither collapsed, sank nor violated joint limits, but nothing was
 re-examined for a 200 mm calf (ADR-052). Not looked at in the web lab, Rhino
 or Blender by anyone.
+
+## ADR-057 — A hip-abduction switch per pair of legs (**VERIFY**)
+
+*Context.* The researcher simplified the small prototype to eight motors:
+two joints per leg, hip pitch then knee, on all four legs. The generator
+gave every leg `leg.<k>.hip` on an abduction joint with its motor;
+`front_hip_flex` off removed the wrong joint (it leaves abduction + knee),
+and the hind legs could not lose a motor at all.
+
+*Decision.* Genes `front_hip_abd` and `hind_hip_abd` (bool, Form > Legs,
+labels "Front legs have hip abduction" / "Hind legs have hip abduction"),
+on by default with `absent: true`, not evolvable. Off, for that pair:
+no `joint.<k>.hip_abd`, no `act.<k>.hip_abd`, no motor geom, no mass.
+`leg.<k>.hip` keeps its ID, its place and its hip block and is a body
+without a joint, i.e. fixed to the trunk (as `neck.base` is without neck
+yaw, ADR-055). Per pair, not per leg, because that is what the researcher
+asked for and a calf with abduction on one side only is not a body anyone
+wants. No genome version bump, no migration.
+
+*Why the IDs do not change.* Stable IDs are API (rule 8). The hip-pitch
+joint stays `joint.<k>.hip_flex` and the knee `joint.<k>.knee`, so the CPG
+drives such a leg on its ordinary three-motor path (it already skips an
+abduction index that is missing), speed caps, the torque table, harness,
+firmware and both bridges need no change, and solids pushed onto
+`leg.<k>.hip` / `.thigh` / `.shank` attach as before. A solid on
+`leg.<k>.hip` now moves with the trunk; pushing it onto `trunk` instead is
+equivalent.
+
+*Combinations.* All existing leg settings compose with it: own lengths,
+knee directions, `front_thigh` off (then a front leg is one pitch joint),
+scale. `front_hip_flex` off together with `front_hip_abd` off leaves a front
+leg with its knee only; it builds, compiles and is stepped by the knee
+sweep, with nothing to lift the hoof. Allowed, described in the tooltip of
+the gene, not recommended.
+
+*Consequence to state wherever it matters.* Without abduction every leg
+joint turns about the sideways axis of the body. The legs cannot place a
+hoof sideways or resist a roll. The open-loop CPG never used abduction for
+balance on the default body either (`abduction_amplitude` is 0), so the
+loss shows less in these simulations than it will on a floor.
+
+Checked: specs, MJCF and rollout metrics of four unchanged bodies (default,
+the 2026-10-09 prototype layout, two-motor front legs, scale 0.33) are
+identical before and after, to the last digit;
+`tests/test_hip_abduction_switch.py`. Not looked at in Rhino or Blender by
+anyone (the build list and the armature plan are tested).
+
+## ADR-058 — What a small body needs from the model: two settings, joint speed in the metrics, and no voltage conversion (**VERIFY**)
+
+*Context.* The researcher asked whether the time step and contact settings,
+chosen for a 5 kg, 600 mm calf, were re-examined for a 0.4 kg, 190 mm one
+with 0.23 N*m servos, and how the lab treats servos entered at 6 V on a
+7.4 V battery. Examining it turned up three things that matter far more
+than the time step.
+
+*Found.*
+
+1. **Time step and contact are fine.** On the two-joint body with the
+   library values, 2 ms, 1 ms and 0.5 ms give the same speed, stability and
+   energy to three digits; hooves sink 0.07 mm when standing (0.22 mm on the
+   full-size calf) with the fixed contact time constant of 10 ms. Stiffer
+   contact (5 ms, 2 ms) changes nothing either.
+2. **Passive joint losses do not scale.** `structure.joint_damping_nms_per_rad`
+   (0.05) and `joint_friction_nm` (0.02) in `robot_defaults.yaml` are
+   applied to every joint whatever the scale and the motor. Against the
+   usable torque of an `scs0009` (0.2256 x 0.6 = 0.135 N*m) friction is
+   15 % and damping at 2 rad/s another 74 %.
+3. **The default armature decides the result.** `scs0009` gives no
+   `armature_kgm2`, so the library default 0.005 kg*m^2 is in use (the
+   entries with a value have 0.004 to 0.012, for 55 to 165 g servos). The
+   inertia of the whole leg about the hip is of the order 1e-4. With 0.005
+   the stall torque of the servo accelerates its own horn at 45 rad/s^2: it
+   would need 0.23 s and 69 degrees to reach its no-load speed, where its
+   page says 60 degrees take 0.1 s. That figure is a steady speed, so this
+   is not a measurement of armature, but any value above about 0.001 kg*m^2
+   is incompatible with reaching that speed within one 60 degree move.
+4. **The skin model is on by default**: 154 g of skin and its joint
+   stiffness on a 378 g bare body.
+
+*Decision.*
+
+* `CompileOptions.joint_loss_scale` and `armature_scale`, both 1.0 by
+  default: every existing document, run and test gives the same numbers
+  (compiled MJCF is byte-identical at 1.0). They are model settings in
+  *Model (terrain, servos, skin)*, stored with each run. They are **not**
+  component values: no entry in `config/components` was touched, and the
+  right place for the armature of a servo remains its entry (measured, or
+  the researcher's guess named in `guessed:`). The settings exist so that
+  the dependence of a result on these two assumptions can be seen and
+  recorded.
+* No automatic scaling with `scale` or with the motor: any rule would be an
+  invented one, and it would change saved small-calf results (ADR-052
+  bodies must reload identically).
+* Metrics: per actuator `speed_peak_deg_s`, `speed_limit_deg_s` (recorded
+  no-load speed at the joint, through the transmission), `speed_margin`,
+  `torque_saturated` (share of the time at 98 % or more of usable torque);
+  overall `speed_margin_min`. The simulator still limits torque only
+  (ADR-047); these say when a rollout outran a motor. Runs recorded before
+  have no speed limit in their rollout and report `speed_margin_min: null`.
+* Voltage: nothing is converted. Torque, speed and current are used as the
+  entry gives them (6 V for `scs0009`), the bus voltage is the nominal
+  voltage of the battery (7.4 V), battery current is the sum of the motor
+  currents at those figures plus board power / bus voltage, and power is
+  that current times the bus voltage. `power_budget` now returns
+  `voltage_mismatch` and a `voltage_note` when the voltage of a motor
+  differs from the bus by more than 15 % (12 V servos on an 11.1 V pack are
+  not reported), and the study repeats it. What the wiring of the prototype
+  does (servos straight on the 2S pack, where they would be stronger and
+  faster than entered, or behind a 6 V regulator, where battery current is
+  lower than the sum) is not modelled; entering the figures of the servo at
+  the voltage it really gets is the fix.
+* With `armature_scale` below 1, results move about 10 % between 2 ms and
+  0.5 ms: use 1 ms then. Not made automatic.
+
+*Assumed.* A bare printed prototype has no skin: the project made for the
+researcher (`projects/small-calf-two-joint`) has *Include skin* and *Show
+skin* off. The defaults of the lab stay on.
+
+## ADR-059 — Proportion study: a table of bodies per gait, not a winner (**VERIFY**)
+
+*Context.* The researcher wants to find good proportions for the two-joint
+prototype (segment lengths, trunk, stance), judged by walk, trot and bound
+and by what each motor and the battery see, and to see trade-offs. What
+existed: *Tune for this body* (one body, trot and walk, one gait out) and
+Evolve (MAP-Elites over all evolvable genes within their full slider
+ranges, one gait pattern, one fitness number, behaviour descriptors as
+axes). Neither takes ranges in millimetres, compares gaits, or reports the
+per-joint table for more than the run on the timeline.
+
+*Decision.* `calflab.evolve.study` and `Lab.run_study` (command
+`run_study`, a job; panel *Proportions* in Evolve).
+
+* **Dimensions**: thigh, shank, trunk length, stance width, hip drop, each
+  with a From/To in real millimetres (ADR-052); 0 to 0 = not varied. Leg
+  lengths drive the front/hind length genes of ADR-056, with
+  `own_leg_lengths` switched on in the variants (and the four lengths first
+  set to what the legs measure now, so the switch alone changes nothing):
+  the shared `thigh_length` / `shank_length` stop at 100 mm full size and
+  could not reach the 20 mm asked for. Front and hind are tied unless
+  *Front and hind legs > Vary separately* is on. A range wider than the range of a
+  gene is cut to it and reported, never extended: widening a gene re-scales
+  the search space of Evolve and needs a genome migration.
+* **Bodies**: a seeded Latin hypercube over the ranges; bodies whose
+  standing height (the height readout of the lab,
+  `RobotSpec.standing_height_mm`) is outside *Overall height* are left out
+  and counted, and sampling repeats until enough are in. The working design
+  is always body `b00`.
+* **Per body and gait**: the gait numbers of the document with the footfall
+  pattern swapped, then CMA-ES over the relevant parameters of the
+  controller with the speed caps and penalty of `tune_gait` (ADR-049), then
+  one longer check run (15 s or 2.5 x the trial) that every reported number
+  comes from. The fitness is the preset of the document. One task per body,
+  so the compute backends apply.
+* **Works** = did not fall in the check run, forward speed at least
+  *Min speed mps* (0.02), at a joint limit at most 2 % of the time, and no
+  joint faster than the no-load speed of its motor. A motor at its torque
+  limit and a battery over its limit are flags, not failures: with the
+  present servo model (position error over 10 degrees saturates) nearly
+  every gait of a weak servo touches the limit at some instant, and
+  `torque_saturated` says for how long.
+* **Trade-offs** are computed in the core (`summarize`): the bodies not
+  dominated on (speed, worst torque margin) among those that work are the
+  *front*; rank correlations of each varied length with speed, torque
+  margin and stability are reported as trends when there are ten or more
+  bodies and |rho| >= 0.4. No body is chosen and the document is not
+  edited; `adopt_study_body` does that on request (undoable), taking the
+  overrides of the run with it as `adopt_candidate` does (ADR-044).
+* **Record**: run kind `study`; `run.json` holds settings, dimensions as
+  used, model and simulation settings, the mass record, the notes;
+  `study.json` holds every body.
+
+*Assumed.* For the study run for the researcher, stance width 40 to 85 mm
+and hip drop 0 to 25 mm (they gave ranges for thigh, shank, trunk and height
+and said to assume the rest from those proportions; these are nearly the
+slider ranges at scale 0.337). The trunk range asked for, 100 to 250 mm, is
+cut to 101 to 189 mm at that scale.
+
+*Limits.* The gait search per body is short (10 x 8 by default) and seeded:
+rankings between neighbours are noise, groups are not. **Bound** exists as
+a footfall pattern of the CPG but the controller is open loop: no flight
+phase, no pitch feedback. What the study reports for bound is how far that
+pattern shuffles a body forward, not whether it could bound. A bounding
+controller (push-off and landing timed from trunk pitch and foot contact)
+is not built. Structure masses in a study are the parametric estimates
+unless solids were pushed, and pushed solids do not change with the
+lengths: a study over a body with pushed solids varies the skeleton under
+fixed parts.

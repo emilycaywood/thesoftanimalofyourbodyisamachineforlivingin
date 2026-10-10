@@ -1,11 +1,11 @@
 # CALFLAB session handoff
 
 Everything a new Claude Code session (or a new collaborator) needs to pick up
-CALFLAB. Last updated 2026-10-08 on branch `chassis-mass` (on top of
-`phase-1-vertical-slice`, pushed to GitHub), after the session that made mass come from solids
-pushed from Rhino, per-part materials and weighed parts, and added a scale
-gene for a small test calf (section 4; run `git log --oneline -12` for the
-current state).
+CALFLAB. Last updated 2026-10-10 on branch `chassis-mass` (on top of
+`phase-1-vertical-slice`), after the session that added the hip-abduction
+switches for a two-joint leg, the model settings for a small body and the
+proportion study (section 4; run `git log --oneline -12` for the current
+state). The 2026-10-10 commits are local: not pushed.
 
 ---
 
@@ -108,11 +108,12 @@ branched from `phase-1-vertical-slice`, pushed to GitHub and open as a pull
 request into `phase-1-vertical-slice` (so it joins pull request #1 when the
 researcher merges it).
 
-**Tests:** `calflab test` passes: ruff, 273 pytest tests, mypy, web typecheck
-and eslint, 14 Vitest tests, 7 Playwright tests (smoke, material / weighed
+**Tests:** `calflab test` passes: ruff, 291 pytest tests, mypy, web typecheck
+and eslint, 14 Vitest tests, 8 Playwright tests (smoke, material / weighed
 mass / pushed solid / Mass panel, real-millimetre sliders at scale 0.33,
 gumball drag and harness overlay with a
-real mouse, runs + journal, evolve from a design).
+real mouse, runs + journal, evolve from a design, a proportion study on the
+two-joint body).
 `calflab doctor` is clean apart from three optional warnings (Graphviz, no
 CUDA, unverified components). It used to warn "uv not found" as well: that
 was a false alarm, fixed 2026-10-03. uv is installed and is what
@@ -333,6 +334,63 @@ not fit the skeleton; ADR-056; and its two servos):**
   board are still not in the library.
 * `tests/test_leg_layout.py` (6).
 
+**Added 2026-10-10 (the researcher simplified the prototype to eight
+motors, two joints per leg, and wants to compare proportions; ADR-057,
+ADR-058, ADR-059):**
+
+* Genes `front_hip_abd`, `hind_hip_abd` (Form > Legs, "Front legs have hip
+  abduction" / "Hind legs have hip abduction", on by default,
+  `absent: true`). Off = no abduction joint, actuator or motor on that pair;
+  `leg.<k>.hip` keeps its ID and is fixed to the trunk; the leg is
+  `joint.<k>.hip_flex` then `joint.<k>.knee`. No genome version bump.
+  Specs, MJCF and rollout metrics of the default calf, the 2026-10-09
+  layout, two-motor front legs and scale 0.33 are identical before and
+  after.
+* Metrics: per actuator `speed_peak_deg_s`, `speed_limit_deg_s`,
+  `speed_margin`, `torque_saturated`; overall `speed_margin_min`. The
+  simulator still limits torque only.
+* MJCF compile: `joint_loss_scale`, `armature_scale` (both 1 = unchanged
+  results). `power_budget` returns `voltage_mismatch` / `voltage_note`;
+  nothing is converted between a 6 V servo entry and a 7.4 V battery.
+* **Proportion study**: `calflab.evolve.study`, `Lab.run_study`, commands
+  `run_study`, `simulate_study_body`, `adopt_study_body`, route
+  `/api/study/<run>`, panel **Proportions** in Evolve (centre, beside
+  Archive). Run kind `study`, artifact `runs/<id>/study.json`.
+  `LAYOUT_VERSION` is 6 (dock layouts reset once).
+* New project **`projects/small-calf-two-joint`** (not in git, like every
+  project): scale 0.337, both abduction switches off, front knees forward,
+  hind backward, no neck/head/tail/ear motors, `scs0009` on all eight
+  joints, `lipo_2s_1100`, *Include skin* and *Show skin* off. It holds a
+  tune run, a sim run and two studies. `projects/small-calf` was not
+  touched.
+* What the examination of the small body found (ADR-058): time step and
+  contact are fine at 2 ms. The passive joint friction/damping of
+  `robot_defaults.yaml` and the library default armature (0.005 kg*m^2,
+  used because `scs0009` gives none) are sized for the 5 kg calf and decide
+  how fast the small one walks.
+* Results in that project, 378 g as simulated (parametric structure
+  estimate, the lab's Teensy + Pi 5, no solids pushed):
+  * Tune for this body (library values): trot 0.12 m/s, no fall, no joint
+    limit, trunk never under 96 % of standing height. Hip-pitch servos at
+    their torque limit 55 to 59 % of the time; knees have 60 to 69 % margin.
+  * Study `20261010-155806-study-1075` (library values, 41 bodies, thigh and
+    shank 20 to 100 mm, trunk 101 to 189, stance 40 to 85, hip drop 0 to 25,
+    height 100 to 250): trot works on all 41 at 0.10 to 0.12 m/s whatever
+    the proportions; walk on 22 (up to 0.08 m/s; shorter shanks walk
+    faster); bound on none. Battery peak about 5.4 A, mean 4.6 A.
+  * Study `20261010-160303-study-b3c8` (a **what-if**: joint loss scale
+    0.02, armature scale 0.2, 1 ms): trot on 31 (up to 0.33 m/s), walk on
+    30 (up to 0.25), bound on 6 (up to 0.09). Shorter shanks trot faster and
+    steadier. The what-if values are assumptions, not data; the document was
+    put back to 1 / 1 / 2 ms.
+* Not done: a bounding controller (the CPG "bound" is an open-loop footfall
+  pattern); a torque-speed curve in the servo model (next session F);
+  boards per project (next session I): the small calf still carries the
+  full-size Teensy and Pi 5.
+* Not verified by anyone by hand: the Proportions panel beyond one look in
+  the lab's browser pane and its Playwright test; `CalflabPull` of a
+  two-joint body in Rhino (the build list and armature plan are tested).
+
 **Scaffolded only (interfaces + tests, no behaviour):** PPO training, MJX
 simulator, RemoteSSH and CloudNotebook transports (job bundling is real),
 imitation reward, interactive selection, molds, skin patterns, nesting,
@@ -382,9 +440,11 @@ Journal, Rhino bridge):**
   a solid in Rhino by hand (Attribute User Text) and read the printout and
   Properties: a script did both, nobody has by hand.
 * The small calf in use: the sliders in real millimetres (chosen by the
-  researcher, checked by a browser test, not yet used by hand); simulation
-  settings and the default gait were
-  not re-examined for a 200 mm body, and no real small servo has been tried.
+  researcher, checked by a browser test, not yet used by hand). Simulation
+  settings were re-examined on 2026-10-10 (ADR-058). What only the
+  researcher can supply: the armature of the `scs0009` (measured, or a
+  guess in `guessed:`), the servo figures at the voltage the servos really
+  get, a small board, and the weight of the real prototype.
 * Whether the `guessed:` lists added to the existing entries match what the
   files meant (only values the files already called guesses were listed).
 
@@ -454,7 +514,7 @@ Journal, Rhino bridge):**
 |---|---|
 | `CLAUDE.md` | Conventions for every session (loaded automatically) |
 | `PLAN.md` | Architecture, module boundaries, data flow, phases, risks, status |
-| `DECISIONS.md` | ADR log: every assumption (56 so far) |
+| `DECISIONS.md` | ADR log: every assumption (59 so far) |
 | `docs/proposals/anatomical-leg.md` | Proposal for a three-segment leg (set aside 2026-10-04; not built) |
 | `docs/USER_GUIDE.md` | How to use the lab |
 | `docs/CHAT_GUIDE_PROMPT.md` | Prompt that makes a chat assistant a guide to the whole lab |
@@ -535,6 +595,31 @@ Prefix each with the opening message from section 1.
 > the mass breakdown, the torque-margin table and the speed. Tell me which
 > results rest on guessed or defaulted values, and whether the simulator's
 > time step and contact settings still make sense for a body this small.
+
+**J. Make the small servo honest in the simulator**
+> For my SCS0009 I measured / decided: <armature in kg*m^2 or "time for an
+> unloaded 60 degree step from rest: N s">, and the servos are wired
+> <straight to the 2S pack / behind a 6 V regulator>. Enter what I give in
+> config/components/actuators.yaml (a guess goes in `guessed:`; if I gave
+> figures for 7.4 V make a second entry, do not edit the 6 V one), keep
+> `verified: false`. Then decide with me whether the passive joint damping
+> and friction of robot_defaults.yaml should become per-actuator values in
+> the component entry instead of one number for every joint (ADR-058), with
+> the default calf unchanged. Re-run *Tune for this body* and the
+> proportion study in projects/small-calf-two-joint with Joint loss scale
+> and Armature scale back at 1, and show me how the tables changed against
+> studies 20261010-155806-study-1075 and 20261010-160303-study-b3c8.
+
+**K. A controller that can bound, and one that holds a line**
+> The CPG "bound" is an open-loop footfall pattern (ADR-059). Add a
+> controller plugin (`calflab new-plugin controller ...`) that bounds with a
+> flight phase: push-off and landing timed from trunk pitch and foot
+> contact, parameters optimisable so *Tune for this body* and the
+> proportion study can use it. Tell me first what it needs from the body
+> (torque, speed) and whether eight SCS0009 can supply it at 378 g. Also
+> give the CPG an optional yaw/roll correction from the IMU that works
+> without hip abduction (stride length left/right), and show sideways drift
+> with and without it for the two-joint body.
 
 **I. Boards and sensors per project; skin mass from sculpted skin**
 > Boards and sensors are still chosen for all projects in

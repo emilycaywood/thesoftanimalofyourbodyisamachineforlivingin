@@ -392,7 +392,8 @@ their size, so at a small scale the motors, boards and battery are nearly
 all of the mass: choose lighter ones in Mechanism (section 9 says how to add
 them), set the project's mass target in the Mass panel, and press *Tune for
 this body* in Simulate, since the default gait was tuned for the full-size
-calf. Simulation settings have not been examined for a body this small.
+calf. The simulation settings were examined for a body this small on
+2026-10-10: see *A small body* under Simulate.
 
 Under Neck and head, three switches say which of those joints the body
 really has: **Neck yaw motor**, **Neck pitch motor**, **Head pitch motor**
@@ -416,13 +417,42 @@ axes + limit arcs* overlay to see the limit arc and the standing tick flip.
 legs. Switch it off for **two-motor front legs**: abduction at the shoulder
 and the knee working as an elbow. The upper segment is then fixed at its
 standing angle, two XH540 motors leave the bill of materials, and the gait
-steps those legs with the elbow (sweep) and the abduction (lift). The hind
-legs always have three motors. After switching, press *Tune for this body*
+steps those legs with the elbow (sweep) and the abduction (lift). After switching, press *Tune for this body*
 in Simulate: no gait made for three-motor front legs suits two-motor ones.
 It walks acceptably when the front joint is high and points backward
 (**Front knee forward** off, a short front thigh and long front shank, set
 with overrides on `leg.fl.thigh`, `leg.fr.thigh`, `leg.fl.shank`,
 `leg.fr.shank`), and poorly with the knee mid-leg pointing forward.
+
+**Front legs have hip abduction** and **Hind legs have hip abduction** (genes
+`front_hip_abd`, `hind_hip_abd`; both on by default) say whether that pair of
+legs can swing sideways. Switch one off and each leg of that pair loses its
+abduction joint (`joint.<leg>.hip_abd`), its actuator and its motor: nothing
+to drive, no motor in the Mass tab, the BOM or the power budget. With both
+off and everything else as it is, **each leg is two joints: hip pitch
+(`joint.<leg>.hip_flex`, shown as *Hip flexion*), then knee
+(`joint.<leg>.knee`)**, eight leg motors in all.
+
+The bodies keep their IDs and their places, so solids are pushed onto the
+same parts as before:
+
+| Body ID | What it is without abduction | Moves with |
+|---|---|---|
+| `trunk` | chassis | - |
+| `leg.fl.hip`, `leg.fr.hip`, `leg.hl.hip`, `leg.hr.hip` | the hip block, now **fixed to the trunk**; it holds the hip-pitch motor | the trunk |
+| `leg.fl.thigh`, `leg.fr.thigh`, `leg.hl.thigh`, `leg.hr.thigh` | upper segment; holds the knee motor | hip pitch |
+| `leg.fl.shank`, `leg.fr.shank`, `leg.hl.shank`, `leg.hr.shank` | lower segment and hoof | knee |
+
+A bracket that carries a hip-pitch servo can go onto `leg.<leg>.hip` or onto
+`trunk`: both are the same rigid piece now, and the mass lands in the same
+place either way. The other leg settings work as before on such a leg: own
+front and hind lengths, **Front knee forward**, **Hind knee forward**,
+**Front legs have a thigh** (off: that front leg is one pitch joint and a
+shank, six leg motors in all) and *Overall scale*. Two combinations to
+avoid: with **Front hip flex** off as well, a front leg has only its knee
+left; and a body with no abduction anywhere cannot step sideways or correct
+a roll (see *Proportions* under Evolve for how that shows). The two switches
+are not varied by Evolve. After switching, press *Tune for this body*.
 
 **Front and hind legs that differ** (all off or unused by default; a calf
 that leaves them alone is built exactly as before):
@@ -510,8 +540,41 @@ controls *Elbow amplitude*, *Elbow offset* and *Swing abduction* only act on
 two-motor legs.
 
 Metrics: forward speed, distance, cost of transport, stability, torque RMS and
-peak, torque margin, first-order thermal estimate, foot impact speed (noise
-proxy), time to stand from lying, time at joint limits.
+peak, torque margin, **worst joint speed margin**, first-order thermal
+estimate, foot impact speed (noise proxy), time to stand from lying, time at
+joint limits. The joint speed margin is 1 - (fastest any joint turned) / (its
+motor's recorded no-load speed). The simulator still limits torque only, so
+a negative value means the run moved a joint faster than the motor can turn.
+Each run also records, per actuator, the peak joint speed, the no-load speed
+it is compared with, and the share of the time the motor was at its torque
+limit (`metrics.by_actuator` in `run.json`).
+
+**A small body.** Three things in *Model (terrain, servos, skin)* matter for
+a calf of a few hundred grams, and none of them follows *Overall scale*:
+
+* **Include skin**: on, the skin's mass and its stiffness at every joint are
+  simulated whether or not your prototype has a skin. Switch it off for a
+  bare printed body.
+* **Joint loss scale** (1 by default): multiplies the passive joint damping
+  (0.05 N*m*s/rad) and friction (0.02 N*m) of `config/robot_defaults.yaml`.
+  They were chosen for the 5 kg calf with 4 to 10 N*m servos. A servo with
+  0.23 N*m of stall torque has about 0.14 N*m usable: at 1 the friction and
+  damping alone take most of that at walking speeds.
+* **Armature scale** (1 by default): multiplies every servo's reflected
+  inertia. A servo whose datasheet does not give it (`armature_kgm2` is
+  blank in the library) runs on the library default, 0.005 kg*m^2, made for
+  50 to 160 g servos; on a 13 g servo that inertia, not the legs, is what
+  the motor mostly accelerates. The honest fix is a value in the component
+  entry (measured, or yours and listed in `guessed:`); this setting is for
+  seeing how much a result depends on it.
+
+Both scales at 1 give exactly the results of earlier versions. Whatever you
+set is stored with every run (`inputs.compile`). The time step (2 ms) and
+the contact softness were checked on a 0.4 kg, 190 mm body: halving and
+quartering the step changed nothing measurable with the library values, and
+about a tenth of the speed once the armature is scaled down, so use
+**Timestep ms** 1 when you lower *Armature scale*. Hooves sink 0.1 mm or
+less into the ground when standing.
 
 ### Evolve
 Choose what to **start from**, the optimizer (MAP-Elites + CMA-ES), budget,
@@ -557,6 +620,97 @@ A caution on evolved gaits: the simulator limits each motor's torque but not
 its speed. Evolution can therefore find fast gaits the real servos could not
 follow (the default trot was tuned with joint speed capped at 120 deg/s for
 this reason; ADR-047). Read high stride frequencies with that in mind.
+
+#### Proportions: comparing bodies instead of finding one
+
+The lab has three ways to look for a better body or gait:
+
+| Tool | Changes the body? | Gaits | Gives you |
+|---|---|---|---|
+| **Tune for this body** (Simulate) | no | trot and walk (bound if you add it) | one gait written into the document |
+| **Start evolution** (Evolve) | yes, all evolvable genes within their slider ranges | the one in the Controller | an archive of bodies scored by one fitness number |
+| **Run proportion study** (Evolve, tab *Proportions*) | yes, only the lengths you give a range | walk, trot, bound, each tuned per body | a table of every body tried, per gait |
+
+The **Proportions** tab is beside *Archive*. On its left, under *Ranges and
+search*, give a **From** and a **To** in real millimetres for any of *Thigh
+length*, *Shank length*, *Trunk length*, *Stance width*, *Hip drop*; 0 to 0
+leaves that length as the design has it. *Overall height* From / To leaves
+out bodies that would stand lower or taller (it is the height readout of
+Form: the highest part's centre, 187 mm for a calf without ears at scale
+0.337). *Front and hind legs* > **Vary separately** gives front and hind
+legs their own thigh and shank (twice the unknowns: raise *Bodies*). Under
+*Search*: **Bodies** (how many to try besides the design itself), **Gaits**,
+**Iterations** and **Popsize** (how hard each gait is searched, as in Tune),
+**Duration s**, **Speed fraction** (as in Tune), **Min speed mps** (slower
+than this does not count as walking). Press **Run proportion study**. It is a
+job with progress and Cancel; 40 bodies with the defaults take about five
+minutes on this machine (24 with the defaults about three). The document is not changed.
+
+What it does: it spreads the bodies evenly over your ranges (a Latin
+hypercube), builds each from the working design with only those lengths
+changed, searches a gait for it in each footfall pattern within the motors'
+speed caps, then runs the best one for 15 s and measures that run. Leg
+lengths are set through the front/hind length sliders (it switches *Front
+and hind legs have their own lengths* on in the bodies it tries) because
+those reach further than *Thigh length* / *Shank length*. A range wider than
+a slider is cut to the slider and the study says so: at scale 0.337 the
+trunk can be 101 to 189 mm.
+
+Reading it:
+
+* **Read this first** lists what the numbers rest on: ranges that were cut,
+  each motor and battery value that is unverified, guessed or a library
+  default, the voltage note, and the model settings in use.
+* The buttons **walk n/m**, **trot n/m**, **bound n/m** switch the gait; n of
+  m bodies work in it.
+* **Bodies in <gait>**: one row per body. `b00` with the badge *design* is
+  the working design. Columns: the lengths you varied, **Height** (mm),
+  **Mass** (g, as simulated), **Works**, **Speed** (m/s), **Torque margin**
+  (the worst joint: 1 - peak torque / usable torque), **Speed margin** (the
+  worst joint: 1 - peak joint speed / the motor's no-load speed), **Battery
+  peak** (A). Click a header to sort. Red is under 5 %, orange under 30 %.
+* **Works** = yes means: upright for the whole 15 s, forward faster than
+  *Min speed mps*, at a joint limit at most 2 % of the time, and no joint
+  faster than its motor. Hover *no* for the reasons. "A motor is at its
+  torque limit" and "battery peak current over its limit" are reported but
+  do not by themselves make it *no*.
+* The badge **front** marks the bodies no other working body beats on both
+  speed and torque margin at once: the trade-off. Everything not marked is
+  worse than some marked body on both counts.
+* **Trends in <gait>** (with ten or more bodies): which lengths go with more
+  or less speed, torque margin and stability, as rank correlations. A
+  direction to look in, not a law, and blind to interactions.
+* Click a row for **<body> in <gait>**: the flags, then the **torque-margin
+  table per joint** (*Peak torque*, *Usable*, *Margin*, *At limit* = share of
+  the time at the torque limit, *Peak speed*, *No-load*, *Margin*) and the
+  battery line (mean and peak current against the pack's limit, runtime).
+  **Replay** simulates that body with that gait without changing the
+  document (the poses play in the *Viewport* tab; click it). **Use this
+  body** loads the body and that gait into the document; Ctrl+Z undoes it.
+
+A study is a run like any other: `runs/<id>/run.json` (kind `study`: the
+settings, the ranges used, model and simulation settings, mass record, the
+notes, how many bodies work per gait) and `runs/<id>/study.json` (every
+body: its genome, lengths, height, mass, and per gait the tuned gait, the
+metrics, the joint table and the battery load). From the command line:
+`run_study thigh_min=20 thigh_max=100 shank_min=20 shank_max=100`,
+`simulate_study_body run=<id> body=b07 gait=trot`,
+`adopt_study_body run=<id> body=b07 gait=trot`.
+
+Cautions. The gait search is short and has luck in it: two studies with
+different seeds will not rank the bodies identically, and a body that "does
+not work" may only not have found its gait in 10 iterations. Compare groups
+of bodies, not neighbours in the table. **Bound**: the controller can
+command the footfall pattern (front pair together, hind pair together), but
+it is open loop: it has no flight phase to aim for and no pitch feedback, so
+what the simulation calls a bound is a rocking shuffle. A real bound needs a
+controller that times push-off and landing from the trunk's pitch; that is
+not built. **No abduction**: all eight joints turn about the same sideways
+axis, so the legs can neither place a hoof sideways nor push back against a
+roll. In the simulation that shows as *sideways drift* and *roll* that
+nothing corrects (both are in the body's detail line), and as falls to the
+side in the gaits that stand on two legs at a time; *Stance width* is the
+only setting that widens the base.
 
 ### Fabricate
 Parts list by ID and exporters: *Leg segment (CAD)* produces a printable
@@ -623,7 +777,7 @@ projects/<name>/
   project.calflab.json   the document (graph, overrides, layers)
   commands.jsonl         every edit, append-only (undo/redo and history)
   index.sqlite           index of runs/designs (rebuildable)
-  runs/<id>/             run.json + rollout, scene, model, archive, candidates
+  runs/<id>/             run.json + rollout, scene, model, archive, candidates, study
   designs/<id>/          baked designs (immutable)
   journal/               Markdown entries
   assets/                captures, reference images, sculpted geometry
