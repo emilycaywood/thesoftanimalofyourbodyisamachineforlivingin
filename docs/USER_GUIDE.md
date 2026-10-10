@@ -454,6 +454,44 @@ left; and a body with no abduction anywhere cannot step sideways or correct
 a roll (see *Proportions* under Evolve for how that shows). The two switches
 are not varied by Evolve. After switching, press *Tune for this body*.
 
+**Rotated servo mounts** (all 0 by default; a calf that leaves them at 0 is
+built exactly as before). A servo's mount can be turned so that the limb it
+carries comes off at an angle; the joint axis and the servo drawn in the
+part turn with it, and so does everything further down the leg.
+
+| Setting in Form > Legs | Gene | Range | What it does |
+|---|---|---|---|
+| Front leg splay | `front_leg_splay` | -30 to 45 deg | front hips rolled outward: the legs lean out, the hooves stand wider |
+| Hind leg splay | `hind_leg_splay` | -30 to 45 deg | the same for the hind pair |
+| Front leg toe-out | `front_leg_toe` | -45 to 45 deg | front hips turned about the vertical: the legs swing in a plane pointing outward at the front (negative: inward) |
+| Hind leg toe-out | `hind_leg_toe` | -45 to 45 deg | the same for the hind pair |
+
+* Left and right are mirrored: one positive number leans both legs of the
+  pair outward.
+* **One servo only:** select the part, and in Properties set **Mount roll
+  (outward)** or **Mount yaw (toe-out)** and press *Override this part*.
+  Every hip, thigh and shank has the two; on a hip they are labelled *Splay
+  (mount roll, outward)* and *Toe-out (mount yaw)* and start at the Form
+  value. Rotating a thigh turns the hip-pitch servo's output (thigh, knee
+  and shank follow); rotating a shank turns the knee's. From the command
+  line: `add_override target=leg.hl.shank param=mount_roll value=12`.
+* Leaning a segment fore or aft is not a mount angle: that is *Knee bend*
+  and the standing pose.
+* **Every hoof still stands on the ground.** Leaning legs reach less far
+  down, so the trunk comes down, and if the pairs differ the hips of the
+  pair that reaches further sit lower in the trunk.
+* What to expect: splay widens the base (the only other way is *Stance
+  width*). On the small two-joint calf 20 deg of splay took the hoof track
+  from 78 to 150 mm, lowered it by 10 mm, halved the roll in a trot and cost
+  6 % of speed. The body then hangs on a sideways lever: a leg with
+  abduction shows that load on its abduction servo in the torque table; a
+  leg without has no motor to take it, so it bends the hip-pitch servo's
+  shaft and bracket, and **the lab does not show that load at all**. Toe-out makes left and right hooves pull
+  against each other a little on every stride. Neither gives sideways
+  control. Large angles can push a leg's envelope into the trunk; nothing
+  checks that. The proportion study does not vary these angles.
+* After changing them, press *Tune for this body*.
+
 **Front and hind legs that differ** (all off or unused by default; a calf
 that leaves them alone is built exactly as before):
 

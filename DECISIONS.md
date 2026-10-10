@@ -1031,3 +1031,67 @@ is not built. Structure masses in a study are the parametric estimates
 unless solids were pushed, and pushed solids do not change with the
 lengths: a study over a body with pushed solids varies the skeleton under
 fixed parts.
+
+## ADR-060 — Rotated servo mounts: mount roll and yaw on every leg part (**VERIFY**)
+
+*Context.* The researcher asked for servos that can be rotated "such that
+their affiliated limbs are mounted at an angle". Until now every leg part
+sat square on its parent: all leg joints turned about the sideways axis of
+the trunk (or the fore-aft one, for abduction), and the only angles were the
+standing angles of the joints themselves.
+
+*Read as.* The mount of a servo is turned, and the limb it carries, with its
+joint axis, turns with it: legs that lean outward, or swing in a plane that
+points outward. Not read as: only the drawn servo box turning while the
+joint stays (that would change the picture and nothing else), nor a pitch
+offset (leaning a segment fore or aft is what *Knee bend* and the standing
+angles already do).
+
+*Decision.* Every leg part (`leg.<k>.hip`, `.thigh`, `.shank`) has two
+element parameters, `mount_roll` and `mount_yaw`, in degrees. They rotate
+the frame of that body on its parent (yaw about the vertical, then roll
+about the fore-aft axis), so its joint, the motor geoms in it and every body
+below turn together. Both are mirrored by side: positive roll leans the far
+end outward on the left and on the right, positive yaw turns the front
+outward on both.
+
+* The hip's two are driven by genes, per pair of legs like the abduction
+  switches: `front_leg_splay`, `hind_leg_splay` (-30 to 45 deg) and
+  `front_leg_toe`, `hind_leg_toe` (-45 to 45 deg), Form > Legs, default 0,
+  `absent: 0`, not evolvable. No genome version bump.
+* A thigh's or shank's are 0 and are set per part as an ordinary override
+  (Properties, or `add_override target=leg.hl.shank param=mount_roll
+  value=12`), within -90 to 90 deg. A hip can be overridden per leg the same
+  way. Overrides stay explicit and named (rule 6).
+* **Hooves stay on the ground.** A leg with any mount angle is measured by
+  forward kinematics through its mounts and standing angles; the trunk
+  height follows the leg that reaches furthest down and the hips of the
+  others sit lower, as with legs of their own lengths (ADR-056). A leg with
+  no mount angle is measured by the old formula, so bodies without mounts
+  are bit-identical to before (checked on the same four bodies as ADR-057).
+* Nothing else needed to change: MJCF, forward kinematics and both bridges
+  already carry a body's rotation (the fixed thigh strut of ADR-048 uses
+  it); the CPG commands joint angles and does not know the plane they act
+  in.
+
+*Consequences to state.* With splay the hoof no longer stands under the hip:
+the body hangs on a sideways lever. On a leg with abduction that load is on
+the abduction servo and shows in the torque table. On a leg without, no
+motor resists it: it is a bending load on the hip-pitch servo's output shaft
+and its bracket, which the simulator carries rigidly and does not report.
+The gait's fore-aft sweep is unchanged, so splay buys a wider base, not
+sideways control. Measured on the two-joint body (378 g, skin off, the tuned
+trot): splay 0 / 10 / 20 / 30 deg gives a hoof track of 78 / 115 / 150 /
+182 mm, a height of 187 / 184 / 177 / 168 mm, roll of 0.41 / 0.22 / 0.19 /
+0.16 deg RMS and a speed of 0.114 / 0.111 / 0.107 / 0.105 m/s. With toe-out or toe-in, the left and right legs
+sweep along diverging lines: part of every stride scrubs the hooves
+sideways against each other. The abduction motor, where a leg has one, stays
+drawn in the trunk and does not turn with the hip. The envelope shapes may
+intersect the trunk at large angles; nothing checks that. The proportion
+study does not vary these angles yet.
+
+Checked: `tests/test_rotated_mounts.py` (hooves at ground level for splay,
+toe, a part override, a strut thigh and a thighless leg; mirrored signs; the
+hip-pitch axis leaning by exactly the splay angle; a simulation of the
+two-joint body at 15 deg). Not looked at in the web lab, Rhino or Blender by
+anyone.

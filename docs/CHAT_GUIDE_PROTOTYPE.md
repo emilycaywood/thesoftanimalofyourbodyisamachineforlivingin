@@ -7,7 +7,8 @@ of CALFLAB as of 2026-10-10 (branch `chassis-mass`, after ADR-059: the
 infill estimate, the neck and head switches, my two servos and my battery in
 the library, front and hind legs of their own proportions, the
 hip-abduction switches for a two-joint leg, the model settings for a small
-body and the proportion study) and stands on its own. For entering components in detail, the Mass tab in depth, or the
+body, the proportion study, and ADR-060: rotated servo mounts) and stands
+on its own. For entering components in detail, the Mass tab in depth, or the
 rest of the lab, see `docs/CHAT_GUIDE_CHASSIS.md` and
 `docs/CHAT_GUIDE_PROMPT.md`. Regenerate this file after a session that
 changes what it describes.
@@ -194,6 +195,24 @@ In Rhino, `CalflabConnect` checks the link (address normally
    the knee, ends in the hoof). The Mechanism list **act hip abd** then
    chooses nothing: whatever it says, no such motor is built, weighed or
    listed in the Mass tab. Mechanism lists eight actuators.
+   **If a servo is mounted at an angle** so its limb comes off tilted: the
+   same group has **Front leg splay**, **Hind leg splay** (hips rolled
+   outward, -30 to 45 deg: the legs lean out and the hooves stand wider)
+   and **Front leg toe-out**, **Hind leg toe-out** (hips turned about the
+   vertical, -45 to 45 deg). One number does left and right, mirrored. For
+   a single servo, select the part (`leg.<leg>.hip`, `.thigh` or `.shank`)
+   and in Properties set **Mount roll (outward)** or **Mount yaw
+   (toe-out)**, then *Override this part*: a thigh's turns the hip-pitch
+   servo's output, a shank's turns the knee's. The joint axis and the servo
+   drawn in the part turn with it; the hooves are put back on the ground
+   automatically (the trunk comes down). A fore-aft lean is not a mount
+   angle: that is *Knee bend*. Have me measure the angle in Rhino between
+   the servo's output axis and the trunk's sideways axis, and pull again to
+   compare. Tell me: on my legs without abduction, splay puts a sideways
+   bending load on the hip-pitch servo's shaft and bracket that the lab
+   does not show anywhere (no motor resists it, so it is in no torque
+   table); whether a small plastic-cased servo without a bearing takes
+   that is mine to judge.
    **If my front and hind legs differ, or a leg has no thigh or a very
    short one**, the same group has these (labels as in the Form tab, all
    off or unused by default):

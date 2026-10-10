@@ -113,7 +113,7 @@ and eslint, 14 Vitest tests, 8 Playwright tests (smoke, material / weighed
 mass / pushed solid / Mass panel, real-millimetre sliders at scale 0.33,
 gumball drag and harness overlay with a
 real mouse, runs + journal, evolve from a design, a proportion study on the
-two-joint body).
+two-joint body). After the rotated mounts: 296 pytest tests.
 `calflab doctor` is clean apart from three optional warnings (Graphviz, no
 CUDA, unverified components). It used to warn "uv not found" as well: that
 was a false alarm, fixed 2026-10-03. uv is installed and is what
@@ -383,6 +383,22 @@ ADR-058, ADR-059):**
     30 (up to 0.25), bound on 6 (up to 0.09). Shorter shanks trot faster and
     steadier. The what-if values are assumptions, not data; the document was
     put back to 1 / 1 / 2 ms.
+* **Rotated servo mounts (ADR-060):** every leg part has `mount_roll` and
+  `mount_yaw` (deg, mirrored by side); the hip's are the genes
+  `front_leg_splay`, `hind_leg_splay`, `front_leg_toe`, `hind_leg_toe`
+  (Form > Legs, 0 by default, `absent: 0`), a thigh's or shank's are set by
+  an override. The body frame turns, so joint axis, motor and everything
+  below turn with it; hooves are regrounded by forward kinematics. Bodies
+  without mount angles are bit-identical. `tests/test_rotated_mounts.py`
+  (5). The request was one sentence; this is my reading of it (the mount
+  turns and the limb with it), recorded in the ADR. Not looked at in the
+  web lab, Rhino or Blender; not a dimension of the proportion study.
+* Rotor inertia of the SCS0009: the researcher supplied gear ratio 1:416
+  (not entered in the library; ask). It cannot be calculated from the
+  listing. Reflected inertia = rotor inertia x 416^2; a geometric guess with
+  assumed rotor sizes gives 0.0002 to 0.001 kg*m^2 at the output (Armature
+  scale 0.04 to 0.2). A timed no-load step read from the servo's bus gives
+  it: armature = time to 63 % of no-load speed x 0.0215.
 * Not done: a bounding controller (the CPG "bound" is an open-loop footfall
   pattern); a torque-speed curve in the servo model (next session F);
   boards per project (next session I): the small calf still carries the
@@ -514,7 +530,7 @@ Journal, Rhino bridge):**
 |---|---|
 | `CLAUDE.md` | Conventions for every session (loaded automatically) |
 | `PLAN.md` | Architecture, module boundaries, data flow, phases, risks, status |
-| `DECISIONS.md` | ADR log: every assumption (59 so far) |
+| `DECISIONS.md` | ADR log: every assumption (60 so far) |
 | `docs/proposals/anatomical-leg.md` | Proposal for a three-segment leg (set aside 2026-10-04; not built) |
 | `docs/USER_GUIDE.md` | How to use the lab |
 | `docs/CHAT_GUIDE_PROMPT.md` | Prompt that makes a chat assistant a guide to the whole lab |
