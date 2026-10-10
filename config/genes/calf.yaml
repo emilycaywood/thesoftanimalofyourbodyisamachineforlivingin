@@ -77,6 +77,22 @@ genes:
      label: "Hind legs have hip abduction",
      description: "Off = no abduction joint or motor on the hind legs: each is hip pitch then knee, and its hip block is fixed to the trunk. The legs can then only swing fore and aft."}
 
+  # Rotated servo mounts (ADR-060): the hip block of each leg of a pair is
+  # turned on the trunk, and everything below it comes off at that angle.
+  # Mirrored left and right. 0 = as before, and that is what `absent` records.
+  - {id: front_leg_splay, default: 0, absent: 0, min: -30, max: 45, step: 0.5, unit: deg, group: Legs, evolvable: false,
+     label: "Front leg splay",
+     description: "Front hips are mounted rolled outward by this angle: the legs lean out and the hooves stand wider apart. Negative leans them inward. The trunk comes down so the hooves stay on the ground."}
+  - {id: hind_leg_splay, default: 0, absent: 0, min: -30, max: 45, step: 0.5, unit: deg, group: Legs, evolvable: false,
+     label: "Hind leg splay",
+     description: "Hind hips are mounted rolled outward by this angle: the legs lean out and the hooves stand wider apart. Negative leans them inward."}
+  - {id: front_leg_toe, default: 0, absent: 0, min: -45, max: 45, step: 0.5, unit: deg, group: Legs, evolvable: false,
+     label: "Front leg toe-out",
+     description: "Front hips are mounted turned about the vertical by this angle: the legs swing in a plane that points outward at the front. Negative is toe-in."}
+  - {id: hind_leg_toe, default: 0, absent: 0, min: -45, max: 45, step: 0.5, unit: deg, group: Legs, evolvable: false,
+     label: "Hind leg toe-out",
+     description: "Hind hips are mounted turned about the vertical by this angle: the legs swing in a plane that points outward at the front. Negative is toe-in."}
+
   # Front and hind legs of their own proportions (ADR-056). All off / unused by
   # default, and `absent` records that: older genomes build exactly as before.
   # The four lengths are read only while `own_leg_lengths` is on; they are not

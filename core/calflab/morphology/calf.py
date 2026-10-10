@@ -25,6 +25,16 @@ Hip abduction has a switch per pair of legs (genes ``front_hip_abd``,
 motor mass; ``leg.<k>.hip`` keeps its ID and is fixed to the trunk, so the leg
 is hip pitch (``joint.<k>.hip_flex``) then knee.
 
+A servo mount can be rotated (ADR-060). Every leg part has ``mount_roll`` and
+``mount_yaw`` (degrees, mirrored left/right: positive roll leans the part's
+far end outward, positive yaw turns its front outward). They turn the body
+frame of that part on its parent, so the joint axis, the motor drawn in it and
+everything further down the leg turn with it. The hip's two are driven by the
+genes ``front_leg_splay`` / ``hind_leg_splay`` and ``front_leg_toe`` /
+``hind_leg_toe``; a thigh's or shank's are 0 unless overridden. A leg with any
+of them is measured by forward kinematics so its hoof still stands on the
+ground.
+
 Each neck and head joint has its own switch (genes ``has_neck_yaw``,
 ``has_neck_pitch``, ``has_head_pitch``; ADR-055). Off: no joint, no actuator
 and no motor mass; ``neck.base``, ``neck`` and ``head`` keep their IDs and
@@ -59,7 +69,15 @@ from calflab.model.spec import (
     Transmission,
     Wire,
 )
-from calflab.model.xform import IDENTITY, Vec3, quat_axis_angle, quat_from_z_to, quat_rotate
+from calflab.model.xform import (
+    IDENTITY,
+    Quat,
+    Vec3,
+    quat_axis_angle,
+    quat_from_z_to,
+    quat_mul,
+    quat_rotate,
+)
 from calflab.plugins import BuildContext, PartGenerator, register
 from calflab.schema import P
 
@@ -131,6 +149,13 @@ class CalfGenerator(PartGenerator):
                 for a in "xyz"
             }
 
+        def mounts() -> dict[str, ParamValue]:
+            """A part's own mount rotation: 0 unless overridden (ADR-060)."""
+            return {
+                "mount_roll": ParamValue(value=0.0, unit="deg", min=-90, max=90, label="Mount roll (outward)"),
+                "mount_yaw": ParamValue(value=0.0, unit="deg", min=-90, max=90, label="Mount yaw (toe-out)"),
+            }
+
         out: ElementParams = {
             "trunk": {
                 "length": pv("trunk_length", handle=(1.0, 0.0, 0.0), frac=0.5),
@@ -142,18 +167,26 @@ class CalfGenerator(PartGenerator):
         own = bool(genes.get("own_leg_lengths", False))
         for k, (sx, _) in LEGS.items():
             end = ("front_" if sx > 0 else "hind_") if own else ""  # which pair of length genes this leg reads
-            out[f"leg.{k}.hip"] = {"offset": pv("leg_offset", "Leg offset"), **offsets()}
+            pair = "front" if sx > 0 else "hind"
+            out[f"leg.{k}.hip"] = {
+                "offset": pv("leg_offset", "Leg offset"),
+                **offsets(),
+                "mount_roll": pv(f"{pair}_leg_splay", "Splay (mount roll, outward)"),
+                "mount_yaw": pv(f"{pair}_leg_toe", "Toe-out (mount yaw)"),
+            }
             if sx < 0 or bool(genes.get("front_thigh", True)):
                 out[f"leg.{k}.thigh"] = {
                     "length": pv(f"{end}thigh_length", "Thigh length" if own else None, handle=down),
                     "radius": pv("leg_radius"),
                     **offsets(),
+                    **mounts(),
                 }
             out[f"leg.{k}.shank"] = {
                 "length": pv(f"{end}shank_length", "Shank length" if own else None, handle=down),
                 "radius": pv("leg_radius"),
                 "hoof_radius": pv("hoof_radius"),
                 **offsets(),
+                **mounts(),
             }
         out["neck"] = {
             "length": pv("neck_length"),
@@ -283,8 +316,42 @@ class CalfGenerator(PartGenerator):
         inset = float(genes["hip_inset"]) * s  # type: ignore[arg-type]
         front_thigh = bool(genes.get("front_thigh", True))
 
+        def mount(el: str, sy: int) -> Quat | None:
+            """Rotation of a part's frame on its parent from its mount angles, mirrored by side; None = none."""
+            t = params.get(el, {})
+            roll = t["mount_roll"].value if "mount_roll" in t else 0.0
+            yaw = t["mount_yaw"].value if "mount_yaw" in t else 0.0
+            if roll == 0.0 and yaw == 0.0:
+                return None
+            return quat_mul(quat_axis_angle((0.0, 0.0, 1.0), sy * yaw), quat_axis_angle((1.0, 0.0, 0.0), sy * roll))
+
+        def mounted(k: str) -> bool:
+            return any(mount(f"leg.{k}.{p}", 1) is not None for p in ("hip", "thigh", "shank"))
+
+        def drop(k: str) -> float:
+            """Hip origin down to the hoof centre in the standing pose (mm), by forward kinematics through
+            the leg's mount rotations and standing angles."""
+            sx, sy = LEGS[k]
+            hip_id, thigh_id, shank_id = f"leg.{k}.hip", f"leg.{k}.thigh", f"leg.{k}.shank"
+            sl = val(shank_id, "length")
+            side: Vec3 = (0.0, sy * val(hip_id, "offset"), 0.0)
+            y: Vec3 = (0.0, 1.0, 0.0)
+            if thigh_id in params:
+                tl = val(thigh_id, "length")
+                fwd = bool(genes.get("hind_knee_forward" if sx < 0 else "front_knee_forward"))
+                r_hip, r_knee = standing_leg_angles(tl, sl, bend, fwd)
+                q_sh = quat_mul(mount(shank_id, sy) or IDENTITY, quat_axis_angle(y, r_knee))
+                p = add(add((0.0, 0.0, -tl), off(shank_id)), quat_rotate(q_sh, (0.0, 0.0, -sl)))
+                q_th = quat_mul(mount(thigh_id, sy) or IDENTITY, quat_axis_angle(y, r_hip))
+                p = add(add(side, off(thigh_id)), quat_rotate(q_th, p))
+            else:
+                p = add(add(side, off(shank_id)), quat_rotate(mount(shank_id, sy) or IDENTITY, (0.0, 0.0, -sl)))
+            return -quat_rotate(mount(hip_id, sy) or IDENTITY, p)[2]
+
         def stands(k: str) -> float:
             """Hip axis to the ground in the standing pose (mm). A leg without a thigh hangs straight down."""
+            if mounted(k):
+                return drop(k) + val(f"leg.{k}.shank", "hoof_radius") - params[f"leg.{k}.hip"]["offset_z"].value
             shank = val(f"leg.{k}.shank", "length")
             reach = (
                 standing_leg_height(val(f"leg.{k}.thigh", "length"), shank, bend) if f"leg.{k}.thigh" in params else shank
@@ -297,7 +364,8 @@ class CalfGenerator(PartGenerator):
         trunk_z = leg_h + hip_drop
         # Front and hind legs of their own lengths: the hips of the shorter legs sit lower in the trunk, so
         # every hoof stands on the ground (ADR-056). Otherwise, as before, a shorter leg hangs short.
-        grounded = bool(genes.get("own_leg_lengths", False)) or not front_thigh
+        # ... and so do legs on rotated mounts, which reach less far down (ADR-060).
+        grounded = bool(genes.get("own_leg_lengths", False)) or not front_thigh or any(mounted(k) for k in LEGS)
         lower = {k: (leg_h - heights[k]) if grounded else 0.0 for k in LEGS}
 
         trunk = Body(id="trunk", name="Trunk", pos=(0.0, 0.0, trunk_z))
@@ -384,6 +452,7 @@ class CalfGenerator(PartGenerator):
                 name=f"Hip ({LEG_NAMES[k]})",
                 parent="trunk",
                 pos=add((hx, hy, hip_z), off(hip_id)),
+                quat=mount(hip_id, sy) or IDENTITY,  # a rotated mount turns the whole leg (ADR-060)
             )
             hip.geoms.append(
                 shell(Geom(id=f"{hip_id}.block", shape="sphere", size=(tr * 1.3, 0, 0), label="Hip block"), hip_id)
@@ -415,7 +484,12 @@ class CalfGenerator(PartGenerator):
                     parent=hip_id,
                     pos=add((0.0, sy * leg_off, 0.0), off(thigh_id)),
                     # without a hip-flexion motor the thigh is a fixed strut at its standing angle
-                    quat=IDENTITY if hip_flexes else quat_axis_angle((0.0, 1.0, 0.0), rest_hip),
+                    quat=quat_mul(
+                        mount(thigh_id, sy) or IDENTITY,
+                        IDENTITY if hip_flexes else quat_axis_angle((0.0, 1.0, 0.0), rest_hip),
+                    )
+                    if mount(thigh_id, sy)
+                    else (IDENTITY if hip_flexes else quat_axis_angle((0.0, 1.0, 0.0), rest_hip)),
                 )
                 thigh.geoms.append(
                     shell(
@@ -464,6 +538,7 @@ class CalfGenerator(PartGenerator):
                 name=f"Shank ({LEG_NAMES[k]})",
                 parent=hip_id if thighless else thigh_id,
                 pos=add((0.0, sy * leg_off, 0.0) if thighless else (0.0, 0.0, -tl), off(shank_id)),
+                quat=mount(shank_id, sy) or IDENTITY,
             )
             shank.geoms.append(
                 shell(
