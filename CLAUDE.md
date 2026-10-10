@@ -132,8 +132,8 @@ To add a **node type** to the graph: subclass `NodeType` in
 
 To add a **component**: `calflab components new <kind> <key>` appends a blank
 entry to the YAML in `config/components/` (`source:`, `verified: false`,
-every value `null`). Actuators and batteries are then selectable through
-`choices_from` in the gene file.
+every value `null`). Actuators, batteries and boards are then selectable
+through `choices_from` in the gene file.
 
 **Mass** (ADR-050): every `Geom` carries `mass_source`; a new geom that
 represents a library part must set `mass_source="component"`, and anything

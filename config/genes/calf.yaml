@@ -175,6 +175,18 @@ genes:
   - {id: battery, type: enum, default: lipo_3s_5000, group: Mechanism, evolvable: false,
      choices: [lipo_3s_5000], choices_from: battery,
      description: "Battery pack in the trunk. Its voltage is the bus voltage of the power budget."}
+  # The boards in the trunk (ADR-061). Teensy 4.1 + Raspberry Pi 5 is what
+  # robot_defaults.yaml named for every project, so it is the default and what a
+  # genome saved before the genes existed has. The geom of a board keeps the ID
+  # `elec.<component key>`.
+  - {id: board_control, type: enum, default: teensy_41, group: Mechanism, evolvable: false,
+     choices: [teensy_41], choices_from: board,
+     label: "Control board",
+     description: "The board the servo buses, the IMU and the battery lead run to. Its mass is in the trunk and its power draw in the power budget."}
+  - {id: board_compute, type: enum, default: raspberry_pi_5, group: Mechanism, evolvable: false,
+     choices: [raspberry_pi_5, none], choices_from: board,
+     label: "Second board",
+     description: "A second board in the trunk, linked to the control board. none = the control board is the only board (also when both name the same board)."}
 
   # ------------------------------------------------------------- shell and skin
   - {id: wall_thickness, default: 2.0, min: 1.0, max: 4.0, step: 0.1, unit: mm, group: Shell and skin,

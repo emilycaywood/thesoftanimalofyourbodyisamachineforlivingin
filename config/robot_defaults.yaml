@@ -35,7 +35,7 @@ structure:
 
 electronics:
   battery: lipo_3s_5000
-  boards: [teensy_41, raspberry_pi_5]
+  boards: [teensy_41, raspberry_pi_5]   # only for a gene definition without board_control / board_compute (ADR-061)
   bus_voltage_v: 11.1
 
 sensors:

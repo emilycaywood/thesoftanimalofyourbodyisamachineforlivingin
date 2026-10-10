@@ -118,6 +118,34 @@ def bom_csv(bom: dict[str, Any]) -> str:
     return "\n".join(rows) + "\n"
 
 
+def boards_used(spec: RobotSpec, lib: Library) -> list[dict[str, Any]]:
+    """The boards a design carries (chosen in Mechanism, ADR-061), as stored with a run.
+
+    One row per board geom: mass in g, supply in V, power in W, and whether the
+    library entry is verified, guessed or resting on defaults.
+    """
+    rows: list[dict[str, Any]] = []
+    for b in spec.bodies:
+        for g in b.geoms:
+            comp = lib.get(g.component) if g.component and lib.has(g.component) else None
+            if isinstance(comp, BoardSpec):
+                rows.append(
+                    {
+                        "id": g.id,
+                        "component": comp.key,
+                        "name": comp.name,
+                        "body": b.id,
+                        "mass_g": comp.mass_g,
+                        "voltage_v": comp.voltage_v,
+                        "power_w": comp.power_w,
+                        "verified": comp.verified,
+                        "guessed": list(comp.guessed),
+                        "defaulted": list(comp.defaulted),
+                    }
+                )
+    return rows
+
+
 def power_budget(spec: RobotSpec, lib: Library, metrics: dict[str, Any] | None) -> dict[str, Any]:
     """Current/power per actuator from a run's torque statistics, plus boards and battery.
 

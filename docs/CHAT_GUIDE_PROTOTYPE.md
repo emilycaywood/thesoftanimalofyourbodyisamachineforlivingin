@@ -461,11 +461,12 @@ Repeat for each body. A body I do not push keeps its estimate.
 
 These are not in my Rhino solids; they come from the component library and
 are chosen in the **Mechanism** workspace (four actuator lists: hip
-abduction, hip flexion, knee, and "small" for neck, head, tail and ears; and
-a battery list). Apart from my two servos the library holds full-size
-parts, all unverified. With all of those, a 0.33 calf carries about 2.4 kg
-of components; with my servos chosen but the full-size battery and boards
-it is still about 1 kg, which my small servos cannot walk.
+abduction, hip flexion, knee, and "small" for neck, head, tail and ears; a
+battery list; and two board lists, **Control board** and **Second board**).
+Apart from my two servos, my battery and my board the library holds
+full-size parts, all unverified. With all of those, a 0.33 calf carries
+about 2.4 kg of components; with my servos chosen but the full-size battery
+and boards it is still about 1 kg, which my small servos cannot walk.
 
 **My two servos are in the library** (entered 2026-10-09 from the documents
 I supplied, both `verified: false`; only I set that to true):
@@ -510,13 +511,40 @@ thighless front legs): `act_hip_abd` = `mg996r`, `act_hip_flex` =
 `scs0009`, `act_knee` = `scs0009` (this one also drives the front shoulder
 pitch joints). For the two-joint prototype of 2026-10-10: `act_hip_flex` =
 `scs0009`, `act_knee` = `scs0009`, **battery** = `lipo_2s_1100`; no MG996R
-anywhere.
+anywhere; **Control board** = `esp_wroom_32`, **Second board** = `none`.
 
-**Still missing: my real board.** The trunk still carries the lab's
-full-size boards (a Teensy 4.1 and a Raspberry Pi 5, 56 g together,
-unverified), which cannot be chosen per project yet. Until that is fixed,
-mass, power and walking results carry that placeholder. A new part starts
-like this:
+**My board is in the library** as `esp_wroom_32` (ESP-WROOM-32, entered
+2026-10-10 from what I gave: 7 g weighed on my own scale, supply 3.3 V,
+current "~100 mA"; `verified: false`). Its power is entered as 0.33 W, which
+is 3.3 V x 0.1 A and nothing else. Not entered, because I did not give them:
+its size (it is drawn as a 10 x 10 x 3 mm box) and its cost (counted as 0 in
+the BOM); both show as "default assumed".
+
+**Boards are chosen per project, in Mechanism** (since 2026-10-10):
+
+- **Control board** is the board the battery lead, the servo buses and the
+  IMU cable run to. **Second board** is a second board linked to it, or
+  `none`. A new project, and every project saved before the lists existed,
+  has `teensy_41` and `raspberry_pi_5` (10 g + 46 g, 0.5 W + 6 W, both
+  unverified), so old results do not change.
+- **"Only the ESP32"** is two choices: *Control board* = `esp_wroom_32` and
+  *Second board* = `none`. Each is one undo step (Ctrl+Z).
+- What it changes: the trunk row of the **Mass** tab lists the ESP-WROOM-32
+  and no Teensy or Pi (49 g less); the power budget counts 0.33 W instead of
+  6.5 W; the harness has no board link. On the two-joint body that is 378 g
+  down to 329 g, and the idle budget 2.09 A down to 1.26 A at 7.4 V.
+- The board's watts become battery current by dividing by the battery's
+  nominal voltage, like every board: 0.33 W / 7.4 V = 0.045 A. No regulator
+  loss is in that. If my board hangs on a linear regulator, the battery
+  really supplies the board's full current (about 0.1 A); if I want that
+  counted, I say what the regulator is and enter the power at the battery.
+- Every run records the boards its body carried: `inputs.boards` in
+  `runs\<id>\run.json`, and `boards` in a study's `study.json`.
+- The lab must have been restarted since the update for the lists to show.
+  Results made before I chose the ESP32 (runs, studies, tuned gaits) were
+  made with the Teensy and the Pi on board and stay that way: I re-run them.
+
+A new part starts like this:
 
 ```
 .\calflab.ps1 components new actuator my_servo --name "Maker Model 123"
@@ -526,14 +554,15 @@ like this:
 blank entry in `config\components\` from the datasheet. Required for an
 actuator: `mass_g`, `stall_torque_nm`, `stall_current_a`,
 `no_load_speed_rpm`, `voltage_v`; for a battery: `mass_g`, `voltage_v`,
-`capacity_mah`. A value I had to guess goes in the `guessed:` list. A unit
+`capacity_mah`; for a board: `mass_g` (its `power_w` left blank counts as
+0 W, and says so). A value I had to guess goes in the `guessed:` list. A unit
 written into a value (`7.93 g/cm3` instead of `7.93`) stops the whole
 library from loading. `.\calflab.ps1 components audit` checks the entries.
 Two conversions: 1 kg.cm = 0.0981 N*m; a servo quoted as "t seconds per 60
 degrees" turns at 10 / t rpm.
 
-Boards and sensors cannot be chosen per project yet; that is a request for a
-Claude Code session. If I want to go deeper on components, point me to
+Sensors (the IMU, the microphone, foot and touch sensors) cannot be chosen
+per project yet; that is a request for a Claude Code session. If I want to go deeper on components, point me to
 `docs\CHAT_GUIDE_CHASSIS.md`, section 6.
 
 If I have **weighed** a printed part, typing the grams into *Measured* in
@@ -655,10 +684,26 @@ Help me read the result as a first look, not a prediction (section 9).
   full-size battery and boards (about 1 kg of components) it stands but
   barely walks, 0.02 m/s, with those servos at their torque limit; with
   stronger servos the same body trots at about 0.09 m/s. So the result
-  depends on entering my real battery and board.
+  depends on choosing my real battery and board in Mechanism.
+- **Check which boards a result was made with.** A project carries the
+  Teensy 4.1 and the Raspberry Pi 5 (56 g, 6.5 W) until I choose otherwise
+  in Mechanism, and a run, tuned gait or study keeps the boards it was made
+  with (`inputs.boards` in its `run.json`). Everything from before
+  2026-10-10 has the two full-size boards: on a 330 g calf that is 49 g too
+  much, so re-run before comparing.
+- **My board's numbers are thin.** `esp_wroom_32` has a weighed mass, a
+  supply voltage and an approximate current, nothing else, and is
+  unverified. Its 0.33 W is the board alone at 3.3 V with no regulator
+  loss, and a radio that is transmitting draws more in bursts than an
+  average says. Against eight servos it is a small term either way. The
+  firmware skeleton export still writes a Teensy and Raspberry Pi project
+  whatever board is chosen.
+- **The sensors are still the lab's.** The trunk and head carry a BNO085
+  IMU board (3 g) and a microphone board (1 g), and the power budget counts
+  them and the foot and touch sensors, whether or not my prototype has them.
 - **The small calf rests on two numbers nobody has measured.** My servos
-  (`scs0009`, `mg996r`) and battery (`lipo_2s_1100`) are in the library,
-  unverified; no small board is. The simulator's time step (2 ms) and
+  (`scs0009`, `mg996r`), battery (`lipo_2s_1100`) and board
+  (`esp_wroom_32`) are in the library, unverified. The simulator's time step (2 ms) and
   contact settings were re-examined on 2026-10-10 for a 0.4 kg, 190 mm body
   and are fine (halving the step changes nothing; hooves sink 0.1 mm). What
   is not fine is that joint friction and the servos' assumed rotor inertia
@@ -721,7 +766,9 @@ Not built: collision against my solids; a skeleton taken from my Rhino
 model; hollow solids as such; top and bottom layers or a print direction in
 the infill estimate; setting or changing print tags from the web lab (they
 are set in Rhino); an overlap check; changing one solid's material from the
-web lab; boards and sensors per project; component
+web lab; sensors per project (boards are, section 7); more than two
+boards; a regulator between battery and board in the power budget; a
+firmware skeleton for a board other than the Teensy 4.1; component
 boxes that shrink with the scale.
 
 For any of these, or a bug: I open a Claude Code session **with

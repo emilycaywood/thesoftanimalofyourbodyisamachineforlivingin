@@ -2,9 +2,9 @@
 
 Everything a new Claude Code session (or a new collaborator) needs to pick up
 CALFLAB. Last updated 2026-10-10 on branch `chassis-mass` (on top of
-`phase-1-vertical-slice`), after the session that added the hip-abduction
-switches for a two-joint leg, the model settings for a small body and the
-proportion study (section 4; run `git log --oneline -12` for the current
+`phase-1-vertical-slice`), after the sessions that added the hip-abduction
+switches for a two-joint leg, the model settings for a small body, the
+proportion study and boards per project (section 4; run `git log --oneline -12` for the current
 state). The 2026-10-10 commits are local: not pushed.
 
 ---
@@ -113,7 +113,8 @@ and eslint, 14 Vitest tests, 8 Playwright tests (smoke, material / weighed
 mass / pushed solid / Mass panel, real-millimetre sliders at scale 0.33,
 gumball drag and harness overlay with a
 real mouse, runs + journal, evolve from a design, a proportion study on the
-two-joint body). After the rotated mounts: 296 pytest tests.
+two-joint body). After the rotated mounts: 296 pytest tests; after the
+boards per project: 300.
 `calflab doctor` is clean apart from three optional warnings (Graphviz, no
 CUDA, unverified components). It used to warn "uv not found" as well: that
 was a false alarm, fixed 2026-10-03. uv is installed and is what
@@ -400,9 +401,41 @@ ADR-058, ADR-059):**
   scale 0.04 to 0.2). A timed no-load step read from the servo's bus gives
   it: armature = time to 63 % of no-load speed x 0.0215.
 * Not done: a bounding controller (the CPG "bound" is an open-loop footfall
-  pattern); a torque-speed curve in the servo model (next session F);
-  boards per project (next session I): the small calf still carries the
-  full-size Teensy and Pi 5.
+  pattern); a torque-speed curve in the servo model (next session F).
+
+**Added later on 2026-10-10 (researcher's request: the prototype's only
+board is an ESP32; ADR-061):**
+
+* `esp_wroom_32` in `config/components/electronics.yaml`: 7 g (weighed by
+  the researcher), 3.3 V, 0.33 W (= 3.3 V x the "~100 mA" given). Size and
+  cost not given, left blank. Unverified. Open question put to the
+  researcher: whether the approximate current belongs in `guessed:`.
+* Genes `board_control` (default `teensy_41`) and `board_compute` (default
+  `raspberry_pi_5`, extra choice `none`), group Mechanism, `choices_from:
+  board`, not evolvable. They show as **Control board** and **Second
+  board** at the end of Mechanism > *Actuators and transmission*; no web
+  code changed. "Only the ESP32" = `esp_wroom_32` + `none`. No genome
+  version bump: the defaults are what every genome had. Geom IDs stay
+  `elec.<component key>`.
+* Spec, MJCF, mass and power budget of the default calf and of the genomes
+  of all six projects in `projects/` are identical before and after.
+* Runs record `inputs.boards` (sim, evolve, tune, study) and `study.json`
+  has `boards`; study notes name the boards.
+* On a scratch copy of `projects/small-calf-two-joint` with only the ESP32:
+  378.2 g -> 329.2 g, idle budget 2.09 A -> 1.26 A at 7.4 V. Seen in the
+  lab's browser pane (Mechanism lists, trunk row of the Mass tab, Ctrl+Z
+  twice). **No project was changed**: the researcher's message described
+  the two-joint body but named `projects/small-calf`, whose document is a
+  different one (scale 0.5, `mg996r` abduction, `lipo_3s_5000`, saved before
+  the abduction switches). The board choice, a new *Tune for this body* and
+  the proportion study are theirs to make in whichever project they mean.
+* `calflab components new` no longer turns the YAML file's line endings
+  into CRLF.
+* Not done: sensors per project (the IMU and microphone boards and the
+  sensor loads of `robot_defaults.yaml` are still on every body); more
+  than two boards; a regulator in the power budget; the firmware skeleton
+  export is still Teensy 4.1 + Raspberry Pi whatever is chosen.
+* `tests/test_boards.py` (4). 300 pytest tests.
 * Not verified by anyone by hand: the Proportions panel beyond one look in
   the lab's browser pane and its Playwright test; `CalflabPull` of a
   two-joint body in Rhino (the build list and armature plan are tested).
@@ -460,7 +493,8 @@ Journal, Rhino bridge):**
   settings were re-examined on 2026-10-10 (ADR-058). What only the
   researcher can supply: the armature of the `scs0009` (measured, or a
   guess in `guessed:`), the servo figures at the voltage the servos really
-  get, a small board, and the weight of the real prototype.
+  get, the size and cost of the board (`esp_wroom_32` has neither) and how
+  it is fed from the battery, and the weight of the real prototype.
 * Whether the `guessed:` lists added to the existing entries match what the
   files meant (only values the files already called guesses were listed).
 
@@ -530,7 +564,7 @@ Journal, Rhino bridge):**
 |---|---|
 | `CLAUDE.md` | Conventions for every session (loaded automatically) |
 | `PLAN.md` | Architecture, module boundaries, data flow, phases, risks, status |
-| `DECISIONS.md` | ADR log: every assumption (60 so far) |
+| `DECISIONS.md` | ADR log: every assumption (61 so far) |
 | `docs/proposals/anatomical-leg.md` | Proposal for a three-segment leg (set aside 2026-10-04; not built) |
 | `docs/USER_GUIDE.md` | How to use the lab |
 | `docs/CHAT_GUIDE_PROMPT.md` | Prompt that makes a chat assistant a guide to the whole lab |
@@ -637,13 +671,15 @@ Prefix each with the opening message from section 1.
 > without hip abduction (stride length left/right), and show sideways drift
 > with and without it for the two-joint body.
 
-**I. Boards and sensors per project; skin mass from sculpted skin**
-> Boards and sensors are still chosen for all projects in
-> config/robot_defaults.yaml because their geom IDs contain the component key
-> (ADR-051). Propose stable IDs (e.g. `elec.control`, `elec.compute`), make
-> them genes with `choices_from`, migrate, and keep old runs loading. Then
-> give a sculpted Skin push a mass from its own area x skin thickness, with
-> the same open/closed honesty as structure solids (ADR-050).
+**I. Sensors per project; firmware for the chosen board; skin mass from sculpted skin**
+> Boards are chosen per project (ADR-061); sensors are still those of
+> config/robot_defaults.yaml for every project. My prototype has these
+> sensors: <list, or "none">. Make the sensor set a per-project choice the
+> way the boards are, with existing projects unchanged, and make the
+> firmware skeleton export follow the chosen control board (tell me what you
+> need from me for an ESP32 before writing anything). Then give a sculpted
+> Skin push a mass from its own area x skin thickness, with the same
+> open/closed honesty as structure solids (ADR-050).
 
 **G. Make the elbow body the default**
 > I have settled the front leg: joint facing backward, upper segment <N> mm,

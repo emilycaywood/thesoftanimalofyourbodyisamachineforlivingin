@@ -541,9 +541,34 @@ new default: *Reset to defaults* in Form (genes, including the knees) and
 switch **Front knee forward** on and reset the gait. Each is one undo step.
 
 ### Mechanism
-Actuator choice per joint group, knee drive (direct or belt) and battery.
-The lists offer every complete actuator and battery entry in
-`config/components` (section 9). Then a **torque-margin table**: required peak torque from a chosen simulation run
+Actuator choice per joint group, knee drive (direct or belt), battery and
+boards. The lists offer every complete actuator, battery and board entry in
+`config/components` (section 9).
+
+**Boards** are the last two lists of *Actuators and transmission*:
+
+* **Control board**: the board the battery lead, the servo buses and the IMU
+  cable run to. Default `teensy_41`.
+* **Second board**: a second board in the trunk, linked to the control
+  board. Default `raspberry_pi_5`. Choose `none` for a body with one board.
+
+So a prototype whose only board is an ESP32 is *Control board* =
+`esp_wroom_32`, *Second board* = `none`. The trunk then carries that board
+alone: its mass in the **Mass** tab (open the trunk row), its power in the
+power budget (Wire > Output), no board link in the harness. A board's watts
+are added to the motors' and divided by the battery voltage to give battery
+current, with no regulator loss in between. Naming the same board in both
+lists also gives one board. Each choice is one undo step (Ctrl+Z), and every
+project keeps its own: a project saved before these lists existed carries
+the Teensy 4.1 and the Raspberry Pi 5 as before. Every run records the
+boards its body carried (`inputs.boards` in `runs/<id>/run.json`, and
+`boards` in a proportion study's `study.json`). From Python:
+`lab.set_genes(board_control="esp_wroom_32", board_compute="none")`.
+Not affected by the choice: the firmware skeleton export, which is still
+written for a Teensy 4.1 and a Raspberry Pi; the sensors (IMU, microphone,
+foot and touch sensors), which are still the same for all projects.
+
+Then a **torque-margin table**: required peak torque from a chosen simulation run
 against available torque (stall x derating). Red means the actuator saturates
 in that run. Every actuator carries an **unverified** badge until you check
 its data (section 9). *(planned: range-of-motion sweep, interference check)*
@@ -728,7 +753,8 @@ Reading it:
 
 A study is a run like any other: `runs/<id>/run.json` (kind `study`: the
 settings, the ranges used, model and simulation settings, mass record, the
-notes, how many bodies work per gait) and `runs/<id>/study.json` (every
+boards, the notes, how many bodies work per gait) and `runs/<id>/study.json`
+(the boards every body carried, then every
 body: its genome, lengths, height, mass, and per gait the tuned gait, the
 metrics, the joint table and the battery load). From the command line:
 `run_study thigh_min=20 thigh_max=100 shank_min=20 shank_max=100`,
@@ -901,14 +927,23 @@ enter each value from the datasheet; the comment on each line gives the unit.
   **default assumed**. For a small servo the defaults (armature inertia,
   thermal values) are those of a much larger motor, so do not leave them.
 
-Once complete, an actuator appears in the four actuator lists in Mechanism
-and a battery in the battery list, with no other file to edit; a structure
+Once complete, an actuator appears in the four actuator lists in Mechanism,
+a battery in the battery list and a board in the two board lists, with no
+other file to edit; a structure
 material appears in *Properties > Material* and in the `CalflabPush` prompt.
 The bill of materials, mass, torque-margin table, power budget and *Tune for
 this body* all read the entry: its no-load speed is the joint speed cap of
 gait tuning. Guessed and defaulted values carry a badge on the component
-card in Properties. Boards and sensors are chosen for all projects in
+card in Properties. Sensors are chosen for all projects in
 `config/robot_defaults.yaml` (not yet per project).
+
+A board entry needs only `mass_g`. Its load in the power budget is
+`power_w`: if the datasheet gives a supply voltage and a current instead,
+enter their product (3.3 V x 0.1 A = 0.33 W) and say so in the comment.
+Left blank it counts as 0 W and is reported as **default assumed**. Without
+`dims_mm` the board is drawn as a 10 x 10 x 3 mm box. The library has
+`esp_wroom_32` (ESP-WROOM-32, 7 g weighed by the researcher, 3.3 V,
+0.33 W from "~100 mA"; unverified, no size or cost entered).
 
 **The audit.** `calflab components audit` prints these tables:
 

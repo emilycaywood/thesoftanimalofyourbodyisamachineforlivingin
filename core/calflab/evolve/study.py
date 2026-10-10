@@ -156,12 +156,13 @@ def study_notes(spec: Any, lib: Any, compile_params: dict[str, Any], dims: list[
     """What the reader of a study must know before trusting it: ranges that
     were cut to fit, component values that are unverified, guessed or defaults,
     the voltage the motor figures are for, and the model settings in use."""
-    from calflab.wiring.budget import power_budget
+    from calflab.wiring.budget import boards_used, power_budget
 
     notes = [d["note"] for d in dims if d.get("note")]
     keys = dict.fromkeys(a.component for a in spec.actuators)
     bat = next((g.component for b in spec.bodies for g in b.geoms if g.id == "elec.battery"), None)
-    for key in [*keys, *([bat] if bat else [])]:
+    boards = [row["component"] for row in boards_used(spec, lib)]
+    for key in [*keys, *([bat] if bat else []), *boards]:
         if not key or not lib.has(key):
             continue
         c = lib.get(key)

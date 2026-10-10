@@ -102,5 +102,5 @@ def add_component(kind: str, key: str, name: str = "", directory: Path | None = 
     path = directory / FILES[kind]
     existing = path.read_text(encoding="utf-8") if path.exists() else ""
     sep = "" if existing.endswith("\n\n") or not existing else ("\n" if existing.endswith("\n") else "\n\n")
-    path.write_text(existing + sep + text, encoding="utf-8")
+    path.write_text(existing + sep + text, encoding="utf-8", newline="\n")  # keep the file's LF endings on Windows
     return path, required

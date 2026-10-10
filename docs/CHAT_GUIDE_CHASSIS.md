@@ -303,9 +303,12 @@ there is a simulation run, torque margins per joint.
   voltage of the power budget.
 - A structure material: in Properties > *Material* and in the `CalflabPush`
   material prompt.
-- Boards and sensors: **not selectable per project yet.** They are set for
-  all projects in `config\robot_defaults.yaml`. If I need a different board
-  on the small calf, that is a request for a Claude Code session.
+- A board: in the two board lists in Mechanism, **Control board** and
+  **Second board** (`none` = one board only; since 2026-10-10, see
+  `docs\CHAT_GUIDE_PROTOTYPE.md`, section 7).
+- Sensors: **not selectable per project yet.** They are set for all
+  projects in `config\robot_defaults.yaml`; a different sensor set is a
+  request for a Claude Code session.
 
 Once chosen, the bill of materials, the mass, the torque-margin table (in
 Mechanism, after a simulation), the power budget and *Tune for this body*
@@ -416,7 +419,7 @@ scale; adding a real component with `components new`. If something
 misbehaves it is probably a real bug: have me note exactly what I did, what
 I expected and what happened.
 
-**Not built:** boards and sensors per project; skin mass from a sculpted
+**Not built:** sensors per project; skin mass from a sculpted
 skin; collision against a pushed solid; hollow or infilled solids as such;
 component boxes that shrink with the scale; a torque-speed curve in the
 servo model.

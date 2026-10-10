@@ -1442,8 +1442,11 @@ and in the `CalflabPush` prompt. The bill of materials, the mass, the
 torque-margin table, the power budget and *Tune for this body* all read the
 entry; its no-load speed is the gait tuner's joint speed cap (section 5).
 Guessed and defaulted values carry a badge on the component card in
-Properties. Boards and sensors cannot be chosen per project yet: they are set
-for all projects in `config\robot_defaults.yaml`.
+Properties. A board is in the two board lists in Mechanism (**Control board**,
+**Second board**; `none` = one board only; genes `board_control`,
+`board_compute`, defaults `teensy_41` and `raspberry_pi_5`). Sensors cannot be
+chosen per project yet: they are set for all projects in
+`config\robot_defaults.yaml`.
 
 In the existing entries these are marked as guesses, because the files
 already said so: the servos' two thermal constants, the skin materials'
@@ -1490,7 +1493,8 @@ Sensors: `bno085` IMU (3 g, $25), `fsr_foot` foot force sensor (1 g, $9, x4),
 the servos, no mass or cost).
 
 Boards: `teensy_41` Teensy 4.1 (10 g, 0.5 W, $32), `raspberry_pi_5` Raspberry
-Pi 5 8 GB (46 g, 6 W typical-load guess, $80).
+Pi 5 8 GB (46 g, 6 W typical-load guess, $80), `esp_wroom_32` ESP-WROOM-32
+(7 g weighed by me, 0.33 W from 3.3 V x ~100 mA, no size or cost entered).
 
 Battery: `lipo_3s_5000` 3S LiPo 5000 mAh (400 g, 11.1 V, 55.5 Wh, 50 A max,
 $45). The runtime estimate uses 80 % of its energy (44.4 Wh).
@@ -1561,7 +1565,7 @@ the navigation presets other than Rhino. Hops is untested and not installed.
 
 - A pushed solid is weighed as fully dense, and collides as its envelope.
 - Skin mass still comes from the envelope even when a skin is sculpted.
-- Boards and sensors cannot be chosen per project.
+- Sensors cannot be chosen per project (boards can, in Mechanism).
 - Component boxes are drawn at library size at any scale.
 - No steering and no feedback in the gait (section 5).
 - Joint speed is not simulated (section 5).

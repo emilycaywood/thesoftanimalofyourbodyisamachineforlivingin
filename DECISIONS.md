@@ -1095,3 +1095,69 @@ toe, a part override, a strut thigh and a thighless leg; mirrored signs; the
 hip-pitch axis leaning by exactly the splay angle; a simulation of the
 two-joint body at 15 deg). Not looked at in the web lab, Rhino or Blender by
 anyone.
+
+## ADR-061 — Boards per project: two genes, `elec.<key>` IDs kept (**VERIFY**)
+
+*Context.* The researcher's small prototype has one board, an ESP32. Every
+project carried the Teensy 4.1 and the Raspberry Pi 5 named in
+`robot_defaults.yaml` (56 g, 6.5 W, unverified): on a calf of a few hundred
+grams that placeholder is a seventh of the mass and most of the idle power.
+ADR-051 left boards out of the per-project choices because their geom IDs
+contain the component key and the harness named the two boards.
+
+*Decision.*
+
+* Two enum genes in the group Mechanism, not evolvable, both
+  `choices_from: board`: `board_control` (default `teensy_41`) and
+  `board_compute` (default `raspberry_pi_5`, with the extra choice `none`).
+  "Only the ESP32" is `board_control: esp_wroom_32`, `board_compute: none`.
+  The same board named twice is one board. A genome holds single values, so
+  a list of boards is not one gene; two roles are also what the harness
+  needs to know (which board the buses run to).
+* The defaults are what every existing genome effectively had, so a genome
+  that does not mention the genes builds the same body: no genome version
+  bump, no migration, no `absent` needed. Checked: spec, MJCF, mass and
+  power budget of the default calf and of the genomes of all six projects
+  on this machine are identical before and after.
+* **Geom IDs stay `elec.<component key>`** (`elec.teensy_41`,
+  `elec.esp_wroom_32`). Role IDs (`elec.control`, `elec.compute`) were the
+  alternative; they would have renamed two geoms in every saved scene, run
+  and Rhino pull for no gain today. The cost of keeping them: a board's ID
+  changes when the board does, so nothing may address "the control board"
+  by ID; the harness is told the board keys instead.
+* Harness: power, servo buses and IMU run to the control board; a second
+  board gets `harness.link` to it (still labelled USB, an assumption for
+  any pair but Pi and Teensy); with one board there is no link.
+* Power budget: unchanged. Boards are found by library kind, their
+  `power_w` is added to the motors' power and divided by the battery's
+  nominal voltage for battery current. No regulator is modelled, so a board
+  behind a linear regulator draws more from the battery than the budget
+  says (its full current at battery voltage).
+* Runs record the boards: `inputs.boards` in `run.json` for sim, evolve,
+  tune and study runs (`calflab.wiring.budget.boards_used`: geom ID,
+  component, mass, supply, power, verified, guessed, defaulted), `boards`
+  in `study.json`, and the study notes name an unverified or defaulted
+  board as they do motors and the battery.
+* `robot_defaults.yaml: electronics.boards` is read only for a gene
+  definition without the two genes.
+* No UI code: Mechanism renders the group from the schema.
+
+*The board entry.* `esp_wroom_32` holds what the researcher gave on
+2026-10-10: 7 g (weighed), 3.3 V, "~100 mA". `BoardSpec` has `power_w` and
+no current field, so the power is entered as their product, 0.33 W, with
+the arithmetic in the comment. Size and cost were not given and are left
+blank (default assumed, reported). The current was given as approximate and
+is not listed in `guessed:` because the researcher did not call it a guess;
+asked in the session report.
+
+*Not done.* More than two boards. Sensors per project (the IMU and
+microphone boards, and the foot and touch sensors in the power budget, are
+still those of `robot_defaults.yaml`). The firmware skeleton exporter still
+writes a Teensy 4.1 + Raspberry Pi project whatever is chosen. A regulator
+between battery and board.
+
+*Also fixed.* `calflab components new` rewrote the whole YAML file with
+CRLF line endings on Windows; it now keeps LF.
+
+Checked: `tests/test_boards.py` (4). Not looked at in Rhino or Blender; the
+Mechanism lists were looked at once in the lab's browser pane.

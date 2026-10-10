@@ -151,3 +151,19 @@
   guessed: []
   verified: false    # set to true yourself once every value is checked
   notes: Deans-style T-plug discharge connector, JST-XH balance connector, 18 AWG leads. Weight and dimensions are given as approximate.
+
+- key: esp_wroom_32
+  kind: board
+  name: "ESP-WROOM-32"
+  manufacturer: ""
+  role: ""    # not given
+  mass_g: 7                       # g; "7g (weighed by me)"
+  dims_mm: null                   # mm, housing [x, y, z]; not given (default assumed, and reported; drawn as a 10 x 10 x 3 mm box)
+  cost_usd: null                  # USD; not given (default assumed, and reported)
+  voltage_v: 3.3                  # V supply; "supply: 3.3V"
+  power_w: 0.33                   # W = 3.3 V x 0.100 A, the two figures given ("current: ~100mA"); nothing else is in it
+  url: ""                         # none given
+  source: "Values given by the researcher on 2026-10-10: mass weighed on their own scale; supply 3.3 V, current ~100 mA"
+  guessed: []                     # names of fields whose value is your guess, not a datasheet value
+  verified: false                 # set to true yourself once every value is checked
+  notes: The current was given as approximate (~100 mA). power_w is that current times the 3.3 V supply; no regulator loss between the battery and the board is included.

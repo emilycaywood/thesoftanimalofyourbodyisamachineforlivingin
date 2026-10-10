@@ -374,7 +374,12 @@ class CalfGenerator(PartGenerator):
         )
         bat_key = str(genes.get("battery") or d.get("electronics", {}).get("battery", "lipo_3s_5000"))
         trunk.geoms.append(part("elec.battery", bat_key, (0.0, 0.0, -H * 0.18), "Electronics"))
-        boards = d.get("electronics", {}).get("boards", [])
+        # the boards are chosen in Mechanism (ADR-061); a genome definition without those genes carries
+        # the ones robot_defaults.yaml names. "none", or the control board named twice, is no second board
+        boards = [str(b) for b in d.get("electronics", {}).get("boards", [])]
+        if genes.get("board_control"):
+            chosen = (str(genes["board_control"]), str(genes.get("board_compute") or "none"))
+            boards = [b for b in dict.fromkeys(chosen) if b != "none"]
         for i, bkey in enumerate(boards):
             x = L * 0.22 * (1 if i % 2 == 0 else -1)
             trunk.geoms.append(part(f"elec.{bkey}", bkey, (x, 0.0, H * 0.12), "Electronics"))
@@ -931,7 +936,7 @@ class CalfGenerator(PartGenerator):
             skin_regions=skins,
             metadata={"generator": self.key, "generator_version": self.version, "scale": s},
         )
-        spec.harness_routes = _harness(spec, d)
+        spec.harness_routes = _harness(spec, d, boards)
         return spec
 
 
@@ -950,9 +955,11 @@ def _dist(a: Vec3, b: Vec3) -> float:
     return math.sqrt(sum((a[i] - b[i]) ** 2 for i in range(3)))
 
 
-def _harness(spec: RobotSpec, defaults: dict[str, Any]) -> list[HarnessRoute]:
-    """Minimal harness: power, one servo bus per leg, neck bus, IMU, Pi link.
+def _harness(spec: RobotSpec, defaults: dict[str, Any], board_keys: list[str]) -> list[HarnessRoute]:
+    """Minimal harness: power, one servo bus per leg, neck bus, IMU, board link.
 
+    ``board_keys`` are the boards in the trunk, the control board first: power,
+    the buses and the IMU run to it, and a second board is linked to it.
     Cable length = straight segments through the origins of the bodies the
     cable passes (standing pose) times a slack factor.
     """
@@ -962,8 +969,9 @@ def _harness(spec: RobotSpec, defaults: dict[str, Any]) -> list[HarnessRoute]:
     sig_awg = int(h.get("signal_gauge_awg", 26))
     poses = spec.world_poses()
     geom_ids = {g.id for b in spec.bodies for g in b.geoms}
-    boards = [g for g in geom_ids if g.startswith("elec.") and g != "elec.battery"]
-    mcu = "elec.teensy_41" if "elec.teensy_41" in geom_ids else (sorted(boards)[0] if boards else None)
+    boards = [f"elec.{k}" for k in board_keys if f"elec.{k}" in geom_ids]
+    mcu = boards[0] if boards else None
+    link = boards[1] if len(boards) > 1 else None
     routes: list[HarnessRoute] = []
     if mcu is None:
         return routes
@@ -1015,10 +1023,10 @@ def _harness(spec: RobotSpec, defaults: dict[str, Any]) -> list[HarnessRoute]:
             ],
             "JST-SH-4",
         )
-    if "elec.raspberry_pi_5" in geom_ids and mcu != "elec.raspberry_pi_5":
+    if link is not None:
         route(
             "harness.link",
-            "elec.raspberry_pi_5",
+            link,
             mcu,
             [],
             [Wire(signal="USB_D+", gauge_awg=28, color="GN"), Wire(signal="USB_D-", gauge_awg=28, color="WH"), Wire(signal="GND", gauge_awg=28, color="BK")],
