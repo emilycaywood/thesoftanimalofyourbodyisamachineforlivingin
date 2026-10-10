@@ -364,6 +364,7 @@ def run_rollout(
             "root_height": cm.root_height,
             "actuator_joint": list(cm.actuator_joint),
             "torque_limit": list(cm.actuator_torque_limit),
+            "speed_limit": list(cm.actuator_speed_limit),
             "limits": {k: list(v) for k, v in cm.limits.items()},
             "final_temp": [float(x) for x in temp],
             "scales": cm.scales,

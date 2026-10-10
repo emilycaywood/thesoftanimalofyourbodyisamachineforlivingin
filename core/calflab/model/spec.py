@@ -13,7 +13,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field, model_validator
 
-from calflab.model.xform import IDENTITY, Quat, Vec3, compose, quat_axis_angle
+from calflab.model.xform import IDENTITY, Quat, Vec3, compose, quat_axis_angle, quat_rotate
 
 SPEC_SCHEMA_VERSION = 1
 
@@ -336,6 +336,13 @@ class RobotSpec(BaseModel):
         return out
 
     # ------------------------------------------------------------------ mass
+    def standing_height_mm(self) -> float:
+        """Height of the highest geom centre in the standing pose (mm): the
+        height readout of the lab (scene ``extents.height_mm``)."""
+        poses = self.world_poses()
+        zs = [poses[b.id][0][2] + quat_rotate(poses[b.id][1], g.pos)[2] for b in self.bodies for g in b.geoms]
+        return max(zs) if zs else 0.0
+
     def total_mass_g(self) -> float:
         return sum(b.mass_g() for b in self.bodies)
 

@@ -134,6 +134,14 @@ def power_budget(spec: RobotSpec, lib: Library, metrics: dict[str, Any] | None) 
     trans = {t.id: t for t in spec.transmissions}
     rows: list[dict[str, Any]] = []
     mean_a = peak_a = 0.0
+    # Motors whose figures are for another voltage than the bus. Nothing is converted: torque, speed and
+    # current stay as the library entry gives them, and that is said wherever the budget is shown.
+    rated = {c.key: c for c in (lib.actuator(a.component) for a in spec.actuators)}
+    mismatch = [
+        {"component": c.key, "name": c.name, "rated_v": c.voltage_v, "bus_v": bus_v}
+        for c in rated.values()
+        if abs(c.voltage_v - bus_v) > 0.15 * bus_v  # 12 V servos on an 11.1 V 3S pack are the usual pairing
+    ]
     for a in spec.actuators:
         c: ActuatorSpec = lib.actuator(a.component)
         tr = trans.get(a.transmission) if a.transmission else None
@@ -201,6 +209,13 @@ def power_budget(spec: RobotSpec, lib: Library, metrics: dict[str, Any] | None) 
         "mean_current_a": round(mean_w / bus_v, 2),
         "peak_current_a": round(peak_w / bus_v, 2),
         "battery": battery,
+        "voltage_mismatch": mismatch,
+        "voltage_note": (
+            "; ".join(f"{m['name']} is entered at {m['rated_v']:g} V" for m in mismatch)
+            + f", and the bus is {bus_v:g} V. Torque, speed and current are used as entered: nothing is converted to "
+            "the bus voltage. Motor currents are added up as they are and counted as battery current; power is that "
+            "current times the bus voltage."
+        ) if mismatch else None,
         "note": "Estimate from torque statistics and unverified component data; not a measurement.",
     }
 

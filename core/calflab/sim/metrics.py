@@ -28,6 +28,7 @@ METRIC_DEFS: dict[str, tuple[str, str, str]] = {
     "torque_rms_nm": ("Torque RMS", "N*m", "lower"),
     "torque_peak_nm": ("Peak torque", "N*m", "lower"),
     "torque_margin_min": ("Worst torque margin", "", "higher"),
+    "speed_margin_min": ("Worst joint speed margin", "", "higher"),
     "temp_peak_c": ("Peak actuator temperature", "degC", "lower"),
     "foot_impact_mps": ("Mean foot impact speed", "m/s", "lower"),
     "foot_impact_peak_mps": ("Peak foot impact speed", "m/s", "lower"),
@@ -79,6 +80,16 @@ def compute_metrics(r: Rollout) -> dict[str, Any]:
     rms_by = np.sqrt(np.mean(tq**2, axis=0)) if tq.size else np.zeros(0)
     peak_by = np.max(np.abs(tq), axis=0) if tq.size else np.zeros(0)
     margin_by = 1.0 - peak_by / np.maximum(limit, 1e-9)
+    # share of the time each motor gives (nearly) all its usable torque: a peak says "once", this says "how long"
+    saturated_by = np.mean(np.abs(tq) >= 0.98 * np.maximum(limit, 1e-9), axis=0) if tq.size else np.zeros(0)
+    # Joint speed against each motor's recorded no-load speed. The simulator limits torque, not speed
+    # (ADR-047), so a negative margin means the rollout moved a joint faster than its motor can turn.
+    dq = r.dq[active]
+    speed_by = np.max(np.abs(dq), axis=0) if dq.size else np.zeros(tq.shape[1])
+    s_lim = m.get("speed_limit") or []
+    has_speed = len(s_lim) == speed_by.shape[0] and len(s_lim) > 0
+    speed_limit = np.array(s_lim) if has_speed else np.zeros(0)
+    speed_margin_by = 1.0 - speed_by / np.maximum(speed_limit, 1e-9) if has_speed else np.zeros(0)
     temp = r.temp[active]
     temp_by = np.max(temp, axis=0) if temp.size else np.zeros(0)
 
@@ -109,6 +120,7 @@ def compute_metrics(r: Rollout) -> dict[str, Any]:
         "torque_rms_nm": float(math.sqrt(float(np.mean(tq**2)))) if tq.size else 0.0,
         "torque_peak_nm": float(np.max(peak_by)) if peak_by.size else 0.0,
         "torque_margin_min": float(np.min(margin_by)) if margin_by.size else 1.0,
+        "speed_margin_min": float(np.min(speed_margin_by)) if has_speed else None,
         "temp_peak_c": float(np.max(temp_by)) if temp_by.size else 0.0,
         "foot_impact_mps": float(np.mean(speeds)) if speeds else 0.0,
         "foot_impact_peak_mps": float(np.max(speeds)) if speeds else 0.0,
@@ -122,7 +134,14 @@ def compute_metrics(r: Rollout) -> dict[str, Any]:
                 "torque_peak_nm": float(peak_by[i]),
                 "torque_limit_nm": float(limit[i]),
                 "torque_margin": float(margin_by[i]),
+                "torque_saturated": float(saturated_by[i]),
                 "temp_peak_c": float(temp_by[i]),
+                "speed_peak_deg_s": float(u.rad_to_deg(float(speed_by[i]))),
+                **(
+                    {"speed_limit_deg_s": float(u.rad_to_deg(float(speed_limit[i]))), "speed_margin": float(speed_margin_by[i])}
+                    if has_speed
+                    else {}
+                ),
             }
             for i, aid in enumerate(r.actuator_ids)
         },

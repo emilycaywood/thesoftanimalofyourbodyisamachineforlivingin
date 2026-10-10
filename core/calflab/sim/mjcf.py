@@ -44,6 +44,17 @@ class CompileOptions(BaseModel):
     servo_saturation_deg: float = P(10.0, unit="deg", ge=1, le=45, desc="Position error at which a servo reaches its usable torque.")
     servo_kd_ratio_s: float = P(0.03, unit="s", ge=0.0, le=0.2, step=0.005, desc="Servo damping as a fraction of its stiffness.")
     include_skin: bool = P(True, desc="Apply the skin model (joint stiffness/damping and added mass).")
+    joint_loss_scale: float = P(
+        1.0, ge=0.0, le=2.0, step=0.01,
+        desc="Scale on the passive joint damping and friction of config/robot_defaults.yaml. They were chosen for the "
+             "5 kg calf and do not shrink with the overall scale: 1 = as they are (ADR-058).",
+    )
+    armature_scale: float = P(
+        1.0, ge=0.01, le=2.0, step=0.01,
+        desc="Scale on every servo's reflected inertia (armature). 1 = the library values. For a servo whose armature "
+             "is not on its datasheet the library default (made for 50-160 g servos) is in use: lower this to see how "
+             "much a result rests on it (ADR-058).",
+    )
     randomization: DomainRandomization = P(default_factory=DomainRandomization, ui="json", desc="Domain randomization ranges.", advanced=True)
 
 
@@ -94,6 +105,7 @@ class CompiledModel:
     timestep: float
     root_height: float  # m
     scales: dict[str, float] = field(default_factory=dict)
+    actuator_speed_limit: list[float] = field(default_factory=list)  # recorded no-load speed at the joint, rad/s
 
 
 def _f(x: float) -> str:
@@ -198,14 +210,14 @@ def compile_mjcf(
             lo, hi = u.deg_to_rad(j.range_deg[0]), u.deg_to_rad(j.range_deg[1])
             r = u.deg_to_rad(j.rest_deg)
             sk = skin.get(j.id)
-            damping = j.damping * sc.damping + (sk.damping if sk else 0.0)
+            damping = j.damping * sc.damping * opt.joint_loss_scale + (sk.damping if sk else 0.0)
             attrs = {
                 "name": j.id,
                 "type": jt_cls.mjcf_type,  # type: ignore[attr-defined]
                 "axis": _vec(j.axis),
                 "range": _vec((lo, hi)),
                 "damping": _f(damping),
-                "frictionloss": _f(j.friction),
+                "frictionloss": _f(j.friction * opt.joint_loss_scale),
             }
             if sk and sk.stiffness > 0:
                 attrs["stiffness"] = _f(sk.stiffness)
@@ -214,7 +226,7 @@ def compile_mjcf(
             if act is not None:
                 comp = lib.actuator(act.component)
                 ratio = trans_by_id[act.transmission].ratio if act.transmission else 1.0
-                attrs["armature"] = _f(comp.armature_kgm2 * ratio * ratio)
+                attrs["armature"] = _f(comp.armature_kgm2 * ratio * ratio * opt.armature_scale)
             attrs.update(jt_cls().mjcf_attrs(j))  # type: ignore[attr-defined]
             ET.SubElement(el, "joint", **attrs)
             joint_order.append(j.id)
@@ -260,6 +272,7 @@ def compile_mjcf(
     a_comp: list[str] = []
     a_limit: list[float] = []
     a_stall: list[float] = []
+    a_speed: list[float] = []
     sat = u.deg_to_rad(opt.servo_saturation_deg)
     for act in spec.actuators:
         if act.joint not in limits:
@@ -286,6 +299,7 @@ def compile_mjcf(
         a_comp.append(act.component)
         a_limit.append(usable)
         a_stall.append(stall)
+        a_speed.append(u.deg_to_rad(comp.no_load_speed_rpm * 6.0) / (tr.ratio if tr else 1.0))
 
     sensor_el = ET.SubElement(root, "sensor")
     ET.SubElement(sensor_el, "gyro", name="imu_gyro", site="imu")
@@ -315,4 +329,5 @@ def compile_mjcf(
         timestep=u.to_si(opt.timestep_ms, "ms"),
         root_height=root_h,
         scales=sc.__dict__.copy(),
+        actuator_speed_limit=a_speed,
     )
