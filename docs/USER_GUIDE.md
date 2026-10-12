@@ -368,6 +368,91 @@ weighed with an infill estimate the record holds, under
 `line_width_mm`, `wall_mm`), the outer, shell and core volumes and the
 fully dense mass (`dense_g`); the part's `source` is `infill`.
 
+### Simulating your own modelled robot (ADR-062)
+
+`CalflabPush` only gives one part its mass: the skeleton still comes from the
+Form sliders and the simulator still collides the envelope boxes and
+capsules. To have the lab simulate a robot you modelled in Rhino, push the
+whole model instead.
+
+In Rhino (run `CalflabInstall` once more to get the three new commands):
+
+1. `CalflabPull`, then `CalflabModelSetup`. It creates the layer
+   `CALFLAB::Model` with one sublayer per body (`trunk`, `leg.fl.thigh`,
+   `leg.fl.shank`, `head` ...) and `CALFLAB::Model::Joints` with one line per
+   joint, where the pulled calf has it. Run it again whenever you like: it
+   only adds what is missing.
+2. Put each of your solids on the layer of the body it belongs to (your own
+   sublayers below a body layer are fine). All solids of one body are one
+   rigid piece in the simulator, whether they touch or not: nothing needs to
+   be joined or bolted together in the model, and only the joints move.
+3. Move and rotate each line on `CALFLAB::Model::Joints` onto your real joint
+   axis. The line's **direction** is the axis; its **midpoint** is where the
+   joint is. Which way the line points does not matter.
+4. Tag what needs it: select solids, `CalflabTag`. *Material* for parts that
+   are not the material you will name at the push (steel rods, the silicone
+   head); *Foot = Yes* for the solids that touch the ground; *Printed with
+   infill* for print settings (or leave it and answer once at the push).
+5. `CalflabPushModel`. No selection: it sends everything on the model layers.
+   Choose **Check** to read the report without changing anything, **Push**
+   to store it. It asks once for the material of solids that have none and,
+   per material, whether the solids without print tags are printed with
+   infill (then: infill percent, perimeters, line width) or fully dense, and
+   writes the answers onto those objects as user text.
+
+The printout says what the simulator will treat as one piece (`1 free body
+(the trunk) + 8 hinges = 14 degrees of freedom. 145 solids on 10 bodies ...
+0 loose solids`), lists every joint against the pulled calf's (`moved 3.7 mm
+(dx +3.6, dy -0.5, dz -0.6), axis 0.0 deg off`), every body with its solids,
+mass, materials and number of collision hulls, the lowest point of each foot
+as modelled, and the total mass. **Nothing is stored unless every solid is
+closed, on a body layer and has a structure material**; otherwise it prints
+`NOT PUSHED` and every problem at once.
+
+What the lab then builds:
+
+* **Joints** at your lines. Standing angles, joint ranges and the servo on
+  each joint stay as they were; everything below a joint moves with it. A
+  joint without a line keeps the pulled calf's place relative to the part
+  above and the printout says so. The model is taken to be drawn in the
+  standing pose.
+* **Mass, centre of mass and inertia** of each body from its solids, exactly
+  as for pushed solids above (own material per solid, infill estimate if
+  tagged). Servos, board and battery still come from the library and sit
+  where the lab puts them in their body. A body you gave no solids keeps the
+  lab's shapes and estimate, and is named in a warning.
+* **Collision** from your solids: one convex hull per solid, simplified to at
+  most 32 points; the envelope boxes and capsules of that body are gone. The
+  solids tagged `calflab.foot` on a leg become that leg's foot (one hull
+  round all of them) and the lab's hoof sphere is removed. A hull fills
+  hollows: a concave sole collides as if it were flat. Parts of the robot
+  still do not collide with each other, only with the ground.
+* The calf starts with its own lowest foot point just above the floor. Feet
+  that are not level as modelled are reported.
+
+It is **one override**, "Rhino model", in the Overrides panel (`whole robot
+from Rhino (file): 8 joint axes, 145 solids on 10 bodies`). Untick it and the
+parametric calf is back; `Ctrl+Z` undoes the push; a second push replaces the
+first. The genome, the Form sliders, the proportion study and Evolve are not
+changed. (A proportion study or an evolution started while the model is on
+varies the genes under a fixed model, which is not meaningful yet: switch the
+override off for those.) `CalflabPull` never touches the model layers; it
+does bring the model's solids back as meshes on `CALFLAB::Structure`.
+
+Press F5. The run is titled `Simulate (Rhino model)` and its
+`runs/<id>/run.json` says which geometry it used, under `inputs.geometry`:
+`source` (`rhino_model` or `parametric`), `label`, `file`, `override`,
+`pushed`, `collision` (`hulls`, `mixed` or `envelope`), `joints` (per joint:
+`pos_mm`, `axis`, the parametric ones, `delta_mm`, `distance_mm`,
+`axis_angle_deg`), `bodies` (per body: number of solids and hulls, and the
+SHA-256 of every mesh as stored), `feet`, `hooves_removed` and
+`parametric_bodies`. Tune, evolve and study runs carry the same entry.
+
+Cost, measured on a stand-in model of 145 detailed solids (159,000 faces) on
+the two-joint body: the push takes about 5 s; the simulator runs at 19,000
+steps per second instead of 31,000 (still about 38 times faster than real
+time at a 2 ms step).
+
 ---
 
 ## 5. Workspaces

@@ -193,9 +193,14 @@ def collision_geoms(body_id: str, entry: dict[str, Any], hull_assets: bool = Tru
     return out
 
 
+#: hull vertices this close (mm) to the lowest one count as the sole of a foot
+SOLE_TOLERANCE_MM = 0.25
+
+
 def lowest_point(spec: RobotSpec, geom_id: str | None = None) -> tuple[float, dict[str, Vec3]]:
     """Height (mm, world, standing pose) of the lowest collision-hull vertex, and
-    per hull geom its lowest vertex in the body frame. ``inf`` without hulls."""
+    per hull geom its ground-contact point in the body frame (the middle of its
+    lowest vertices). ``inf`` without hulls."""
     poses = spec.world_poses()
     lowest = math.inf
     contact: dict[str, Vec3] = {}
@@ -207,7 +212,8 @@ def lowest_point(spec: RobotSpec, geom_id: str | None = None) -> tuple[float, di
                 continue
             local = np.asarray(g.hull, dtype=float) @ quat_to_matrix(g.quat).T + np.asarray(g.pos)
             z = local @ r[2] + bp[2]
-            i = int(np.argmin(z))
-            contact[g.id] = (float(local[i][0]), float(local[i][1]), float(local[i][2]))
-            lowest = min(lowest, float(z[i]))
+            # a flat sole touches down on all its lowest vertices: the contact point is their middle
+            c = local[z <= float(z.min()) + SOLE_TOLERANCE_MM].mean(axis=0)
+            contact[g.id] = (float(c[0]), float(c[1]), float(c[2]))
+            lowest = min(lowest, float(z.min()))
     return lowest, contact

@@ -13,6 +13,12 @@ rest of the lab, see `docs/CHAT_GUIDE_CHASSIS.md` and
 `docs/CHAT_GUIDE_PROMPT.md`. Regenerate this file after a session that
 changes what it describes.
 
+**Update 2026-10-12 (ADR-062):** the lab can now build the simulated robot
+from the whole Rhino model: joint places and axes from axis lines, and
+collision from the solids themselves, feet included. That route is section
+6a, added below; sections 1, 4 and 6 describe the older route (skeleton
+from the sliders, one body pushed at a time), which still works.
+
 ---
 
 You are my guide for one job in CALFLAB, a research tool that runs on my own
@@ -64,6 +70,10 @@ attached to its bodies and give each body three things:
   is to swing).
 
 Three consequences:
+
+(With the whole-model push of section 6a, consequences 1 and 3 no longer
+hold: the joints come from my axis lines and the ground touches my own
+feet. Consequence 2 always holds.)
 
 1. **The lab's skeleton has to match my prototype first.** Segment lengths,
    trunk size and joint layout come from the sliders, not from my model. If
@@ -456,6 +466,55 @@ the solid. The *Material* list still works on a single tagged solid: the
 density changes, the estimate stays.
 
 Repeat for each body. A body I do not push keeps its estimate.
+
+## 6a. The whole model at once: joints and collision from my model (ADR-062)
+
+Use this instead of sections 4 and 6 when I want the simulator to use my
+joint places and my feet, not only my masses. The sliders still decide
+*which* joints and motors exist (section 4's switches: two joints per leg,
+no abduction, thigh or no thigh), so those must already match; the lengths
+no longer need to.
+
+In Rhino (`CalflabInstall` once more registers the new commands):
+
+1. `CalflabPull`, then `CalflabModelSetup`: it creates `CALFLAB::Model` with
+   a sublayer per body (`trunk`, `leg.fl.thigh`, `leg.fl.shank`, `head` ...)
+   and `CALFLAB::Model::Joints` with one line per joint where the pulled
+   calf has it.
+2. I put every solid on the layer of its body. All solids of one body are
+   one rigid piece in the simulator, touching or not; nothing has to be
+   joined, and missing screws do not make parts fall apart (they also weigh
+   nothing).
+3. I move each line on `CALFLAB::Model::Joints` onto my real axis:
+   direction = axis, midpoint = where the joint is.
+4. `CalflabTag` on selected solids: material for what is not the main
+   material (steel rods `stainless_304`, the silicone head
+   `silicone_solid`), *Foot = Yes* for the solids that touch the ground.
+5. `CalflabPushModel`, no selection. *Check* reports without storing;
+   *Push* stores. It asks once for the material of untagged solids and, per
+   material, whether untagged solids are printed with infill (infill
+   percent, perimeters, line width: section 5a) or fully dense.
+
+Read the printout with me, line by line: `1 free body (the trunk) + 8
+hinges = 14 degrees of freedom ... 0 loose solids`; each joint `moved N mm
+(dx, dy, dz), axis N deg off` against the pulled calf's; each body with its
+solids, mass, materials and collision hulls; each foot's lowest point; total
+mass; warnings. `NOT PUSHED` means nothing was stored and lists every
+problem (an open solid, a solid on no body layer, a missing material).
+
+What I get: joints at my lines (standing angles, ranges and motors
+unchanged; the model is taken to be drawn standing); mass, centre of mass
+and inertia from my solids; collision from a simplified convex hull of each
+solid, and the tagged foot solids in place of the lab's hoof sphere. A hull
+fills hollows, so a concave sole is flat. Parts of the robot do not collide
+with each other. Bodies I gave no solids keep the lab's shapes. Servos,
+board and battery come from the library and sit where the lab puts them.
+
+It is one override, "Rhino model", in the Overrides panel: untick it for the
+parametric calf, `Ctrl+Z` undoes the push, a second push replaces the first.
+Then F5: the run is titled `Simulate (Rhino model)` and
+`runs/<id>/run.json` records the model under `inputs.geometry`. Switch the
+override off before a proportion study or Evolve.
 
 ## 7. Motors, board and battery
 

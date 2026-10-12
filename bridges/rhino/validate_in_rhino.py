@@ -16,7 +16,9 @@ push arrived as a geometry override, that a second pull brings it back as a
 mesh in the same place and leaves the user's own object alone. It then pushes
 three Breps onto the trunk's Structure layer (a 100 mm box, a sphere, a box
 with a face removed) and checks that the closed ones give the trunk its mass
-as volume x density and the open one is refused with a warning. Last it turns
+as volume x density and the open one is refused with a warning. Then it lays
+out the model layers (CalflabModelSetup), moves the axis lines, adds a trunk
+box, a shank and a foot, and pushes them whole (ADR-062). Last it turns
 CalflabLiveSync on, edits a gene on the server and waits for Rhino to follow.
 It undoes its edits, writes a JSON report and closes Rhino.
 
@@ -210,6 +212,84 @@ def check_solid_push(doc):
     return out
 
 
+def check_model_push(doc):
+    """CalflabModelSetup, then a model on the CALFLAB::Model layers pushed whole (ADR-062): the joints
+    follow the moved axis lines, the solids give mass, the tagged solid becomes the foot, and a
+    pull leaves the model alone."""
+    rg = Rhino.Geometry
+    first = cr.model_setup()
+    layout = first["layout"]
+    assert first["added"] and not first["kept"], "CalflabModelSetup added no axis lines: %s" % first
+    again = cr.model_setup()
+    assert not again["added"] and sorted(again["kept"]) == sorted(first["added"]), "a second CalflabModelSetup added lines again"
+    for layer in layout["layers"]:
+        assert doc.Layers.FindByFullPath(layer["path"], -1) >= 0, "layer %s was not created" % layer["path"]
+    _, lines, solids = cr.collect_model()
+    assert len(lines) == len(layout["axes"]) and not solids, "the model layers hold %d lines, %d solids" % (len(lines), len(solids))
+    shift = rg.Vector3d(3.0, 0.0, -4.0)
+    for obj in lines:  # the researcher moves each line onto the real axis
+        doc.Objects.Transform(obj, rg.Transform.Translation(shift), True)
+    scene = cr.request("/api/scene")
+    density = [m for m in scene["materials"] if m["key"] == "pla"][0]["density_g_cm3"]
+    pos = dict((b["id"], b["pos"]) for b in scene["bodies"])
+    foot = [f for f in scene["feet"] if f["body"] == "leg.fl.shank"][0]["pos"]
+
+    def add(layer, brep, name, tags):
+        attrs = Rhino.DocObjects.ObjectAttributes()
+        attrs.Name = name
+        attrs.LayerIndex = doc.Layers.FindByFullPath(layout["root_layer"] + "::" + layer, -1)
+        for key, value in tags.items():
+            attrs.SetUserString(key, value)
+        return doc.Objects.AddBrep(brep, attrs)
+
+    def box(c, x, y, z):
+        return rg.Box(rg.Plane(rg.Point3d(c[0], c[1], c[2]), rg.Vector3d.ZAxis),
+                      rg.Interval(-x / 2.0, x / 2.0), rg.Interval(-y / 2.0, y / 2.0), rg.Interval(-z / 2.0, z / 2.0)).ToBrep()
+
+    ids = [
+        add("trunk", box(pos["trunk"], 100.0, 40.0, 30.0), "check trunk", {"calflab.material": "pla"}),
+        add("leg.fl.shank", rg.Sphere(rg.Point3d(foot[0], foot[1], foot[2] + 30.0), 8.0).ToBrep(), "check shank",
+            {"calflab.material": "pla", "calflab.id": "left over from a pull"}),
+        add("leg.fl.shank", box((foot[0], foot[1], 3.0), 20.0, 14.0, 6.0), "check foot",
+            {"calflab.material": "pla", layout["foot_key"]: "yes"}),
+    ]
+    out = {"layers": len(layout["layers"]), "axis_lines": len(lines)}
+    try:
+        check = cr.push_model(check_only=True)
+        assert check["ok"] and not check["stored"], "the check-only push reported: %s" % check["errors"]
+        reply = cr.push_model()
+        assert reply["ok"] and reply["stored"], "the model was not stored: %s" % reply["errors"]
+        assert reply["unprotected"] == 0 and check["unprotected"] == 1, "calflab.id was not removed from the model's solid"
+        rows = dict((j["joint"], j) for j in reply["joints"])
+        worst = max(abs(j["distance_mm"] - 5.0) for j in rows.values())
+        assert len(rows) == len(lines) and worst <= 0.01, "joints are not 5 mm from the pulled calf's: %s" % sorted(
+            (j["joint"], j["distance_mm"]) for j in rows.values())
+        bodies = dict((b["body"], b) for b in reply["bodies"])
+        want = 100.0 * 40.0 * 30.0 / 1000.0 * density
+        assert abs(bodies["trunk"]["mass_g"] - want) <= 0.02, "the trunk box weighs %.2f g, expected %.2f g" % (bodies["trunk"]["mass_g"], want)
+        assert bodies["leg.fl.shank"]["foot"] and bodies["leg.fl.shank"]["hulls"] == 2, "the tagged solid is not the foot: %s" % bodies["leg.fl.shank"]
+        feet = dict((f["geom"], f["lowest_z_mm"]) for f in reply["feet"])
+        assert abs(feet["leg.fl.shank.foot"]) <= 0.05, "the foot's lowest point is not where it was modelled: %s" % feet
+        s = reply["structure"]
+        assert s["free_bodies"] == 1 and s["loose_solids"] == 0 and s["solids"] == 3, "structure: %s" % s
+        geometry = cr.request("/api/scene")["geometry"]
+        assert geometry["source"] == "rhino_model" and geometry["collision"] == "hulls", "the scene does not say it uses the model"
+        cr.pull()
+        _, lines_after, solids_after = cr.collect_model()
+        assert len(lines_after) == len(lines) and len(solids_after) == 3, "CalflabPull touched the model layers"
+        out.update({"joints": len(rows), "joint_distance_error_mm": round(worst, 4), "trunk_mass_g": bodies["trunk"]["mass_g"],
+                    "feet": feet, "structure": s, "report": reply["lines"][:3], "label": geometry["label"]})
+    finally:
+        for oid in ids:
+            doc.Objects.Delete(oid, True)
+        for obj in cr.collect_model()[1]:
+            doc.Objects.Delete(obj.Id, True)
+    cr.request("/api/undo", {})
+    assert cr.request("/api/scene")["geometry"]["source"] == "parametric", "undo did not bring the parametric calf back"
+    cr.pull()
+    return out
+
+
 def finish(report):
     with open(REPORT, "w", encoding="utf-8") as fh:
         json.dump(report, fh, indent=2)
@@ -232,7 +312,8 @@ def pass1():
 
     run_command_script("CalflabInstall")
     aliases = {}
-    for name in ("CalflabConnect", "CalflabPull", "CalflabPush", "CalflabLiveSync"):
+    for name in ("CalflabConnect", "CalflabPull", "CalflabPush", "CalflabLiveSync", "CalflabModelSetup", "CalflabTag",
+                 "CalflabPushModel"):
         macro = rs.AliasMacro(name) if rs.IsAlias(name) else None
         aliases[name] = bool(macro) and os.path.isfile(macro.split('"')[1])
     rep["install"] = aliases
@@ -296,6 +377,7 @@ def pass2(rep):
     assert err <= TOL_MM, "pushed mesh came back %.3f mm away from where it was modelled" % err
 
     rep["solid"] = check_solid_push(doc)
+    rep["model"] = check_model_push(doc)
 
     # live sync: on, edit a gene on the server, wait for Rhino to follow while idle
     run_command_script("CalflabLiveSync")

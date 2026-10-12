@@ -59,7 +59,7 @@ core/calflab/
   units.py            unit conversion (single place)
   schema.py           P(...) fields + ui_schema()
   plugins/            base classes, registry, discovery, templates, contracts
-  model/              RobotSpec, Genome, overrides, Design, pushed solids, infill estimate
+  model/              RobotSpec, Genome, overrides, Design, pushed solids, infill estimate, pushed model (skeleton, hulls)
   components/         YAML library loader
   morphology/         part generators (reference calf)
   sim/                MJCF/URDF compile, MuJoCo rollouts, metrics, skin
@@ -72,7 +72,7 @@ core/calflab/
   wiring/             BOM, power budget, harness, WireViz
   project/            project folder, registry, command log, journal
   app/                Lab session: state, commands, undo, jobs, events
-  bridge/             Rhino build list, Blender armature plan (pure functions)
+  bridge/             Rhino build list, Blender armature plan (pure functions); storing pushed solids and models
   design.py           build_design(): genome + overrides -> RobotSpec
   config.py, paths.py robot defaults / gene / fitness files; repo and work dirs
   builtin/            built-in plugins (same mechanism as third-party)

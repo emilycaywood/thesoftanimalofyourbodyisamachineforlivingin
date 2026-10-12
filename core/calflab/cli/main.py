@@ -619,7 +619,7 @@ def _rhino_check(url: str, timeout: float, grasshopper: bool = False) -> None:
         raise typer.Exit(1)
     script = repo_root() / "bridges" / "rhino" / "validate_in_rhino.py"
     macro = f"_-ScriptEditor _Run {script} CalflabPush head Skin head_sculpt _-ScriptEditor _Run {script}"
-    keys: tuple[str, ...] = ("rhino", "install", "connect", "pull", "geometry", "push", "repull", "solid", "livesync")
+    keys: tuple[str, ...] = ("rhino", "install", "connect", "pull", "geometry", "push", "repull", "solid", "model", "livesync")
     if grasshopper:
         script = repo_root() / "bridges" / "rhino" / "grasshopper" / "build_example.py"
         macro = f"_-ScriptEditor _Run {script}"
@@ -685,7 +685,8 @@ def bridge_rhino(
         return
     console.print("In Rhino 8, run this once (it registers the Calflab* aliases):")
     console.print(f'  [bold]_-ScriptEditor _Run "{scripts / "CalflabInstall.py"}"[/bold]')
-    console.print("Then type CalflabConnect, CalflabPull, CalflabPush or CalflabLiveSync in the Rhino command line.")
+    console.print("Then type CalflabConnect, CalflabPull, CalflabPush, CalflabLiveSync, CalflabModelSetup, CalflabTag or "
+                  "CalflabPushModel in the Rhino command line.")
 
 
 @app.command()

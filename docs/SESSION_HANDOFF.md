@@ -1,11 +1,10 @@
 # CALFLAB session handoff
 
 Everything a new Claude Code session (or a new collaborator) needs to pick up
-CALFLAB. Last updated 2026-10-10 on branch `chassis-mass` (on top of
-`phase-1-vertical-slice`), after the sessions that added the hip-abduction
-switches for a two-joint leg, the model settings for a small body, the
-proportion study and boards per project (section 4; run `git log --oneline -12` for the current
-state). The 2026-10-10 commits are local: not pushed.
+CALFLAB. Last updated 2026-10-12 on branch `chassis-mass` (on top of
+`phase-1-vertical-slice`), after the session that lets the lab simulate a
+robot modelled in Rhino (section 4; run `git log --oneline -12` for the current
+state). The 2026-10-10 and 2026-10-12 commits are local: not pushed.
 
 ---
 
@@ -447,6 +446,64 @@ board is an ESP32; ADR-061):**
   the lab's browser pane and its Playwright test; `CalflabPull` of a
   two-joint body in Rhino (the build list and armature plan are tested).
 
+**Added 2026-10-12 (researcher's request: simulate the prototype as
+modelled in Rhino instead of the parametric calf; ADR-062):**
+
+* Before: `CalflabPush` replaced one body's mass properties; the skeleton
+  came from the sliders and collision from the envelope shapes.
+* Three new Rhino commands (run `CalflabInstall` again to get them):
+  `CalflabModelSetup` (layers `CALFLAB::Model::<body id>` and an axis line
+  per joint on `CALFLAB::Model::Joints`), `CalflabTag` (material, foot,
+  print settings onto the selection) and `CalflabPushModel` (sends
+  everything on the model layers, no selection; Check or Push).
+* One override of kind `model` ("Rhino model"), command `set_rhino_model`,
+  route `/api/bridge/rhino/model` (GET = the layout, POST = the push).
+  Joints go to the axis lines (direction = axis, midpoint = place); each
+  body's solids give mass as in ADR-053/054; collision is a convex hull per
+  solid (32 points at most), one hull round the solids tagged
+  `calflab.foot` per leg; envelope shapes and that leg's hoof sphere are
+  removed. Off / undo = the parametric calf. Genome, Form, study and Evolve
+  untouched.
+* All solids of a body are one rigid piece (the researcher asked): the
+  printout and `tests/test_pushed_model.py` state one free body plus the
+  hinges and zero loose solids.
+* Refused whole, with every problem listed, if a solid is open, on no body
+  layer or without a structure material.
+* `run.json`: `inputs.geometry` (source, file, joints against the
+  parametric ones in mm and degrees, solids and mesh hashes per body, feet)
+  on sim, tune, evolve and study runs; the scene has `geometry`; a sim run
+  of a model is titled `Simulate (Rhino model)`.
+* `silicone_solid` in `config/components/materials.yaml`: 1.04 g/cm3 as the
+  researcher gave it from the datasheet; product name and link not given;
+  unverified.
+* Conventions the researcher accepted before the build: layers for bodies,
+  lines for joints, a tag for feet. Their answers: feet are PLA; print
+  settings are the existing ADR-054 tags (20 % infill, 2 mm walls: the
+  perimeters and line width that make 2 mm are asked at the push, not
+  assumed).
+* Tried on a scratch copy of `projects/small-calf-two-joint` with a
+  stand-in model (145 detailed solids, joints moved 1 to 4 mm): pushed in
+  4.5 s, stands on its foot hulls, walks at 0.095 m/s with the project's
+  gait (parametric 0.097), 19,000 steps/s against 31,000.
+  **The researcher's real model has not been pushed**: the project itself
+  was not touched and has no overrides.
+* `bridge rhino --check` passed in Rhino 8.34 with a new model step
+  (2026-10-12). It was run against a scratch project on port 8010
+  (`calflab-scratch` in `.claude/launch.json`, project
+  `projects/_scratch-check`), and it rewrites
+  `%APPDATA%\calflab\rhino_bridge.json`: that file was put back to
+  `http://127.0.0.1:8000` afterwards (it had pointed at port 8011, left by
+  an earlier check).
+* `projects/small-calf-two-joint` holds about 50 runs, three bakes and
+  three studies made by the researcher after the 2026-10-10 handoff; they
+  are not described here.
+* 314 pytest tests.
+* Not done: the model's solids are stored with their hull vertices in the
+  document (about 1 MB for 145 solids); a web view of the joint table (it
+  is in the scene payload and the Rhino printout only); self-collision;
+  servo, board and battery positions from the model; a check that parts
+  clear each other through the joint ranges.
+
 **Scaffolded only (interfaces + tests, no behaviour):** PPO training, MJX
 simulator, RemoteSSH and CloudNotebook transports (job bundling is real),
 imitation reward, interactive selection, molds, skin patterns, nesting,
@@ -484,6 +541,19 @@ Journal, Rhino bridge):**
   Properties, entry in Overrides).
 * `doctor` warned "uv not found" on top of the three expected warnings:
   false alarm, fixed (see Tests above).
+
+**The researcher must verify (new on 2026-10-12):**
+
+* `CalflabModelSetup`, `CalflabTag` and `CalflabPushModel` typed by hand, with
+  the real model: a script drove the functions behind them in Rhino 8.34,
+  nobody has answered the prompts.
+* The joint table of the push against a measurement in Rhino (pick one
+  joint, measure from the pulled calf's axis line to yours).
+* Whether the model is drawn in the standing pose the lab assumes, and
+  whether the feet are level (the push reports their lowest points).
+* The body masses of the push against the real parts on a scale.
+* `silicone_solid`: product name and datasheet link for `source:` and
+  `url:`, then `verified` if it is right.
 
 **The researcher must verify (new on 2026-10-08):**
 
@@ -571,7 +641,7 @@ Journal, Rhino bridge):**
 |---|---|
 | `CLAUDE.md` | Conventions for every session (loaded automatically) |
 | `PLAN.md` | Architecture, module boundaries, data flow, phases, risks, status |
-| `DECISIONS.md` | ADR log: every assumption (61 so far) |
+| `DECISIONS.md` | ADR log: every assumption (62 so far) |
 | `docs/proposals/anatomical-leg.md` | Proposal for a three-segment leg (set aside 2026-10-04; not built) |
 | `docs/USER_GUIDE.md` | How to use the lab |
 | `docs/CHAT_GUIDE_PROMPT.md` | Prompt that makes a chat assistant a guide to the whole lab |
@@ -586,6 +656,36 @@ Journal, Rhino bridge):**
 ## 7. Recommended next sessions
 
 Prefix each with the opening message from section 1.
+
+**L. My real model in the simulator: read the result with me**
+> I pushed my prototype with CalflabPushModel into
+> projects/small-calf-two-joint (override "Rhino model") and pressed F5.
+> Read the latest run's run.json and the push report (scene `geometry`):
+> show me the joint table against the pulled calf's, the mass per body
+> against what I weighed (<weights, or "not weighed yet">), where the centre
+> of mass sits over the feet, and whether it stands, walks or falls with the
+> current gait, in plain language. Then run *Tune for this body* on it and
+> show before and after. Tell me which numbers rest on infill estimates,
+> unverified components or the default armature.
+
+**M. See the modelled robot in the web lab**
+> The joint table and body list of a pushed model (ADR-062) are only in the
+> Rhino printout and the scene payload. Add a Model panel to Form and
+> Simulate (schema-driven, no logic in the UI): joints against the
+> parametric skeleton, bodies with solids, materials, mass and hull count,
+> feet, warnings; and draw the collision hulls and the foot contact points
+> with the collision overlay. Move the hull vertices out of the document
+> into the project's assets so the document stays small, with old documents
+> still loading. Extend the Playwright test.
+
+**N. Servos and electronics where they really are; joint ranges from the model**
+> My model has no electronics, so servos, board and battery sit where the
+> lab puts them (ADR-062). Let me place them: blocks or points on
+> CALFLAB::Model tagged with the component's stable ID, used for the
+> position of that component's mass. Then check my modelled parts against
+> each other through each joint's range (which angle do they first touch
+> at?) and offer those angles as the joint ranges, as overrides I can
+> accept or not.
 
 **A. Use the verified data**
 > I have filled in docs/component_verification.csv. Read it, list every row

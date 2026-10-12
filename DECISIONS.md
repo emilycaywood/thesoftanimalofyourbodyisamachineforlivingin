@@ -1161,3 +1161,127 @@ CRLF line endings on Windows; it now keeps LF.
 
 Checked: `tests/test_boards.py` (4). Not looked at in Rhino or Blender; the
 Mechanism lists were looked at once in the lab's browser pane.
+
+## ADR-062 — A robot modelled in Rhino is simulated in place of the parametric one (**VERIFY**)
+
+*Context.* The researcher pulled the two-joint calf into Rhino and modelled
+the real prototype against it: closed solids, many small parts per body, PLA
+at 20 % infill, stainless rods, silicone on the head, joints roughly but not
+exactly where the pulled calf's are. `CalflabPush` only replaced one body's
+mass properties (ADR-050, 053, 054): the skeleton came from the genome and
+the simulator collided the envelope boxes, capsules and hoof spheres. They
+asked for joint places and axes, mass and collision from their model, with
+the genome, Form, the proportion study and Evolve left as they are. The
+conventions below were proposed first and accepted by the researcher on
+2026-10-12.
+
+*Decision: one override of kind `model`.* It is layered over the parametric
+result like every other override (rules 5 and 6): `set_rhino_model` stores
+it, a second push replaces it, switching it off or undoing returns the
+parametric calf exactly. Nothing is written to the genome. Its `meta` holds
+`joints` (per joint id a point and a direction, world, mm, standing pose) and
+`bodies` (per body id its solids, measured in the body frame at the push as
+in ADR-053/054, and the collision hulls), so building a design still needs no
+file access and a run record carries what it was built from.
+
+*In Rhino: layers, lines, tags.* `CalflabModelSetup` makes `CALFLAB::Model`
+with a sublayer per body and `CALFLAB::Model::Joints` with an axis line per
+hinge where the parametric skeleton has it. A solid belongs to the body
+whose layer it is on or under (`calflab.body` user text wins). A joint is
+the line tagged `calflab.joint`: direction = axis, midpoint = place.
+`calflab.foot = yes` marks ground-contact solids. Layers were chosen over
+user text per object because a model of many small parts is organised by
+dragging onto layers; lines because the pulled calf already draws its axes
+as lines. `CalflabPushModel` takes no selection and sends everything on those
+layers; `CalflabTag` writes the tags. The key is `calflab.joint`, not
+`calflab.id`, because `CalflabPull` deletes every object carrying
+`calflab.id`; the push removes that key from objects on the model layers.
+
+*Skeleton* (`calflab.model.pushed_model.apply_skeleton`). The body a joint
+carries gets its origin at the line's midpoint and the joint its axis along
+the line, turned to point the way the parametric axis does so a positive
+angle means the same turn. Kept: the orientation of every body frame, the
+standing angles, the joint ranges, the actuator on each joint, and the IDs
+(rule 8). Bodies are processed parents first, so everything below a moved
+joint moves with it; a joint without a line keeps its parametric offset from
+its parent. Assumed: **the model is drawn in the standing pose** of the
+pulled calf, since that is the pose it was modelled against. Library
+components (servos, board, battery) keep their place in their body frame, so
+a servo moves with its joint; their exact position in the real chassis is not
+taken from the model, which has no electronics in it.
+
+*Mass.* Each modelled body is given its solids through the code path of
+ADR-053 (one mass geom per solid, own material, infill estimate if tagged,
+equivalent box in the simulator). A body without solids stays parametric
+and is named in a warning and in `parametric_bodies`.
+
+*Collision.* One convex hull per solid, reduced to at most 32 of its hull's
+vertices (the furthest along 32 spread directions, always including the six
+axes and straight down in the standing pose, so the lowest point is exact).
+The reduced hull lies inside the true one. The envelope geoms of a modelled
+body are removed, not kept as collision shapes. All solids tagged as feet on
+one body give **one** hull and that is the leg's foot geom
+(`<body>.foot`, `foot = true`), so the gait metrics still see four feet in
+leg order; the parametric hoof of that leg is removed with its mass (it is
+cast silicone the model does not have) and listed in `hooves_removed`. Hulls
+are separate massless geoms (`<body>.hull.<n>`, role `collision`,
+`Geom.hull`): the solids keep their place in the structure-mass bookkeeping.
+MuJoCo collides meshes as convex hulls in any case; a hull fills concavities,
+so a concave sole is flat and a foot of several toes is one pad. Robot geoms
+still collide only with the ground (as before: `contype 1, conaffinity 0`),
+so the cost is one hull-plane test per solid.
+
+*Start height.* A model with hulls starts with its lowest collision point
+2 mm above the floor (the parametric calf starts at its root height). Feet
+that differ by more than 1 mm in height as modelled are reported.
+
+*All or nothing, with every problem listed.* The push is refused, and
+nothing stored, if a solid is open, on no body layer, has no structure
+material, has unreadable print tags, or a line names no joint. A check-only
+mode reports without storing. Unlike `CalflabPush`, an open solid is not
+"shown but not used": a model with a part silently missing from its mass
+would be simulated as if it were complete.
+
+*Recorded.* `spec.metadata["geometry"]` and `calflab.app.scene.geometry_record`:
+`inputs.geometry` in the run record of sim, tune, evolve and study runs and
+`geometry` in the scene. `source` is `parametric` or `rhino_model`; for the
+latter the file name, override id, push time, the joint table against the
+parametric skeleton (mm, degrees), per body the solids, hulls and the
+SHA-256 of each stored mesh, the feet, and what stayed parametric. A sim run
+of a model is titled `Simulate (<override name>)`. Designs without a model
+have no `geometry` entry in their spec metadata, so their specs and MJCF are
+unchanged (the suite's identical-before-and-after checks pass).
+
+*Print settings are asked, not assumed.* The estimate method is ADR-054's.
+`CalflabPushModel` asks once per material whether untagged solids are
+printed with infill (then for the three values) or fully dense, and writes
+the answer onto the objects (`calflab.print.*`, or `calflab.dense = yes`,
+which only stops the question being asked again).
+
+*Material.* `silicone_solid` (structure, 1.04 g/cm3 as given by the
+researcher on 2026-10-12 from the datasheet; product name and link not
+given; unverified).
+
+*Measured on a stand-in* (145 solids with 159,000 faces, joints moved 1 to
+4 mm, on a copy of `projects/small-calf-two-joint`): push 4.5 s; 19,000
+physics steps per second against 31,000 for the parametric calf; it stands
+on its four foot hulls and walks with the project's gait at 0.095 m/s
+(parametric: 0.097), no fall in 10 s, stability 0.82 (0.92). The document
+grows by about 1 MB (the hull vertices and solid measurements).
+
+*Limits.* Hull vertices are in the document, so a model of several hundred
+solids makes every document refresh and undo record large. A proportion
+study or evolution with the model on varies genes under fixed geometry and
+is not meaningful: not blocked, documented. Evolve's `leg_length` descriptor
+reads the hoof's place and misreads a modelled leg. Joint ranges are the
+parametric ones; nothing checks that the modelled parts clear each other
+through them. `set_part_material` does not reach a modelled body's solids.
+A joint that exists in the model but not in the genome (or the reverse)
+cannot be expressed: the genome still decides which joints exist.
+
+Checked: `tests/test_pushed_model.py` (10), and `bridge rhino --check` in
+Rhino 8.34 on 2026-10-12 with a new step (layers and lines created, lines
+moved 5 mm, a trunk box, a shank and a tagged foot pushed whole, the joint
+table, mass and foot read back, a pull leaving the model alone, undo). Not
+done by anyone: the three commands typed by hand with their prompts, and the
+researcher's real model.

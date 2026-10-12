@@ -13,7 +13,7 @@ and RhinoCommon.
    _-ScriptEditor _Run "<repo>\bridges\rhino\scripts\CalflabInstall.py"
    ```
 
-   This registers four aliases, which you then type like commands.
+   This registers seven aliases, which you then type like commands.
 
 | Command | What it does |
 |---|---|
@@ -21,6 +21,9 @@ and RhinoCommon.
 | `CalflabPull` | Fetch the current design as layered geometry. Layers: `CALFLAB::Structure`, `::Actuators`, `::Transmission`, `::Electronics`, `::Sensors`, `::Skin`, `::Harness`, `::Annotations`. Repeated components are block instances (`calflab.<component>`). Every object has user text `calflab.id` (stable ID), `calflab.body`, `calflab.layer`, `calflab.mass_g`, `calflab.mass_source` (`parametric`, `component`, `geometry` or `measured`) and, where a material applies, `calflab.material`; for components also `calflab.component` and `calflab.verified`. Harness routes are polylines on `CALFLAB::Harness` named by route id (`harness.bus.fl`), with user text `calflab.src`, `calflab.dst`, `calflab.length_mm` (cut length, with slack), `calflab.connector` and `calflab.wires`. |
 | `CalflabPush` | Send selected geometry (mesh, Brep, extrusion or SubD) back as a named **geometry override** on a body. It asks for the body ID, the layer (Skin or Structure), a name and, for Structure, a material. On **Skin** it is a sculpt: look only. On **Structure** a closed solid gives the part its mass (volume x material density), centre of mass and inertia; an open one is shown, not used for mass, and the command prints a warning. It shows up in the web app's Properties and Overrides and can be toggled or removed there. |
 | `CalflabLiveSync` | Toggle live updates: Rhino re-pulls whenever the design changes in any client. |
+| `CalflabModelSetup` | Create `CALFLAB::Model` with a sublayer per body and `CALFLAB::Model::Joints` with an axis line per joint (user text `calflab.joint`), placed where the pulled calf has it. Adds only what is missing. |
+| `CalflabTag` | Write `calflab.material`, `calflab.foot = yes` and the `calflab.print.*` tags onto the selected solids. |
+| `CalflabPushModel` | Send everything on the `CALFLAB::Model` layers: the simulated robot is then built from it (joints from the lines, mass and collision from the solids). One override, "Rhino model". See below. |
 
 Pulling again replaces only objects that carry `calflab.id`; your own geometry
 is left alone. Sculpt on your own layer, then `CalflabPush` it.
@@ -58,6 +61,31 @@ first. Without print tags the mass is that of a fully dense part; see the
 user guide, section 4.
 The envelope the solid replaces is not pulled into Rhino any more; in the
 simulator it remains the collision shape.
+
+### A whole modelled robot (ADR-062)
+
+`CalflabPush` gives one part its mass. To simulate a robot you modelled,
+with your joint places and your feet:
+
+1. `CalflabPull`, `CalflabModelSetup`.
+2. Solids onto the body layers under `CALFLAB::Model` (or give an object
+   the user text `calflab.body`). One body's solids are one rigid piece in
+   the simulator; they need not touch.
+3. Move each line on `CALFLAB::Model::Joints` onto its real axis: direction
+   = axis, midpoint = place of the joint.
+4. `CalflabTag` the feet (`calflab.foot = yes`) and the parts of another
+   material.
+5. `CalflabPushModel`, **Check** first if you like. Read the printout: the
+   joint table against the pulled calf's in mm, bodies, masses, feet.
+
+User text the commands read: `calflab.body` (overrides the layer),
+`calflab.material`, `calflab.foot`, `calflab.print.infill` /
+`.perimeters` / `.line_width`, `calflab.dense` (written when you answer
+"fully dense", so the question is not asked again) and, on the lines,
+`calflab.joint`. Objects on the model layers must not carry `calflab.id`:
+`CalflabPull` deletes whatever does. `CalflabPushModel` removes it from them
+and says how many. Objects hidden with `Hide` are not sent; objects on a
+layer that is switched off are. Blocks are not read: explode them. The full description is in the user guide, section 4.
 
 ## Grasshopper
 
