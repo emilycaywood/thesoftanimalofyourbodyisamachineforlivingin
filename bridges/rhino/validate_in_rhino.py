@@ -253,6 +253,26 @@ def check_model_push(doc):
         add("leg.fl.shank", box((foot[0], foot[1], 3.0), 20.0, 14.0, 6.0), "check foot",
             {"calflab.material": "pla", layout["foot_key"]: "yes"}),
     ]
+    # detailed parts: a plate with a row of drilled holes and filleted edges, and a part well under a millimetre
+    hp = pos["head"]
+    plate = box(hp, 30.0, 20.0, 4.0)
+    for i in range(5):
+        axis = rg.Line(rg.Point3d(hp[0] - 12.0 + 6.0 * i, hp[1], hp[2] - 5.0), rg.Point3d(hp[0] - 12.0 + 6.0 * i, hp[1], hp[2] + 5.0))
+        drill = rg.Cylinder(rg.Circle(rg.Plane(axis.From, rg.Vector3d.ZAxis), 1.1), 10.0).ToBrep(True, True)
+        cut = rg.Brep.CreateBooleanDifference(plate, drill, 0.001)
+        assert cut and len(cut) == 1, "the test plate could not be drilled"
+        plate = cut[0]
+    filleted = rg.Brep.CreateFilletEdges(plate, list(range(plate.Edges.Count))[:4], [0.6] * 4, [0.6] * 4,
+                                         rg.BlendType.Fillet, rg.RailType.RollingBall, 0.001)
+    if filleted and len(filleted) == 1 and filleted[0].IsSolid:
+        plate = filleted[0]
+    assert plate.IsSolid, "the test plate is not a closed polysurface"
+    ids.append(add("head", plate, "check drilled plate", {"calflab.material": "pla"}))
+    ids.append(add("head", rg.Sphere(rg.Point3d(hp[0], hp[1], hp[2] + 10.0), 0.3).ToBrep(), "check tiny part", {"calflab.material": "pla"}))
+    for name in ("check drilled plate", "check tiny part"):
+        obj = [o for o in doc.Objects if o.Attributes.Name == name][0]
+        v, fc = cr.selection_to_mesh([obj])
+        assert fc, "%s: Rhino gave no mesh" % name
     # what a person does: mirror a tagged foot to the other side (the copy keeps calflab.body of its original),
     # and replace an axis line by one drawn and named by hand (no calflab.joint user text)
     other = [f for f in scene["feet"] if f["body"] == "leg.fr.shank"][0]["pos"]
@@ -288,12 +308,12 @@ def check_model_push(doc):
         feet = dict((f["geom"], f["lowest_z_mm"]) for f in reply["feet"])
         assert abs(feet["leg.fl.shank.foot"]) <= 0.05, "the foot's lowest point is not where it was modelled: %s" % feet
         s = reply["structure"]
-        assert s["free_bodies"] == 1 and s["loose_solids"] == 0 and s["solids"] == 4, "structure: %s" % s
+        assert s["free_bodies"] == 1 and s["loose_solids"] == 0 and s["solids"] == 6, "structure: %s" % s
         geometry = cr.request("/api/scene")["geometry"]
         assert geometry["source"] == "rhino_model" and geometry["collision"] == "hulls", "the scene does not say it uses the model"
         cr.pull()
         _, lines_after, solids_after = cr.collect_model()
-        assert len(lines_after) == len(lines) and len(solids_after) == 4, "CalflabPull touched the model layers"
+        assert len(lines_after) == len(lines) and len(solids_after) == 6, "CalflabPull touched the model layers"
         out.update({"joints": len(rows), "joint_distance_error_mm": round(worst, 4), "trunk_mass_g": bodies["trunk"]["mass_g"],
                     "feet": feet, "structure": s, "report": reply["lines"][:3], "label": geometry["label"]})
     finally:

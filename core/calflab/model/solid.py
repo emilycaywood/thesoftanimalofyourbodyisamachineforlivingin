@@ -22,6 +22,9 @@ from calflab.model.spec import Inertia6
 from calflab.model.xform import IDENTITY, Quat, Vec3
 
 WELD_DIGITS = 4  # vertices closer than 0.0001 mm are one vertex
+#: tried in turn when the mesh is not closed at WELD_DIGITS: a render mesh of a closed solid can have
+#: seams a little wider than that (0.001 mm, then 0.01 mm)
+LOOSER_WELD_DIGITS = (3, 2)
 HOST_VOLUME_TOLERANCE = 0.05  # the sender's exact volume is trusted within 5 % of the mesh volume
 MIN_BOX_MM = 0.1  # thinnest equivalent box the simulator is given
 
@@ -31,6 +34,8 @@ class SolidInfo(BaseModel):
 
     closed: bool = False
     problem: str = ""  # why it cannot be used for mass (empty when closed)
+    #: distance (mm) below which vertices were taken as one; more than 0.0001 = the mesh only closed with a looser weld
+    weld_mm: float = 0.0001
     faces: int = 0
     open_edges: int = 0
     area_mm2: float = 0.0
@@ -54,10 +59,25 @@ def analyze_mesh(vertices: Any, faces: Any) -> SolidInfo:
     """
     import trimesh
 
-    mesh = trimesh.Trimesh(vertices=np.asarray(vertices, dtype=float), faces=np.asarray(faces, dtype=int), process=False)
-    mesh.merge_vertices(digits_vertex=WELD_DIGITS)
-    mesh.update_faces(mesh.nondegenerate_faces())
-    info = SolidInfo(faces=len(mesh.faces), area_mm2=float(mesh.area))
+    def welded(digits: int) -> Any:
+        m = trimesh.Trimesh(vertices=np.asarray(vertices, dtype=float), faces=np.asarray(faces, dtype=int), process=False)
+        m.merge_vertices(digits_vertex=digits)
+        # Drop only faces that collapsed to an edge or a point (two corners are now one vertex). A sliver whose
+        # three corners lie on one line is kept: it has no area and no volume, but it closes the seam between
+        # its neighbours, and removing it would open a hole in a solid that is closed.
+        f = m.faces
+        m.update_faces((f[:, 0] != f[:, 1]) & (f[:, 1] != f[:, 2]) & (f[:, 0] != f[:, 2]))
+        return m
+
+    mesh = welded(WELD_DIGITS)
+    weld = 10.0 ** -WELD_DIGITS
+    if len(mesh.faces) >= 4 and not mesh.is_watertight:
+        for digits in LOOSER_WELD_DIGITS:
+            looser = welded(digits)
+            if len(looser.faces) >= 4 and looser.is_watertight:
+                mesh, weld = looser, 10.0 ** -digits
+                break
+    info = SolidInfo(faces=len(mesh.faces), area_mm2=float(mesh.area), weld_mm=weld)
     if len(mesh.faces) < 4:
         info.problem = "it has fewer than four faces"
         return info

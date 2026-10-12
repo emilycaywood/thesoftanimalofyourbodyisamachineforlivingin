@@ -739,3 +739,36 @@ def test_push_over_http_takes_a_material_and_reports_the_mass(tmp_path):
             assert bad.status_code == 400 and "not a structure material" in bad.json()["error"]
     finally:
         lab.close()
+
+
+def test_a_closed_mesh_with_a_sliver_face_on_a_seam_is_still_a_solid():
+    """Meshing a detailed polysurface can leave a triangle whose corners lie on one line where two faces
+    meet. It has no area, but it closes the seam: dropping it opened a hole in a closed solid."""
+    from calflab.model.solid import analyze_mesh
+
+    # a 10 mm cube; the bottom face has an extra vertex (8) in the middle of the edge 0-1, the front face does not,
+    # and the sliver (0, 8, 1) joins the two
+    v = [[0, 0, 0], [10, 0, 0], [10, 10, 0], [0, 10, 0], [0, 0, 10], [10, 0, 10], [10, 10, 10], [0, 10, 10], [5, 0, 0]]
+    f = [[0, 3, 8], [8, 3, 2], [8, 2, 1],  # bottom, fanned from the extra vertex
+         [0, 8, 1],                         # the sliver on the seam
+         [0, 1, 5], [0, 5, 4],              # front
+         [1, 2, 6], [1, 6, 5], [2, 3, 7], [2, 7, 6], [3, 0, 4], [3, 4, 7], [4, 5, 6], [4, 6, 7]]
+    info = analyze_mesh(v, f)
+    assert info.closed, info.problem
+    assert info.volume_mm3 == pytest.approx(1000.0, abs=1e-6)
+    assert info.com_mm == pytest.approx((5.0, 5.0, 5.0), abs=1e-6)
+
+
+def test_a_mesh_with_a_hairline_seam_closes_with_a_looser_weld_and_an_open_box_stays_open():
+    import trimesh
+    from calflab.model.solid import analyze_mesh
+
+    box = trimesh.creation.box(extents=(10, 10, 10))
+    v = box.vertices[box.faces].reshape(-1, 3).copy()  # every triangle with its own corners
+    f = np.arange(len(v)).reshape(-1, 3)
+    v[::7] += 0.0004  # corners that should coincide are up to 0.0004 mm apart
+    info = analyze_mesh(v, f)
+    assert info.closed and info.weld_mm == pytest.approx(0.001), (info.problem, info.weld_mm)
+    assert info.volume_mm3 == pytest.approx(1000.0, rel=1e-3)
+    opened = analyze_mesh(box.vertices, box.faces[:-2])
+    assert not opened.closed and "open" in opened.problem

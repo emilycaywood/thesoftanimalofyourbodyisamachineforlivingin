@@ -337,24 +337,104 @@ def selection_to_mesh(objects):
     import Rhino
 
     rg = Rhino.Geometry
-    joined = rg.Mesh()
+    vertices, faces = [], []
     for obj in objects:
         geom = obj.Geometry
+        mesh = None
         if isinstance(geom, rg.Mesh):
-            joined.Append(geom)
-        elif isinstance(geom, rg.Brep):
-            for m in rg.Mesh.CreateFromBrep(geom, rg.MeshingParameters.Default) or []:
-                joined.Append(m)
+            mesh = _tidy_mesh(geom.DuplicateMesh())
+            if not mesh.IsClosed:
+                mesh = _heal(mesh)
         elif isinstance(geom, rg.Extrusion):
-            for m in rg.Mesh.CreateFromBrep(geom.ToBrep(), rg.MeshingParameters.Default) or []:
-                joined.Append(m)
+            mesh = _mesh_of_brep(geom.ToBrep())
+        elif isinstance(geom, rg.Brep):
+            mesh = _mesh_of_brep(geom)
         elif isinstance(geom, rg.SubD):
-            joined.Append(rg.Mesh.CreateFromSubD(geom, 2))
-    joined.Faces.ConvertQuadsToTriangles()
-    joined.Vertices.CombineIdentical(True, True)
-    vertices = [[v.X, v.Y, v.Z] for v in joined.Vertices]
-    faces = [[f.A, f.B, f.C] for f in joined.Faces]
+            mesh = _tidy_mesh(rg.Mesh.CreateFromSubD(geom, 2))
+        if mesh is None:
+            continue
+        base = len(vertices)
+        for i in range(mesh.Vertices.Count):
+            p = mesh.Vertices.Point3dAt(i)  # double precision where the mesh has it
+            vertices.append([p.X, p.Y, p.Z])
+        faces.extend([f.A + base, f.B + base, f.C + base] for f in mesh.Faces)
     return vertices, faces
+
+
+def _tidy_mesh(mesh):
+    mesh.Faces.ConvertQuadsToTriangles()
+    mesh.Vertices.CombineIdentical(True, True)
+    return mesh
+
+
+def _naked_edges(mesh):
+    edges = mesh.GetNakedEdges()
+    return len(edges) if edges else 0
+
+
+def _heal(mesh):
+    """Close hairline seams of a mesh that should be closed (returns the mesh, healed or not)."""
+    try:
+        healed = mesh.DuplicateMesh()
+        healed.HealNakedEdges(0.01)
+        healed.Vertices.CombineIdentical(True, True)
+        if healed.IsClosed:
+            return healed
+    except Exception:
+        pass
+    return mesh
+
+
+def _mesh_of_brep(brep):
+    """One triangle mesh of a Brep, closed if the Brep is.
+
+    Rhino meshes a polysurface face by face. With some settings the faces of
+    a closed polysurface do not meet exactly along every edge, and a very
+    small part can come back with no mesh at all. So several settings are
+    tried, in this order, and the first mesh that is closed is used; if none
+    is, the one with the fewest open edges, after healing hairline seams.
+    Returns None if Rhino cannot mesh the object at all.
+    """
+    import Rhino
+
+    rg = Rhino.Geometry
+    doc = Rhino.RhinoDoc.ActiveDoc
+    settings = [
+        lambda: rg.MeshingParameters.Default,
+        lambda: rg.MeshingParameters.QualityRenderMesh,
+        lambda: rg.MeshingParameters.DocumentCurrentSetting(doc),
+        lambda: rg.MeshingParameters.DefaultAnalysisMesh,
+        lambda: rg.MeshingParameters.FastRenderMesh,
+        lambda: rg.MeshingParameters.Minimal,
+    ]
+    best = None
+    for make in settings:
+        try:
+            params = make()
+            try:
+                params.JaggedSeams = False
+                params.ClosedObjectPostProcess = True
+            except Exception:
+                pass
+            pieces = rg.Mesh.CreateFromBrep(brep, params)
+        except Exception:
+            continue
+        if not pieces:
+            continue
+        mesh = rg.Mesh()
+        for piece in pieces:
+            mesh.Append(piece)
+        _tidy_mesh(mesh)
+        if mesh.Faces.Count == 0:
+            continue
+        if mesh.IsClosed or not brep.IsSolid:
+            return mesh
+        mesh = _heal(mesh)
+        if mesh.IsClosed:
+            return mesh
+        if best is None or _naked_edges(mesh) < _naked_edges(best):
+            best = mesh
+    return best
 
 
 def selection_solid(objects):
@@ -649,6 +729,7 @@ def push_model(check_only=False, name="Rhino model"):
     for n, obj in enumerate(objects, start=1):
         vertices, faces = selection_to_mesh([obj])
         solids.append({"body": model_body(obj, layout), "name": obj.Attributes.Name or "solid %d" % n,
+                       "type": str(obj.Geometry.ObjectType), "layer": _layer_path(doc, obj),
                        "material": own_material(obj), "foot": is_foot(obj, layout), "vertices": vertices, "faces": faces,
                        "host": selection_solid([obj]), "print": own_print(obj) or None})
     body = {"file": os.path.basename(doc.Path or "") or (doc.Name or ""), "name": name, "source": CLIENT,

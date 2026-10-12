@@ -130,6 +130,7 @@ def save_pushed_model(lab: Any, payload: dict[str, Any], check_only: bool = Fals
     # ---- solids, body by body
     bodies: dict[str, dict[str, Any]] = {}
     foot_points: dict[str, list[np.ndarray]] = {}
+    refused: list[dict[str, Any]] = []
     loose = 0
     for n, part in enumerate(payload.get("solids") or [], start=1):
         label = f"Solid {str(part.get('name') or n)!r}"
@@ -141,7 +142,13 @@ def save_pushed_model(lab: Any, payload: dict[str, Any], check_only: bool = Fals
         label += f" on {body_id}"
         v, f = np.asarray(part.get("vertices", []), dtype=float), np.asarray(part.get("faces", []), dtype=int)
         if v.ndim != 2 or v.shape[1:] != (3,) or f.ndim != 2 or f.shape[1:] != (3,) or len(v) == 0:
-            errors.append(f"{label} has no mesh (is it a curve or a block?)")
+            kind = str(part.get("type") or "")
+            where = f" on layer {part['layer']}" if part.get("layer") else ""
+            if kind in ("Brep", "Extrusion", "Mesh", "SubD"):
+                errors.append(f"{label}{where}: Rhino could not make a mesh of this {kind} (is it very small, or invalid? try _Check on it)")
+            else:
+                errors.append(f"{label}{where} is a {kind or 'thing without a surface'}, not a solid: move it off the model layers, "
+                              "or explode it if it is a block")
             continue
         key = str(part.get("material") or "")
         if structure_material(lib, key) is None:
@@ -157,9 +164,14 @@ def save_pushed_model(lab: Any, payload: dict[str, Any], check_only: bool = Fals
         solid = analyze_mesh(local, f)
         host = part.get("host") if isinstance(part.get("host"), dict) else {}
         if not solid.closed:
-            hint = " (Rhino reports it closed, so its render mesh has gaps: try _ExtractRenderMesh)" if host.get("closed") else ""
-            errors.append(f"{label} is not a closed solid: {solid.problem}{hint}")
+            hint = (" Rhino reports the object itself as closed, so it is the mesh made of it for the push that has gaps, "
+                    "not your modelling." if host.get("closed") else "")
+            errors.append(f"{label} is not a closed solid: {solid.problem} ({solid.faces} mesh faces).{hint}")
+            refused.append({"name": str(part.get("name") or n), "body": body_id, "problem": solid.problem, "faces": solid.faces,
+                            "open_edges": solid.open_edges, "host": host, "mesh": _open_edge_report(v, f)})
             continue
+        if solid.weld_mm > 0.0001:
+            warnings.append(f"{label}: its mesh had seams up to {solid.weld_mm:g} mm wide, closed by joining vertices that close.")
         error = use_host_volume(solid, float(host.get("volume_mm3") or 0.0))
         if error is not None and abs(error) > HOST_VOLUME_TOLERANCE:
             warnings.append(f"{label}: its mesh volume differs {error * 100:+.1f} % from what Rhino reports; the mesh volume is used. "
@@ -266,8 +278,37 @@ def save_pushed_model(lab: Any, payload: dict[str, Any], check_only: bool = Fals
         )
         out.update({"stored": True, "override": res["result"]["override"]})
     out["lines"] = report_lines(out, check_only)
+    # the last report is kept beside the project, so a refused push can be read afterwards without the Rhino window
+    try:
+        from calflab.project.store import write_json
+
+        write_json(lab.project.path / ".cache" / "last_model_push.json",
+                   {"when": now_iso(), "file": str(payload.get("file") or ""), "check_only": check_only,
+                    "sent": {"joints": len(payload.get("joints") or []), "solids": len(payload.get("solids") or [])},
+                    **{k: out[k] for k in ("ok", "stored", "errors", "warnings", "structure", "lines")}, "refused": refused})
+    except OSError:
+        pass
     for w in warnings if out["stored"] else []:
         lab.bus.emit("log", level="warn", source="push", message=w)
+    return out
+
+
+def _open_edge_report(vertices: np.ndarray, faces: np.ndarray) -> dict[str, Any]:
+    """Why a mesh is not closed, in numbers: how many edges belong to one face only or to more than
+    two, at the normal weld and at looser ones, and how far apart the nearest unjoined vertices are."""
+    import trimesh
+
+    out: dict[str, Any] = {"vertices": int(len(vertices)), "faces": int(len(faces))}
+    for digits in (4, 3, 2, 1):
+        m = trimesh.Trimesh(vertices=vertices, faces=faces, process=False)
+        m.merge_vertices(digits_vertex=digits)
+        f = m.faces
+        m.update_faces((f[:, 0] != f[:, 1]) & (f[:, 1] != f[:, 2]) & (f[:, 0] != f[:, 2]))
+        if len(m.faces) == 0:
+            continue
+        counts = np.unique(m.edges_sorted, axis=0, return_counts=True)[1]
+        out[f"weld_{10.0 ** -digits:g}mm"] = {"naked_edges": int((counts == 1).sum()), "edges_with_3_or_more_faces": int((counts > 2).sum()),
+                                              "watertight": bool(m.is_watertight)}
     return out
 
 
