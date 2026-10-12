@@ -22,6 +22,13 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import calflab_rhino as cr
+
+# Rhino keeps an imported module for the whole session: load this one again if its file has changed since
+if getattr(cr, "_loaded_mtime", None) != os.path.getmtime(cr.__file__):
+    import importlib
+
+    cr = importlib.reload(cr)
+    cr._loaded_mtime = os.path.getmtime(cr.__file__)
 import rhinoscriptsyntax as rs
 import scriptcontext as sc
 
