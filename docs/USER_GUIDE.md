@@ -383,12 +383,15 @@ In Rhino (run `CalflabInstall` once more to get the three new commands):
    joint, where the pulled calf has it. Run it again whenever you like: it
    only adds what is missing.
 2. Put each of your solids on the layer of the body it belongs to (your own
-   sublayers below a body layer are fine). All solids of one body are one
+   sublayers below a body layer are fine). The layer decides, not any
+   `calflab.body` user text a copied or mirrored object still carries. All solids of one body are one
    rigid piece in the simulator, whether they touch or not: nothing needs to
    be joined or bolted together in the model, and only the joints move.
 3. Move and rotate each line on `CALFLAB::Model::Joints` onto your real joint
    axis. The line's **direction** is the axis; its **midpoint** is where the
-   joint is. Which way the line points does not matter.
+   joint is. Which way the line points does not matter. A line of your own
+   works too: put it on that layer, name the object with the joint id
+   (`joint.fl.knee`) and delete the one it replaces.
 4. Tag what needs it: select solids, `CalflabTag`. *Material* for parts that
    are not the material you will name at the push (steel rods, the silicone
    head); *Foot = Yes* for the solids that touch the ground; *Printed with
@@ -400,7 +403,9 @@ In Rhino (run `CalflabInstall` once more to get the three new commands):
    infill (then: infill percent, perimeters, line width) or fully dense, and
    writes the answers onto those objects as user text.
 
-The printout says what the simulator will treat as one piece (`1 free body
+Before it sends anything, the command lists the joint of every axis line it
+found and the foot solids per body, so a wrong name or tag shows at once.
+The printout then says what the simulator will treat as one piece (`1 free body
 (the trunk) + 8 hinges = 14 degrees of freedom. 145 solids on 10 bodies ...
 0 loose solids`), lists every joint against the pulled calf's (`moved 3.7 mm
 (dx +3.6, dy -0.5, dz -0.6), axis 0.0 deg off`), every body with its solids,

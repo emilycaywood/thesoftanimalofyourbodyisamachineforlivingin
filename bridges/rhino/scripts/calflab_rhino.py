@@ -17,6 +17,8 @@ import urllib.request
 DEFAULT_URL = "http://127.0.0.1:8000"
 CLIENT = "rhino"
 ID_KEY = "calflab.id"
+#: set for one Rhino process (by ``calflab bridge rhino --check``) to talk to another lab than the saved one
+URL_ENV = "CALFLAB_RHINO_URL"
 
 
 # ---------------------------------------------------------------------- settings
@@ -28,12 +30,17 @@ def _settings_path():
 def load_settings():
     try:
         with open(_settings_path(), "r", encoding="utf-8") as fh:
-            return json.load(fh)
+            settings = json.load(fh)
     except (OSError, ValueError):
-        return {"url": DEFAULT_URL}
+        settings = {"url": DEFAULT_URL}
+    if os.environ.get(URL_ENV):
+        settings["url"] = os.environ[URL_ENV]
+    return settings
 
 
 def save_settings(settings):
+    if os.environ.get(URL_ENV):
+        return  # a check run against another lab must not repoint the Rhino you are working in
     path = _settings_path()
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w", encoding="utf-8") as fh:
@@ -498,10 +505,11 @@ def model_setup():
     try:
         index = dict((layer["path"], doc.ensure_layer(layer["path"], layer["color"])) for layer in layout["layers"])
         have = set()
+        joints_layer = layout["joints_layer"]
         for obj in doc.doc.Objects:
-            joint = obj.Attributes.GetUserString(layout["joint_key"])
-            if joint and isinstance(obj.Geometry, Rhino.Geometry.Curve):
-                have.add(joint)
+            path = _layer_path(doc.doc, obj)
+            if (path == joints_layer or path.startswith(joints_layer + "::")) and isinstance(obj.Geometry, Rhino.Geometry.Curve):
+                have.add(model_joint(obj, layout))
         added = []
         for axis in layout["axes"]:
             if axis["id"] in have:
@@ -523,7 +531,7 @@ def collect_model():
     layout = request("/api/bridge/rhino/model")
     doc = Rhino.RhinoDoc.ActiveDoc
     root, joints_layer = layout["root_layer"], layout["joints_layer"]
-    lines, solids = [], []
+    lines, solids, not_lines = [], [], 0
     for obj in doc.Objects:
         path = _layer_path(doc, obj)
         if path != root and not path.startswith(root + "::"):
@@ -531,20 +539,63 @@ def collect_model():
         if path == joints_layer or path.startswith(joints_layer + "::"):
             if isinstance(obj.Geometry, rg.Curve):
                 lines.append(obj)
+            else:
+                not_lines += 1
             continue
         solids.append(obj)
+    layout["not_lines"] = not_lines  # objects on the Joints layer that are not curves: they are not axis lines
     return layout, lines, solids
 
 
 def model_body(obj, layout):
-    """The body id a solid on the model layers belongs to ("" if it is on none)."""
+    """The body id a solid on the model layers belongs to ("" if it is on none).
+
+    The body layer it is on (or under) decides. ``calflab.body`` user text is
+    only read for a solid that is on no body layer: a copy or mirror of an
+    object keeps the user text of its original, and CalflabPull writes
+    ``calflab.body`` onto everything it creates, so the text is often stale.
+    """
     import Rhino
 
-    own = obj.Attributes.GetUserString("calflab.body")
-    if own:
-        return own
     rest = _layer_path(Rhino.RhinoDoc.ActiveDoc, obj)[len(layout["root_layer"]):].lstrip(":")
-    return rest.split("::")[0] if rest else ""
+    on_layer = rest.split("::")[0] if rest else ""
+    if on_layer in [b["id"] for b in layout["bodies"]]:
+        return on_layer
+    return obj.Attributes.GetUserString("calflab.body") or on_layer
+
+
+def model_joint(obj, layout):
+    """The joint id of an axis line. The object's name decides when it is a
+    joint id (a line you drew, or copied and renamed); otherwise its
+    ``calflab.joint`` user text, which a copy keeps from its original."""
+    name = (obj.Attributes.Name or "").strip()
+    if name in [a["id"] for a in layout["axes"]]:
+        return name
+    return (obj.Attributes.GetUserString(layout["joint_key"]) or "").strip() or name
+
+
+def model_summary(layout, lines, solids):
+    """What CalflabPushModel is about to send, as lines of text: which joint each
+    axis line is for and which solids are feet, so a wrong tag shows before the push."""
+    out = []
+    joints = sorted(model_joint(o, layout) or "(unnamed)" for o in lines)
+    out.append("axis lines (%d): %s" % (len(joints), ", ".join(joints) or "none"))
+    known = [a["id"] for a in layout["axes"]]
+    for joint in sorted(set(joints)):
+        if joints.count(joint) > 1:
+            out.append("  %d lines are for %s: keep one, or rename the others (object name = joint id)" % (joints.count(joint), joint))
+        if joint not in known:
+            out.append("  %s is not a joint of this design. The joints are: %s" % (joint, ", ".join(known)))
+    if layout.get("not_lines"):
+        out.append("  %d objects on %s are not curves and are ignored: an axis must be a line" % (layout["not_lines"], layout["joints_layer"]))
+    feet = {}
+    for obj in solids:
+        if is_foot(obj, layout):
+            feet.setdefault(model_body(obj, layout) or "(no body layer)", []).append(obj.Attributes.Name or "unnamed")
+    out.append("foot solids (%d): %s" % (
+        sum(len(v) for v in feet.values()),
+        "; ".join("%s: %s" % (body, ", ".join(names)) for body, names in sorted(feet.items())) or "none tagged calflab.foot = yes"))
+    return out
 
 
 def is_foot(obj, layout):
@@ -581,10 +632,19 @@ def push_model(check_only=False, name="Rhino model"):
     if pulled:
         set_user_text(pulled, {ID_KEY: None})
     joints = []
+    stale = 0
     for obj in lines:
-        joint = obj.Attributes.GetUserString(layout["joint_key"]) or obj.Attributes.Name or ""
+        joint = model_joint(obj, layout)
+        if joint and obj.Attributes.GetUserString(layout["joint_key"]) != joint:
+            set_user_text([obj], {layout["joint_key"]: joint})  # the tag now says what the name says
+            stale += 1
         a, b = obj.Geometry.PointAtStart, obj.Geometry.PointAtEnd
         joints.append({"id": joint, "from": [a.X, a.Y, a.Z], "to": [b.X, b.Y, b.Z]})
+    for obj in objects:
+        own, body = obj.Attributes.GetUserString("calflab.body"), model_body(obj, layout)
+        if own and body and own != body:
+            set_user_text([obj], {"calflab.body": body})  # a copy's leftover: the layer decides
+            stale += 1
     solids = []
     for n, obj in enumerate(objects, start=1):
         vertices, faces = selection_to_mesh([obj])
@@ -595,4 +655,5 @@ def push_model(check_only=False, name="Rhino model"):
             "check_only": bool(check_only), "joints": joints, "solids": solids}
     reply = request("/api/bridge/rhino/model", body, timeout=MODEL_TIMEOUT_S)
     reply["unprotected"] = len(pulled)
+    reply["relabelled"] = stale
     return reply

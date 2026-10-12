@@ -1187,8 +1187,14 @@ file access and a run record carries what it was built from.
 *In Rhino: layers, lines, tags.* `CalflabModelSetup` makes `CALFLAB::Model`
 with a sublayer per body and `CALFLAB::Model::Joints` with an axis line per
 hinge where the parametric skeleton has it. A solid belongs to the body
-whose layer it is on or under (`calflab.body` user text wins). A joint is
-the line tagged `calflab.joint`: direction = axis, midpoint = place.
+whose layer it is on or under; `calflab.body` user text is read only for a
+solid on no body layer. A joint is the line named with the joint id, else
+tagged `calflab.joint`: direction = axis, midpoint = place. (Changed the
+same day: at first the user text won. Rhino copies user text with an
+object, so mirrored feet all claimed their original's body and a line
+copied and renamed kept its original's joint. What is visible in Rhino,
+the layer and the object name, now decides, and the push rewrites the
+leftover text.)
 `calflab.foot = yes` marks ground-contact solids. Layers were chosen over
 user text per object because a model of many small parts is organised by
 dragging onto layers; lines because the pulled calf already draws its axes

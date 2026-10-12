@@ -498,6 +498,16 @@ modelled in Rhino instead of the parametric calf; ADR-062):**
   three studies made by the researcher after the 2026-10-10 handoff; they
   are not described here.
 * 314 pytest tests.
+* Fixed after the researcher's first try the same day: an open Rhino kept
+  the old `calflab_rhino` module in memory (the command scripts now reload
+  it when its file changes); a copied or mirrored solid kept its
+  original's `calflab.body`, and a hand-drawn or renamed axis line was not
+  read by its name (the layer and the object name now decide);
+  `CalflabTag` threw away its answers when a later prompt was cancelled;
+  `CalflabPushModel` lists the joints and foot solids it found before it
+  sends. `bridge rhino --check` no longer rewrites
+  `%APPDATA%\calflab\rhino_bridge.json`: it passes the lab address to its
+  own Rhino through `CALFLAB_RHINO_URL`.
 * Not done: the model's solids are stored with their hull vertices in the
   document (about 1 MB for 145 solids); a web view of the joint table (it
   is in the scene payload and the Rhino printout only); self-collision;

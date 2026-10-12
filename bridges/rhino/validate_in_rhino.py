@@ -253,13 +253,29 @@ def check_model_push(doc):
         add("leg.fl.shank", box((foot[0], foot[1], 3.0), 20.0, 14.0, 6.0), "check foot",
             {"calflab.material": "pla", layout["foot_key"]: "yes"}),
     ]
+    # what a person does: mirror a tagged foot to the other side (the copy keeps calflab.body of its original),
+    # and replace an axis line by one drawn and named by hand (no calflab.joint user text)
+    other = [f for f in scene["feet"] if f["body"] == "leg.fr.shank"][0]["pos"]
+    ids.append(add("leg.fr.shank", box((other[0], other[1], 3.0), 20.0, 14.0, 6.0), "check foot copy",
+                   {"calflab.material": "pla", layout["foot_key"]: "yes", "calflab.body": "leg.fl.shank"}))
+    old = [o for o in cr.collect_model()[1] if cr.model_joint(o, layout) == "joint.fr.knee"][0]
+    a, b = old.Geometry.PointAtStart, old.Geometry.PointAtEnd
+    doc.Objects.Delete(old.Id, True)
+    attrs = Rhino.DocObjects.ObjectAttributes()
+    attrs.Name = "joint.fr.knee"
+    attrs.LayerIndex = doc.Layers.FindByFullPath(layout["joints_layer"], -1)
+    doc.Objects.AddLine(rg.Line(b, a), attrs)
+    assert not cr.model_setup()["added"], "CalflabModelSetup added a line for a joint that has a hand-drawn, named one"
     out = {"layers": len(layout["layers"]), "axis_lines": len(lines)}
     try:
+        summary = cr.model_summary(*cr.collect_model())
+        assert "leg.fl.shank: check foot" in summary[-1] and "leg.fr.shank: check foot copy" in summary[-1], summary
         check = cr.push_model(check_only=True)
         assert check["ok"] and not check["stored"], "the check-only push reported: %s" % check["errors"]
         reply = cr.push_model()
         assert reply["ok"] and reply["stored"], "the model was not stored: %s" % reply["errors"]
         assert reply["unprotected"] == 0 and check["unprotected"] == 1, "calflab.id was not removed from the model's solid"
+        assert check["relabelled"] == 2 and reply["relabelled"] == 0, "leftover user text was not corrected: %s" % check["relabelled"]
         rows = dict((j["joint"], j) for j in reply["joints"])
         worst = max(abs(j["distance_mm"] - 5.0) for j in rows.values())
         assert len(rows) == len(lines) and worst <= 0.01, "joints are not 5 mm from the pulled calf's: %s" % sorted(
@@ -268,15 +284,16 @@ def check_model_push(doc):
         want = 100.0 * 40.0 * 30.0 / 1000.0 * density
         assert abs(bodies["trunk"]["mass_g"] - want) <= 0.02, "the trunk box weighs %.2f g, expected %.2f g" % (bodies["trunk"]["mass_g"], want)
         assert bodies["leg.fl.shank"]["foot"] and bodies["leg.fl.shank"]["hulls"] == 2, "the tagged solid is not the foot: %s" % bodies["leg.fl.shank"]
+        assert bodies["leg.fr.shank"]["foot"], "a mirrored foot on the fr shank layer was not taken as that leg's foot"
         feet = dict((f["geom"], f["lowest_z_mm"]) for f in reply["feet"])
         assert abs(feet["leg.fl.shank.foot"]) <= 0.05, "the foot's lowest point is not where it was modelled: %s" % feet
         s = reply["structure"]
-        assert s["free_bodies"] == 1 and s["loose_solids"] == 0 and s["solids"] == 3, "structure: %s" % s
+        assert s["free_bodies"] == 1 and s["loose_solids"] == 0 and s["solids"] == 4, "structure: %s" % s
         geometry = cr.request("/api/scene")["geometry"]
         assert geometry["source"] == "rhino_model" and geometry["collision"] == "hulls", "the scene does not say it uses the model"
         cr.pull()
         _, lines_after, solids_after = cr.collect_model()
-        assert len(lines_after) == len(lines) and len(solids_after) == 3, "CalflabPull touched the model layers"
+        assert len(lines_after) == len(lines) and len(solids_after) == 4, "CalflabPull touched the model layers"
         out.update({"joints": len(rows), "joint_distance_error_mm": round(worst, 4), "trunk_mass_g": bodies["trunk"]["mass_g"],
                     "feet": feet, "structure": s, "report": reply["lines"][:3], "label": geometry["label"]})
     finally:

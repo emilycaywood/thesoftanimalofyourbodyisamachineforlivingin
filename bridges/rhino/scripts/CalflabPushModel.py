@@ -82,6 +82,8 @@ def main():
         print("CALFLAB: nothing on %s yet. Type CalflabModelSetup first." % layout["root_layer"])
         return
     print("CALFLAB: found %d axis lines and %d solids on %s" % (len(lines), len(solids), layout["root_layer"]))
+    for line in cr.model_summary(layout, lines, solids):
+        print("CALFLAB: %s" % line)
     mode = rs.GetString("Push the model to CALFLAB, or only check it?", "Push", ["Push", "Check"])
     if mode is None:
         return
@@ -96,6 +98,9 @@ def main():
         return
     if reply.get("unprotected"):
         print("CALFLAB: removed calflab.id from %d objects on the model layers, so CalflabPull will not delete them" % reply["unprotected"])
+    if reply.get("relabelled"):
+        print("CALFLAB: corrected leftover user text on %d objects (a copy keeps its original's calflab.body / calflab.joint; "
+              "the layer and the object name decide)" % reply["relabelled"])
     for line in reply["lines"]:
         print("CALFLAB: %s" % line)
     if reply.get("stored"):

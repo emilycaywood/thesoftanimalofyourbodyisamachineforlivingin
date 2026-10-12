@@ -638,13 +638,11 @@ def _rhino_check(url: str, timeout: float, grasshopper: bool = False) -> None:
     for stale in (report, Path(str(report) + ".pass1")):
         stale.unlink(missing_ok=True)
     console.print(f"Starting Rhino against project [bold]{project}[/bold]; it closes itself when done...")
-    # the alias answers its own prompts from the macro, so the settings file must point at this lab
-    settings = Path(os.environ.get("APPDATA", str(Path.home()))) / "calflab" / "rhino_bridge.json"
-    settings.parent.mkdir(parents=True, exist_ok=True)
-    settings.write_text(json.dumps({"url": url}, indent=2), encoding="utf-8")
+    # the alias answers its own prompts from the macro, so this Rhino must talk to this lab. Through the
+    # environment of this one process, not the settings file: a Rhino the researcher has open reads that file.
     # a command-line string, not a list: Rhino needs /runscript="..." quoted exactly like this
     proc = subprocess.Popen(f'"{exe}" /nosplash /runscript="{macro}"',
-                            env={**os.environ, "CALFLAB_RHINO_REPORT": str(report)})
+                            env={**os.environ, "CALFLAB_RHINO_REPORT": str(report), "CALFLAB_RHINO_URL": url})
     deadline = time.time() + timeout
     while proc.poll() is None and not report.is_file() and time.time() < deadline:
         time.sleep(1.0)

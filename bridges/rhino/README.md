@@ -68,17 +68,22 @@ simulator it remains the collision shape.
 with your joint places and your feet:
 
 1. `CalflabPull`, `CalflabModelSetup`.
-2. Solids onto the body layers under `CALFLAB::Model` (or give an object
-   the user text `calflab.body`). One body's solids are one rigid piece in
-   the simulator; they need not touch.
+2. Solids onto the body layers under `CALFLAB::Model`. **The layer decides
+   the body**: `calflab.body` user text is read only for a solid on no body
+   layer, because a copy or mirror keeps its original's user text. One
+   body's solids are one rigid piece in the simulator; they need not touch.
 3. Move each line on `CALFLAB::Model::Joints` onto its real axis: direction
-   = axis, midpoint = place of the joint.
+   = axis, midpoint = place of the joint. To use a line of your own instead,
+   put it on that layer and give it the joint id as its **object name**
+   (`joint.fl.knee`); a name that is a joint id wins over the
+   `calflab.joint` user text a copied line still carries. Delete the line
+   it replaces: two lines for one joint are refused.
 4. `CalflabTag` the feet (`calflab.foot = yes`) and the parts of another
    material.
 5. `CalflabPushModel`, **Check** first if you like. Read the printout: the
    joint table against the pulled calf's in mm, bodies, masses, feet.
 
-User text the commands read: `calflab.body` (overrides the layer),
+User text the commands read: `calflab.body` (only for a solid on no body layer),
 `calflab.material`, `calflab.foot`, `calflab.print.infill` /
 `.perimeters` / `.line_width`, `calflab.dense` (written when you answer
 "fully dense", so the question is not asked again) and, on the lines,
