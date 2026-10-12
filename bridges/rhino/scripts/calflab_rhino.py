@@ -476,3 +476,123 @@ def guess_target(objects):
         if body:
             return body
     return ""
+
+
+# ---------------------------------------------------------------------- a whole modelled robot (ADR-062)
+MODEL_TIMEOUT_S = 900.0
+
+
+def _layer_path(doc, obj):
+    return doc.Layers[obj.Attributes.LayerIndex].FullPath
+
+
+def model_setup():
+    """Create the CALFLAB::Model layers (one per body) and, on CALFLAB::Model::Joints,
+    an axis line per joint where the pulled calf has it. A joint that already has
+    a line there is left alone, so running this again never moves your lines."""
+    import Rhino
+
+    layout = request("/api/bridge/rhino/model")
+    doc = RhinoDocAdapter()
+    undo = doc.doc.BeginUndoRecord("CalflabModelSetup")
+    try:
+        index = dict((layer["path"], doc.ensure_layer(layer["path"], layer["color"])) for layer in layout["layers"])
+        have = set()
+        for obj in doc.doc.Objects:
+            joint = obj.Attributes.GetUserString(layout["joint_key"])
+            if joint and isinstance(obj.Geometry, Rhino.Geometry.Curve):
+                have.add(joint)
+        added = []
+        for axis in layout["axes"]:
+            if axis["id"] in have:
+                continue
+            doc.add_line(axis["from"], axis["to"], index[layout["joints_layer"]], axis["id"], {layout["joint_key"]: axis["id"]})
+            added.append(axis["id"])
+    finally:
+        doc.doc.EndUndoRecord(undo)
+    doc.redraw()
+    return {"layout": layout, "added": added, "kept": sorted(have)}
+
+
+def collect_model():
+    """What is on the CALFLAB::Model layers: (layout, axis lines, solids). A solid's
+    body is its ``calflab.body`` user text, else the body layer it is on (or under)."""
+    import Rhino
+
+    rg = Rhino.Geometry
+    layout = request("/api/bridge/rhino/model")
+    doc = Rhino.RhinoDoc.ActiveDoc
+    root, joints_layer = layout["root_layer"], layout["joints_layer"]
+    lines, solids = [], []
+    for obj in doc.Objects:
+        path = _layer_path(doc, obj)
+        if path != root and not path.startswith(root + "::"):
+            continue
+        if path == joints_layer or path.startswith(joints_layer + "::"):
+            if isinstance(obj.Geometry, rg.Curve):
+                lines.append(obj)
+            continue
+        solids.append(obj)
+    return layout, lines, solids
+
+
+def model_body(obj, layout):
+    """The body id a solid on the model layers belongs to ("" if it is on none)."""
+    import Rhino
+
+    own = obj.Attributes.GetUserString("calflab.body")
+    if own:
+        return own
+    rest = _layer_path(Rhino.RhinoDoc.ActiveDoc, obj)[len(layout["root_layer"]):].lstrip(":")
+    return rest.split("::")[0] if rest else ""
+
+
+def is_foot(obj, layout):
+    return (obj.Attributes.GetUserString(layout["foot_key"]) or "").strip().lower() in ("yes", "true", "1", "y")
+
+
+def set_user_text(objects, values):
+    """Write user text {key: text} onto objects (None removes the key)."""
+    import Rhino
+
+    doc = Rhino.RhinoDoc.ActiveDoc
+    for obj in objects:
+        attrs = obj.Attributes.Duplicate()
+        for key, text in values.items():
+            if text is None:
+                attrs.DeleteUserString(key)
+            else:
+                attrs.SetUserString(key, str(text))
+        doc.Objects.ModifyAttributes(obj, attrs, True)
+
+
+def push_model(check_only=False, name="Rhino model"):
+    """Send everything on the CALFLAB::Model layers; returns the server's report.
+
+    The server checks and measures it all, and stores nothing unless every
+    solid is closed, on a body and has a material. ``calflab.id`` user text is
+    removed from the objects sent: CalflabPull deletes whatever carries it.
+    """
+    import Rhino
+
+    layout, lines, objects = collect_model()
+    doc = Rhino.RhinoDoc.ActiveDoc
+    pulled = [o for o in lines + objects if o.Attributes.GetUserString(ID_KEY)]
+    if pulled:
+        set_user_text(pulled, {ID_KEY: None})
+    joints = []
+    for obj in lines:
+        joint = obj.Attributes.GetUserString(layout["joint_key"]) or obj.Attributes.Name or ""
+        a, b = obj.Geometry.PointAtStart, obj.Geometry.PointAtEnd
+        joints.append({"id": joint, "from": [a.X, a.Y, a.Z], "to": [b.X, b.Y, b.Z]})
+    solids = []
+    for n, obj in enumerate(objects, start=1):
+        vertices, faces = selection_to_mesh([obj])
+        solids.append({"body": model_body(obj, layout), "name": obj.Attributes.Name or "solid %d" % n,
+                       "material": own_material(obj), "foot": is_foot(obj, layout), "vertices": vertices, "faces": faces,
+                       "host": selection_solid([obj]), "print": own_print(obj) or None})
+    body = {"file": os.path.basename(doc.Path or "") or (doc.Name or ""), "name": name, "source": CLIENT,
+            "check_only": bool(check_only), "joints": joints, "solids": solids}
+    reply = request("/api/bridge/rhino/model", body, timeout=MODEL_TIMEOUT_S)
+    reply["unprotected"] = len(pulled)
+    return reply

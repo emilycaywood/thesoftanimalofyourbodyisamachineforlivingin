@@ -19,7 +19,7 @@ from calflab import CODE_VERSION
 from calflab import units as u
 from calflab.app.events import EventBus
 from calflab.app.jobs import Job, JobContext, JobManager
-from calflab.app.scene import build_scene, foot_tracks
+from calflab.app.scene import build_scene, foot_tracks, geometry_record
 from calflab.components import library
 from calflab.design import EvaluatedDesign, genome_definition
 from calflab.graph import Cache, EvalContext, Evaluator, Graph, NodeResult, node_types, summarize
@@ -483,10 +483,12 @@ class Lab:
 
                 p = presets().get(str(g.role("fitness").params.get("preset")))
                 preset = {"preset": p.model_dump(mode="json") if p else None, "result": fitness}
+            geometry = geometry_record(design)
             record = RunRecord(
                 id=run_id,
                 kind="sim",
-                title=title,
+                # a run of a model pushed from Rhino says so where runs are listed (ADR-062)
+                title=f"{title} ({geometry['name']})" if geometry["source"] == "rhino_model" else title,
                 duration_s=time.perf_counter() - t0,
                 seed=int(sim_node.params.get("seed", 0)),
                 backend="local",
@@ -495,7 +497,7 @@ class Lab:
                     "compile": g.role("model").params,
                     "generator": g.role("design").type,
                     "generator_params": g.role("design").params,
-                    "mass": self._mass_record(design), "boards": self._boards_record(design),
+                    "mass": self._mass_record(design), "boards": self._boards_record(design), "geometry": geometry_record(design),
                 },
                 genome=design.genome.model_dump(mode="json"),
                 overrides=[o.model_dump(mode="json") for o in state.overrides if o.enabled],
@@ -656,7 +658,8 @@ class Lab:
                 backend=bkey,
                 inputs={"optimizer": optimizer, "params": opt.params.model_dump(mode="json"), "sim": sim_params,
                         "compile": g.role("model").params, "generator_params": g.role("design").params,
-                        "start": start, "mass": self._mass_record(start_design), "boards": self._boards_record(start_design)},
+                        "start": start, "mass": self._mass_record(start_design), "boards": self._boards_record(start_design),
+                        "geometry": geometry_record(start_design)},
                 genome=start_design.genome.model_dump(mode="json"),
                 overrides=[o.model_dump(mode="json") for o in state.overrides if o.enabled],
                 controller=ctrl,
@@ -783,7 +786,7 @@ class Lab:
                     seed=cfg.seed,
                     backend=bkey,
                     inputs={"settings": cfg.model_dump(mode="json"), "sim": payload["sim"], "compile": payload["compile"],
-                            "mass": self._mass_record(design), "boards": self._boards_record(design),
+                            "mass": self._mass_record(design), "boards": self._boards_record(design), "geometry": geometry_record(design),
                             "speed_caps_deg_s": result["speed_caps_deg_s"], "before": before, "tried": result["tried"]},
                     genome=payload["genome"],
                     overrides=overrides,
@@ -942,7 +945,7 @@ class Lab:
             run_dir = self.registry.run_dir(run_id)
             write_json(run_dir / "study.json", {
                 "run_id": run_id, "settings": cfg.model_dump(mode="json"), "dimensions": dims, "gaits": list(cfg.gaits),
-                "boards": self._boards_record(design), "bodies": bodies, "summary": summary, "notes": notes,
+                "boards": self._boards_record(design), "geometry": geometry_record(design), "bodies": bodies, "summary": summary, "notes": notes,
             })
             self.registry.save_run(
                 RunRecord(
@@ -956,7 +959,7 @@ class Lab:
                     inputs={"settings": cfg.model_dump(mode="json"), "dimensions": dims, "sim": common["sim"],
                             "compile": common["compile"], "generator": g.role("design").type,
                             "generator_params": common["generator_params"], "check_s": common["check_s"],
-                            "mass": self._mass_record(design), "boards": self._boards_record(design), "notes": notes,
+                            "mass": self._mass_record(design), "boards": self._boards_record(design), "geometry": geometry_record(design), "notes": notes,
                             "start": {"source": "document", "revision": self.revision}},
                     genome=design.genome.model_dump(mode="json"),
                     overrides=overrides,

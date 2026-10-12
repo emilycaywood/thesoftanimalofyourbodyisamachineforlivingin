@@ -277,6 +277,7 @@ export function OverridesPanel() {
               {o.kind === "geometry" && ` · ${o.meta?.layer ?? "Skin"} geometry${o.meta?.solid ? (o.meta.solid.closed ? `, closed solid ${fmt(o.meta.solid.volume_mm3 / 1000, 1)} cm3` : ", open: not used for mass") : ""}${o.meta?.solids ? `, ${o.meta.solids.length} solids` : ""}${o.meta?.material ? `, ${o.meta.material}` : ""}`}
               {o.kind === "material" && ` · material = ${o.material}`}
               {o.kind === "mass" && ` · measured ${fmt(o.value)} g`}
+              {o.kind === "model" && ` · whole robot from Rhino${o.meta?.file ? ` (${o.meta.file})` : ""}: ${Object.keys(o.meta?.joints ?? {}).length} joint axes, ${Object.values(o.meta?.bodies ?? {}).reduce((n, b) => n + (b.solids?.length ?? 0), 0)} solids on ${Object.keys(o.meta?.bodies ?? {}).length} bodies`}
               {" "}· from {o.source}
             </div>
           </div>

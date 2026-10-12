@@ -40,7 +40,8 @@ def test_install_script_can_run_twice(monkeypatch, capsys):
     runpy.run_path(script, run_name="__main__")
     aliases["CalflabPull"] = "stale macro"
     runpy.run_path(script, run_name="__main__")
-    assert set(aliases) == {"CalflabConnect", "CalflabPull", "CalflabPush", "CalflabLiveSync"}
+    assert set(aliases) == {"CalflabConnect", "CalflabPull", "CalflabPush", "CalflabLiveSync", "CalflabModelSetup", "CalflabTag",
+                            "CalflabPushModel"}
     for name, macro in aliases.items():
         assert macro.startswith("_-ScriptEditor _Run ") and (RHINO / "scripts" / f"{name}.py").is_file()
     capsys.readouterr()

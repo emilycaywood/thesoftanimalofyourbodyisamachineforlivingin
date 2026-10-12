@@ -213,6 +213,58 @@ class AddGeometryOverride(Command):
         return {"override": ov.id}
 
 
+@register
+class SetRhinoModel(Command):
+    key = "set_rhino_model"
+    label = "Use a modelled robot"
+    description = (
+        "Build the simulated robot from a model pushed from Rhino: joints from its axis lines, mass and collision "
+        "from its solids (ADR-062). One override; switch it off to get the parametric calf back."
+    )
+    category = "Form"
+    mutates = True
+
+    class Params(BaseModel):
+        name: str = P("Rhino model", desc="Name of the override record.")
+        source: str = P("rhino", desc="Client that sent it.")
+        file: str = P("", desc="Name of the file the model was pushed from.")
+        joints: dict[str, Any] = P(
+            default_factory=dict, ui="json",
+            desc="Joint id -> {point, axis}: a point on the axis and its direction, world frame, mm, standing pose.",
+        )
+        bodies: dict[str, Any] = P(
+            default_factory=dict, ui="json",
+            desc="Body id -> {solids: [{name, asset, material, solid, print, print_core, foot, hull, hull_asset, sha256}], "
+                 "foot: {hull, hull_asset}}, measured in the body frame when the model arrived.",
+        )
+
+    def title(self) -> str:
+        p = self.params
+        n = sum(len(b.get("solids") or []) for b in p.bodies.values())  # type: ignore[attr-defined,misc]
+        return f"Use {p.name}: {n} solids on {len(p.bodies)} bodies, {len(p.joints)} joint axes"  # type: ignore[attr-defined]
+
+    def run(self, lab: Any, state: DocumentState) -> Any:
+        p = self.params
+        if not p.bodies and not p.joints:  # type: ignore[attr-defined]
+            raise _err("A model needs at least one joint axis or one solid")
+        for entry in p.bodies.values():  # type: ignore[attr-defined]
+            for s in entry.get("solids") or []:
+                _structure_material(str(s.get("material") or ""))
+        replaced = [o.id for o in state.overrides if o.kind == "model"]
+        state.overrides = [o for o in state.overrides if o.kind != "model"]
+        ov = Override(
+            id=f"ov-{uuid.uuid4().hex[:8]}",
+            name=p.name or "Rhino model",  # type: ignore[attr-defined]
+            target="model",  # the whole robot, not one element
+            kind="model",
+            source=p.source,  # type: ignore[attr-defined]
+            created=now_iso(),
+            meta={"file": p.file, "pushed": now_iso(), "joints": dict(p.joints), "bodies": dict(p.bodies)},  # type: ignore[attr-defined]
+        )
+        state.overrides.append(ov)
+        return {"override": ov.id, "replaced": replaced}
+
+
 def _structure_material(key: str) -> Any:
     """The structure material ``key`` names, or a user-facing error listing the choices."""
     from calflab.components import MaterialSpec, library

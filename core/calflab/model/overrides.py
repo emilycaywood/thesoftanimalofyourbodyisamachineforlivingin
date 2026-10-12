@@ -48,7 +48,8 @@ class Override(BaseModel):
     id: str
     name: str
     target: str  # element id
-    kind: Literal["param", "geometry", "material", "mass"] = "param"
+    #: ``model`` = a whole modelled robot pushed from Rhino: joint axes and solids per body (ADR-062)
+    kind: Literal["param", "geometry", "material", "mass", "model"] = "param"
     param: str | None = None  # for kind == "param"
     value: float | None = None  # param value, or measured mass (g) for kind == "mass"
     asset: str | None = None  # for kind == "geometry": project-relative mesh path
@@ -106,6 +107,12 @@ def material_overrides(overrides: list[Override]) -> dict[str, str]:
 def mass_overrides(overrides: list[Override]) -> dict[str, Override]:
     """Active measured-mass overrides by body id (last one wins)."""
     return {o.target: o for o in overrides if o.enabled and o.kind == "mass" and o.value is not None}
+
+
+def model_override(overrides: list[Override]) -> Override | None:
+    """The active pushed model, if any (last enabled one wins)."""
+    found = [o for o in overrides if o.enabled and o.kind == "model"]
+    return found[-1] if found else None
 
 
 def geometry_override_list(overrides: list[Override]) -> list[Override]:

@@ -251,7 +251,7 @@ export interface Override {
   id: string;
   name: string;
   target: string;
-  kind: "param" | "geometry" | "material" | "mass";
+  kind: "param" | "geometry" | "material" | "mass" | "model";
   param: string | null;
   value: number | null;
   asset: string | null;
@@ -261,6 +261,10 @@ export interface Override {
     material?: string;
     solid?: { closed: boolean; volume_mm3: number };
     solids?: { name: string; material: string; solid: { closed: boolean; volume_mm3: number } }[]; // a push of several solids
+    // kind "model": a whole robot pushed from Rhino (ADR-062)
+    file?: string;
+    joints?: Record<string, unknown>;
+    bodies?: Record<string, { solids?: unknown[] }>;
   };
   enabled: boolean;
   source: string;

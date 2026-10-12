@@ -1,15 +1,16 @@
 #! python3
 """CalflabInstall: register the Calflab* commands as Rhino aliases (run once).
 
-After this, type CalflabConnect, CalflabPull, CalflabPush or CalflabLiveSync in
-the Rhino command line like any other command.
+After this, type CalflabConnect, CalflabPull, CalflabPush, CalflabLiveSync,
+CalflabModelSetup, CalflabTag or CalflabPushModel in the Rhino command line
+like any other command.
 """
 import os
 
 import rhinoscriptsyntax as rs
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-COMMANDS = ["CalflabConnect", "CalflabPull", "CalflabPush", "CalflabLiveSync"]
+COMMANDS = ["CalflabConnect", "CalflabPull", "CalflabPush", "CalflabLiveSync", "CalflabModelSetup", "CalflabTag", "CalflabPushModel"]
 
 
 def main():

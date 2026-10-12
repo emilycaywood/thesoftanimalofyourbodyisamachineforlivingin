@@ -82,6 +82,9 @@ class Geom(BaseModel):
     mass_note: str = ""  # e.g. why a pushed solid was not used for mass
     #: what an infill estimate was made from (``calflab.model.infill.estimate_info``); None = not printed with infill
     infill: dict[str, Any] | None = None
+    #: vertices (mm, geom frame) of the convex shape the simulator collides with, for a
+    #: collision geom made from pushed solids (ADR-062); None = the primitive itself
+    hull: list[Vec3] | None = None
 
     def mass_center(self) -> Vec3:
         """Centre of mass in the body frame (mm)."""

@@ -16,7 +16,7 @@ from calflab import units as u
 from calflab.components.library import Library
 from calflab.model.solid import equivalent_box
 from calflab.model.spec import Body, Geom, RobotSpec
-from calflab.model.xform import quat_mul
+from calflab.model.xform import quat_mul, quat_rotate
 from calflab.schema import P
 from calflab.sim.skin import skin_joint_effects
 
@@ -237,6 +237,17 @@ def compile_mjcf(
                 continue
             mass = u.g_to_kg(geom.mass_g) * sc.mass
             total_mass += mass
+            if geom.hull:
+                # collision made from pushed solids (ADR-062): MuJoCo collides the convex hull of these vertices
+                name = f"hull{len(hull_assets)}"
+                hull_assets.append((name, geom.hull))
+                ET.SubElement(
+                    el, "geom", name=geom.id, type="mesh", mesh=name, pos=_vec(u.vec_mm_to_m(geom.pos)), quat=_vec(geom.quat),
+                    mass=_f(mass), contype="1", conaffinity="0", group="0",
+                )
+                if geom.foot:
+                    foot_geoms.append(geom.id)
+                continue
             shape = "sphere" if geom.shape == "mesh" else geom.shape
             size, gpos, gquat = _geom_size(geom), geom.pos, geom.quat
             if geom.inertia is not None and geom.mass_g > 0:
@@ -263,8 +274,13 @@ def compile_mjcf(
         for child in children.get(body.id, []):
             emit(el, child)
 
+    hull_assets: list[tuple[str, list[Any]]] = []
     for rb in children.get(None, []):
         emit(world, rb)
+    if hull_assets:
+        asset_el = ET.SubElement(root, "asset")
+        for name, points in hull_assets:
+            ET.SubElement(asset_el, "mesh", name=name, vertex=" ".join(_vec(u.vec_mm_to_m(p)) for p in points))
 
     actuator_el = ET.SubElement(root, "actuator")
     a_ids: list[str] = []
@@ -306,7 +322,17 @@ def compile_mjcf(
     ET.SubElement(sensor_el, "accelerometer", name="imu_acc", site="imu")
 
     root_h = u.mm_to_m(spec.root.pos[2]) + 0.002
-    key = ET.SubElement(root, "keyframe")
+    if hull_assets:
+        # a modelled robot stands where its own geometry puts it: start with its lowest point 2 mm above the floor
+        from calflab.model.pushed_model import lowest_point
+
+        low = lowest_point(spec)[0]
+        for b_id, (bp, bq) in spec.world_poses().items():
+            for geom in spec.body(b_id).geoms:
+                if geom.foot and not geom.hull and geom.shape == "sphere":
+                    low = min(low, bp[2] + quat_rotate(bq, geom.pos)[2] - geom.size[0])
+        root_h -= u.mm_to_m(low)
+    key =ET.SubElement(root, "keyframe")
     qpos = [0.0, 0.0, root_h, 1.0, 0.0, 0.0, 0.0] + [rest[j] for j in joint_order]
     ctrl = [rest[j] for j in a_joint]
     ET.SubElement(key, "key", name="stand", qpos=_vec(qpos), ctrl=_vec(ctrl))

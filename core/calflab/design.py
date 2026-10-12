@@ -17,6 +17,7 @@ from calflab.model.overrides import (
     geometry_overrides,
     mass_overrides,
     material_overrides,
+    model_override,
 )
 from calflab.model.spec import Body, Geom, RobotSpec
 from calflab.plugins import BuildContext, PartGenerator, load_plugins, registry
@@ -74,7 +75,15 @@ def build_design(
     )
     spec = gen.build(genome.values, params, ctx)
     default_key = str(defaults.get("structure", {}).get("material", "petg"))
+    model = model_override(overrides or [])
+    modelled: set[str] = set()
+    if model is not None:
+        modelled = _apply_model(spec, model, warnings, lib, materials, default_key)
     for ov in geometry_override_list(overrides or []):
+        if ov.target in modelled and str(ov.meta.get("layer", "Skin")) == "Structure":
+            warnings.append(f"Geometry override {ov.name!r} on {ov.target} is not used: the pushed model {model.name!r} "  # type: ignore[union-attr]
+                            "already gives that part its solids")
+            continue
         _apply_geometry_override(spec, ov.target, ov, warnings, lib, materials.get(ov.target, default_key))
     for target, ov in mass_overrides(overrides or []).items():
         _apply_measured_mass(spec, target, ov, warnings)
@@ -201,6 +210,73 @@ def _apply_geometry_override(
         for g in replaced:
             g.mass_g = 0.0
     body.geoms.extend(meshes)
+
+
+def _apply_model(
+    spec: RobotSpec, ov: Override, warnings: list[str], lib: Library, materials: dict[str, str], default_key: str
+) -> set[str]:
+    """Build the robot from a model pushed from Rhino (ADR-062), in place.
+
+    Joints go where the modelled axis lines are. Each modelled body gets its
+    solids for mass, centre of mass and inertia (one mass geom per solid, as in
+    ADR-053) and a convex hull per solid for collision; the envelope shapes of
+    that body are dropped, and so is the parametric hoof of a leg whose model
+    has a foot. Library components keep their place in their body. A body the
+    model has no solids for stays parametric. What was done is recorded in
+    ``spec.metadata["geometry"]``. Returns the ids of the modelled bodies.
+    """
+    from calflab.model.pushed_model import apply_skeleton, collision_geoms
+
+    meta = ov.meta
+    record: dict[str, Any] = {
+        "source": "rhino_model",
+        "override": ov.id,
+        "name": ov.name,
+        "file": meta.get("file") or "",
+        "pushed": meta.get("pushed") or ov.created,
+        "joints": apply_skeleton(spec, meta.get("joints") or {}),
+        "bodies": {},
+        "feet": [],
+        "hooves_removed": [],
+    }
+    modelled: set[str] = set()
+    for body_id, entry in (meta.get("bodies") or {}).items():
+        solids = list(entry.get("solids") or [])
+        try:
+            body = spec.body(body_id)
+        except KeyError:
+            warnings.append(f"Pushed model {ov.name!r}: {body_id} is not a body of this design; its {len(solids)} solids are not used")
+            continue
+        if not solids:
+            continue
+        modelled.add(body_id)
+        envelope = structure_geoms(body)
+        part = Override(id=ov.id, name=ov.name, target=body_id, kind="geometry", asset=str(solids[0].get("asset") or ""),
+                        source=ov.source, meta={"layer": "Structure", "solids": solids})
+        before = len(warnings)
+        _apply_geometry_override(spec, body_id, part, warnings, lib, materials.get(body_id, default_key))
+        hulls = collision_geoms(body_id, entry) if len(warnings) == before else []
+        if hulls:
+            # the solids' own hulls collide: the envelope shapes are gone, not kept as collision shapes
+            body.geoms = [g for g in body.geoms if not any(g is e for e in envelope)]
+            if any(h.foot for h in hulls):
+                for hoof in [g for g in body.geoms if g.foot]:
+                    record["hooves_removed"].append({"id": hoof.id, "body": body_id, "mass_g": round(hoof.mass_g, 2)})
+                body.geoms = [g for g in body.geoms if not g.foot]
+            body.geoms.extend(hulls)
+            record["feet"] += [h.id for h in hulls if h.foot]
+        record["bodies"][body_id] = {
+            "solids": len(solids),
+            "collision": "hulls" if hulls else "envelope",
+            "hulls": len(hulls),
+            "foot": any(h.foot for h in hulls),
+            "meshes": [{"name": s.get("name"), "asset": s.get("asset"), "sha256": s.get("sha256")} for s in solids],
+        }
+    record["parametric_bodies"] = [
+        b.id for b in spec.bodies if b.id not in modelled and any(g.mass_g > 0 for g in structure_geoms(b))
+    ]
+    spec.metadata["geometry"] = record
+    return modelled
 
 
 def _apply_measured_mass(spec: RobotSpec, target: str, ov: Override, warnings: list[str]) -> None:

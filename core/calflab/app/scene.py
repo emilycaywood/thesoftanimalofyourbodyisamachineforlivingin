@@ -53,6 +53,36 @@ def point_in_hull_margin(hull: list[tuple[float, float]], p: tuple[float, float]
     return best
 
 
+def geometry_record(design: EvaluatedDesign) -> dict[str, Any]:
+    """Which geometry a design's simulated robot is built from (ADR-062): stored
+    with every run as ``inputs.geometry``.
+
+    ``source`` is ``parametric`` (skeleton from the genome, collision from the
+    envelope shapes) or ``rhino_model`` (joints, mass and collision from a
+    pushed model: then also the file, the joints against the parametric ones,
+    and per body the solids, their mesh hashes and what collides)."""
+    spec = design.spec
+    record = spec.metadata.get("geometry")
+    pushed = sorted({b.id for b in spec.bodies for g in b.geoms if g.shape == "mesh" and g.layer == "Structure" and not g.hull})
+    if not record:
+        return {
+            "source": "parametric",
+            "label": "parametric calf" + (f", mass from pushed solids on {len(pushed)} parts" if pushed else ""),
+            "joints": "genome",
+            "collision": "envelope",
+            "mass_from_solids": pushed,
+        }
+    moved = [j for j in record["joints"] if j["source"] == "model"]
+    n_solids = sum(b["solids"] for b in record["bodies"].values())
+    return {
+        **record,
+        "label": f"{record['name']}" + (f" ({record['file']})" if record.get("file") else "")
+                 + f": {n_solids} solids on {len(record['bodies'])} bodies, {len(moved)} joint axes",
+        "collision": "hulls" if all(b["collision"] == "hulls" for b in record["bodies"].values()) and record["bodies"] else "mixed",
+        "max_joint_distance_mm": max((j["distance_mm"] for j in moved), default=0.0),
+    }
+
+
 def foot_tracks(rollout: Any, scene: dict[str, Any]) -> dict[str, Any]:
     """Per-frame foot contact points (mm) and support polygons for playback overlays."""
     import numpy as np
@@ -63,7 +93,8 @@ def foot_tracks(rollout: Any, scene: dict[str, Any]) -> dict[str, Any]:
     for b in scene["bodies"]:
         for g in b["geoms"]:
             if g["foot"] and b["id"] in rollout.body_ids:
-                local[g["id"]] = (rollout.body_ids.index(b["id"]), g["pos"], float(g["size"][0]))
+                # a modelled foot carries its contact point; a hoof sphere touches down a radius under its centre
+                local[g["id"]] = (rollout.body_ids.index(b["id"]), g.get("contact") or g["pos"], 0.0 if g.get("contact") else float(g["size"][0]))
     n = rollout.n_frames
     pos = np.zeros((n, len(rollout.foot_geoms), 3))
     for fi, gid in enumerate(rollout.foot_geoms):
@@ -125,6 +156,9 @@ def build_scene(
             for name, pv in design.element_params.get(element_id, {}).items()
         }
 
+    from calflab.model.pushed_model import lowest_point
+
+    hull_contact = lowest_point(spec)[1]
     bodies = []
     feet: list[dict[str, Any]] = []
     geom_world: dict[str, Vec3] = {}
@@ -153,7 +187,11 @@ def build_scene(
             )
             wp = _add(bp, quat_rotate(bq, g.pos))
             geom_world[g.id] = wp
-            if g.foot:
+            if g.foot and g.id in hull_contact:
+                # a modelled foot (ADR-062) touches down at the lowest point of its hull, not under a sphere
+                geoms[-1]["contact"] = _round(hull_contact[g.id])
+                feet.append({"id": g.id, "body": b.id, "pos": _round(_add(bp, quat_rotate(bq, hull_contact[g.id]))), "radius": 0.0})
+            elif g.foot:
                 feet.append({"id": g.id, "body": b.id, "pos": _round(wp), "radius": g.size[0]})
             elements[g.id] = {
                 "kind": "geom",
@@ -355,6 +393,8 @@ def build_scene(
         "elements": elements,
         "layers": {k: v.model_dump() for k, v in (layers or {}).items()},
         "warnings": list(design.warnings),
+        # which geometry the simulated robot is built from: the parametric calf or a model pushed from Rhino (ADR-062)
+        "geometry": geometry_record(design),
         "genome": design.genome.model_dump(mode="json"),
         # the same genes as they measure on the body (lengths x overall scale)
         "genome_real": genome_definition(design.genome.definition).real_values(design.genome.values),

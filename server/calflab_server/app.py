@@ -17,6 +17,7 @@ from typing import Any
 from calflab import CODE_VERSION, __version__
 from calflab.app import Lab, LabError
 from calflab.bridge import armature_plan, rhino_build_list, rollout_action
+from calflab.bridge.rhino_model import model_layout, save_pushed_model
 from calflab.bridge.sculpt import save_pushed_mesh
 from calflab.components import library
 from calflab.fitness import presets
@@ -354,6 +355,16 @@ def create_app(lab: Lab, web_dist: Path | None = None, watch_plugins: bool = Tru
             body.get("host") if isinstance(body.get("host"), dict) else None,
             body.get("parts") if isinstance(body.get("parts"), list) else None,
         )
+
+    @app.post("/api/bridge/rhino/model")
+    def bridge_rhino_model(body: dict[str, Any] = Body(...)) -> dict[str, Any]:
+        """A whole modelled robot: axis lines and solids per body (ADR-062)."""
+        return save_pushed_model(lab, body, check_only=bool(body.get("check_only")))
+
+    @app.get("/api/bridge/rhino/model")
+    def bridge_rhino_model_layout() -> dict[str, Any]:
+        """What CalflabModelSetup lays out: a layer per body, an axis line per hinge."""
+        return model_layout(lab.design())
 
     @app.get("/api/bridge/rhino/materials")
     def bridge_rhino_materials() -> dict[str, Any]:
