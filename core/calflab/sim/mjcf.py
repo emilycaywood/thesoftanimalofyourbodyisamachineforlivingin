@@ -106,6 +106,8 @@ class CompiledModel:
     root_height: float  # m
     scales: dict[str, float] = field(default_factory=dict)
     actuator_speed_limit: list[float] = field(default_factory=list)  # recorded no-load speed at the joint, rad/s
+    #: tension springs (ADR-065): id, joint, site_a (upper anchor), site_b (lower anchor), k N/m, free length m
+    springs: list[dict[str, Any]] = field(default_factory=list)
 
 
 def _f(x: float) -> str:
@@ -271,6 +273,10 @@ def compile_mjcf(
             ET.SubElement(el, "geom", **attrs)
             if geom.foot:
                 foot_geoms.append(geom.id)
+        for sp in spec.springs:  # anchor sites of tension springs; their force is applied by the runner
+            for end, b_id, pos in (("a", sp.upper_body, sp.upper_pos), ("b", sp.lower_body, sp.lower_pos)):
+                if b_id == body.id:
+                    ET.SubElement(el, "site", name=f"{sp.id}.{end}", pos=_vec(u.vec_mm_to_m(pos)), size="0.003")
         for child in children.get(body.id, []):
             emit(el, child)
 
@@ -356,4 +362,10 @@ def compile_mjcf(
         root_height=root_h,
         scales=sc.__dict__.copy(),
         actuator_speed_limit=a_speed,
+        springs=[
+            {"id": sp.id, "joint": sp.joint, "site_a": f"{sp.id}.a", "site_b": f"{sp.id}.b",
+             "body_a": sp.upper_body, "body_b": sp.lower_body,
+             "k_n_per_m": sp.k_n_per_mm * 1000.0, "free_length_m": u.mm_to_m(sp.free_length_mm)}
+            for sp in spec.springs if sp.joint in limits
+        ],
     )

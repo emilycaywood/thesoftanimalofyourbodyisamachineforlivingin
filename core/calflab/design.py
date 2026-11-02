@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any
 
 from calflab.components import Library, MaterialSpec, library
@@ -50,6 +51,7 @@ def build_design(
     overrides: list[Override] | None = None,
     generator: str = "calf",
     generator_params: dict[str, Any] | None = None,
+    project_dir: Path | None = None,
 ) -> EvaluatedDesign:
     """Run the two-stage part generator with overrides applied in between."""
     load_plugins()
@@ -72,8 +74,10 @@ def build_design(
         defaults=defaults,
         geometry_overrides=geometry_overrides(overrides or []),
         materials=materials,
+        project_dir=project_dir,
     )
     spec = gen.build(genome.values, params, ctx)
+    warnings.extend(str(w) for w in spec.metadata.pop("warnings", []))
     default_key = str(defaults.get("structure", {}).get("material", "petg"))
     model = model_override(overrides or [])
     modelled: set[str] = set()

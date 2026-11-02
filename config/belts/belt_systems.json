@@ -1,0 +1,88 @@
+{
+  "_about": "Belt systems for belt drives (ADR-063, ADR-064). Every value here was supplied by the researcher on 2026-11-02 with its source. A null value is a required field that is not known yet: the lab shows it as 'unknown' and never guesses it. Do not add a pitch diameter, centre distance or other derived value here: they are computed.",
+  "default": "GT2-2mm-10mm-generic",
+  "systems": [
+    {
+      "id": "GT2-2mm-10mm-generic",
+      "profile": "GT2",
+      "pitch_mm": 2,
+      "width_mm": 10,
+      "construction": "Fiberglass-reinforced rubber (generic)",
+      "allowable_working_tension_n": 44,
+      "allowable_working_tension_derivation": "111 N per 25.4 mm width = 4.37 N/mm x 10 mm",
+      "breaking_strength_n": 860,
+      "breaking_strength_derivation": "86 N per mm width x 10 mm",
+      "length_sources": ["C"],
+      "sources": [
+        "SDP-SI Technical Section, Table 3 'Allowable Working Tension' for 2 mm GT: 111 N (25 lbf) per inch of width",
+        "eBay listing 335089089074 (same figures)",
+        "Ondrives GT2 catalog: breaking strength 86 N per 1 mm width"
+      ],
+      "notes": "SDP-SI states that narrow belts (under 1 in) must be derated, so 44 N is optimistic. Generic belt construction is unverified."
+    },
+    {
+      "id": "GT2-2mm-9mm-gates",
+      "profile": "GT2",
+      "pitch_mm": 2,
+      "width_mm": 9,
+      "construction": "Gates PowerGrip GT2, fiberglass tensile cord",
+      "allowable_working_tension_n": 39,
+      "allowable_working_tension_derivation": "4.37 N/mm x 9 mm",
+      "breaking_strength_n": 774,
+      "breaking_strength_derivation": "86 N/mm x 9 mm",
+      "length_sources": ["B"],
+      "sources": [
+        "SDP-SI Technical Section, Table 3 'Allowable Working Tension' for 2 mm GT: 111 N (25 lbf) per inch of width",
+        "eBay listing 335089089074 (same figures)",
+        "Ondrives GT2 catalog: breaking strength 86 N per 1 mm width"
+      ],
+      "notes": "SDP-SI states that narrow belts (under 1 in) must be derated, so 39 N is optimistic."
+    },
+    {
+      "id": "GT2-2mm-15mm-generic",
+      "profile": "GT2",
+      "pitch_mm": 2,
+      "width_mm": 15,
+      "construction": "Fiberglass-reinforced rubber (generic)",
+      "allowable_working_tension_n": 66,
+      "allowable_working_tension_derivation": "4.37 N/mm x 15 mm",
+      "breaking_strength_n": 1290,
+      "breaking_strength_derivation": "86 N/mm x 15 mm",
+      "length_sources": [],
+      "sources": [
+        "SDP-SI Technical Section, Table 3 'Allowable Working Tension' for 2 mm GT: 111 N (25 lbf) per inch of width",
+        "eBay listing 335089089074 (same figures)",
+        "Ondrives GT2 catalog: breaking strength 86 N per 1 mm width"
+      ],
+      "notes": "SDP-SI states that narrow belts (under 1 in) must be derated, so 66 N is optimistic. Generic belt construction is unverified. REQUIRED: no lengths are listed in 15 mm width yet; add a source to belt_lengths.json and name it in length_sources."
+    },
+    {
+      "id": "GT2-3mm-9mm",
+      "profile": "GT2",
+      "pitch_mm": 3,
+      "width_mm": 9,
+      "construction": null,
+      "allowable_working_tension_n": null,
+      "allowable_working_tension_derivation": "REQUIRED: unknown, not supplied",
+      "breaking_strength_n": 1422,
+      "breaking_strength_derivation": "158 N per mm width x 9 mm",
+      "length_sources": ["D"],
+      "sources": ["Ondrives GT2 3 mm pitch catalog: breaking strength 158 N per mm width"],
+      "notes": "Allowable working tension is not known: the working-tension check shows 'unknown'."
+    },
+    {
+      "id": "GT2-3mm-15mm",
+      "profile": "GT2",
+      "pitch_mm": 3,
+      "width_mm": 15,
+      "construction": null,
+      "allowable_working_tension_n": null,
+      "allowable_working_tension_derivation": "REQUIRED: unknown, not supplied",
+      "breaking_strength_n": 2370,
+      "breaking_strength_derivation": "158 N per mm width x 15 mm",
+      "length_sources": ["D"],
+      "sources": ["Ondrives GT2 3 mm pitch catalog: breaking strength 158 N per mm width"],
+      "notes": "Allowable working tension is not known: the working-tension check shows 'unknown'."
+    }
+  ]
+}

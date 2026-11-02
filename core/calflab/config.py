@@ -24,6 +24,12 @@ def robot_defaults() -> dict[str, Any]:
     return _load_yaml(str(p), p.stat().st_mtime)
 
 
+def config_yaml(name: str) -> dict[str, Any]:
+    """Parsed ``config/<name>`` (reloaded when the file changes), e.g. ``feral_calf.yaml``."""
+    p = config_dir() / name
+    return _load_yaml(str(p), p.stat().st_mtime)
+
+
 def default(path: str, fallback: Any = None) -> Any:
     """Dotted lookup into robot defaults, e.g. ``default('simulation.torque_derating')``."""
     node: Any = robot_defaults()

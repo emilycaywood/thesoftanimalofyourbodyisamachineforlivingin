@@ -97,6 +97,16 @@ def rad_to_deg(v: Any) -> Any:
     return v * 180.0 / math.pi
 
 
+def nmm_to_nm(v: Any) -> Any:
+    """Torque N*mm -> N*m."""
+    return v * 1e-3
+
+
+def g_cm3_to_g_mm3(v: Any) -> Any:
+    """Density g/cm^3 -> g/mm^3."""
+    return v * 1e-3
+
+
 def vec_mm_to_m(v: Iterable[float]) -> tuple[float, ...]:
     return tuple(x * 1e-3 for x in v)
 

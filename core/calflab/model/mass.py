@@ -23,6 +23,8 @@ SOURCES: dict[str, str] = {
     "geometry": "Pushed solid x material density",
     "measured": "Measured (weighed)",
     "component": "Component library entry",
+    "tube": "Tube or rod: diameters x length x density",
+    "specified": "Mass supplied by the researcher (not weighed here)",
     "parametric": "Parametric estimate (envelope)",
 }
 
@@ -154,4 +156,6 @@ def mass_breakdown(spec: RobotSpec, lib: Any) -> dict[str, Any]:
         "unverified_g": round(unverified, 2),
         "bodies": bodies,
         "not_counted": list(not_counted.values()),
+        #: parts whose mass is a required value not entered yet: counted as 0 g (ADR-068)
+        "missing": list(spec.metadata.get("missing_masses", [])),
     }

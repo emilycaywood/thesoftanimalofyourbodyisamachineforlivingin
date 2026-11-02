@@ -1,0 +1,1637 @@
+{
+  "_about": "Stock closed-loop belt pitch lengths, each tagged with its source (ADR-064). Every length is a whole number of teeth (length = teeth x pitch); an entry that is not is rejected. 'purchase_confirmed' stays false until the researcher confirms the belt can actually be ordered. Which sources a belt system may use is named in belt_systems.json (length_sources).",
+  "sources": [
+    {
+      "id": "A",
+      "label": "eBay 335089089074 (generic)",
+      "pitch_mm": 2,
+      "widths_mm": [
+        6,
+        9
+      ],
+      "construction": "generic",
+      "url": "https://www.ebay.com/itm/335089089074",
+      "range_note": "300-700 mm only"
+    },
+    {
+      "id": "B",
+      "label": "Ondrives GT2 2 mm pitch lengths (Gates construction)",
+      "pitch_mm": 2,
+      "widths_mm": [
+        3,
+        6,
+        9
+      ],
+      "construction": "Gates",
+      "url": "",
+      "range_note": "300-700 mm only"
+    },
+    {
+      "id": "C",
+      "label": "Listings confirmed specifically in 10 mm width",
+      "pitch_mm": 2,
+      "widths_mm": [
+        10
+      ],
+      "construction": "generic",
+      "url": "",
+      "listings": [
+        "eBay UK 283328995672",
+        "AliExpress 10 mm closed-loop listing",
+        "Amazon B0G1XTWKCG (6/10 mm)"
+      ]
+    },
+    {
+      "id": "D",
+      "label": "Ondrives 3GT pitch lengths 300-750 mm",
+      "pitch_mm": 3,
+      "widths_mm": null,
+      "construction": null,
+      "url": "",
+      "range_note": "Listed by the researcher for GT2-3mm-9mm and GT2-3mm-15mm; the widths this listing covers were not stated."
+    }
+  ],
+  "lengths": [
+    {
+      "id": "GT2-2mm-300-A",
+      "pitch_mm": 2,
+      "pitch_length_mm": 300,
+      "teeth": 150,
+      "source": "A",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-302-A",
+      "pitch_mm": 2,
+      "pitch_length_mm": 302,
+      "teeth": 151,
+      "source": "A",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-308-A",
+      "pitch_mm": 2,
+      "pitch_length_mm": 308,
+      "teeth": 154,
+      "source": "A",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-320-A",
+      "pitch_mm": 2,
+      "pitch_length_mm": 320,
+      "teeth": 160,
+      "source": "A",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-336-A",
+      "pitch_mm": 2,
+      "pitch_length_mm": 336,
+      "teeth": 168,
+      "source": "A",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-340-A",
+      "pitch_mm": 2,
+      "pitch_length_mm": 340,
+      "teeth": 170,
+      "source": "A",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-348-A",
+      "pitch_mm": 2,
+      "pitch_length_mm": 348,
+      "teeth": 174,
+      "source": "A",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-350-A",
+      "pitch_mm": 2,
+      "pitch_length_mm": 350,
+      "teeth": 175,
+      "source": "A",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-376-A",
+      "pitch_mm": 2,
+      "pitch_length_mm": 376,
+      "teeth": 188,
+      "source": "A",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-390-A",
+      "pitch_mm": 2,
+      "pitch_length_mm": 390,
+      "teeth": 195,
+      "source": "A",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-392-A",
+      "pitch_mm": 2,
+      "pitch_length_mm": 392,
+      "teeth": 196,
+      "source": "A",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-396-A",
+      "pitch_mm": 2,
+      "pitch_length_mm": 396,
+      "teeth": 198,
+      "source": "A",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-400-A",
+      "pitch_mm": 2,
+      "pitch_length_mm": 400,
+      "teeth": 200,
+      "source": "A",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-406-A",
+      "pitch_mm": 2,
+      "pitch_length_mm": 406,
+      "teeth": 203,
+      "source": "A",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-410-A",
+      "pitch_mm": 2,
+      "pitch_length_mm": 410,
+      "teeth": 205,
+      "source": "A",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-430-A",
+      "pitch_mm": 2,
+      "pitch_length_mm": 430,
+      "teeth": 215,
+      "source": "A",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-444-A",
+      "pitch_mm": 2,
+      "pitch_length_mm": 444,
+      "teeth": 222,
+      "source": "A",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-450-A",
+      "pitch_mm": 2,
+      "pitch_length_mm": 450,
+      "teeth": 225,
+      "source": "A",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-460-A",
+      "pitch_mm": 2,
+      "pitch_length_mm": 460,
+      "teeth": 230,
+      "source": "A",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-466-A",
+      "pitch_mm": 2,
+      "pitch_length_mm": 466,
+      "teeth": 233,
+      "source": "A",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-480-A",
+      "pitch_mm": 2,
+      "pitch_length_mm": 480,
+      "teeth": 240,
+      "source": "A",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-488-A",
+      "pitch_mm": 2,
+      "pitch_length_mm": 488,
+      "teeth": 244,
+      "source": "A",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-494-A",
+      "pitch_mm": 2,
+      "pitch_length_mm": 494,
+      "teeth": 247,
+      "source": "A",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-500-A",
+      "pitch_mm": 2,
+      "pitch_length_mm": 500,
+      "teeth": 250,
+      "source": "A",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-520-A",
+      "pitch_mm": 2,
+      "pitch_length_mm": 520,
+      "teeth": 260,
+      "source": "A",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-524-A",
+      "pitch_mm": 2,
+      "pitch_length_mm": 524,
+      "teeth": 262,
+      "source": "A",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-528-A",
+      "pitch_mm": 2,
+      "pitch_length_mm": 528,
+      "teeth": 264,
+      "source": "A",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-540-A",
+      "pitch_mm": 2,
+      "pitch_length_mm": 540,
+      "teeth": 270,
+      "source": "A",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-550-A",
+      "pitch_mm": 2,
+      "pitch_length_mm": 550,
+      "teeth": 275,
+      "source": "A",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-600-A",
+      "pitch_mm": 2,
+      "pitch_length_mm": 600,
+      "teeth": 300,
+      "source": "A",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-606-A",
+      "pitch_mm": 2,
+      "pitch_length_mm": 606,
+      "teeth": 303,
+      "source": "A",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-616-A",
+      "pitch_mm": 2,
+      "pitch_length_mm": 616,
+      "teeth": 308,
+      "source": "A",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-640-A",
+      "pitch_mm": 2,
+      "pitch_length_mm": 640,
+      "teeth": 320,
+      "source": "A",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-670-A",
+      "pitch_mm": 2,
+      "pitch_length_mm": 670,
+      "teeth": 335,
+      "source": "A",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-696-A",
+      "pitch_mm": 2,
+      "pitch_length_mm": 696,
+      "teeth": 348,
+      "source": "A",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-300-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 300,
+      "teeth": 150,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-302-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 302,
+      "teeth": 151,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-304-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 304,
+      "teeth": 152,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-308-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 308,
+      "teeth": 154,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-310-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 310,
+      "teeth": 155,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-314-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 314,
+      "teeth": 157,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-318-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 318,
+      "teeth": 159,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-320-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 320,
+      "teeth": 160,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-322-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 322,
+      "teeth": 161,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-324-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 324,
+      "teeth": 162,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-326-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 326,
+      "teeth": 163,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-328-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 328,
+      "teeth": 164,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-330-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 330,
+      "teeth": 165,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-332-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 332,
+      "teeth": 166,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-336-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 336,
+      "teeth": 168,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-338-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 338,
+      "teeth": 169,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-340-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 340,
+      "teeth": 170,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-342-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 342,
+      "teeth": 171,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-344-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 344,
+      "teeth": 172,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-346-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 346,
+      "teeth": 173,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-350-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 350,
+      "teeth": 175,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-352-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 352,
+      "teeth": 176,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-354-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 354,
+      "teeth": 177,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-356-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 356,
+      "teeth": 178,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-358-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 358,
+      "teeth": 179,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-360-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 360,
+      "teeth": 180,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-364-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 364,
+      "teeth": 182,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-366-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 366,
+      "teeth": 183,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-370-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 370,
+      "teeth": 185,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-372-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 372,
+      "teeth": 186,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-376-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 376,
+      "teeth": 188,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-380-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 380,
+      "teeth": 190,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-382-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 382,
+      "teeth": 191,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-386-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 386,
+      "teeth": 193,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-392-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 392,
+      "teeth": 196,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-394-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 394,
+      "teeth": 197,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-400-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 400,
+      "teeth": 200,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-406-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 406,
+      "teeth": 203,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-412-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 412,
+      "teeth": 206,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-420-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 420,
+      "teeth": 210,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-426-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 426,
+      "teeth": 213,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-428-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 428,
+      "teeth": 214,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-430-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 430,
+      "teeth": 215,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-436-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 436,
+      "teeth": 218,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-440-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 440,
+      "teeth": 220,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-444-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 444,
+      "teeth": 222,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-446-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 446,
+      "teeth": 223,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-448-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 448,
+      "teeth": 224,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-452-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 452,
+      "teeth": 226,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-456-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 456,
+      "teeth": 228,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-460-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 460,
+      "teeth": 230,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-466-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 466,
+      "teeth": 233,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-470-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 470,
+      "teeth": 235,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-474-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 474,
+      "teeth": 237,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-478-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 478,
+      "teeth": 239,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-480-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 480,
+      "teeth": 240,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-484-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 484,
+      "teeth": 242,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-486-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 486,
+      "teeth": 243,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-488-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 488,
+      "teeth": 244,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-492-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 492,
+      "teeth": 246,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-494-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 494,
+      "teeth": 247,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-500-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 500,
+      "teeth": 250,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-502-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 502,
+      "teeth": 251,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-504-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 504,
+      "teeth": 252,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-506-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 506,
+      "teeth": 253,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-516-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 516,
+      "teeth": 258,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-524-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 524,
+      "teeth": 262,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-528-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 528,
+      "teeth": 264,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-530-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 530,
+      "teeth": 265,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-534-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 534,
+      "teeth": 267,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-544-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 544,
+      "teeth": 272,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-550-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 550,
+      "teeth": 275,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-552-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 552,
+      "teeth": 276,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-558-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 558,
+      "teeth": 279,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-560-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 560,
+      "teeth": 280,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-570-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 570,
+      "teeth": 285,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-572-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 572,
+      "teeth": 286,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-576-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 576,
+      "teeth": 288,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-578-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 578,
+      "teeth": 289,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-586-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 586,
+      "teeth": 293,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-600-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 600,
+      "teeth": 300,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-606-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 606,
+      "teeth": 303,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-616-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 616,
+      "teeth": 308,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-630-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 630,
+      "teeth": 315,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-634-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 634,
+      "teeth": 317,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-640-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 640,
+      "teeth": 320,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-646-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 646,
+      "teeth": 323,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-660-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 660,
+      "teeth": 330,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-670-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 670,
+      "teeth": 335,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-676-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 676,
+      "teeth": 338,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-690-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 690,
+      "teeth": 345,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-696-B",
+      "pitch_mm": 2,
+      "pitch_length_mm": 696,
+      "teeth": 348,
+      "source": "B",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-3mm-300-D",
+      "pitch_mm": 3,
+      "pitch_length_mm": 300,
+      "teeth": 100,
+      "source": "D",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-3mm-303-D",
+      "pitch_mm": 3,
+      "pitch_length_mm": 303,
+      "teeth": 101,
+      "source": "D",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-3mm-309-D",
+      "pitch_mm": 3,
+      "pitch_length_mm": 309,
+      "teeth": 103,
+      "source": "D",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-3mm-312-D",
+      "pitch_mm": 3,
+      "pitch_length_mm": 312,
+      "teeth": 104,
+      "source": "D",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-3mm-324-D",
+      "pitch_mm": 3,
+      "pitch_length_mm": 324,
+      "teeth": 108,
+      "source": "D",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-3mm-330-D",
+      "pitch_mm": 3,
+      "pitch_length_mm": 330,
+      "teeth": 110,
+      "source": "D",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-3mm-339-D",
+      "pitch_mm": 3,
+      "pitch_length_mm": 339,
+      "teeth": 113,
+      "source": "D",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-3mm-348-D",
+      "pitch_mm": 3,
+      "pitch_length_mm": 348,
+      "teeth": 116,
+      "source": "D",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-3mm-354-D",
+      "pitch_mm": 3,
+      "pitch_length_mm": 354,
+      "teeth": 118,
+      "source": "D",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-3mm-357-D",
+      "pitch_mm": 3,
+      "pitch_length_mm": 357,
+      "teeth": 119,
+      "source": "D",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-3mm-360-D",
+      "pitch_mm": 3,
+      "pitch_length_mm": 360,
+      "teeth": 120,
+      "source": "D",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-3mm-363-D",
+      "pitch_mm": 3,
+      "pitch_length_mm": 363,
+      "teeth": 121,
+      "source": "D",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-3mm-375-D",
+      "pitch_mm": 3,
+      "pitch_length_mm": 375,
+      "teeth": 125,
+      "source": "D",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-3mm-384-D",
+      "pitch_mm": 3,
+      "pitch_length_mm": 384,
+      "teeth": 128,
+      "source": "D",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-3mm-387-D",
+      "pitch_mm": 3,
+      "pitch_length_mm": 387,
+      "teeth": 129,
+      "source": "D",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-3mm-390-D",
+      "pitch_mm": 3,
+      "pitch_length_mm": 390,
+      "teeth": 130,
+      "source": "D",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-3mm-393-D",
+      "pitch_mm": 3,
+      "pitch_length_mm": 393,
+      "teeth": 131,
+      "source": "D",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-3mm-399-D",
+      "pitch_mm": 3,
+      "pitch_length_mm": 399,
+      "teeth": 133,
+      "source": "D",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-3mm-408-D",
+      "pitch_mm": 3,
+      "pitch_length_mm": 408,
+      "teeth": 136,
+      "source": "D",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-3mm-414-D",
+      "pitch_mm": 3,
+      "pitch_length_mm": 414,
+      "teeth": 138,
+      "source": "D",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-3mm-420-D",
+      "pitch_mm": 3,
+      "pitch_length_mm": 420,
+      "teeth": 140,
+      "source": "D",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-3mm-444-D",
+      "pitch_mm": 3,
+      "pitch_length_mm": 444,
+      "teeth": 148,
+      "source": "D",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-3mm-447-D",
+      "pitch_mm": 3,
+      "pitch_length_mm": 447,
+      "teeth": 149,
+      "source": "D",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-3mm-450-D",
+      "pitch_mm": 3,
+      "pitch_length_mm": 450,
+      "teeth": 150,
+      "source": "D",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-3mm-456-D",
+      "pitch_mm": 3,
+      "pitch_length_mm": 456,
+      "teeth": 152,
+      "source": "D",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-3mm-474-D",
+      "pitch_mm": 3,
+      "pitch_length_mm": 474,
+      "teeth": 158,
+      "source": "D",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-3mm-480-D",
+      "pitch_mm": 3,
+      "pitch_length_mm": 480,
+      "teeth": 160,
+      "source": "D",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-3mm-483-D",
+      "pitch_mm": 3,
+      "pitch_length_mm": 483,
+      "teeth": 161,
+      "source": "D",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-3mm-489-D",
+      "pitch_mm": 3,
+      "pitch_length_mm": 489,
+      "teeth": 163,
+      "source": "D",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-3mm-495-D",
+      "pitch_mm": 3,
+      "pitch_length_mm": 495,
+      "teeth": 165,
+      "source": "D",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-3mm-501-D",
+      "pitch_mm": 3,
+      "pitch_length_mm": 501,
+      "teeth": 167,
+      "source": "D",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-3mm-504-D",
+      "pitch_mm": 3,
+      "pitch_length_mm": 504,
+      "teeth": 168,
+      "source": "D",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-3mm-510-D",
+      "pitch_mm": 3,
+      "pitch_length_mm": 510,
+      "teeth": 170,
+      "source": "D",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-3mm-513-D",
+      "pitch_mm": 3,
+      "pitch_length_mm": 513,
+      "teeth": 171,
+      "source": "D",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-3mm-522-D",
+      "pitch_mm": 3,
+      "pitch_length_mm": 522,
+      "teeth": 174,
+      "source": "D",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-3mm-537-D",
+      "pitch_mm": 3,
+      "pitch_length_mm": 537,
+      "teeth": 179,
+      "source": "D",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-3mm-540-D",
+      "pitch_mm": 3,
+      "pitch_length_mm": 540,
+      "teeth": 180,
+      "source": "D",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-3mm-552-D",
+      "pitch_mm": 3,
+      "pitch_length_mm": 552,
+      "teeth": 184,
+      "source": "D",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-3mm-561-D",
+      "pitch_mm": 3,
+      "pitch_length_mm": 561,
+      "teeth": 187,
+      "source": "D",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-3mm-564-D",
+      "pitch_mm": 3,
+      "pitch_length_mm": 564,
+      "teeth": 188,
+      "source": "D",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-3mm-570-D",
+      "pitch_mm": 3,
+      "pitch_length_mm": 570,
+      "teeth": 190,
+      "source": "D",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-3mm-582-D",
+      "pitch_mm": 3,
+      "pitch_length_mm": 582,
+      "teeth": 194,
+      "source": "D",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-3mm-588-D",
+      "pitch_mm": 3,
+      "pitch_length_mm": 588,
+      "teeth": 196,
+      "source": "D",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-3mm-600-D",
+      "pitch_mm": 3,
+      "pitch_length_mm": 600,
+      "teeth": 200,
+      "source": "D",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-3mm-621-D",
+      "pitch_mm": 3,
+      "pitch_length_mm": 621,
+      "teeth": 207,
+      "source": "D",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-3mm-630-D",
+      "pitch_mm": 3,
+      "pitch_length_mm": 630,
+      "teeth": 210,
+      "source": "D",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-3mm-657-D",
+      "pitch_mm": 3,
+      "pitch_length_mm": 657,
+      "teeth": 219,
+      "source": "D",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-3mm-684-D",
+      "pitch_mm": 3,
+      "pitch_length_mm": 684,
+      "teeth": 228,
+      "source": "D",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-3mm-696-D",
+      "pitch_mm": 3,
+      "pitch_length_mm": 696,
+      "teeth": 232,
+      "source": "D",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-3mm-735-D",
+      "pitch_mm": 3,
+      "pitch_length_mm": 735,
+      "teeth": 245,
+      "source": "D",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-3mm-750-D",
+      "pitch_mm": 3,
+      "pitch_length_mm": 750,
+      "teeth": 250,
+      "source": "D",
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-300-C",
+      "pitch_mm": 2,
+      "pitch_length_mm": 300,
+      "teeth": 150,
+      "source": "C",
+      "listings": [
+        "eBay UK 283328995672"
+      ],
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-360-C",
+      "pitch_mm": 2,
+      "pitch_length_mm": 360,
+      "teeth": 180,
+      "source": "C",
+      "listings": [
+        "eBay UK 283328995672"
+      ],
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-376-C",
+      "pitch_mm": 2,
+      "pitch_length_mm": 376,
+      "teeth": 188,
+      "source": "C",
+      "listings": [
+        "eBay UK 283328995672"
+      ],
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-394-C",
+      "pitch_mm": 2,
+      "pitch_length_mm": 394,
+      "teeth": 197,
+      "source": "C",
+      "listings": [
+        "Amazon B0G1XTWKCG (6/10 mm)"
+      ],
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-400-C",
+      "pitch_mm": 2,
+      "pitch_length_mm": 400,
+      "teeth": 200,
+      "source": "C",
+      "listings": [
+        "eBay UK 283328995672",
+        "Amazon B0G1XTWKCG (6/10 mm)"
+      ],
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-444-C",
+      "pitch_mm": 2,
+      "pitch_length_mm": 444,
+      "teeth": 222,
+      "source": "C",
+      "listings": [
+        "AliExpress 10 mm closed-loop listing"
+      ],
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-450-C",
+      "pitch_mm": 2,
+      "pitch_length_mm": 450,
+      "teeth": 225,
+      "source": "C",
+      "listings": [
+        "AliExpress 10 mm closed-loop listing"
+      ],
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-460-C",
+      "pitch_mm": 2,
+      "pitch_length_mm": 460,
+      "teeth": 230,
+      "source": "C",
+      "listings": [
+        "Amazon B0G1XTWKCG (6/10 mm)"
+      ],
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-500-C",
+      "pitch_mm": 2,
+      "pitch_length_mm": 500,
+      "teeth": 250,
+      "source": "C",
+      "listings": [
+        "eBay UK 283328995672",
+        "AliExpress 10 mm closed-loop listing",
+        "Amazon B0G1XTWKCG (6/10 mm)"
+      ],
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-540-C",
+      "pitch_mm": 2,
+      "pitch_length_mm": 540,
+      "teeth": 270,
+      "source": "C",
+      "listings": [
+        "Amazon B0G1XTWKCG (6/10 mm)"
+      ],
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-550-C",
+      "pitch_mm": 2,
+      "pitch_length_mm": 550,
+      "teeth": 275,
+      "source": "C",
+      "listings": [
+        "AliExpress 10 mm closed-loop listing"
+      ],
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-600-C",
+      "pitch_mm": 2,
+      "pitch_length_mm": 600,
+      "teeth": 300,
+      "source": "C",
+      "listings": [
+        "AliExpress 10 mm closed-loop listing"
+      ],
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-610-C",
+      "pitch_mm": 2,
+      "pitch_length_mm": 610,
+      "teeth": 305,
+      "source": "C",
+      "listings": [
+        "AliExpress 10 mm closed-loop listing"
+      ],
+      "purchase_confirmed": false
+    },
+    {
+      "id": "GT2-2mm-640-C",
+      "pitch_mm": 2,
+      "pitch_length_mm": 640,
+      "teeth": 320,
+      "source": "C",
+      "listings": [
+        "AliExpress 10 mm closed-loop listing"
+      ],
+      "purchase_confirmed": false
+    }
+  ]
+}

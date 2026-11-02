@@ -566,7 +566,8 @@ def test_c_a_blank_entry_is_incomplete_until_its_values_are_entered(own_config):
 
     path, required = add_component("actuator", "test_servo", "Test servo")
     assert path.name == "actuators.yaml"
-    assert set(required) == {"mass_g", "stall_torque_nm", "stall_current_a", "no_load_speed_rpm", "voltage_v"}
+    # stall current is optional since ADR-066: without it the servo is usable and its current is "unknown"
+    assert set(required) == {"mass_g", "stall_torque_nm", "no_load_speed_rpm", "voltage_v"}
     entry = next(e for e in yaml.safe_load(path.read_text(encoding="utf-8")) if e["key"] == "test_servo")
     assert entry["verified"] is False and entry["guessed"] == []
     assert all(entry[f] is None for f in required), "nothing is filled in for the researcher"

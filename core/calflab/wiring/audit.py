@@ -38,6 +38,7 @@ RESULTS: dict[str, str] = {
     "runtime": "Battery runtime",
     "thermal": "Actuator temperature estimate",
     "bom_cost": "BOM cost",
+    "load_report": "Load analysis (% of rated torque; servo resolution at the joint)",
 }
 
 # kind -> field -> (unit, results the field feeds). Mass also feeds the
@@ -49,6 +50,8 @@ FIELD_USES: dict[str, dict[str, tuple[str, tuple[str, ...]]]] = {
         "stall_torque_nm": ("N*m", ("sim_torque", "torque_margin", "power", "runtime", "thermal")),
         "stall_current_a": ("A", ("power", "runtime", "thermal")),
         "no_load_speed_rpm": ("rpm", ("speed_cap",)),
+        "rated_torque_nm": ("N*m", ("load_report",)),
+        "encoder_steps_per_rev": ("steps/rev", ("load_report",)),
         "voltage_v": ("V", ()),
         "gear_ratio": ("", ()),
         "idle_current_a": ("A", ("power", "runtime", "thermal")),

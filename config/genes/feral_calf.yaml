@@ -1,0 +1,122 @@
+# Gene definition for the final feral calf (projects/robot-calf-final; ADR-066..068).
+#
+# Defaults are the researcher's dimensions of 2026-11-02, joint centre to joint
+# centre (mm, degrees). `provisional: true` marks a starting value the
+# researcher has not confirmed; the Form shows a PROVISIONAL badge on it.
+#
+# Belt drives are NOT genes: a belt drive is three catalog references chosen in
+# the Belts panel, and its centre distance is derived (ADR-063). If belts are
+# ever evolved they become discrete catalog indices, never distances.
+#
+# Bump `version` and add a migration in core/calflab/model/migrations.py when
+# you rename, remove or re-scale a gene.
+
+name: feral_calf
+version: 1
+description: >
+  Final feral calf: hip block and chest block joined by two rails; rear legs
+  hip ab/adduction -> femur (fixed in pitch) -> stifle -> tibia -> hock ->
+  cannon; front legs shoulder -> upper leg -> carpus -> cannon; ten servos,
+  stifles and hocks belt-driven 2:1; tension springs at stifle, hock and
+  shoulder; head and neck as one lumped mass.
+
+genes:
+  # ------------------------------------------------------------- body
+  - {id: axle_spacing, default: 550, min: 400, max: 700, unit: mm, group: Body, provisional: true, evolvable: false,
+     label: "Hip axle to shoulder axle", description: "Distance between the hip axle and the shoulder axle (PROVISIONAL)."}
+  - {id: body_length, default: 760, min: 500, max: 1000, unit: mm, group: Body, evolvable: false,
+     label: "Overall body length", description: "Hip block rear face to chest block front face (about 2.5 ft). The blocks overhang the axles equally."}
+  - {id: rail_spacing, default: 100, min: 80, max: 120, unit: mm, group: Body, provisional: true, evolvable: false,
+     label: "Rail spacing", description: "Centre to centre of the two side-by-side body rails (PROVISIONAL, 80-120 mm)."}
+  - {id: rail_type, type: enum, default: cf_rod_8mm, choices: [cf_rod_8mm, al_tube_half_inch], group: Body, provisional: true,
+     evolvable: false, label: "Body rails",
+     description: "Two 8 mm solid carbon fibre rods, or 1/2 in round aluminium tube with 0.049 in wall (PROVISIONAL). Aluminium density is not entered, so an aluminium rail's mass is unknown (0 g, listed)."}
+
+  # ------------------------------------------------------------- rear legs
+  - {id: femur_length, default: 200, min: 120, max: 300, unit: mm, group: Rear legs, evolvable: false,
+     description: "Hip axle to stifle."}
+  - {id: femur_angle, default: 40, min: 0, max: 70, unit: deg, group: Rear legs, evolvable: false,
+     description: "Standing angle of the femur, forward of vertical (fixed: no hip pitch motor)."}
+  - {id: tibia_length, default: 245, min: 150, max: 350, unit: mm, group: Rear legs, evolvable: false,
+     description: "Stifle to hock."}
+  - {id: tibia_angle, default: 35, min: 0, max: 70, unit: deg, group: Rear legs, evolvable: false,
+     description: "Standing angle of the tibia, back of vertical."}
+  - {id: rear_cannon_length, default: 230, min: 150, max: 330, unit: mm, group: Rear legs, evolvable: false,
+     description: "Hock to the end of the cannon."}
+  - {id: rear_cannon_angle, default: 10, min: -20, max: 30, unit: deg, group: Rear legs, evolvable: false,
+     description: "Standing angle of the rear cannon, forward of vertical (about 10)."}
+
+  # ------------------------------------------------------------- front legs
+  - {id: upper_leg_length, default: 340, min: 200, max: 450, unit: mm, group: Front legs, evolvable: false,
+     description: "Shoulder axle to carpus."}
+  - {id: front_cannon_length, default: 245, min: 150, max: 350, unit: mm, group: Front legs, evolvable: false,
+     description: "Carpus to the end of the cannon."}
+  - {id: front_angle, default: 5, min: 0, max: 20, unit: deg, group: Front legs, evolvable: false,
+     label: "Front leg angle (about)",
+     description: "About this far from vertical for both front segments (upper leg leaning forward, cannon back). The back is kept level: the lab solves the actual angle, equal on both segments, so the front hooves stand at the rear hooves' height, and reports it."}
+  - {id: hoof_pad, default: 30, min: 10, max: 60, unit: mm, group: Front legs, evolvable: false,
+     label: "Hoof pad depth", description: "Ground contact this far below the end of every cannon (front and rear)."}
+
+  # ------------------------------------------------------------- tubes (round carbon fibre)
+  - {id: tube_density, default: 1.55, min: 1.0, max: 2.0, step: 0.01, unit: g/cm3, group: Tubes, provisional: true, evolvable: false,
+     description: "Density of the carbon fibre tubes (and rods) (PROVISIONAL)."}
+  - {id: femur_od, default: 15, min: 8, max: 25, step: 0.5, unit: mm, group: Tubes, provisional: true, evolvable: false, description: "Femur tube outer diameter. Alternatives under consideration: 14x10, 16x12."}
+  - {id: femur_id, default: 12, min: 0, max: 22, step: 0.5, unit: mm, group: Tubes, provisional: true, evolvable: false, description: "Femur tube inner diameter."}
+  - {id: tibia_od, default: 15, min: 8, max: 25, step: 0.5, unit: mm, group: Tubes, provisional: true, evolvable: false, description: "Tibia tube outer diameter."}
+  - {id: tibia_id, default: 12, min: 0, max: 22, step: 0.5, unit: mm, group: Tubes, provisional: true, evolvable: false, description: "Tibia tube inner diameter."}
+  - {id: rear_cannon_od, default: 15, min: 8, max: 25, step: 0.5, unit: mm, group: Tubes, provisional: true, evolvable: false, description: "Rear cannon tube outer diameter."}
+  - {id: rear_cannon_id, default: 12, min: 0, max: 22, step: 0.5, unit: mm, group: Tubes, provisional: true, evolvable: false, description: "Rear cannon tube inner diameter."}
+  - {id: upper_leg_od, default: 15, min: 8, max: 25, step: 0.5, unit: mm, group: Tubes, provisional: true, evolvable: false, description: "Front upper leg tube outer diameter."}
+  - {id: upper_leg_id, default: 12, min: 0, max: 22, step: 0.5, unit: mm, group: Tubes, provisional: true, evolvable: false, description: "Front upper leg tube inner diameter."}
+  - {id: front_cannon_od, default: 15, min: 8, max: 25, step: 0.5, unit: mm, group: Tubes, provisional: true, evolvable: false, description: "Front cannon tube outer diameter."}
+  - {id: front_cannon_id, default: 12, min: 0, max: 22, step: 0.5, unit: mm, group: Tubes, provisional: true, evolvable: false, description: "Front cannon tube inner diameter."}
+
+  # ------------------------------------------------------------- head, neck, battery
+  - {id: head_mass, default: 150, min: 0, max: 1000, unit: g, group: Head and battery, provisional: true, evolvable: false,
+     label: "Head + neck mass", description: "Lumped mass standing in for the head and the thin steel neck rods (PROVISIONAL, 0.15 kg)."}
+  - {id: head_forward, default: 150, min: 0, max: 400, unit: mm, group: Head and battery, provisional: true, evolvable: false,
+     label: "Head mass ahead of chest block", description: "How far the head + neck mass sits ahead of the chest block's front face (PROVISIONAL)."}
+  - {id: head_height, default: 150, min: -100, max: 400, unit: mm, group: Head and battery, provisional: true, evolvable: false,
+     label: "Head mass height", description: "Height of the head + neck mass above the axles (PROVISIONAL)."}
+  - {id: battery_forward, default: 120, min: 0, max: 500, unit: mm, group: Head and battery, provisional: true, evolvable: false,
+     label: "Batteries ahead of hip axle", description: "Where the two 3S packs hang, measured forward from the hip axle (PROVISIONAL)."}
+  - {id: battery_drop, default: 50, min: 0, max: 150, unit: mm, group: Head and battery, provisional: true, evolvable: false,
+     label: "Batteries below rails", description: "How far below the rails the packs hang (PROVISIONAL)."}
+
+  # ------------------------------------------------------------- mechanism
+  - {id: actuator, type: enum, default: sts3215_c018, choices: [sts3215_c018], choices_from: actuator, group: Mechanism, evolvable: false,
+     label: "Servo (all ten joints)", description: "The servo on every joint. Feetech STS3215 C018 at 12 V by default."}
+  - {id: carpus_belt, type: bool, default: false, group: Mechanism, evolvable: false,
+     label: "Belt-drive the carpus",
+     description: "Off = carpus servo direct on the joint. On = the carpus is belted 2:1 with the same belt system; its servo rides on the upper leg just below the shoulder."}
+
+  # ------------------------------------------------------------- springs (tension only; ADR-065)
+  # Anchors are measured from the joint axis in the plane of the leg: 'along' up
+  # the segment above (or the trunk's vertical at the shoulder) / down the segment
+  # below; 'normal' across it, positive toward the front. All PROVISIONAL.
+  - {id: spring_stifle, type: bool, default: true, group: Springs, provisional: true, evolvable: false,
+     label: "Stifle springs", description: "Tension springs on the front (convex side) of each stifle, like the patellar ligament."}
+  - {id: spring_stifle_k, default: 0.4, min: 0.0, max: 3.0, step: 0.01, unit: N/mm, group: Springs, provisional: true, label: "Stifle: rate", description: "Spring rate."}
+  - {id: spring_stifle_free_length, default: 64.5, min: 10, max: 300, step: 0.5, unit: mm, group: Springs, provisional: true, label: "Stifle: free length", description: "Length with no force. Shorter = more pretension at the same anchors."}
+  - {id: spring_stifle_upper_along, default: 30, min: -60, max: 200, step: 1, unit: mm, group: Springs, provisional: true, label: "Stifle: femur anchor along", description: "Up the femur from the stifle axis."}
+  - {id: spring_stifle_upper_normal, default: 55, min: -100, max: 100, step: 1, unit: mm, group: Springs, provisional: true, label: "Stifle: femur anchor out", description: "Across the femur, positive toward the front."}
+  - {id: spring_stifle_lower_along, default: 30, min: -60, max: 200, step: 1, unit: mm, group: Springs, provisional: true, label: "Stifle: tibia anchor along", description: "Down the tibia from the stifle axis."}
+  - {id: spring_stifle_lower_normal, default: 55, min: -100, max: 100, step: 1, unit: mm, group: Springs, provisional: true, label: "Stifle: tibia anchor out", description: "Across the tibia, positive toward the front."}
+
+  - {id: spring_hock, type: bool, default: true, group: Springs, provisional: true, evolvable: false,
+     label: "Hock springs", description: "Tension springs on the back of each hock (point of hock), like the Achilles tendon."}
+  - {id: spring_hock_k, default: 0.2, min: 0.0, max: 3.0, step: 0.01, unit: N/mm, group: Springs, provisional: true, label: "Hock: rate", description: "Spring rate."}
+  - {id: spring_hock_free_length, default: 39.5, min: 10, max: 300, step: 0.5, unit: mm, group: Springs, provisional: true, label: "Hock: free length", description: "Length with no force."}
+  - {id: spring_hock_upper_along, default: 80, min: -60, max: 200, step: 1, unit: mm, group: Springs, provisional: true, label: "Hock: tibia anchor along", description: "Up the tibia from the hock axis."}
+  - {id: spring_hock_upper_normal, default: -10, min: -100, max: 100, step: 1, unit: mm, group: Springs, provisional: true, label: "Hock: tibia anchor out", description: "Across the tibia, positive toward the front (negative = behind)."}
+  - {id: spring_hock_lower_along, default: -20, min: -60, max: 200, step: 1, unit: mm, group: Springs, provisional: true, label: "Hock: cannon anchor along", description: "Down the cannon from the hock axis; negative = above the axis, on a lever like the point of the hock."}
+  - {id: spring_hock_lower_normal, default: -15, min: -100, max: 100, step: 1, unit: mm, group: Springs, provisional: true, label: "Hock: cannon anchor out", description: "Across the cannon, positive toward the front."}
+
+  - {id: spring_shoulder, type: bool, default: true, group: Springs, provisional: true, evolvable: false,
+     label: "Shoulder springs", description: "Tension springs behind each shoulder: that side helps rising from kneeling (in simulation the shoulder servo swings the leg back while the chest rises; a spring in front works against it)."}
+  - {id: spring_shoulder_k, default: 0.2, min: 0.0, max: 3.0, step: 0.01, unit: N/mm, group: Springs, provisional: true, label: "Shoulder: rate", description: "Spring rate."}
+  - {id: spring_shoulder_free_length, default: 43.5, min: 10, max: 300, step: 0.5, unit: mm, group: Springs, provisional: true, label: "Shoulder: free length", description: "Length with no force."}
+  - {id: spring_shoulder_upper_along, default: 40, min: -100, max: 200, step: 1, unit: mm, group: Springs, provisional: true, label: "Shoulder: chest anchor up", description: "Above the shoulder axle, on the chest block."}
+  - {id: spring_shoulder_upper_normal, default: -30, min: -150, max: 150, step: 1, unit: mm, group: Springs, provisional: true, label: "Shoulder: chest anchor forward", description: "Forward of the shoulder axle (negative = behind)."}
+  - {id: spring_shoulder_lower_along, default: 40, min: -60, max: 200, step: 1, unit: mm, group: Springs, provisional: true, label: "Shoulder: upper-leg anchor along", description: "Down the upper leg from the shoulder axis."}
+  - {id: spring_shoulder_lower_normal, default: -25, min: -100, max: 100, step: 1, unit: mm, group: Springs, provisional: true, label: "Shoulder: upper-leg anchor out", description: "Across the upper leg, positive toward the front."}

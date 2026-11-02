@@ -442,6 +442,12 @@ class Lab:
         # fail fast (in the caller) if the pipeline feeding the simulation is broken
         for role, socket in (("design", "design"), ("model", "model"), ("controller", "controller")):
             self._role_output(role, socket, g, state)
+        from calflab.app.loads_jobs import FeralError, refuse_invalid_belts
+
+        try:  # a belt drive that fails a check is never simulated (ADR-063)
+            refuse_invalid_belts(self._role_output("design", "design", g, state))
+        except FeralError as exc:
+            raise LabError(str(exc)) from exc
 
         def work(job: JobContext) -> dict[str, Any]:
             t0 = time.perf_counter()

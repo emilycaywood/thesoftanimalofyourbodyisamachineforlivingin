@@ -38,6 +38,28 @@
   guessed: [r_thermal_k_per_w, c_thermal_j_per_k]
   verified: false
 
+# Supplied by the researcher on 2026-11-02 for the final feral calf (projects/robot-calf-final, ADR-066).
+# Only these values were given; nothing else is entered. stall_current_a is not given: current, power and
+# thermal estimates for this servo are "unknown". Armature, idle current, winding resistance and the thermal
+# figures take the model defaults ("default assumed" in the audit).
+- key: sts3215_c018
+  kind: actuator
+  name: Feetech STS3215 C018 (12 V)
+  manufacturer: Feetech
+  mass_g: 55
+  dims_mm: [45.2, 24.7, 35.0]
+  stall_torque_nm: 2.94          # 30 kg.cm @ 12 V
+  rated_torque_nm: 0.98          # 10 kg.cm @ 12 V
+  no_load_speed_rpm: 45.045      # 0.222 s / 60 deg @ 12 V = 10 / 0.222 rpm (270.3 deg/s)
+  voltage_v: 12.0
+  gear_ratio: 345                # 1/345
+  encoder_steps_per_rev: 4096    # 12-bit absolute, 4096 steps per 360 deg
+  stall_current_a: null          # REQUIRED for current/power/thermal estimates: not supplied
+  protocol: ttl-serial-bus
+  source: Researcher-supplied specification, 2026-11-02 (Feetech STS3215 C018, 12 V)
+  guessed: []
+  verified: false
+
 - key: xm430_w350
   kind: actuator
   name: Dynamixel XM430-W350

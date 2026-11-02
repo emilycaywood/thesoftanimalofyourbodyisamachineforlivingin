@@ -170,13 +170,19 @@ def power_budget(spec: RobotSpec, lib: Library, metrics: dict[str, Any] | None) 
         for c in rated.values()
         if abs(c.voltage_v - bus_v) > 0.15 * bus_v  # 12 V servos on an 11.1 V 3S pack are the usual pairing
     ]
+    unknown_current: list[str] = []
     for a in spec.actuators:
         c: ActuatorSpec = lib.actuator(a.component)
         tr = trans.get(a.transmission) if a.transmission else None
-        kt = c.torque_constant_nm_per_a * ((tr.ratio * tr.efficiency) if tr else 1.0)
         stats = by_act.get(a.id, {})
-        i_rms = float(stats.get("torque_rms_nm", 0.0)) / kt + c.idle_current_a
-        i_peak = min(float(stats.get("torque_peak_nm", 0.0)) / kt + c.idle_current_a, c.stall_current_a)
+        if c.torque_constant_nm_per_a is None or c.stall_current_a is None:
+            # no stall current given: the motor's current is unknown; only its idle draw is counted (ADR-066)
+            i_rms = i_peak = c.idle_current_a
+            unknown_current.append(c.key)
+        else:
+            kt = c.torque_constant_nm_per_a * ((tr.ratio * tr.efficiency) if tr else 1.0)
+            i_rms = float(stats.get("torque_rms_nm", 0.0)) / kt + c.idle_current_a
+            i_peak = min(float(stats.get("torque_peak_nm", 0.0)) / kt + c.idle_current_a, c.stall_current_a)
         mean_a += i_rms
         peak_a += i_peak
         rows.append(
@@ -244,7 +250,10 @@ def power_budget(spec: RobotSpec, lib: Library, metrics: dict[str, Any] | None) 
             "the bus voltage. Motor currents are added up as they are and counted as battery current; power is that "
             "current times the bus voltage."
         ) if mismatch else None,
-        "note": "Estimate from torque statistics and unverified component data; not a measurement.",
+        "note": "Estimate from torque statistics and unverified component data; not a measurement."
+        + (f" Motor current UNKNOWN for {', '.join(sorted(set(unknown_current)))} (no stall current entered): "
+           "only its idle draw is counted." if unknown_current else ""),
+        "current_unknown": sorted(set(unknown_current)),
     }
 
 

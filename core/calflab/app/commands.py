@@ -534,6 +534,10 @@ class SetNodeParams(Command):
             node = state.graph.node(p.node)  # type: ignore[attr-defined]
         except KeyError as exc:
             raise _err(str(exc)) from exc
+        if node.type == "part_generator:feral_calf" and "belts" in p.params:  # type: ignore[attr-defined]
+            # belt drives change only through set_belt_drive, which validates every choice (ADR-063)
+            raise _err("Belt drives are chosen with set_belt_drive (the Belts panel), which checks every choice; "
+                       "they cannot be set as node parameters.")
         nt = node_types().get(node.type)
         merged = {**node.params, **p.params}  # type: ignore[attr-defined]
         try:
@@ -1106,6 +1110,128 @@ class Bake(Command):
     def run(self, lab: Any, state: DocumentState) -> Any:
         rec = lab.bake(self.params.name, self.params.note)  # type: ignore[attr-defined]
         return {"design": rec.id, "version": rec.version, "mass_g": rec.mass_g}
+
+
+# ====================================================================== belt drives and loads (feral calf)
+@register
+class SetBeltDrive(Command):
+    key = "set_belt_drive"
+    label = "Set belt drive"
+    description = (
+        "Choose a belt drive's belt system, pulley pair or belt length from the project's catalog (feral calf). The "
+        "centre distance and the servo position follow from the choice; a choice that fails any check is rejected "
+        "with the reason. Changing the system or pulley pair alone re-chooses the length by the default rule."
+    )
+    category = "Mechanism"
+    mutates = True
+
+    class Params(BaseModel):
+        drive: str = P("hock", desc="stifle, hock or carpus.")
+        system: str = P("", desc="Belt system id (empty = keep).")
+        pulleys: str = P("", desc="Pulley pair id (empty = keep).")
+        length: str = P("", desc="Belt length entry id (empty = keep, or re-choose if it does not fit the new system).")
+
+    def title(self) -> str:
+        p = self.params
+        parts = [x for x in (p.system, p.pulleys, p.length) if x]  # type: ignore[attr-defined]
+        return f"Belt at the {p.drive}: " + ", ".join(parts)  # type: ignore[attr-defined]
+
+    def run(self, lab: Any, state: DocumentState) -> Any:
+        from calflab.design import build_design
+        from calflab.mech.belts import BeltChoice, CatalogError, choose_default, rejection
+        from calflab.mech.belts import DriveReport as _Report
+        from calflab.morphology.feral import belt_context
+
+        p = self.params
+        node = state.graph.role("design")
+        if node.type != "part_generator:feral_calf":
+            raise _err("set_belt_drive applies to the final feral calf (part generator 'feral_calf').")
+        design = lab.design()
+        meta = design.spec.metadata["feral"]
+        drives = meta["belt_drives"]
+        if p.drive not in drives:  # type: ignore[attr-defined]
+            raise _err(f"No belt drive at the {p.drive!r}: belted joints are {', '.join(drives)}"  # type: ignore[attr-defined]
+                       + (" (switch on 'Belt-drive the carpus' in Mechanism first)" if p.drive == "carpus" else ""))  # type: ignore[attr-defined]
+        cur = BeltChoice.model_validate(drives[p.drive]["choice"])  # type: ignore[attr-defined]
+        new = BeltChoice(system=p.system or cur.system, pulleys=p.pulleys or cur.pulleys,  # type: ignore[attr-defined]
+                         length=p.length or cur.length)  # type: ignore[attr-defined]
+        note = ""
+        try:
+            catalog, layouts, extra = belt_context(design.spec, lab.project.path)
+            system = catalog.system(new.system)
+            catalog.pair(new.pulleys)
+            entry = catalog.length(new.length)
+        except CatalogError as exc:
+            raise _err(str(exc)) from exc
+        changed = new.system != cur.system or new.pulleys != cur.pulleys
+        if not p.length and changed and not catalog.length_status(system, entry)[0]:  # type: ignore[attr-defined]
+            ch, _, why = choose_default(catalog, layouts[p.drive], new.system, new.pulleys, extra.get(p.drive))  # type: ignore[attr-defined]
+            if ch is None:
+                raise _err(f"Belt drive at the {p.drive} rejected: with {new.system} and {new.pulleys}, {why}.")  # type: ignore[attr-defined]
+            new = ch
+            note = f"The length was re-chosen ({ch.length}): {entry.id} is not offered for {system.id}."
+        belts = {**(node.params.get("belts") or {}), p.drive: new.model_dump()}  # type: ignore[attr-defined]
+        trial = {**node.params, "belts": belts}
+        try:
+            built = build_design(design.genome, [o for o in state.overrides if o.enabled], "feral_calf", trial, lab.project.path)
+        except Exception as exc:
+            raise _err(f"Belt drive at the {p.drive} rejected: {exc}") from exc  # type: ignore[attr-defined]
+        after = built.spec.metadata["feral"]["belt_drives"]
+        rep = _Report.model_validate({k: v for k, v in after[p.drive].items() if k in _Report.model_fields})  # type: ignore[attr-defined]
+        if not rep.ok:
+            raise _err(rejection(rep))
+        broken = [d for d, r in after.items() if d != p.drive and not r["ok"] and drives.get(d, {}).get("ok", False)]  # type: ignore[attr-defined]
+        if broken:
+            rb = _Report.model_validate({k: v for k, v in after[broken[0]].items() if k in _Report.model_fields})
+            raise _err(f"This {p.drive} belt would make the {broken[0]} drive fail: {rejection(rb)}")  # type: ignore[attr-defined]
+        node.params = node_types()[node.type].clean_params(trial)
+        return {"drive": p.drive, "choice": new.model_dump(), "c_mm": rep.c_mm,  # type: ignore[attr-defined]
+                "servo_axis_from_far_mm": rep.servo_axis_from_far_mm, "unknown": rep.unknown, "note": note}
+
+
+@register
+class RunLoads(Command):
+    key = "run_loads"
+    label = "Load analysis"
+    description = (
+        "Feral calf: simulate quiet standing, a slow walk and lying down then rising; log every joint's torque, servo "
+        "torque, spring torque and belt tension against its limits, with and without springs. A CSV per run."
+    )
+    category = "Simulate"
+    aliases = ["loads"]
+
+    class Params(BaseModel):
+        scenarios: list[str] = P(default_factory=lambda: ["stand", "walk", "lie_rise"], ui="json",
+                                 desc="Any of stand, walk, lie_rise.")
+        compare_springs: bool = P(True, desc="Also run each scenario without springs, to report what they take off.")
+
+    def run(self, lab: Any, state: DocumentState) -> Any:
+        from calflab.app.loads_jobs import FeralError, run_loads
+
+        try:
+            return {"job": run_loads(lab, self.params.scenarios, self.params.compare_springs).id}  # type: ignore[attr-defined]
+        except FeralError as exc:
+            raise _err(str(exc)) from exc
+
+
+@register
+class RunBeltComparison(Command):
+    key = "run_belt_comparison"
+    label = "Belt comparison"
+    description = (
+        "Feral calf: run the same slow walk on every catalog combination of belt system and pulley pair, everything "
+        "else fixed, and tabulate peak and sustained belt tension against the limits and the resulting C."
+    )
+    category = "Simulate"
+    aliases = ["belts"]
+
+    def run(self, lab: Any, state: DocumentState) -> Any:
+        from calflab.app.loads_jobs import FeralError, run_belt_comparison
+
+        try:
+            return {"job": run_belt_comparison(lab).id}
+        except FeralError as exc:
+            raise _err(str(exc)) from exc
 
 
 @register

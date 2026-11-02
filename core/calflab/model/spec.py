@@ -44,7 +44,9 @@ GeomShape = Literal["box", "capsule", "cylinder", "sphere", "ellipsoid", "mesh"]
 #: Where a geom's mass comes from (ADR-050). ``parametric`` is the envelope
 #: estimate of ADR-017; ``geometry`` is a pushed closed solid x material density;
 #: ``infill`` is such a solid weighed as printed, shell + infilled core (ADR-054).
-MassSource = Literal["parametric", "component", "geometry", "infill", "measured"]
+#: ``tube`` is a tube or rod from its diameters, length and density; ``specified`` a mass the researcher
+#: supplied without weighing it here (ADR-068).
+MassSource = Literal["parametric", "component", "geometry", "infill", "measured", "tube", "specified"]
 #: (ixx, iyy, izz, ixy, ixz, iyz)
 Inertia6 = tuple[float, float, float, float, float, float]
 
@@ -175,6 +177,25 @@ class Actuator(BaseModel):
     transmission: str | None = None
 
 
+class Spring(BaseModel):
+    """A tension spring between two bodies across a joint (ADR-065).
+
+    Pulls only (zero force while slack). Anchors are in the frames of their
+    bodies (mm). The simulator applies its force at the two anchors every
+    physics step.
+    """
+
+    id: str
+    joint: str
+    upper_body: str
+    upper_pos: Vec3
+    lower_body: str
+    lower_pos: Vec3
+    k_n_per_mm: float
+    free_length_mm: float
+    label: str = ""
+
+
 class Sensor(BaseModel):
     id: str
     type: str  # imu | fsr | touch | microphone | depth_camera | motor_feedback
@@ -230,6 +251,7 @@ class RobotSpec(BaseModel):
     sensors: list[Sensor] = Field(default_factory=list)
     skin_regions: list[SkinRegion] = Field(default_factory=list)
     harness_routes: list[HarnessRoute] = Field(default_factory=list)
+    springs: list[Spring] = Field(default_factory=list)
     metadata: dict[str, Any] = Field(default_factory=dict)
 
     # ------------------------------------------------------------------ validation
@@ -244,6 +266,7 @@ class RobotSpec(BaseModel):
             self.sensors,
             self.skin_regions,
             self.harness_routes,
+            self.springs,
         ):
             for el in group:
                 if el.id in ids:
@@ -270,6 +293,9 @@ class RobotSpec(BaseModel):
         for a in self.actuators:
             if a.joint not in joint_ids:
                 raise ValueError(f"Actuator {a.id!r} references unknown joint {a.joint!r}")
+        for sp in self.springs:
+            if sp.joint not in joint_ids or sp.upper_body not in body_ids or sp.lower_body not in body_ids:
+                raise ValueError(f"Spring {sp.id!r} references an unknown joint or body")
         return self
 
     # ------------------------------------------------------------------ lookup

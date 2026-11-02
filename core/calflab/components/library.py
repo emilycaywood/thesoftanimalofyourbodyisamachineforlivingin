@@ -11,7 +11,11 @@ No value is filled in silently (ADR-051):
 * an optional value that is missing takes the model's default and the field
   is recorded in ``defaulted``;
 * a value the researcher could not find on a datasheet is entered as a best
-  guess and named in the entry's ``guessed:`` list.
+  guess and named in the entry's ``guessed:`` list;
+* an optional value whose model default is ``None`` has no default at all:
+  when the entry does not give it, it is recorded in ``unknown`` and whatever
+  depends on it reports "unknown" (e.g. a servo without a stall current has
+  no current or thermal estimate).
 """
 
 from __future__ import annotations
@@ -48,11 +52,13 @@ class Component(BaseModel):
     guessed: list[str] = []
     #: spec fields the entry does not give, so the default of this model is in use (set by the loader)
     defaulted: list[str] = []
+    #: spec fields the entry does not give and that have no default: unknown (set by the loader)
+    unknown: list[str] = []
 
 
 #: fields that describe an entry rather than specify it
 META_FIELDS = frozenset({
-    "key", "kind", "name", "manufacturer", "url", "source", "verified", "notes", "guessed", "defaulted",
+    "key", "kind", "name", "manufacturer", "url", "source", "verified", "notes", "guessed", "defaulted", "unknown",
     "protocol", "type", "interface", "role", "color",
 })
 _NOT_FOR_MATERIAL = frozenset({"mass_g", "dims_mm", "cost_usd"})  # a material is bought by the kg
@@ -64,8 +70,13 @@ class ActuatorSpec(Component):
 
     kind: Literal["actuator"] = "actuator"
     stall_torque_nm: float
-    stall_current_a: float
+    #: None = not given: current, power and thermal estimates for this servo are unknown
+    stall_current_a: float | None = None
     no_load_speed_rpm: float
+    #: continuous (rated) torque at the output, N*m; None = not given
+    rated_torque_nm: float | None = None
+    #: absolute encoder resolution, steps per output revolution; None = not given
+    encoder_steps_per_rev: int | None = None
     voltage_v: float
     gear_ratio: float = 1.0
     idle_current_a: float = 0.05
@@ -77,8 +88,10 @@ class ActuatorSpec(Component):
     protocol: str = ""
 
     @property
-    def torque_constant_nm_per_a(self) -> float:
-        """Effective output torque per amp (stall torque / stall current)."""
+    def torque_constant_nm_per_a(self) -> float | None:
+        """Effective output torque per amp (stall torque / stall current); None if the current is unknown."""
+        if self.stall_current_a is None:
+            return None
         return self.stall_torque_nm / max(self.stall_current_a, 1e-9)
 
 
@@ -218,7 +231,7 @@ def parse_component(data: dict[str, Any]) -> Component:
         raise ValueError(f"Component {key!r}: unknown kind {kind!r}")
     if "source" not in data:
         raise ValueError(f"Component {key!r} has no 'source:' field")
-    given = {k: v for k, v in data.items() if v is not None and k != "defaulted"}
+    given = {k: v for k, v in data.items() if v is not None and k not in ("defaulted", "unknown")}
     fields = spec_fields(str(kind), given.get("role"))
     absent = [f for f in fields if f not in given]
     required = required_fields(str(kind), given.get("role"))
@@ -228,7 +241,8 @@ def parse_component(data: dict[str, Any]) -> Component:
     unknown = [f for f in given.get("guessed") or [] if f not in fields]
     if unknown:
         raise ValueError(f"Component {key!r}: 'guessed' names {unknown}, which are not spec fields of a {kind}")
-    return model.model_validate({**given, "defaulted": absent})
+    no_default = [f for f in absent if model.model_fields[f].default is None]
+    return model.model_validate({**given, "defaulted": [f for f in absent if f not in no_default], "unknown": no_default})
 
 
 def load_dir(directory: Path) -> tuple[list[Component], dict[str, dict[str, Any]]]:

@@ -65,6 +65,9 @@ class BuildContext:
     geometry_overrides: dict[str, Override] = field(default_factory=dict)
     #: structure material key by body id, for bodies that do not use the default (ADR-050)
     materials: dict[str, str] = field(default_factory=dict)
+    #: the open project's folder (None when building from a payload, e.g. in an evolution worker);
+    #: a generator may read project data such as the belt catalog from it (ADR-063)
+    project_dir: Path | None = None
 
 
 class PartGenerator(Plugin):

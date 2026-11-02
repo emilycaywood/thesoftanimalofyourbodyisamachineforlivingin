@@ -193,15 +193,25 @@ class PartGeneratorNode(_PluginNode):
         ov = [o.model_dump(mode="json") for o in ctx.overrides if o.enabled]
         stamp = _stamp(config_dir() / "components")
         defaults = (config_dir() / "robot_defaults.yaml").stat().st_mtime
-        return repr((ov, stamp, defaults))
+        # a generator may also read config/*.yaml, the repository's belt catalog and the project's (ADR-063)
+        extra = [_stamp(config_dir()), _json_stamp(config_dir() / "belts")]
+        if ctx.project_dir is not None:
+            extra.append(_json_stamp(ctx.project_dir / "catalog"))
+        return repr((ov, stamp, defaults, extra, str(ctx.project_dir or "")))
 
     def evaluate(self, params: dict[str, Any], inputs: dict[str, Any], ctx: EvalContext) -> dict[str, Any]:
         from calflab.design import build_design
 
-        design = build_design(inputs["genome"], ctx.overrides, self.key, params)
+        design = build_design(inputs["genome"], ctx.overrides, self.key, params, ctx.project_dir)
         for w in design.warnings:
             ctx.warn(w)
         return {"design": design}
+
+
+def _json_stamp(directory: Path) -> tuple[tuple[str, float], ...]:
+    if not directory.is_dir():
+        return ()
+    return tuple((p.name, p.stat().st_mtime) for p in sorted(directory.glob("*.json")))
 
 
 class ControllerNode(_PluginNode):

@@ -276,3 +276,37 @@ class MassPanel(Panel):
     description = "Live mass budget and centre of mass."
     workspace = "form"
     widgets = [{"kind": "analysis", "analysis": "mass_budget"}]
+
+
+class _LoadsParams(BaseModel):
+    run_id: str = P("", desc="A load or belt-comparison run; empty = the latest of each scenario.")
+
+
+@register
+class BeltDrives(Analysis):
+    key = "belt_drives"
+    label = "Belt drives and springs"
+    description = ("Feral calf: every belt drive's catalog choice with its derived centre distance, servo position, teeth in "
+                   "mesh and checks, the options of each dropdown, the springs in the standing pose, PROVISIONAL values and "
+                   "masses still to enter.")
+
+    def run(self, lab: Any) -> dict[str, Any]:
+        from calflab.app.loads_jobs import FeralError, belt_panel
+
+        try:
+            return belt_panel(lab)
+        except FeralError as exc:
+            return {"error": str(exc)}
+
+
+@register
+class LoadsReport(Analysis):
+    key = "loads"
+    label = "Load analysis"
+    description = "Feral calf: per-joint torque, servo torque, spring torque and belt tension against its limits, per scenario."
+    Params = _LoadsParams
+
+    def run(self, lab: Any) -> dict[str, Any]:
+        from calflab.app.loads_jobs import loads_view
+
+        return loads_view(lab, self.params.run_id or None)  # type: ignore[attr-defined]

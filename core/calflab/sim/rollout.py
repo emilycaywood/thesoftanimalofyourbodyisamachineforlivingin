@@ -63,6 +63,10 @@ class Rollout:
     temp: np.ndarray  # [T, A] deg C
     impacts: list[tuple[float, int, float]] = field(default_factory=list)  # (t, foot, speed m/s)
     meta: dict[str, Any] = field(default_factory=dict)
+    #: tension springs (ADR-065): ids, force [T, S] N and torque about their joint [T, S] N*m on the lower segment
+    spring_ids: list[str] = field(default_factory=list)
+    spring_force: np.ndarray | None = None
+    spring_torque: np.ndarray | None = None
 
     @property
     def n_frames(self) -> int:
@@ -77,7 +81,11 @@ class Rollout:
             "foot_geoms": self.foot_geoms,
             "impacts": self.impacts,
             "meta": self.meta,
+            "spring_ids": self.spring_ids,
         }
+        extra = {}
+        if self.spring_force is not None and self.spring_torque is not None:
+            extra = {"spring_force": self.spring_force, "spring_torque": self.spring_torque}
         np.savez_compressed(
             path,
             t=self.t,
@@ -91,6 +99,7 @@ class Rollout:
             com=self.com,
             temp=self.temp,
             meta=np.array(json.dumps(meta)),
+            **extra,  # type: ignore[arg-type]
         )
 
     @classmethod
@@ -114,6 +123,9 @@ class Rollout:
                 temp=z["temp"],
                 impacts=[tuple(i) for i in meta["impacts"]],  # type: ignore[misc]
                 meta=meta["meta"],
+                spring_ids=list(meta.get("spring_ids", [])),
+                spring_force=z["spring_force"] if "spring_force" in z.files else None,
+                spring_torque=z["spring_torque"] if "spring_torque" in z.files else None,
             )
 
 
@@ -193,7 +205,9 @@ def run_rollout(
     if lib is not None:
         comps = [lib.actuator(c) for c in cm.actuator_component]
         stall = np.array(cm.actuator_stall)
-        kt = stall / np.array([max(c.stall_current_a, 1e-9) for c in comps])
+        # a servo without a stall current has no current estimate: infinite kt keeps it at its idle draw (ADR-066)
+        cur = np.array([c.stall_current_a if c.stall_current_a is not None else np.nan for c in comps], dtype=float)
+        kt = np.where(np.isnan(cur), np.inf, stall / np.maximum(np.nan_to_num(cur, nan=1.0), 1e-9))
         r_el = np.array([c.winding_resistance_ohm for c in comps])
         r_th = np.array([c.r_thermal_k_per_w for c in comps])
         c_th = np.array([c.c_thermal_j_per_k for c in comps])
@@ -208,8 +222,38 @@ def run_rollout(
 
     pushes = [(p, model.body(p.body).id) for p in settings.pushes]
 
+    # tension springs (ADR-065): pulled between two anchor sites, never pushing; applied every physics step
+    nS = len(cm.springs)
+    sp_a = np.array([model.site(sp["site_a"]).id for sp in cm.springs], dtype=int)
+    sp_b = np.array([model.site(sp["site_b"]).id for sp in cm.springs], dtype=int)
+    sp_ba = [model.body(sp["body_a"]).id for sp in cm.springs]
+    sp_bb = [model.body(sp["body_b"]).id for sp in cm.springs]
+    sp_j = np.array([model.joint(sp["joint"]).id for sp in cm.springs], dtype=int)
+    sp_k = np.array([sp["k_n_per_m"] for sp in cm.springs], dtype=float)
+    sp_l0 = np.array([sp["free_length_m"] for sp in cm.springs], dtype=float)
+    sp_force = np.zeros(nS)
+    sp_torque = np.zeros(nS)
+    no_torque = np.zeros(3)
+
+    def apply_springs() -> None:
+        """Spring forces from the anchor positions of the last kinematics pass (at most one step old)."""
+        data.qfrc_applied[:] = 0.0
+        for i in range(nS):
+            pa, pb = data.site_xpos[sp_a[i]].copy(), data.site_xpos[sp_b[i]].copy()
+            d = pa - pb
+            length = float(np.linalg.norm(d))
+            unit = d / length if length > 0 else np.zeros(3)
+            f = sp_k[i] * max(0.0, length - sp_l0[i])
+            if f > 0.0:
+                fv = f * unit
+                mujoco.mj_applyFT(model, data, fv, no_torque, pb, sp_bb[i], data.qfrc_applied)
+                mujoco.mj_applyFT(model, data, -fv, no_torque, pa, sp_ba[i], data.qfrc_applied)
+            jp, ax = data.xanchor[sp_j[i]], data.xaxis[sp_j[i]]
+            sp_force[i] = f
+            sp_torque[i] = f * float(np.dot(np.cross(pb - jp, unit), ax))
+
     rec: dict[str, list[Any]] = {
-        k: [] for k in ("t", "pos", "quat", "q", "ctrl", "torque", "dq", "ff", "com", "temp")
+        k: [] for k in ("t", "pos", "quat", "q", "ctrl", "torque", "dq", "ff", "com", "temp", "sf", "st")
     }
     impacts: list[tuple[float, int, float]] = []
     prev_contact = np.zeros(nF, dtype=bool)
@@ -245,6 +289,8 @@ def run_rollout(
         # as Blender rebuild poses from the joint angles).
         mujoco.mj_kinematics(model, data)
         mujoco.mj_comPos(model, data)
+        if nS:
+            apply_springs()  # refreshes the recorded spring force and torque for this instant
         contact = ff > 1e-6
         q_act = data.qpos[a_qadr].copy()
         dq_act = data.qvel[a_dadr].copy()
@@ -289,6 +335,8 @@ def run_rollout(
             rec["ff"].append(ff.astype(np.float32))
             rec["com"].append(data.subtree_com[trunk].astype(np.float32))
             rec["temp"].append(temp.astype(np.float32))
+            rec["sf"].append(sp_force.astype(np.float32))
+            rec["st"].append(sp_torque.astype(np.float32))
             n = len(rec["t"])
             if on_frames and (n - pending_from >= chunk_frames):
                 on_frames(_chunk(rec, pending_from, n))
@@ -323,6 +371,8 @@ def run_rollout(
                 data.xfrc_applied[bid, :3] = p.force_n
 
         for _ in range(n_sub):
+            if nS:
+                apply_springs()
             mujoco.mj_step(model, data)
 
     n = len(rec["t"])
@@ -349,6 +399,9 @@ def run_rollout(
         com=arr("com", (3,)),
         temp=arr("temp", (nA,)),
         impacts=impacts,
+        spring_ids=[sp["id"] for sp in cm.springs],
+        spring_force=arr("sf", (nS,)) if nS else None,
+        spring_torque=arr("st", (nS,)) if nS else None,
         meta={
             "energy_j": energy,
             "fell": fell,

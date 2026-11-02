@@ -37,6 +37,7 @@ def P(
     group: str | None = None,
     advanced: bool = False,
     default_factory: Any = None,
+    provisional: bool = False,
 ) -> Any:
     """Declare a plugin parameter.
 
@@ -51,6 +52,7 @@ def P(
         choices: allowed values for an enum widget.
         group: collapsible group heading in the property panel.
         advanced: hide behind an "advanced" disclosure.
+        provisional: a starting value the researcher has not confirmed (shown with a badge).
     """
     extra: dict[str, Any] = {}
     if unit is not None:
@@ -67,6 +69,8 @@ def P(
         extra["group"] = group
     if advanced:
         extra["advanced"] = True
+    if provisional:
+        extra["provisional"] = True
     kwargs: dict[str, Any] = {"description": desc, "json_schema_extra": extra}
     if ge is not None:
         kwargs["ge"] = ge
@@ -184,6 +188,8 @@ def field_schema(name: str, info: FieldInfo) -> dict[str, Any]:
         "advanced": bool(extra.get("advanced", False)),
         "required": info.is_required(),
     }
+    if extra.get("provisional"):
+        out["provisional"] = True
     if choices is not None:
         out["choices"] = choices
     if ftype == "group":

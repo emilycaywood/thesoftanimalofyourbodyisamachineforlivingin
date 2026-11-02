@@ -33,6 +33,8 @@ HINTS: dict[str, str] = {
     "stall_torque_nm": "N*m at the output, at voltage_v (1 kg.cm = 0.0981 N*m)",
     "stall_current_a": "A",
     "no_load_speed_rpm": "rpm at the output (60 deg in t seconds = 10 / t rpm); caps gait speed",
+    "rated_torque_nm": "N*m continuous (rated) at the output, at voltage_v; optional",
+    "encoder_steps_per_rev": "steps per output revolution (e.g. 4096 for 12 bit); optional",
     "voltage_v": "V the figures above are given for",
     "gear_ratio": "",
     "idle_current_a": "A",

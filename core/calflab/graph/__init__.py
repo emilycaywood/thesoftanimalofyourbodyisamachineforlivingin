@@ -24,7 +24,14 @@ __all__ = [
 ]
 
 
-def default_graph(sim_defaults: dict[str, Any] | None = None) -> Graph:
+#: genome, part generator and controller of each project template (``calflab new-project --template``)
+TEMPLATES: dict[str, tuple[str, str, str]] = {
+    "calf": ("genome:calf", "part_generator:calf", "controller:cpg"),
+    "feral_calf": ("genome:feral_calf", "part_generator:feral_calf", "controller:feral_motion"),
+}
+
+
+def default_graph(sim_defaults: dict[str, Any] | None = None, template: str = "calf") -> Graph:
     """The standard pipeline: genome -> morphology -> MJCF -> sim -> metrics -> fitness."""
     types = node_types()
 
@@ -36,11 +43,12 @@ def default_graph(sim_defaults: dict[str, Any] | None = None) -> Graph:
     mjcf_params = {
         k: v for k, v in (sim_defaults or {}).items() if k in types["mjcf"].default_params()
     }
+    genome_type, generator_type, controller_type = TEMPLATES[template]
     nodes = [
-        node("genome", "genome:calf", 0, 0),
-        node("morphology", "part_generator:calf", 320, 0),
+        node("genome", genome_type, 0, 0),
+        node("morphology", generator_type, 320, 0),
         node("mjcf", "mjcf", 640, 0, **mjcf_params),
-        node("controller", "controller:cpg", 640, 260),
+        node("controller", controller_type, 640, 260),
         node("sim", "simulator:mujoco", 960, 80),
         node("metrics", "metrics", 1280, 80),
         node("fitness", "fitness", 1560, 80),

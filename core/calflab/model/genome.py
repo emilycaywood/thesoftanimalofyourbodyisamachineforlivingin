@@ -45,6 +45,8 @@ class GeneDef(BaseModel):
     #: The stored value is the full-size one; forms show and take the real one.
     scale_by: str | None = None
     evolvable: bool = True
+    #: a starting value the researcher has not confirmed (shown with a PROVISIONAL badge; listed in the ADRs)
+    provisional: bool = False
 
     @model_validator(mode="after")
     def _check(self) -> GeneDef:
@@ -199,6 +201,8 @@ class GenomeDefinition(BaseModel):
             }
             if g.label:
                 f["label"] = g.label
+            if g.provisional:
+                f["provisional"] = True
             if g.choices:
                 f["choices"] = g.choices
             fields.append(f)

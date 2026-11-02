@@ -1,0 +1,9 @@
+{
+  "_about": "Standard GT2 pulley pairs (ADR-063). Each pair is one discrete choice. Pitch diameters are computed (teeth x pitch / pi) and must not be written here: an entry with a pitch diameter is rejected. Masses are required fields still to be entered (null = not entered, counted as 0 g and listed as missing).",
+  "default": "30T-60T",
+  "pairs": [
+    {"id": "30T-60T", "driver_teeth": 30, "driven_teeth": 60, "pitch_mm": 2, "driver_mass_g": null, "driven_mass_g": null},
+    {"id": "36T-72T", "driver_teeth": 36, "driven_teeth": 72, "pitch_mm": 2, "driver_mass_g": null, "driven_mass_g": null},
+    {"id": "40T-80T", "driver_teeth": 40, "driven_teeth": 80, "pitch_mm": 2, "driver_mass_g": null, "driven_mass_g": null}
+  ]
+}

@@ -318,6 +318,30 @@ def _demo_bridges(lab_) -> None:  # type: ignore[no-untyped-def]
     console.print(f"Blender armature: {len(ap['bones'])} bones, {len(ap['meshes'])} meshes")
 
 
+# ====================================================================== projects
+@app.command("new-project")
+def new_project(
+    path: Path = typer.Argument(..., help="Folder of the new project, e.g. projects\\robot-calf-final."),
+    template: str = typer.Option("calf", help="calf (the reference calf) or feral_calf (the final feral calf)."),
+    name: str | None = typer.Option(None, help="Project name (default: the folder name)."),
+) -> None:
+    """Create a project from a template. feral_calf also copies the belt catalog into <project>\\catalog."""
+    from calflab.project.templates import create_project
+
+    try:
+        project = create_project(path, template, name)
+    except (ValueError, FileExistsError) as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(2) from exc
+    console.print(f"Created project [bold]{project.path}[/bold] ({template})")
+    if template == "feral_calf":
+        belts = project.state.graph.node("morphology").params.get("belts", {})
+        for drive, choice in belts.items():
+            console.print(f"  {drive}: {choice['system']}, {choice['pulleys']}, {choice['length']}")
+        console.print(f"Belt catalog: {project.path / 'catalog'} (edit purchase_confirmed there)")
+    console.print(f"Open it with: .\\calflab.ps1 lab --project {path}")
+
+
 # ====================================================================== plugins
 @app.command("new-plugin")
 def new_plugin(

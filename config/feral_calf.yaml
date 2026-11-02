@@ -1,0 +1,74 @@
+# Final feral calf (projects/robot-calf-final): the values that are not genes.
+# ADR-063 to ADR-068. Genes (lengths, angles, tubes, springs) are in config/genes/feral_calf.yaml.
+#
+# PROVISIONAL = a starting value the researcher has not confirmed; listed in the
+# lab (Belts and springs panel, scene `provisional`) and in DECISIONS.md.
+# null = a REQUIRED value not entered yet. It is never filled in: a mass counts
+# as 0 g and is listed as missing; a dimension makes the checks that need it
+# "unknown".
+
+battery:            # supplied by the researcher, 2026-11-02
+  packs: 2
+  pack_mass_g: 135
+  description: "3S 2200 mAh LiPo"
+
+servo:
+  component: sts3215_c018
+  # REQUIRED: distance from the output axis to the nearer end of the case, along
+  # its 45.2 mm length. Not supplied: the servo-on-segment and clearance checks
+  # say "unknown" where the answer depends on it.
+  output_axis_offset_mm: null
+  # How the case sits on a leg (PROVISIONAL, ADR-067): 45.2 mm along the
+  # segment, shaft parallel to the joint axis on the tube's centre line, so
+  # 24.7 mm across the segment in the plane of the leg and 35 mm sideways.
+  length_along_segment_mm: 45.2
+  width_across_segment_mm: 24.7
+  depth_sideways_mm: 35.0
+
+# Masses (g) of parts not yet modelled or weighed. REQUIRED; null = not entered:
+# counted as 0 g and listed as missing in the Mass panel and the load report.
+# Pulley masses are in catalog/pulleys.json.
+placeholders:
+  servo_horn_g: null      # per servo
+  bearing_g: null         # per joint
+  clamp_collar_g: null    # per collar (hock servos; carpus servos when belted)
+  tube_plug_g: null       # per tube end
+  hip_block_g: null
+  chest_block_g: null
+  electronics_g: null
+  skin_g: null
+  hoof_pad_g: null        # per hoof
+  belt_g: null            # per belt
+  neck_rods_g: null       # the thin steel neck rods, if not inside the head+neck lump
+
+# Design dimensions (mm). PROVISIONAL (ADR-067): chosen to make the checks
+# computable, not supplied.
+layout:
+  joint_fitting_mm: 25          # how far a joint fitting reaches along a tube from its joint axis
+  fitting_clearance_mm: 3       # gap kept between a servo case and a fitting
+  hip_block_reach_mm: 40        # how far beyond the hip axle the hip block can hold the stifle servo
+  pulley_clearance_mm: 3        # minimum gap between the two pulleys of one drive
+  bracket_margin_mm: 3          # servo bracket added round the case in the clearance sweep
+  belt_clearance_mm: 3          # minimum gap between the hock servo and the stifle belt
+  hoof_pad_radius_mm: 15
+  block_height_mm: 80
+  block_side_margin_mm: 20      # hip/chest block width = rail spacing + 2 x this
+  # Belts and servos are assumed to lie in one plane: the clearance sweep is the worst case.
+  lateral_layout: same_plane
+
+# Joint ranges (deg) relative to standing (0 = the standing pose). PROVISIONAL.
+# Positive = flexion at stifle, hock and carpus (folding the leg); at the
+# shoulder positive swings the leg backward; at the hip, positive = abduction.
+# A belted joint's range must not exceed 360 deg / ratio (180 deg at 2:1).
+joint_ranges_deg:
+  hip_abd: [-25, 25]
+  stifle: [-30, 80]
+  hock: [-30, 80]
+  shoulder: [-60, 60]
+  carpus: [-10, 130]
+
+# Targets for the default belt choice (ADR-063). From the researcher's request.
+belt_targets:
+  stifle: {kind: C, value: 175, low: 150, high: 200, note: "C 150-200 mm with the servo in the hip block (about a 390-490 mm belt)"}
+  hock: {kind: C, value: 180, note: "C about 180 mm (about a 444-460 mm belt with 30T/60T)"}
+  carpus: {kind: L, value: 680, note: "belt about 680 mm"}
