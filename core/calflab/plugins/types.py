@@ -170,6 +170,11 @@ class Controller(Plugin):
         raise NotImplementedError
 
     @classmethod
+    def fits(cls, spec: Any) -> bool:
+        """Whether this controller can drive this body (e.g. it finds the joints it knows by name). Default: yes."""
+        return True
+
+    @classmethod
     def resolve_params(cls, params: dict[str, Any], project_dir: Path | None) -> dict[str, Any]:
         """Fill in project data the params refer to (e.g. motion clips by id) before the controller is built, so
         jobs away from the project folder get the same data. Default: the params as they are."""

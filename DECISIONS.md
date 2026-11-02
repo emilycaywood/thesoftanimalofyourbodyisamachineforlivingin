@@ -1958,3 +1958,29 @@ trot was written for it.
 *Not done.* A torque-speed curve in the servo model. A trot tuned by
 evolution; its numbers are not in the CMA-ES vector yet, which is the
 walk's.
+
+## ADR-075 — Choosing the controller in the Simulate panel; each keeps its settings
+
+*Requested 2026-11-02.* After trying the stochastic behaviors, the
+researcher could not find the trot: the Simulate panel shows the active
+controller's form, and only `set_controller` typed on the command line led
+back to *Feral calf motions*.
+
+*Decision.*
+* **A Controller list** at the top of Simulate > Controller, offering every
+  implemented controller.
+  * One that cannot drive this body is greyed with "(not for this body)".
+    That is decided in the core: `Controller.fits(spec)`, true by default.
+    The CPG needs the reference calf's `hip_flex`/`knee` joints;
+    `feral_motion` needs stifles or shoulders.
+  * The server sends the list with the graph (`controllers`).
+* **Switching keeps settings.** The settings of the controller being
+  replaced are kept in the document (`settings.controller_params`, by node
+  type). A controller used before comes back as it was left (e.g. trot
+  mode with a 0.7 s cycle), not reset to defaults; only explicit `params`
+  override that.
+  * One undo step per switch, the kept settings included.
+  * `add_behavior` switches the same way.
+
+*Checked.* `tests/test_behave.py` (switch, change, switch back, undo,
+fits), and `web/e2e/behave.spec.ts` drives the list in the browser.

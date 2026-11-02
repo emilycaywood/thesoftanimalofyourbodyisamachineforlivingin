@@ -1246,6 +1246,29 @@ class RunBeltComparison(Command):
             raise _err(str(exc)) from exc
 
 
+# ====================================================================== controllers
+def switch_controller(state: DocumentState, new_type: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
+    """Make the simulation use controller ``new_type`` (ADR-075). The settings of the one it replaces are kept in
+    the document (``settings.controller_params``), and a controller used before comes back with its own settings
+    unless ``params`` are given. Returns the new params."""
+    node = state.graph.role("controller")
+    nt = node_types().get(new_type)
+    if nt is None:
+        raise _err(f"No controller {new_type.split(':', 1)[-1]!r}")
+    kept = dict(state.settings.get("controller_params") or {})
+    if node.type != new_type:
+        kept[node.type] = dict(node.params)
+    base = kept.get(new_type) if params is None else None
+    try:
+        new_params = nt.clean_params({**nt.default_params(), **(base or {}), **(params or {})})
+    except Exception as exc:
+        raise _err(f"Invalid parameters for {new_type}: {exc}") from exc
+    kept.pop(new_type, None)
+    state.settings = {**state.settings, "controller_params": kept}
+    node.type, node.params = new_type, new_params
+    return new_params
+
+
 # ====================================================================== behaviors from footage (ADR-073)
 @register
 class ImportFootage(Command):
@@ -1332,9 +1355,10 @@ class AddBehavior(Command):
         top = report["playable_speed"]  # never faster than the servos can follow
         entry = {"name": clip.id, "kind": "clip", "clip": clip.id, "weight": p.weight,  # type: ignore[attr-defined]
                  "speed": [round(0.8 * top, 3), round(top, 3)], "mirror": p.mirror}  # type: ignore[attr-defined]
-        rep_ = [e for e in params.get("repertoire", []) if e.get("name") != clip.id] + [entry]
         switched = node.type != "controller:behaviors"
-        node.type = "controller:behaviors"
+        if switched:  # the previous controller's settings are kept for switching back (ADR-075)
+            params = switch_controller(state, "controller:behaviors")
+        rep_ = [e for e in params.get("repertoire", []) if e.get("name") != clip.id] + [entry]
         node.params = nt.clean_params({**params, "repertoire": rep_})
         return {"entry": entry, "switched": switched, "report": report}
 
@@ -1343,29 +1367,25 @@ class AddBehavior(Command):
 class SetController(Command):
     key = "set_controller"
     label = "Use controller"
-    description = "Make the simulation use another controller (e.g. behaviors, feral_motion, cpg), with its defaults."
+    description = (
+        "Make the simulation use another controller (e.g. behaviors, feral_motion, cpg). A controller used before in "
+        "this document comes back with its own settings; the one it replaces keeps them for later."
+    )
     category = "Simulate"
     mutates = True
 
     class Params(BaseModel):
         key: str = P("behaviors", desc="Controller plugin key.")
-        params: dict[str, Any] = P(default_factory=dict, ui="json", desc="Parameters (partial; the rest default).")
+        params: dict[str, Any] = P(default_factory=dict, ui="json",
+                                   desc="Parameters (partial; the rest as last used here, else defaults).")
 
     def title(self) -> str:
         return f"Use controller {self.params.key}"  # type: ignore[attr-defined]
 
     def run(self, lab: Any, state: DocumentState) -> Any:
-        node = state.graph.role("controller")
         new_type = f"controller:{self.params.key}"  # type: ignore[attr-defined]
-        nt = node_types().get(new_type)
-        if nt is None:
-            raise _err(f"No controller {self.params.key!r}")  # type: ignore[attr-defined]
-        try:
-            params = nt.clean_params({**nt.default_params(), **self.params.params})  # type: ignore[attr-defined]
-        except Exception as exc:
-            raise _err(f"Invalid parameters for {new_type}: {exc}") from exc
-        node.type, node.params = new_type, params
-        return {"node": node.id, "type": new_type}
+        params = switch_controller(state, new_type, dict(self.params.params) or None)  # type: ignore[attr-defined]
+        return {"node": state.graph.role("controller").id, "type": new_type, "params": params}
 
 
 @register

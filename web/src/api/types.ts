@@ -336,6 +336,8 @@ export interface GraphView {
   genome_form?: { node: string; schema: Schema; values: Record<string, unknown>; scaled: string[] } | null;
   /** what an evolution of this body uses where nothing is set (gene file `evolve:`) */
   evolve_defaults?: Record<string, unknown> & { sim?: { duration_s?: number } };
+  /** controllers the simulation can use, and whether each can drive this body */
+  controllers?: { key: string; type: string; label: string; description: string; fits: boolean }[];
   graph: {
     nodes: GraphNode[];
     edges: GraphEdge[];

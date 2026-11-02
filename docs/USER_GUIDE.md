@@ -749,7 +749,10 @@ and joint ranges.
   it lives, and every part mass not entered yet (counted as 0 g; the Mass
   tab lists them too).
 
-**Gaits.** The simulation's controller is *Feral calf motions*: mode
+**Gaits.** Simulate > Controller has a *Controller* list. It greys out a
+controller that cannot drive this body. Switching keeps each controller's
+settings for when you come back (ADR-075). For gaits, use *Feral calf
+motions*: mode
 `stand`, `walk` (slow, one leg at a time), `trot` (diagonal pairs, about
 0.3 m/s) or `lie_rise`. Every mode keeps each joint under 90 % of its
 servo's speed (*speed fraction*; a 2:1 belt halves that speed). For a mix of

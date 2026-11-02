@@ -367,7 +367,22 @@ class Lab:
         except (KeyError, ValueError):
             evolve_defaults = {}
         return {"graph": graph.model_dump(mode="json"), "status": status, "revision": self.revision,
-                "genome_form": self.genome_form(graph, types), "evolve_defaults": evolve_defaults}
+                "genome_form": self.genome_form(graph, types), "evolve_defaults": evolve_defaults,
+                "controllers": self.controller_choices(graph)}
+
+    def controller_choices(self, graph: Graph | None = None) -> list[dict[str, Any]]:
+        """The controllers the Simulate panel offers: each with whether it can drive this body (ADR-075)."""
+        try:
+            spec = self.design(graph).spec
+        except LabError:
+            spec = None
+        out = []
+        for key, cls in sorted(registry.all("controller").items()):
+            if cls.stub:
+                continue
+            out.append({"key": key, "type": f"controller:{key}", "label": cls.label or key, "description": cls.description,
+                        "fits": bool(cls.fits(spec)) if spec is not None else True})  # type: ignore[attr-defined]
+        return out
 
     @staticmethod
     def genome_form(graph: Graph, types: dict[str, Any] | None = None) -> dict[str, Any] | None:

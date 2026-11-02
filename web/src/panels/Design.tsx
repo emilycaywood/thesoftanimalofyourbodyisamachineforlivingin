@@ -87,6 +87,34 @@ export function GenomePanel() {
   );
 }
 
+/** Which controller the simulation uses; switching keeps each one's settings for later (ADR-075). */
+function ControllerPicker() {
+  const choices = useLab((s) => s.graph?.controllers ?? []);
+  const rn = useRoleNode("controller");
+  const run = useLab((s) => s.run);
+  if (!rn || choices.length === 0) return null;
+  return (
+    <label className="mb-1 flex items-center gap-2" title="The controller drives the joints when you simulate. Switching back restores its settings.">
+      <span className="w-[38%] shrink-0 text-dim">Controller</span>
+      <select
+        className="min-w-0 flex-1"
+        data-testid="controller-picker"
+        value={rn.node.type}
+        onChange={(e) => {
+          const c = choices.find((x) => x.type === e.target.value);
+          if (c) void run("set_controller", { key: c.key }).catch(() => undefined);
+        }}
+      >
+        {choices.map((c) => (
+          <option key={c.type} value={c.type} disabled={!c.fits && c.type !== rn.node.type} title={c.description}>
+            {c.label}{c.fits ? "" : " (not for this body)"}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
 export function SimulatePanel() {
   const metrics = usePlayback((s) => s.metrics);
   const meta = useLab((s) => s.meta);
@@ -116,6 +144,7 @@ export function SimulatePanel() {
           </span>
         }
       >
+        <ControllerPicker />
         <RoleForm role="controller" />
       </Section>
       <Section title="Simulation"><RoleForm role="simulation" /></Section>

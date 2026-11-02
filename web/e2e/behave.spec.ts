@@ -38,7 +38,21 @@ test("a clip is checked against the body, previewed, and played among the stocha
   expect(ctrl.params.repertoire.map((e: { name: string }) => e.name)).toContain("paw-test");
   await expect(panel.getByRole("button", { name: "Simulate (F5)" })).toBeVisible();
 
-  await page.request.post("/api/commands/undo");
-  await expect(panel.getByTestId("use-behaviors")).toBeVisible();
+  // the Simulate panel switches controllers; each comes back with its own settings
+  await page.locator(".dv-default-tab", { hasText: /^Simulate$/ }).first().click();
+  const picker = page.getByTestId("controller-picker");
+  await expect(picker).toHaveValue("controller:behaviors");
+  await expect(picker.locator('option[value="controller:cpg"]')).toHaveAttribute("disabled", ""); // drives the reference calf only
+  await picker.selectOption("controller:feral_motion");
+  await expect(page.getByTestId("simulate-panel").locator('[data-field="mode"] select')).toHaveValue("walk");
+  await picker.selectOption("controller:behaviors");
+  await expect(picker).toHaveValue("controller:behaviors");
+  const again = await (await page.request.get("/api/graph")).json();
+  const back = again.graph.nodes.find((n: { id: string }) => n.id === again.graph.roles.controller);
+  expect(back.params.repertoire.map((e: { name: string }) => e.name)).toContain("paw-test"); // kept while away
+
+  for (let i = 0; i < 3; i++) await page.request.post("/api/commands/undo");
+  await page.locator(".dv-default-tab", { hasText: /^Behave$/ }).first().click();
+  await expect(page.getByTestId("behave-panel").getByTestId("use-behaviors")).toBeVisible();
   expect(errors).toEqual([]);
 });

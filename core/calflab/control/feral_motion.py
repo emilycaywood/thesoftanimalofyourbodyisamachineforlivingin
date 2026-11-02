@@ -29,7 +29,7 @@ about 30 mm fore and aft with no lift; they are starting points, not tuned.
 from __future__ import annotations
 
 import math
-from typing import Literal
+from typing import Any, Literal
 
 import numpy as np
 from pydantic import BaseModel
@@ -105,6 +105,11 @@ class FeralMotionController(Controller):
                  "the servos turn. 0 = no limit.",
         )
         ramp: float = P(1.5, unit="s", ge=0.0, le=3.0, step=0.1, desc="Walk: time to ramp in from standing (the body shifts over before the first step).")
+
+    @classmethod
+    def fits(cls, spec: Any) -> bool:
+        """These motions drive the feral calf's joints (stifle, hock, shoulder, carpus)."""
+        return any(j.id.endswith((".stifle", ".shoulder")) for j in spec.joints)
 
     @classmethod
     def vector_dims(cls) -> list[VectorDim]:

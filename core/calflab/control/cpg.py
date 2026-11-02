@@ -19,7 +19,7 @@ with leg in (fl, fr, hl, hr). Other actuators hold their standing angle.
 from __future__ import annotations
 
 import math
-from typing import Literal
+from typing import Any, Literal
 
 import numpy as np
 from pydantic import BaseModel
@@ -68,6 +68,11 @@ class CPGController(Controller):
             desc="Two-motor legs only: how far the leg swings outward to lift the hoof during swing.",
         )
         ramp: float = P(0.8, unit="s", ge=0.0, le=3.0, step=0.1, desc="Time to ramp the gait in from standing.")
+
+    @classmethod
+    def fits(cls, spec: Any) -> bool:
+        """The CPG drives the reference calf's joints (``joint.<leg>.hip_flex`` / ``.knee``)."""
+        return any(j.id.endswith((".hip_flex", ".knee")) for j in spec.joints)
 
     @classmethod
     def vector_dims(cls) -> list[VectorDim]:

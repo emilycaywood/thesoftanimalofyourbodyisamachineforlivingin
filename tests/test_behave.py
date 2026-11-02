@@ -224,3 +224,30 @@ def test_trot_moves_diagonal_pairs_together_within_servo_speed(spec):
     m = compute_metrics(r)
     assert not m["fell"] and m["speed_mps"] > 0.15 and cycle == used["trot_cycle_s"]
     assert m["speed_margin_min"] > 0  # commanded speed stays under the servos' (rate limit)
+
+
+# ---------------------------------------------------------------------- choosing the controller (ADR-075)
+def test_switching_controllers_keeps_each_ones_settings(tmp_path):
+    from calflab.app import Lab
+    from calflab.project.templates import create_project
+
+    project = create_project(tmp_path / "feral", "feral_calf")
+    lab = Lab.open(project.path, create=False)
+    try:
+        ctrl = lab.state.graph.role("controller")
+        lab.execute("set_node_params", {"node": ctrl.id, "params": {"mode": "trot", "trot_cycle_s": 0.7}})
+        lab.execute("set_controller", {"key": "behaviors"})
+        node = lab.state.graph.role("controller")
+        assert node.type == "controller:behaviors"
+        lab.execute("set_node_params", {"node": node.id, "params": {"blend_s": 1.2}})
+        lab.execute("set_controller", {"key": "feral_motion"})
+        node = lab.state.graph.role("controller")
+        assert node.params["mode"] == "trot" and node.params["trot_cycle_s"] == 0.7  # as it was left
+        lab.execute("set_controller", {"key": "behaviors"})
+        assert lab.state.graph.role("controller").params["blend_s"] == 1.2
+        lab.undo()
+        assert lab.state.graph.role("controller").type == "controller:feral_motion"
+        choices = {c["key"]: c["fits"] for c in lab.graph_view()["controllers"]}
+        assert choices["feral_motion"] and choices["behaviors"] and not choices["cpg"]  # the CPG drives the old calf
+    finally:
+        lab.close()
