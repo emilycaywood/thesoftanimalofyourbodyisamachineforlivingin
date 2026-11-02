@@ -42,5 +42,12 @@ test("choose belts from the catalog: C is derived, a failing belt is rejected, s
   // springs in the standing pose, with their side
   await expect(panel.getByTestId("spring-table")).toContainText("hl.stifle");
   await expect(panel.getByTestId("spring-table")).toContainText("resists");
+
+  // belts are catalog genes edited only here: Form does not offer them; Evolve uses this body's own defaults
+  await page.locator('[data-workspace="form"]').click();
+  await expect(page.getByTestId("genome-panel").locator('[data-field="femur_length"]')).toBeVisible();
+  await expect(page.getByTestId("genome-panel").locator('[data-field^="belt_"]')).toHaveCount(0);
+  await page.locator('[data-workspace="evolve"]').click();
+  await expect(page.getByTestId("evolve-panel").locator('[data-field="descriptor_x"] select')).toHaveValue("standing_height");
   expect(errors).toEqual([]);
 });

@@ -1320,6 +1320,8 @@ produce such designs.
   * Nothing in the gene file or the generator's numeric parameters names a
     distance; a test checks this.
   * If belts are ever evolved, they become discrete catalog indices.
+    (Since ADR-070 the belt choices are catalog-id genes that evolution
+    holds fixed.)
 * The tensioning slot (`tension_travel_mm`, ±3 mm, PROVISIONAL) is reported
   as `C ± travel`, never used to reach a geometry.
 * **Checks** (`calflab.mech.belts.evaluate_drive`), each pass, fail or unknown:
@@ -1671,3 +1673,84 @@ systems are not buildable (no lengths; no 3 mm pulleys).
 *Limits.* Contact and joint losses are the calf's defaults (ADR-058). The
 servo model has no torque-speed curve. The motions are scripted, not
 controlled, so peaks depend on their timing.
+
+## ADR-070 — The feral calf evolves; its belt drives do not (**VERIFY**)
+
+*Requested 2026-11-02.* "Get this body to be evolvable. Add the belts to the
+catalog index and ensure that their dimensions are unchanged with the
+evolution." The researcher accepted that this limits which geometry may be
+changed automatically.
+
+*Read as.* The belt choices join the genome as catalog references, so every
+candidate, bake and run records them. Evolution never changes them, so each
+belt's length, pulleys, C and servo position along its segment are the same
+in every candidate. Not read as: letting evolution pick other catalog
+entries. That would change the dimensions. If wanted later, it is a
+discrete choice among catalog entries with its own ADR.
+
+*Decision.*
+* **Belt genes.** `belt_<drive>_system`, `_pulleys`, `_length` for stifle,
+  hock and carpus (nine genes). They are enums of a new kind, `open`: the
+  value is an id in the project's belt catalog, accepted by the gene and
+  checked by the build, which fails with the id's name if the catalog has
+  no such entry. They are `hidden` (not in Form or the node editor form) and
+  `evolvable: false`. An open gene cannot be evolvable: the definition
+  refuses it.
+  * `set_genes` refuses them.
+  * `set_belt_drive` writes them after its checks (ADR-063).
+  * `set_node_params` refuses the generator's belt switches (`auto_belts`,
+    `belt_catalog`, `default_*`).
+  * Asking MAP-Elites to evolve one is an error naming it.
+  * The generator's `belts` parameter is gone. Its defaults equal what the
+    project had stored, so no genome version bump was needed.
+  * `projects/robot-calf-final` was converted through `set_belt_drive` and
+    `set_node_params` (logged, undoable).
+* **What evolves.** Segment lengths and angles (femur, tibia, rear cannon,
+  upper leg, front cannon), the axle spacing, and all spring genes. Fixed:
+  belts, tubes, rails, body length, the front angle (solved for a level
+  back), masses and part positions.
+* **Belt-bound geometry.** The belt checks depend on these genes, marked
+  `belt_bound`:
+  * femur length: the stifle servo's room;
+  * tibia length: the hock servo's room and its clearance;
+  * femur and tibia angles: the hock servo against the stifle belt;
+  * upper leg length: the carpus, when belted.
+
+  Before a run each one is scanned (33 values, the others at their starting
+  values) and searched only in the stretch around its starting value where
+  every belt passes. The run log and `run.json` (`inputs.bounds`) say so.
+  With the defaults:
+  * femur length 137 mm and up;
+  * tibia length 231 mm and up;
+  * femur angle up to 43.8 deg;
+  * tibia angle up to 39.4 deg.
+* **Rejected, never repaired.** A part generator may list in
+  `spec.metadata["infeasible"]` why a body cannot be built; the feral calf
+  lists failing belts and front legs too short for a level back. Such a
+  candidate is not simulated. It is stored with status `infeasible` and its
+  reasons, and counted in the Evolve panel. Genes interact, so the narrowed
+  ranges cannot exclude every failure; this catches the rest. Only belt
+  failures narrow ranges (`infeasible_by.belt`): the front-reach limit is
+  left to the front-leg genes, which can fix it.
+* **The same catalog everywhere.** Evolution, study and gait-tuning workers
+  build away from the project folder. The lab inlines the project's three
+  catalog files into their generator parameters (`belt_catalog`), so no
+  worker falls back to the repository's template. The inlined copy is
+  stripped whenever a run's parameters are put back on a graph, so a
+  document never keeps it.
+* **Inner loop and archive.** `feral_motion` exposes ten walk numbers to
+  CMA-ES: cycle, swing fraction, sway, and the hind and front sweep and
+  lift. Their ranges keep one leg in the air at a time. New archive
+  descriptors: `standing_height` (450-800 mm) and `step_cycle` (2.5-8 s).
+  A gene file may give its evolution defaults (`evolve:`). The feral
+  calf's are those two descriptors and 9.5 s rollouts. The lab uses them
+  where the Evolve panel sets nothing, and the panel shows them.
+
+*Checked.* `tests/test_feral_evolve.py`, with an evolution of 8 candidates
+on varied belt-bound genes: every candidate has the starting belt genes,
+one C and one servo position per drive, and its infeasible candidates carry
+reasons. A 2 x 4 run on `projects/robot-calf-final` took 41 s, rejected one
+candidate (an angle combination the one-at-a-time scan could not foresee),
+and kept both belts' C to the micrometre. The fitness preset is still
+`walk` (target 0.5 m/s, far above this body's 0.02 m/s), so its scores only
+rank candidates against each other.

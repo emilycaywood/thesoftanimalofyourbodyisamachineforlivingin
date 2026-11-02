@@ -607,10 +607,36 @@ and tension springs; ADR-063 to ADR-069). Branch `robot-calf-final`:**
     geoms, so `CalflabPull` gets them, but no spring curves;
   * a Rhino model of this body (ADR-062 needs `CalflabModelSetup` on it,
     not tried);
-  * evolution and the proportion study on this genome (not tried; belts
-    would need catalog-index genes);
+  * the proportion study on this genome (not tried);
   * a harness or power budget for it;
   * clearance checks other than the hock sweep.
+
+**Added later on 2026-11-02 (researcher's request: make the feral calf
+evolvable with its belts unchanged; ADR-070):**
+
+* The belt choices are genes now: `belt_<drive>_system`, `_pulleys`,
+  `_length`, catalog ids ("open" enums), hidden from Form, never evolvable.
+  Only `set_belt_drive` writes them. The generator's `belts` parameter is
+  gone. `projects/robot-calf-final` was converted through the lab's own
+  commands (two undoable steps).
+* Evolvable: segment lengths and angles, axle spacing, springs. Belt-bound
+  genes (femur and tibia length and angle, upper leg) are searched only
+  where every belt passes: femur 137 mm and up, tibia 231 mm and up, femur
+  angle up to 43.8 deg, tibia angle up to 39.4 deg, with the defaults.
+* Candidates that cannot be built are rejected before simulation
+  (`spec.metadata["infeasible"]`, status `infeasible`, counted in the
+  Evolve panel).
+* Workers get the project's catalog inlined (`belt_catalog`), never stored
+  in a document.
+* `feral_motion` has a CMA-ES vector (ten walk numbers). New descriptors
+  `standing_height` and `step_cycle`. Gene files may carry `evolve:`
+  defaults, which the lab applies and the Evolve panel shows.
+* A 2 x 4 evolution on the project ran in 41 s; every candidate kept both
+  belts at the same C. Not done: a fitness preset for this body (`walk`
+  targets 0.5 m/s; it walks at about 0.02 m/s); the proportion study on it.
+* Tests: `tests/test_feral_evolve.py` (7, one slow); `web/e2e/belts.spec.ts`
+  also checks that Form hides the belt genes and that Evolve shows the
+  body's defaults. 369 pytest tests.
 
 **Scaffolded only (interfaces + tests, no behaviour):** PPO training, MJX
 simulator, RemoteSSH and CloudNotebook transports (job bundling is real),
@@ -778,7 +804,7 @@ Journal, Rhino bridge):**
 |---|---|
 | `CLAUDE.md` | Conventions for every session (loaded automatically) |
 | `PLAN.md` | Architecture, module boundaries, data flow, phases, risks, status |
-| `DECISIONS.md` | ADR log: every assumption (69 so far) |
+| `DECISIONS.md` | ADR log: every assumption (70 so far) |
 | `docs/proposals/anatomical-leg.md` | Proposal for a three-segment leg (set aside 2026-10-04; not built) |
 | `docs/USER_GUIDE.md` | How to use the lab |
 | `docs/CHAT_GUIDE_PROMPT.md` | Prompt that makes a chat assistant a guide to the whole lab |
@@ -816,6 +842,17 @@ Prefix each with the opening message from section 1.
 > lines put a joint elsewhere, tell me which belt no longer fits and refuse
 > the push, rather than moving the servo. Extend bridges/rhino and its check
 > script; update the user guide.
+
+**R. A fitness for the feral calf and a first real evolution**
+> The feral calf evolves with its belts fixed (ADR-070), but it is scored
+> with the `walk` preset, made for the 5 kg calf (target 0.5 m/s). Write a
+> preset for this body: slow steady walking without a fall, low servo load
+> against rated torque, and belt tension under the allowable for most of
+> the cycle (from the load analysis's numbers, computed in the core). Then
+> run an evolution of a size you think worth it on projects/robot-calf-final
+> and show me the archive: which proportions walk best, how far each
+> belt-bound gene moved inside its allowed range, and how many candidates
+> were infeasible and why. Do not change the belts.
 
 **Q. Walking and rising that a real feral calf can do**
 > The feral_motion walk is a slow open-loop crawl (17 mm/s, small stability

@@ -748,6 +748,24 @@ and joint ranges.
   it lives, and every part mass not entered yet (counted as 0 g; the Mass
   tab lists them too).
 
+**Evolving it (ADR-070).** The body evolves in the Evolve workspace like
+the reference calf. What it varies and what it never touches:
+* Varied: segment lengths and angles, the axle spacing and the springs.
+* **Never varied: the belts.** They are part of the genome as catalog ids
+  (Belts panel only; Form does not show them). Every candidate keeps them,
+  so its belts are the same parts at the same C as yours.
+* Femur and tibia lengths and angles (and the upper leg, if the carpus is
+  belted) feed the belt checks. Each run first finds how far each can move
+  before a belt fails and searches only there; the run log lists the
+  ranges.
+* A candidate whose body cannot be built (a belt fails, the front legs
+  cannot reach the ground with the back level) is rejected without being
+  simulated, and counted under *Infeasible*.
+
+The archive axes default to *Standing height* and *Gait cycle*, and CMA-ES
+tunes the walk's ten numbers for each body. To change the belts themselves,
+choose them in the Belts panel and evolve again.
+
 The load runs let each servo go up to its stall torque (*torque derating*
 1): "at stall" is the moment it saturates. The project's own F5 uses the
 same setting.
