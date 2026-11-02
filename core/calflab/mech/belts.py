@@ -24,6 +24,7 @@ Units: mm, N, degrees. D1 is the driver (servo) pulley, D2 the driven pulley.
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import json
 import math
@@ -642,10 +643,8 @@ def drive_options(
                        unknown=rep.unknown)
         elif choice.pulleys in pair_ok:  # not offered in this width: its C is shown, its checks are not run
             pair = catalog.pair(choice.pulleys)
-            try:
+            with contextlib.suppress(ValueError):
                 row["c_mm"] = center_distance(e.pitch_length_mm, pair.d1_mm, pair.d2_mm)
-            except ValueError:
-                pass
         lengths.append(row)
     return {"systems": systems, "pairs": pairs, "lengths": lengths}
 
