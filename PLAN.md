@@ -50,6 +50,7 @@ Two qualities outrank everything else:
 | `model` | `RobotSpec`, `Genome`/gene definitions/migrations, element params, overrides, `Design` | schema, units |
 | `components` | YAML component library (actuators, sensors, boards, batteries, materials) with `source`/`verified` | model |
 | `morphology` | Part generators: genome → element params → `RobotSpec` | model, components |
+| `mech` | Belt drives from catalogs (derived centre distance, checks), tension springs, statics, load analysis | model, sim, components |
 | `sim` | MJCF/URDF compiler, MuJoCo runner, skin model, domain randomization, metrics | model, units |
 | `control` | Controllers (CPG now; policies later) | schema |
 | `fitness` | Fitness terms, named versioned presets, behavior descriptors | sim metrics |
@@ -200,6 +201,18 @@ joints. UI placeholders: Behave and Deploy workspaces, reference images,
 inertia / heat-map / range-of-motion overlays, endpoint/midpoint/axis snaps,
 angle and clearance measurement, run comparison, Pareto / parallel
 coordinates.
+
+### The final feral calf (2026-11-02)
+
+A second body with its own genome and part generator (`feral_calf`,
+ADR-066): ten STS3215 C018 servos, stifles and hocks belted 2:1. Belt drives
+are built only from catalog entries and their centre distance is derived
+(ADR-063, ADR-064). Tension springs are applied in the simulator every
+physics step (ADR-065). Load runs cover quiet standing, a slow walk and
+lying down and rising, plus a belt comparison (ADR-069), all on the
+Mechanism workspace's Belts and springs panel. Project:
+`projects/robot-calf-final`, made with `calflab new-project --template
+feral_calf`.
 
 ## 4. Risks
 

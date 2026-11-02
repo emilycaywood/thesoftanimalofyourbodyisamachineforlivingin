@@ -1,10 +1,10 @@
 # CALFLAB session handoff
 
 Everything a new Claude Code session (or a new collaborator) needs to pick up
-CALFLAB. Last updated 2026-10-12 on branch `chassis-mass` (on top of
-`phase-1-vertical-slice`), after the session that lets the lab simulate a
-robot modelled in Rhino (section 4; run `git log --oneline -12` for the current
-state). The 2026-10-10 and 2026-10-12 commits are local: not pushed.
+CALFLAB. Last updated 2026-11-02 on branch `robot-calf-final` (cut from
+`chassis-mass`), after the session that built the final feral calf with belt
+drives and tension springs (section 4; run `git log --oneline -12` for the
+current state). The commits since 2026-10-10 are local: not pushed.
 
 ---
 
@@ -26,8 +26,8 @@ claude
 ```
 
 Check you are in the right place: the first thing the session should report is
-working directory `C:\CALFLABHOME`, branch `chassis-mass` (or
-`phase-1-vertical-slice` once the researcher has merged it in).
+working directory `C:\CALFLABHOME`, branch `robot-calf-final` (or
+`chassis-mass` / `phase-1-vertical-slice` once the researcher has merged it in).
 
 ### Paste this as the first message of a new session
 
@@ -514,6 +514,104 @@ modelled in Rhino instead of the parametric calf; ADR-062):**
   servo, board and battery positions from the model; a check that parts
   clear each other through the joint ranges.
 
+**Added 2026-11-02 (researcher's request: the final feral calf, belt drives
+and tension springs; ADR-063 to ADR-069). Branch `robot-calf-final`:**
+
+* New project **`projects/robot-calf-final`** made with
+  `calflab new-project projects\robot-calf-final --template feral_calf`.
+  `projects/small-calf-two-joint` was not touched. The lab for it:
+  `.\calflab.ps1 lab --project projects\robot-calf-final` (or the
+  `calflab-feral` entry in `.claude/launch.json`, port 8020).
+* New genome and part generator **`feral_calf`**
+  (`config/genes/feral_calf.yaml`, `core/calflab/morphology/feral.py`) with
+  the researcher's dimensions:
+  * rear: femur 200 mm at 40 deg, fixed (no hip pitch); tibia 245 mm at 35
+    deg; cannon 230 mm at 10 deg;
+  * front: upper leg 340 mm and cannon 245 mm, solved to 7.2 deg so the
+    back is level;
+  * hoof pad 30 mm; standing height 610.4 mm;
+  * axles 550 mm apart, rails 100 mm apart.
+
+  Ten `sts3215_c018` servos (new library entry, only the supplied values;
+  stall current not given, so its current is "unknown"). Stifles and hocks
+  are belted 2:1; the carpus belt is an option, off. Values that are not
+  genes live in `config/feral_calf.yaml`.
+* **Belt drives** (ADR-063, ADR-064, `core/calflab/mech/belts.py`):
+  * a drive is three catalog ids, nothing else, and C is derived;
+  * catalog in `<project>/catalog/*.json`, copied from `config/belts/`;
+  * checks: servo on its segment, pulleys apart, at least 6 teeth in mesh,
+    and the hock servo against the stifle pulley and belt through the whole
+    stifle range;
+  * `set_belt_drive` rejects a failing choice with the reason, and
+    `set_node_params` cannot touch belts; a design with a failing drive
+    builds but is not simulated.
+  * Defaults: stifle 444 mm (C 176.7) and **hock 400 mm (C 154.7)**. The
+    450 mm hock near the 180 mm target fails: the stifle belt reaches the
+    hock servo from about 78 deg of flexion, and the provisional stifle
+    range is 80 deg.
+* **Springs** (ADR-065): `Spring` spec elements, forces applied at their
+  anchor sites every physics step, pull only, torque recorded per step. The
+  genes are sliders and evolvable. Defaults at standing:
+  * stifle 20 N at 25.4 mm (front);
+  * hock 7.7 N at 24.8 mm (back);
+  * shoulder 8 N at 24.9 mm, **behind**: in simulation that side helps
+    rising from kneeling.
+
+  A side check warns when a spring helps gravity fold its joint.
+* **Motions and loads** (ADR-069): `controller:feral_motion` (stand, a
+  slow lateral-sequence walk, lie down and rise hind end first then front
+  from kneeling). Commands `run_loads` and `run_belt_comparison` write runs
+  of kind `loads` (rollout + `loads.csv`, `loads_summary.csv`,
+  `loads.json`) and `belts` (`belt_comparison.json` / `.csv`). Results on
+  the defaults (masses as entered, unverified servo):
+  * standing: no flags;
+  * walk: no flags (stifle belt peaks at 91 N against 44 N allowable,
+    briefly);
+  * lying down and rising: stifle belts above 44 N for 60 % of a cycle,
+    hocks 28 %; shoulders and carpi above 60 % of rated for most of a
+    cycle; peak 77 % of stall at the shoulders.
+
+  Larger pulleys lower the belt peak (91 / 76 / 69 N for 30T / 36T / 40T).
+  These runs are in the project (`20261102-1455*-loads-*`,
+  `20261102-1456*-belts-*`).
+* **Masses** (ADR-068): servos, tubes and rods, batteries and the head lump
+  are counted. Every other part is a required `null` value (0 g, listed in
+  the Mass tab and the Belts panel). **1304 g as entered.**
+* **UI**:
+  * new **Belts and springs** panel in Mechanism, with three dropdowns per
+    drive and every derived value read-only;
+  * spring sliders and a standing-pose table;
+  * load and comparison tables;
+  * a provisional/missing list;
+  * PROV badges in schema forms;
+  * springs drawn as lines that follow playback;
+  * belts and pulleys as Transmission geoms;
+  * `LAYOUT_VERSION` 7 (dock layouts reset once).
+* Tests: `tests/test_belts.py` (20), `tests/test_feral_calf.py` (17, one
+  slow), `web/e2e/belts.spec.ts` (runs on a second lab started by
+  `playwright.config.ts` on a fresh feral project).
+* Changed for everyone:
+  * `stall_current_a` is optional (ADR-051's required list shrank by one;
+    `tests/test_mass.py` updated);
+  * `Component.unknown`;
+  * `ActuatorSpec.rated_torque_nm` and `encoder_steps_per_rev`;
+  * mass sources `tube` and `specified`;
+  * `mass_breakdown()["missing"]`;
+  * `RobotSpec.springs`;
+  * `BuildContext.project_dir`;
+  * `calflab new-project`.
+
+  The reference calf and every existing project build exactly as before.
+* Not done:
+  * Rhino/Blender bridges for springs: pulleys and belt spans are ordinary
+    geoms, so `CalflabPull` gets them, but no spring curves;
+  * a Rhino model of this body (ADR-062 needs `CalflabModelSetup` on it,
+    not tried);
+  * evolution and the proportion study on this genome (not tried; belts
+    would need catalog-index genes);
+  * a harness or power budget for it;
+  * clearance checks other than the hock sweep.
+
 **Scaffolded only (interfaces + tests, no behaviour):** PPO training, MJX
 simulator, RemoteSSH and CloudNotebook transports (job bundling is real),
 imitation reward, interactive selection, molds, skin patterns, nesting,
@@ -551,6 +649,35 @@ Journal, Rhino bridge):**
   Properties, entry in Overrides).
 * `doctor` warned "uv not found" on top of the three expected warnings:
   false alarm, fixed (see Tests above).
+
+**The researcher must verify (new on 2026-11-02):**
+
+* Every PROVISIONAL value (ADR-067; listed in the Belts panel), and above
+  all the ones chosen in this session:
+  * joint ranges (stifle -30..80 decides the hock belt);
+  * fitting reach 25 mm;
+  * hip block reach 40 mm;
+  * servo orientation on the tubes;
+  * belts and servos in one plane;
+  * leg lateral offset;
+  * the cannon and front-leg lean directions;
+  * the front angle solved to 7.2 deg for a level back.
+* The STS3215 C018's output-axis position on its case
+  (`config/feral_calf.yaml` `servo.output_axis_offset_mm`): until entered,
+  the hock sweep and the servo-on-segment checks of long belts say
+  "unknown".
+* The missing masses (horns, bearings, collars, plugs, blocks, electronics,
+  skin, hoof pads, belts, springs, pulleys, neck rods), the aluminium
+  density if that rail is used, and the servo's stall current.
+* Whether 450 mm (C 179.7) at the hock is worth a stifle limited to 75 deg,
+  or the 400 mm default (C 154.7) is acceptable.
+* `purchase_confirmed` for the belts you can order.
+* Whether a generic 9 mm belt system (Source A lengths) should exist, and
+  3 mm pulley pairs plus the 3 mm allowable tension.
+* The motions: the walk is slow (17 mm/s) with a small stability margin; the
+  lie/rise script is one way that worked in simulation.
+* The Belts panel by hand: a browser test and one look in the lab's browser
+  pane, nobody else.
 
 **The researcher must verify (new on 2026-10-12):**
 
@@ -651,7 +778,7 @@ Journal, Rhino bridge):**
 |---|---|
 | `CLAUDE.md` | Conventions for every session (loaded automatically) |
 | `PLAN.md` | Architecture, module boundaries, data flow, phases, risks, status |
-| `DECISIONS.md` | ADR log: every assumption (62 so far) |
+| `DECISIONS.md` | ADR log: every assumption (69 so far) |
 | `docs/proposals/anatomical-leg.md` | Proposal for a three-segment leg (set aside 2026-10-04; not built) |
 | `docs/USER_GUIDE.md` | How to use the lab |
 | `docs/CHAT_GUIDE_PROMPT.md` | Prompt that makes a chat assistant a guide to the whole lab |
@@ -666,6 +793,38 @@ Journal, Rhino bridge):**
 ## 7. Recommended next sessions
 
 Prefix each with the opening message from section 1.
+
+**O. The feral calf: enter what I measured and re-check the belts**
+> In projects/robot-calf-final: the STS3215 C018 output axis is <N> mm from
+> the nearer end of the case; the parts weigh <horn, bearing, collar, plug,
+> blocks, electronics, skin, hoof pad, belt, spring, 30T and 60T pulleys, or
+> "not yet">; my joint ranges are <stifle, hock, shoulder, carpus, hip>.
+> Enter them in config/feral_calf.yaml and catalog/pulleys.json (only what I
+> give), rebuild, and show me every belt check that changed from unknown or
+> fail. Say whether the hock can now take the 450 mm belt (C 179.7). Then
+> re-run the load analysis and the belt comparison, and tell me in a table
+> which belt system and pulley pair to buy, with the tension margins and
+> which numbers still rest on PROVISIONAL or missing values.
+
+**P. Model the feral calf in Rhino and simulate it**
+> Pull projects/robot-calf-final into Rhino (CalflabPull), set up the model
+> layers for its bodies (CalflabModelSetup), and make sure the belts,
+> pulleys and the spring anchor points come across (draw the springs as
+> curves on a layer of their own, read back from the scene's `springs`). I
+> will model the blocks, fittings and collars. When I push with
+> CalflabPushModel, the belt drives must keep their catalog C: if my joint
+> lines put a joint elsewhere, tell me which belt no longer fits and refuse
+> the push, rather than moving the servo. Extend bridges/rhino and its check
+> script; update the user guide.
+
+**Q. Walking and rising that a real feral calf can do**
+> The feral_motion walk is a slow open-loop crawl (17 mm/s, small stability
+> margin) and lie/rise is a fixed script. Make the walk use the IMU (shift
+> the body until the centre of mass is inside the support triangle before
+> lifting a leg), add a slow trot, and make the rise from kneeling adapt to
+> the body's pitch. Keep every joint inside its range and the belted joints
+> inside 180 deg. Re-run the load analysis and tell me how belt tension and
+> servo load change, and whether the spring settings should change with it.
 
 **L. My real model in the simulator: read the result with me**
 > I pushed my prototype with CalflabPushModel into

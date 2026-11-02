@@ -663,6 +663,95 @@ against available torque (stall x derating). Red means the actuator saturates
 in that run. Every actuator carries an **unverified** badge until you check
 its data (section 9). *(planned: range-of-motion sweep, interference check)*
 
+#### The final feral calf: belts and springs (ADR-063 to ADR-069)
+
+The final calf is its own kind of project, with its own genome
+(`config/genes/feral_calf.yaml`). Create one with
+
+```powershell
+.\calflab.ps1 new-project projects\robot-calf-final --template feral_calf
+.\calflab.ps1 lab --project projects\robot-calf-final
+```
+
+`projects\robot-calf-final` already exists. The body: a hip block and a
+chest block on two rails; rear legs hip ab/adduction, a femur fixed at 40 deg,
+stifle, hock; front legs shoulder, carpus; ten STS3215 C018 servos; stifles
+and hocks belted 2:1. Form shows your dimensions as sliders. A **PROV** badge
+marks a starting value you have not confirmed. The front leg angle is
+solved so the back stays level: 7.2 deg with your lengths, where you said
+about 5. The values that are not genes live in `config/feral_calf.yaml`:
+battery, servo case layout, part masses still to enter, design dimensions
+and joint ranges.
+
+**Belts and springs** (a tab beside Mechanism):
+
+* **Belt drives.** Each drive has exactly three dropdowns: *Belt system*,
+  *Pulley pair*, *Belt length*. They list the project's catalog
+  (`<project>\catalog\belt_systems.json`, `belt_lengths.json`,
+  `pulleys.json`). A length whose source is not confirmed in the belt's
+  width is greyed ("width unconfirmed"). A belt you have not confirmed you
+  can buy says "purchase unconfirmed"; set `purchase_confirmed: true` in
+  `belt_lengths.json` once you can. Everything else is read-only:
+  * the centre distance C;
+  * the servo's position from both joints;
+  * pitch diameters, wrap and teeth in mesh;
+  * the belt's allowable and breaking tension ("unknown" where not given);
+  * the tension slot (a ± build tolerance, never used to reach a C);
+  * the checks, each pass, fail or unknown:
+    * servo case on its segment;
+    * pulleys apart;
+    * at least 6 teeth in mesh;
+    * for the hock, its servo against the stifle pulley and belt through the
+      whole stifle range.
+
+  **There is no way to type or drag C.** It changes only when you choose
+  another catalog entry. A choice that fails a check is rejected, with the
+  reason shown in red, and the document does not change. Choosing another
+  system or pulley pair alone re-picks the length by the default rule:
+  closest to the target C while passing every check. A drive that fails
+  after a change to the body (say, a shorter tibia) is listed in red, and
+  F5 and the load analysis refuse to run until you choose again. From the
+  command line: `set_belt_drive drive=hock length=GT2-2mm-394-C`.
+* **Springs (tension only).** Sliders for the rate, the free length and the
+  four anchor coordinates of the stifle, hock and shoulder springs. Anchors
+  are measured from the joint axis: along the segment, and across it
+  (positive = toward the front). The table gives each spring in the standing
+  pose:
+  * force, moment arm and torque;
+  * which side it is on: green *resists* means it works against the way
+    gravity folds the joint; red *helps collapse* is a warning;
+  * what it takes off the servo and the belt at standing.
+
+  The viewport draws the springs in the same colours, and they follow the
+  legs during playback.
+* **Loads.** *Run load analysis* simulates quiet standing, the slow walk and
+  lying down then rising. Each scenario runs with your springs and again
+  without them. Each becomes a run (`kind: loads`) that replays in the
+  viewport. In its folder:
+  * `loads.csv`: per frame and joint, angle, joint torque, servo torque,
+    spring torque, total, belt tension, % of rated and % of stall;
+  * `loads_summary.csv`: one row per joint;
+  * `loads.json`: the summary plus the spring relief and the flags.
+
+  A run is flagged for:
+  * a servo above 60 % of rated torque for more than a set fraction of any
+    gait cycle;
+  * a servo at stall at any moment;
+  * a belt above its allowable working tension for more than that fraction
+    of a cycle;
+  * a belt peak above the set fraction of its breaking strength.
+
+  The thresholds are under *Belt checks and limits*. *Compare belts* runs
+  the same walk on every belt system x pulley pair and tabulates C, peak
+  tension and the limits (`belt_comparison.csv`). Use it to choose a belt.
+* **Provisional and missing values** lists every PROVISIONAL value with where
+  it lives, and every part mass not entered yet (counted as 0 g; the Mass
+  tab lists them too).
+
+The load runs let each servo go up to its stall torque (*torque derating*
+1): "at stall" is the moment it saturates. The project's own F5 uses the
+same setting.
+
 ### Simulate
 Controller (CPG gait: trot, walk, pace, bound; *Reset to defaults* restores
 the default trot; **Tune for this body** searches a gait for the design as it

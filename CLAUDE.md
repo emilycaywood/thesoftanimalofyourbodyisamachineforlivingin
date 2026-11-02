@@ -61,7 +61,8 @@ core/calflab/
   plugins/            base classes, registry, discovery, templates, contracts
   model/              RobotSpec, Genome, overrides, Design, pushed solids, infill estimate, pushed model (skeleton, hulls)
   components/         YAML library loader
-  morphology/         part generators (reference calf)
+  morphology/         part generators (reference calf; final feral calf)
+  mech/               belt drives from catalogs (derived C, checks), tension springs, statics, load analysis
   sim/                MJCF/URDF compile, MuJoCo rollouts, metrics, skin
   control/            controllers (CPG)
   fitness/            terms, presets, behavior descriptors
@@ -70,7 +71,7 @@ core/calflab/
   evolve/             CMA-ES inner loop, MAP-Elites outer loop, gait tuning, proportion study, lineage
   export/             glTF, STL/3MF, STEP, 3dm, URDF
   wiring/             BOM, power budget, harness, WireViz
-  project/            project folder, registry, command log, journal
+  project/            project folder, registry, command log, journal, templates (new-project)
   app/                Lab session: state, commands, undo, jobs, events
   bridge/             Rhino build list, Blender armature plan (pure functions); storing pushed solids and models
   design.py           build_design(): genome + overrides -> RobotSpec
@@ -145,6 +146,12 @@ gene (ADR-052): multiply fixed millimetre constants by it, and mark a new
 length gene `scale_by: scale`. Such genes are stored at full size; anything a
 person reads or types must be the real value (`GenomeDefinition.real_values`,
 `Lab.genome_form`, `set_genes real=true`).
+
+**Belt drives** (ADR-063): a drive stores only three catalog ids (belt
+system, pulley pair, belt length). Never add a gene, slider, field, fit or
+optimizer that sets a centre distance or a servo position along a segment:
+C is derived. Belt changes go through `set_belt_drive`, which rejects (never
+clamps) a choice that fails a check.
 
 To change the **genome**: edit/add `config/genes/<name>.yaml`, bump
 `version`, and add a migration in `calflab/model/migrations.py` plus a test in

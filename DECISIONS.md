@@ -1291,3 +1291,383 @@ moved 5 mm, a trunk box, a shank and a tagged foot pushed whole, the joint
 table, mass and foot read back, a pull leaving the model alone, undo). Not
 done by anyone: the three commands typed by hand with their prompts, and the
 researcher's real model.
+
+## ADR-063 — A belt drive is three catalog references; its centre distance is derived (**VERIFY**)
+
+*Context.* The final feral calf (ADR-066) belts its stifles and hocks 2:1.
+On 2026-11-02 the researcher made the belt drives the most important part of
+the request. A closed-loop belt comes only in stock lengths, so a design with
+a centre distance the shop cannot supply cannot be built. Any continuous
+handle on C, or on the servo's place on its segment, would let the lab
+produce such designs.
+
+*Decision.*
+* A belt drive stores **only** a belt system id, a pulley pair id and a belt
+  length entry id (`BeltChoice`, extra fields forbidden). They live in the
+  `feral_calf` generator's `belts` parameter.
+* C is **derived** from the belt pitch length L and the pitch diameters
+  (`D = teeth x pitch / pi`):
+  `b = 2L - pi (D1 + D2)`, `C = (b + sqrt(b^2 - 8 (D2 - D1)^2)) / 8`.
+  The driver servo's output axis is at C from the driven joint axis, along
+  the segment that carries it. The formula is the standard closed form. For
+  450 mm with 30T/60T it agrees with the exact open-belt length to 0.1
+  micrometre, and the researcher's check values hold: 444 mm gives 176.7 mm,
+  450 mm gives 179.7 mm, 460 mm gives 184.8 mm.
+* No gene, slider, numeric field, drag handle, IK, fit or optimizer changes C
+  or the servo position.
+  * The belt choice changes only through the command `set_belt_drive`.
+  * `set_node_params` refuses the `belts` parameter.
+  * Nothing in the gene file or the generator's numeric parameters names a
+    distance; a test checks this.
+  * If belts are ever evolved, they become discrete catalog indices.
+* The tensioning slot (`tension_travel_mm`, ±3 mm, PROVISIONAL) is reported
+  as `C ± travel`, never used to reach a geometry.
+* **Checks** (`calflab.mech.belts.evaluate_drive`), each pass, fail or unknown:
+  * the pulleys match the belt pitch;
+  * the length's source covers the system's width (ADR-064);
+  * the belt goes round both pulleys;
+  * C > (D1 + D2)/2 + 3 mm;
+  * at least 6 teeth in mesh on the driver, with wrap = pi - 2 asin((D2 - D1)/2C)
+    and teeth = driver teeth x wrap / 2 pi;
+  * the servo case lies between the joint fittings at both ends of its segment;
+  * for the hock, its servo and bracket clear the stifle's driven pulley and
+    belt through the **whole** stifle range, sampled every 2.5 deg in the
+    tibia's plane.
+* **Unknown is not pass.** The position of the output axis on the STS3215
+  case is not supplied (`servo.output_axis_offset_mm: null`). A check that
+  depends on it passes only if it passes for every position, fails if it
+  fails for the most favourable one, and is otherwise "unknown". An unknown
+  check does not reject a choice; it is shown in amber.
+* **Rejected, not clamped.** `set_belt_drive` builds the design with the
+  candidate choice and refuses it with every failed check and its numbers.
+  It also refuses a stifle choice that would make the hock check fail. The
+  document is then unchanged. Choosing a new system or pulley pair without a
+  length re-picks the length by the default rule and says so.
+* A drive that **becomes** invalid after a body edit (a gene change, a
+  catalog edit) is not silently replaced. The design still builds and is
+  shown, with the rejection in its warnings. F5, the load analysis and the
+  belt comparison refuse to simulate it until a valid belt is chosen.
+* **Defaults.** For each drive, the offered length of the default system and
+  pair whose C is closest to a target while passing every check. A drive
+  with no stored choice uses this rule; a new project stores its defaults.
+  * Stifle: target C 175 within 150-200 (the request's "150-200 mm, servo in
+    the hip block") gives 444 mm, C 176.7 mm.
+  * Hock: target C 180 gives **400 mm, C 154.7 mm**. The 444/450 mm belts
+    (C 176.7/179.7) fail the sweep: the stifle belt reaches the hock servo
+    from about 78 deg of stifle flexion, and the stifle range is
+    PROVISIONAL -30 to +80 deg. With the range limited to 75 deg, 450 mm
+    no longer fails: it is "unknown" (3.7 mm of clearance if the case
+    points down the tibia) until the servo's output-axis offset is entered.
+    The hock sweep is also "unknown" for 400 mm until the output-axis
+    offset is entered (9.9 mm clearance if the case points down the tibia).
+  * Carpus (option): target L 680 gives 640 mm, the longest offered in
+    10 mm.
+* A belted joint's range may not exceed 360 deg / ratio (180 deg at 2:1). A
+  wider range in `config/feral_calf.yaml` makes the build fail with that
+  message.
+
+*Not modelled.* Belt stretch and compliance (the belt is a rigid ratio in
+the simulator, as before: `Transmission` ratio x efficiency); pre-tension;
+the stifle servo against the hock belt (they are far apart); clearance
+between belts or servos and anything else but the case above.
+
+## ADR-064 — Belt data and their sources; the narrow-belt derating caveat (**VERIFY**)
+
+*Data.* Supplied by the researcher on 2026-11-02 and entered exactly.
+`config/belts/*.json` are the templates; each feral project has its own copy
+in `<project>/catalog/`, which is what the project uses. Building without a
+project folder, as in a worker, falls back to the templates, with a warning.
+The catalog's SHA-256 is recorded with designs and runs.
+
+* GT2 2 mm, 10 mm generic: allowable 44 N (111 N per 25.4 mm = 4.37 N/mm x
+  10), breaking 860 N (86 N/mm x 10). The **default**.
+* GT2 2 mm, 9 mm Gates: 39 N, 774 N.
+* GT2 2 mm, 15 mm generic: 66 N, 1290 N. No lengths confirmed in 15 mm, so it
+  offers none.
+* GT2 3 mm, 9 mm and 15 mm: breaking 1422 N and 2370 N (158 N/mm). Allowable
+  working tension **unknown** (null): the sustained check says "unknown".
+* Sources: SDP-SI Technical Section Table 3, eBay 335089089074, the Ondrives
+  GT2 and 3 mm GT2 catalogs, as cited in each entry.
+* **SDP-SI says belts under 1 in wide must be derated**, so 44 N and 39 N are
+  optimistic. That note is on every 2 mm entry and is shown in the Belts
+  panel.
+* Lengths: Source A (eBay, generic 6/9 mm), Source B (Ondrives, Gates
+  3/6/9 mm), Source C (10 mm listings: eBay UK 283328995672, an AliExpress
+  10 mm listing, Amazon B0G1XTWKCG), and the Ondrives 3GT lengths as Source
+  D. Every entry has `purchase_confirmed: false`. An entry that is not a
+  whole number of teeth is rejected when the catalog loads; all 192
+  supplied lengths are whole.
+* Pulley pairs: 30T/60T (default), 36T/72T, 40T/80T, all 2 mm pitch, all
+  2:1. Pitch diameters are computed; a file that writes one is rejected.
+
+*Width coverage.* As the researcher gave it, each system names the sources
+whose lengths it offers (`length_sources`): 10 mm generic = C, 9 mm Gates =
+B. Assumptions:
+* "Generic 9 mm = Source A" was stated, but no generic 9 mm **system** was
+  listed, so none was created and Source A lengths are offered by no system.
+  Adding one needs its values, which follow the same rule (39 N, 774 N);
+  ask.
+* The 3 mm systems offer Source D because the researcher listed those
+  lengths under them. The widths the Ondrives 3GT listing covers were not
+  stated (`widths_mm: null`).
+* There are no 3 mm pulley pairs in the catalog, so the 3 mm systems cannot
+  be built yet. The comparison lists them as "not buildable".
+
+## ADR-065 — Tension springs: pull only, applied every physics step (**VERIFY**)
+
+*Model.* A spring is a `Spring` element of the RobotSpec: two anchors (in the
+frames of the segment above and below a joint), a rate k (N/mm) and a free
+length.
+* Force = k (L - L0) when stretched, **0 when slack**; it never pushes.
+* In MuJoCo the two anchors are sites. Before every physics step the runner
+  applies the force along the line between them, equal and opposite, to the
+  two bodies (`mj_applyFT` into `qfrc_applied`). The anchor positions are
+  those of the last kinematics pass, at most one 2 ms step old.
+* The torque about the joint is recorded every control step: force x signed
+  perpendicular distance from the joint axis to the spring line. Rollouts
+  store `spring_force` and `spring_torque`. They stay deterministic (tested).
+* The geometry, rate and free length are **genes**: sliders now, evolvable
+  later (unlike belts, ADR-063). Anchors are measured from the joint axis,
+  `along` the segment and `normal` to it (positive toward the front).
+
+*Defaults (all PROVISIONAL).* Anchor positions were solved for the requested
+pull and a 25 mm moment arm in the standing pose. The joint is open (105 deg
+at the stifle), so a 25 mm arm on its convex side needs anchors standing off
+the tube, like the patella and the point of the hock.
+* Stifle (front): k 0.4, L0 64.5, femur and tibia anchors 30 mm along, 55 mm
+  forward. Gives 20.0 N, 25.4 mm arm, -0.51 N*m.
+* Hock (back): k 0.2, L0 39.5, tibia anchor 80 mm up and 10 mm behind;
+  cannon anchor 20 mm *above* the hock and 15 mm behind (a calcaneus-like
+  lever). Gives 7.7 N, 24.8 mm, -0.19 N*m.
+* Shoulder: k 0.2, L0 43.5, chest anchor 40 mm above and 30 mm behind the
+  axle, upper-leg anchor 40 mm down and 25 mm behind. Gives 8.0 N, 24.9 mm,
+  +0.20 N*m.
+
+*The shoulder's side was chosen by simulation*, as the request asked for the
+side that helps rising from kneeling. Without a shoulder spring, the shoulder
+servo's mean torque while the front rises from kneeling is +0.21 N*m: it
+swings the leg back. A spring behind the shoulder gives +0.23 N*m there, and
+the servo's mean falls to about 0. A spring in front gives -0.03 and works
+against it. The cost: kneeling and the standing pose itself load the
+shoulder servo more (standing: +0.12 N*m more).
+
+*Side check.* `calflab.mech.statics` estimates, quasi-statically, the torque
+the body's weight and the ground put on the segment below each joint in the
+standing pose. The ground reactions are vertical, minimum-norm and balance
+the weight under the centre of mass (the lever rule for four symmetric
+hooves). A spring whose torque has the same sign gets a red "helps collapse"
+warning. With the defaults:
+* stifle and hock: "resists";
+* shoulder: gravity gives only -0.002 N*m at standing, so the side verdict
+  there means little; the kneeling result above is the one that counts.
+
+*Relief.* The load analysis runs each scenario again with the springs off
+and reports the change in mean and peak servo torque and belt tension.
+
+## ADR-066 — The final feral calf: a body of its own (**VERIFY**)
+
+*Requested 2026-11-02.* A new project `projects/robot-calf-final` (not in git,
+like every project), built from the researcher's dimensions.
+`projects/small-calf-two-joint` was not touched.
+
+*Decision: a new genome and part generator, `feral_calf`*, not new genes on
+the reference calf. The rear leg has three segments with a fixed femur and
+no hip pitch; the front legs have two. That is not a variant of the calf's
+2-segment, 3-DOF legs, and the calf's genome would have needed a dozen
+switches. New projects are made from a template:
+`calflab new-project <folder> --template feral_calf`. The template:
+* copies the belt catalog into `<project>/catalog`;
+* stores the default belt choices;
+* uses the controller `feral_motion`;
+* sets derating 1 and skin off.
+
+The reference calf and every existing project are unchanged; the full test
+suite passed before and after.
+
+*Body.*
+* The trunk origin is midway between the hip and shoulder axles, which are
+  level and `axle_spacing` (550, PROVISIONAL) apart.
+* Rear leg: `joint.<k>.hip_abd` (fore-aft axis) -> `leg.<k>.femur`, fixed
+  at 40 deg forward -> `joint.<k>.stifle` -> `leg.<k>.tibia` (35 deg back)
+  -> `joint.<k>.hock` -> `leg.<k>.cannon` (10 deg) with the hoof pad.
+* Front leg: `joint.<k>.shoulder` -> `leg.<k>.upper` -> `joint.<k>.carpus`
+  -> `leg.<k>.cannon`.
+* Joint angles are 0 standing. Positive is flexion (stifle, hock, carpus), a
+  backward swing (shoulder) and abduction (hip).
+
+*Assumptions in the skeleton (PROVISIONAL unless the researcher said so).*
+* The rear cannon leans 10 deg **forward** of vertical, hoof ahead of the hock.
+* The front upper leg leans **forward** (carpus ahead of the shoulder axle)
+  and the cannon back by the same angle.
+* **The back is kept level**: the front angle is solved so the front hooves
+  stand at the rear hooves' height. The researcher said "about 5 deg" for
+  each front segment, but 340 cos 5 + 245 cos 5 + 30 = 612.8 mm against the
+  rear's 610.4. Both front segments are therefore at **7.18 deg**, and the
+  lab warns that this differs from the gene by more than 3 deg. Standing
+  height: 610.4 mm.
+* "Hoof pad 30 mm below the cannon end": vertically, in the standing pose; a
+  15 mm sphere (PROVISIONAL radius) whose bottom is 30 mm below.
+* No hip pitch: the stifle servo sits in the hip block region at the top of
+  the femur, and the femur turns with the hip ab/ad joint. Read that way, no
+  belt crosses a joint it does not drive: the stifle belt runs down the
+  femur and its servo turns with the femur.
+* Legs hang just outside the blocks: lateral offset = rail spacing / 2 +
+  20 mm + tube radius + 2 mm.
+* The hip ab/ad servo sits in the hip block, the shoulder servo in the chest
+  block. The direct carpus servo sits at the carpus, on the upper leg. Every
+  servo's case is 45.2 mm along its segment, with the shaft parallel to the
+  joint axis.
+* The blocks are boxes as long as twice the overhang ((760 - 550) / 2 each),
+  rail spacing + 40 mm wide and 80 mm tall. They are drawn, but their mass is
+  not entered.
+* The rails run axle to axle (550 mm) at axle height.
+* The head + neck mass sits 150 mm ahead of the chest block and 150 mm above
+  the axles. The batteries hang 50 mm below the rails, 120 mm ahead of the
+  hip axle. All PROVISIONAL.
+
+*Servo.* `sts3215_c018` in `config/components/actuators.yaml`, holding only
+the researcher's values:
+* 2.94 N*m stall and 0.98 N*m rated at 12 V;
+* 0.222 s/60 deg, entered as 45.045 rpm (= 10 / 0.222);
+* 55 g; 45.2 x 24.7 x 35 mm;
+* 4096 steps per revolution; gear 1/345.
+
+The existing `sts3215` entry (recalled from memory) is untouched. **Stall
+current was not given**, so ADR-051 changed for it: `stall_current_a` is now
+optional with no default. Missing, it is listed as `unknown`; the servo has
+no current, power or thermal estimate (its temperature stays ambient), and
+the power budget says "Motor current UNKNOWN" and counts only the idle draw.
+Armature, idle current, winding resistance and the thermal figures take the
+model defaults ("default assumed" in the audit), as for any entry that omits
+them. Two new optional fields: `rated_torque_nm`, `encoder_steps_per_rev`.
+
+*Branch.* This work is on `robot-calf-final`, cut from `chassis-mass`.
+
+## ADR-067 — Every PROVISIONAL value in the feral calf (**VERIFY**)
+
+From the researcher (marked PROVISIONAL by them):
+* rail spacing 100 mm (80-120);
+* hip-shoulder axle distance 550 mm;
+* head + neck mass 0.15 kg and its position;
+* tube density 1.55 g/cm3, and tube OD/ID 15 x 12 per segment (14x10 and
+  16x12 under consideration);
+* rail type (two 8 mm CF rods by default, or 1/2 in x 0.049 in aluminium);
+* battery position;
+* belt efficiency 1.0;
+* tension travel ±3 mm;
+* sustained = more than 25 % of a gait cycle;
+* breaking flag at 0.25 of breaking strength (the researcher's own safety
+  factor, not a supplier value);
+* every spring value (ADR-065).
+
+Chosen in this session to make the checks computable (`config/feral_calf.yaml
+layout`, `joint_ranges_deg`, `servo`):
+* joint fitting reach 25 mm and clearance 3 mm, so a servo case may start 28
+  mm from a joint axis;
+* the hip block may hold the stifle servo up to 40 mm past the hip axle;
+* pulley clearance 3 mm;
+* bracket margin 3 mm and belt clearance 3 mm in the hock sweep;
+* belts and servos assumed in one plane (the sweep is the worst case);
+* hoof pad radius 15 mm;
+* block height 80 mm and side margin 20 mm;
+* the servo case orientation (45.2 mm along the segment, 24.7 across, 35
+  sideways);
+* joint ranges: hip ab/ad -25..25, stifle -30..80, hock -30..80, shoulder
+  -60..60, carpus -10..130 deg;
+* the head and battery positions;
+* the leg lateral offset, the cannon and front-leg lean directions, and the
+  rail length (ADR-066).
+
+All appear in the Belts panel's *Provisional and missing values*, in the
+scene and in every load run (`loads.json` `provisional`). Genes carry
+`provisional: true`; generator parameters use `P(..., provisional=True)`.
+Both show a PROV badge in schema forms.
+
+## ADR-068 — Feral calf masses: what is counted, what is missing (**VERIFY**)
+
+Counted:
+* servos, 55 g each, at their mounts (`component`);
+* tubes and rods from OD, ID, length (joint centre to joint centre, fittings
+  ignored) and density (new source `tube`): 334 g with the defaults;
+* the two 3S 2200 mAh packs, 135 g each, and the head + neck lump, 150 g
+  (new source `specified`: supplied, not weighed here).
+
+Not entered: horns, bearings, clamp collars, tube plugs, the two blocks,
+electronics, skin, hoof pads, belts, springs, neck rods, and the 30T and 60T
+pulleys (in `catalog/pulleys.json`). They are **required** values, left
+`null`. They count as 0 g, are listed by item and quantity with where to
+enter them (`spec.metadata["missing_masses"]`, `mass_breakdown()["missing"]`,
+the Mass tab, the Belts panel), and get a mass geom at their place once
+entered. Aluminium density is not entered, so an aluminium rail counts 0 g,
+with a warning. The request said "placeholder masses flagged PROVISIONAL";
+no numbers were given, and no hardware value is invented (rule 4). So the
+placeholders are empty required fields rather than guessed grams.
+
+Total as entered: **1304 g**, centre of mass 20 mm ahead of mid-axle, 515 mm
+up. The real robot is heavier by everything listed as missing.
+
+## ADR-069 — Load analysis of the feral calf: scenarios, flags, belt comparison (**VERIFY**)
+
+*Motions* (`controller:feral_motion`; joint-space keyframes and phases;
+starting points, not tuned):
+* **stand** holds the pose.
+* **walk** is a lateral-sequence crawl: hind left, front left, hind right,
+  front right, 15 % swing, 4 s cycle. The rear ab/ad joints shift the body
+  3 deg over the supporting legs before each pair of steps. One leg at a
+  time with no shift fell, because with the centre of mass mid-body it lies
+  on the diagonal of every support triangle. With 4 deg of shift and a 4 s
+  cycle it falls too: the margin is small. Speed is about 17 mm/s, no fall
+  in 30 s.
+* **lie_rise**:
+  * kneel on the carpi (shoulder -20, carpus 110);
+  * fold the hind legs (stifle 75, hock 75) and lie, resting on the stifles
+    and carpi at 284 mm, since the femur cannot fold;
+  * hold;
+  * rise hind end first;
+  * both front legs reach forward and plant their hooves (shoulder -45,
+    carpus 50), then push up.
+
+  One front leg at a time tips this body over: it has no front ab/ad.
+  Extending the carpus straight from kneeling somersaulted it forward.
+
+*Runs.* Each scenario is simulated with the servos allowed up to stall
+(derating 1), and again without springs. Each is recorded as a `loads` run
+with its rollout, so it replays in the viewport, plus three files:
+* `loads.csv`, per frame: angle, joint torque, servo torque = joint /
+  (ratio x efficiency), spring torque, total, belt tension
+  T = servo torque / (D1 / 2), % rated, % stall;
+* `loads_summary.csv`: per joint;
+* `loads.json`.
+
+*Flags.*
+* **Sustained** = in any window of one gait cycle (the walk's 4 s, for every
+  scenario), the fraction of frames above the limit exceeds
+  `sustained_fraction`.
+* **Servo**: sustained above `rated_fraction` (0.6) x rated torque; any
+  frame at 0.999 x stall or more.
+* **Belt**: sustained above the allowable working tension ("unknown" when
+  the system has none); peak above `breaking_fraction` x breaking.
+
+*Belt comparison.* The walk on every system x pulley pair of the catalog,
+with everything else fixed. Each drive takes the default-rule length for
+that combination, so C and the servo position change with it. That is the
+honest comparison: a different pulley needs a different stock belt. It is a
+`belts` run with `belt_comparison.json` and `.csv`.
+
+*Results on 2026-11-02* (defaults; masses as entered; servo values
+unverified):
+
+| Scenario | Flags | Peaks |
+|---|---|---|
+| Standing | none | servos at 3-17 % of rated |
+| Walk | none | stifle belt 91 N against 44 N allowable (11 % of breaking), not sustained; hip ab/ad up to 105 % of rated |
+| Lying down and rising | 8 | stifle belts above 44 N for 60 % of a cycle; hock belts for 28 %; shoulders and carpi above 60 % of rated for 75 % and 54 % of a cycle; shoulders peak at 77 % of stall |
+
+No servo reaches stall. In the comparison, larger pulleys lower the belt
+peak in the walk: stifle 91 N (30T), 76 N (36T), 69 N (40T). The 9 mm Gates
+belts carry the same tension at a lower allowable (39 N). The 15 mm and 3 mm
+systems are not buildable (no lengths; no 3 mm pulleys).
+
+*Limits.* Contact and joint losses are the calf's defaults (ADR-058). The
+servo model has no torque-speed curve. The motions are scripted, not
+controlled, so peaks depend on their timing.
