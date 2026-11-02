@@ -146,22 +146,26 @@ class StandUp(FitnessTerm):
 
 @register
 class Imitation(FitnessTerm):
-    """Phase 2: reward for tracking a reference-motion clip from Blender."""
+    """How closely the body followed the poses it was commanded (ADR-073).
+
+    With the ``behaviors`` controller playing clips, the commanded poses are the
+    clips' (from footage or Blender), so this rewards a body that can actually
+    perform them: exp(-(RMS joint error / scale)^2), 1 = perfect. The root
+    trajectory is not compared yet.
+    """
 
     key = "imitation"
-    label = "Imitation of a reference clip"
-    description = "Tracks joint angles and root trajectory of a motion-library clip (Phase 2)."
-    stub = True
+    label = "Imitation (joint tracking)"
+    description = "Rewards following the commanded joint angles, e.g. clips played by the behaviors controller."
 
     class Params(BaseModel):
-        clip: str = P("", desc="Motion-library clip id to imitate.")
-        joint_weight: float = P(1.0, ge=0, le=5, step=0.1, desc="Weight of the joint-angle error.")
-        root_weight: float = P(0.5, ge=0, le=5, step=0.1, desc="Weight of the root trajectory error.")
+        scale_deg: float = P(10.0, unit="deg", ge=0.5, le=90, step=0.5, desc="RMS error that scores exp(-1) = 0.37.")
 
     def evaluate(self, metrics: dict[str, Any], context: dict[str, Any]) -> float:
-        # TODO(phase2): needs the rollout and the clip in `context`; compute
-        # exp(-w_j * mean joint error^2 - w_r * root error^2).
-        raise NotImplementedError("Imitation rewards arrive with the Phase 2 PPO training plugin.")
+        err = metrics.get("tracking_rms_deg")
+        if err is None:
+            return 0.0
+        return math.exp(-((float(err) / self.params.scale_deg) ** 2))  # type: ignore[attr-defined]
 
 
 # ============================================================ behavior descriptors

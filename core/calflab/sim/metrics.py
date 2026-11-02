@@ -34,6 +34,7 @@ METRIC_DEFS: dict[str, tuple[str, str, str]] = {
     "foot_impact_peak_mps": ("Peak foot impact speed", "m/s", "lower"),
     "time_to_stand_s": ("Time to stand from lying", "s", "lower"),
     "joint_limit_violation": ("Time at joint limits", "", "lower"),
+    "tracking_rms_deg": ("Joint tracking error (RMS)", "deg", "lower"),
 }
 
 COT_CAP = 100.0
@@ -74,6 +75,13 @@ def compute_metrics(r: Rollout) -> dict[str, Any]:
     pitch_rms = float(u.rad_to_deg(math.sqrt(float(np.mean((pitch - np.mean(pitch)) ** 2)))))
     height_std = float(u.m_to_mm(float(np.std(trunk_pos[:, 2]))))
     stability = float(math.exp(-(roll_rms + pitch_rms) / 15.0)) * survival
+
+    # how closely the joints followed their commands (deg RMS over actuated joints): imitation of a clip (ADR-073)
+    aj = list(m.get("actuator_joint") or [])
+    tracking = None
+    if aj and r.ctrl.size and all(j in r.joint_ids for j in aj):
+        qa = r.q[active][:, [r.joint_ids.index(j) for j in aj]]
+        tracking = float(u.rad_to_deg(math.sqrt(float(np.mean((r.ctrl[active] - qa) ** 2)))))
 
     tq = r.torque[active]
     limit = np.array(m["torque_limit"]) if m.get("torque_limit") else np.ones(tq.shape[1])
@@ -126,6 +134,7 @@ def compute_metrics(r: Rollout) -> dict[str, Any]:
         "foot_impact_peak_mps": float(np.max(speeds)) if speeds else 0.0,
         "time_to_stand_s": m.get("time_to_stand"),
         "joint_limit_violation": violation,
+        "tracking_rms_deg": tracking,
         "mass_kg": mass,
         "by_actuator": {
             aid: {

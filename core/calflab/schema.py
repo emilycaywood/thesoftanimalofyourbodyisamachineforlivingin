@@ -171,6 +171,8 @@ def field_schema(name: str, info: FieldInfo) -> dict[str, Any]:
         default = info.default_factory()  # type: ignore[call-arg]
     if isinstance(default, BaseModel):
         default = default.model_dump(mode="json")
+    elif isinstance(default, list | tuple) and any(isinstance(v, BaseModel) for v in default):
+        default = [v.model_dump(mode="json") if isinstance(v, BaseModel) else v for v in default]
     elif isinstance(default, enum.Enum):
         default = default.value
     out: dict[str, Any] = {

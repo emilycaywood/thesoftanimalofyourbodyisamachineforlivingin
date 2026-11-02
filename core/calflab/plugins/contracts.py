@@ -46,6 +46,7 @@ SAMPLE_METRICS: dict[str, Any] = {
     "foot_impact_peak_mps": 0.5,
     "time_to_stand_s": None,
     "joint_limit_violation": 0.0,
+    "tracking_rms_deg": 3.0,
     "mass_kg": 5.0,
     "by_actuator": {},
 }

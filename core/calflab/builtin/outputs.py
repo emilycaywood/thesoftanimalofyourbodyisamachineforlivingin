@@ -310,3 +310,15 @@ class LoadsReport(Analysis):
         from calflab.app.loads_jobs import loads_view
 
         return loads_view(lab, self.params.run_id or None)  # type: ignore[attr-defined]
+
+
+@register
+class BehaveView(Analysis):
+    key = "behave"
+    label = "Behaviors from footage"
+    description = "Motion clips with what this body can play of each, retarget maps, footage files, and the controller."
+
+    def run(self, lab: Any) -> dict[str, Any]:
+        from calflab.app.behave_jobs import behave_view
+
+        return behave_view(lab)

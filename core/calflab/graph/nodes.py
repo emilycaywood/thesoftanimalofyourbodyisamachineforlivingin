@@ -219,8 +219,12 @@ class ControllerNode(_PluginNode):
     category = "Control"
     outputs = [Socket("controller", "controller", "Controller")]
 
+    def salt(self, params: dict[str, Any], ctx: EvalContext) -> str:
+        # a controller may read the project's motion clips (resolve_params, ADR-073)
+        return repr(_json_stamp(ctx.project_dir / "motions")) if ctx.project_dir is not None else ""
+
     def evaluate(self, params: dict[str, Any], inputs: dict[str, Any], ctx: EvalContext) -> dict[str, Any]:
-        return {"controller": {"key": self.key, "params": params}}
+        return {"controller": {"key": self.key, "params": self.cls.resolve_params(params, ctx.project_dir)}}  # type: ignore[attr-defined]
 
 
 class SimulatorNode(_PluginNode):

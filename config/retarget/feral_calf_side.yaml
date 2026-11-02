@@ -1,0 +1,29 @@
+# Retarget map: a calf filmed from its LEFT side (ADR-073).
+# Landmark names are what your tracker calls them; each entry may list
+# alternatives (the first one the file has is used). Copy this file to
+# <project>/motions/maps/<name>.yaml and edit it to match your own labels.
+#
+# Joint angles are the animal's change from its reference ("standing") frame,
+# applied to the robot's own standing pose. Positive = flexion at stifle, hock
+# and carpus; at the shoulder, positive = the leg swings back.
+name: feral_calf_side
+description: >
+  Side view, left legs tracked. Hind: stifle and hock from hip, stifle, hock,
+  hind fetlock. Front: shoulder swing of the shoulder-carpus line against the
+  hip-withers line; carpus from shoulder, carpus, fore fetlock. Right legs copy
+  the left ones (set far_side: half_cycle and period_s for a gait). Hip
+  ab/adduction cannot be seen from the side and holds its pose.
+body: feral_calf
+trunk: [[hip, tuber_coxae, hip_joint], [withers, shoulder_top, scapula_top]]
+joints:
+  hl.stifle: {flexion: [[hip, hip_joint], [stifle, knee_hind], [hock, tarsus]]}
+  hl.hock: {flexion: [[stifle, knee_hind], [hock, tarsus], [hind_fetlock, hind_hoof, hind_foot]]}
+  fl.shoulder: {swing: [[shoulder, scapulohumeral, point_of_shoulder], [carpus, knee_front, front_knee]]}
+  fl.carpus: {flexion: [[shoulder, scapulohumeral, point_of_shoulder], [carpus, knee_front, front_knee], [fore_fetlock, front_fetlock, fore_hoof, front_hoof]]}
+near_side: left
+far_side: copy
+standing: first
+ground: [[hind_hoof, hind_fetlock], [fore_hoof, front_hoof, fore_fetlock]]
+min_likelihood: 0.6
+max_gap_frames: 10
+smooth_frames: 3

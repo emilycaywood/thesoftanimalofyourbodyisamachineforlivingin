@@ -1246,6 +1246,86 @@ class RunBeltComparison(Command):
             raise _err(str(exc)) from exc
 
 
+# ====================================================================== behaviors from footage (ADR-073)
+@register
+class ImportFootage(Command):
+    key = "import_footage"
+    label = "Import footage keypoints"
+    description = (
+        "Turn keypoint tracks from reference footage (a DeepLabCut, long or wide CSV in the project's footage folder) "
+        "into a motion clip for this body, through a retarget map. The clip's angles are the animal's change from its "
+        "reference frame, applied to the robot's standing pose."
+    )
+    category = "Behave"
+    aliases = ["footage"]
+
+    class Params(BaseModel):
+        file: str = P("", desc="CSV file name in <project>/footage.")
+        map: str = P("feral_calf_side", desc="Retarget map (config/retarget or <project>/motions/maps).")
+        name: str = P("", desc="Clip name (empty = the file name).")
+        fps: float = P(30.0, unit="fps", ge=1, le=1000, desc="Frame rate of the footage.")
+        standing: str = P("", desc="Reference frame: first, median or a frame number (empty = the map's).")
+        format: str = P("auto", choices=["auto", "dlc", "long", "wide"], desc="CSV layout.")
+
+    def run(self, lab: Any, state: DocumentState) -> Any:
+        from calflab.app.behave_jobs import BehaveError, import_footage
+
+        p = self.params
+        try:
+            return import_footage(lab, p.file, p.map, p.name, p.fps, p.standing, p.format)  # type: ignore[attr-defined]
+        except BehaveError as exc:
+            raise _err(str(exc)) from exc
+
+
+@register
+class PreviewClip(Command):
+    key = "preview_clip"
+    label = "Preview clip on the body"
+    description = "Pose the body frame by frame with a motion clip (no physics) and store it as a run to replay."
+    category = "Behave"
+
+    class Params(BaseModel):
+        clip: str = P("", desc="Motion-library clip id.")
+        speed: float = P(1.0, ge=0.05, le=4.0, step=0.05, desc="Playback speed.")
+
+    def run(self, lab: Any, state: DocumentState) -> Any:
+        from calflab.app.behave_jobs import BehaveError, preview_clip
+
+        try:
+            return preview_clip(lab, self.params.clip, self.params.speed)  # type: ignore[attr-defined]
+        except BehaveError as exc:
+            raise _err(str(exc)) from exc
+
+
+@register
+class SetController(Command):
+    key = "set_controller"
+    label = "Use controller"
+    description = "Make the simulation use another controller (e.g. behaviors, feral_motion, cpg), with its defaults."
+    category = "Simulate"
+    mutates = True
+
+    class Params(BaseModel):
+        key: str = P("behaviors", desc="Controller plugin key.")
+        params: dict[str, Any] = P(default_factory=dict, ui="json", desc="Parameters (partial; the rest default).")
+
+    def title(self) -> str:
+        return f"Use controller {self.params.key}"  # type: ignore[attr-defined]
+
+    def run(self, lab: Any, state: DocumentState) -> Any:
+        node = state.graph.role("controller")
+        new_type = f"controller:{self.params.key}"  # type: ignore[attr-defined]
+        nt = node_types().get(new_type)
+        if nt is None:
+            raise _err(f"No controller {self.params.key!r}")  # type: ignore[attr-defined]
+        try:
+            params = nt.clean_params({**nt.default_params(), **self.params.params})  # type: ignore[attr-defined]
+        except Exception as exc:
+            raise _err(f"Invalid parameters for {new_type}: {exc}") from exc
+        node.type, node.params = new_type, params
+        return {"node": node.id, "type": new_type}
+
+
 @register
 class RunSim(Command):
     key = "run_sim"
