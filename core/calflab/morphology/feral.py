@@ -22,8 +22,10 @@ Every segment body has its origin at its upper joint and runs down its own
 are 0 in the standing pose. Positive = flexion at stifle, hock and carpus; at
 the shoulder positive swings the leg back; at the hip positive = abduction.
 
-Belt drives (ADR-063): stifle and hock are always belted 2:1, the carpus when
-gene ``carpus_belt`` is on. Each driver servo rides on the segment above its
+Belt drives (ADR-063, ADR-070): stifle and hock are always belted 2:1, the
+carpus when gene ``carpus_belt`` is on. Each drive is three genes holding
+catalog ids (``belt_<drive>_system``, ``_pulleys``, ``_length``); evolution
+never varies them. Each driver servo rides on the segment above its
 joint at the derived centre distance C from the joint axis; each driven pulley
 is fixed to the segment below. No belt crosses a joint it does not drive: the
 stifle servo is on the femur (which turns with the hip ab/ad joint), the hock
@@ -49,6 +51,7 @@ from calflab.config import config_yaml
 from calflab.mech.belts import (
     BeltCatalog,
     BeltChoice,
+    CatalogError,
     Check,
     DriveLayout,
     DriveReport,
@@ -85,6 +88,17 @@ def conj(q: Quat) -> Quat:
     return (q[0], -q[1], -q[2], -q[3])
 
 
+def belt_choice(genes: dict[str, GeneValue], drive: str) -> BeltChoice:
+    """The three catalog ids a drive's genes hold."""
+    return BeltChoice(system=str(genes[f"belt_{drive}_system"]), pulleys=str(genes[f"belt_{drive}_pulleys"]),
+                      length=str(genes[f"belt_{drive}_length"]))
+
+
+def belt_genes(choice: BeltChoice, drive: str) -> dict[str, str]:
+    return {f"belt_{drive}_system": choice.system, f"belt_{drive}_pulleys": choice.pulleys,
+            f"belt_{drive}_length": choice.length}
+
+
 def feral_config() -> dict[str, Any]:
     return config_yaml("feral_calf.yaml")
 
@@ -107,12 +121,6 @@ class FeralCalfGenerator(PartGenerator):
     genome_definition = "feral_calf"
 
     class Params(BaseModel):
-        belts: dict[str, dict[str, str]] = P(
-            default_factory=dict, ui="json", advanced=True,
-            desc="Belt drive per joint (stifle, hock, carpus): belt system, pulley pair and belt length entry from the "
-                 "project's catalog, nothing else. Choose them in the Belts panel; an invalid choice is rejected. "
-                 "The centre distance and the servo position are derived and cannot be set.",
-        )
         belt_efficiency: float = P(
             1.0, ge=0.5, le=1.0, step=0.01, provisional=True,
             desc="Belt drive efficiency: joint torque = servo torque x ratio x efficiency (PROVISIONAL).",
@@ -136,14 +144,21 @@ class FeralCalfGenerator(PartGenerator):
             0.6, ge=0.1, le=1.0, step=0.05,
             desc="Flag a servo spending sustained time above this fraction of its rated torque.",
         )
+        auto_belts: bool = P(
+            False, advanced=True,
+            desc="Choose every belt by the default rule (closest to its target C, passing every check) instead of "
+                 "the belt genes. Used to make a new project's defaults and by the belt comparison.",
+        )
         default_system: str = P(
-            "", advanced=True,
-            desc="Belt system used to choose a drive that has no stored choice (empty = the catalog's default). "
-                 "The belt comparison report sets it.",
+            "", advanced=True, desc="With auto belts: the belt system to choose from (empty = the catalog's default).",
         )
         default_pulleys: str = P(
-            "", advanced=True,
-            desc="Pulley pair used to choose a drive that has no stored choice (empty = the catalog's default).",
+            "", advanced=True, desc="With auto belts: the pulley pair to choose from (empty = the catalog's default).",
+        )
+        belt_catalog: dict[str, Any] | None = P(
+            None, ui="json", advanced=True,
+            desc="The project's belt catalog, inlined by the lab into jobs that build bodies away from the project "
+                 "folder (evolution, studies), so they use the same catalog. Never stored in the document.",
         )
 
     # ------------------------------------------------------------------ stage 1
@@ -254,10 +269,13 @@ class FeralCalfGenerator(PartGenerator):
         # the back is level: the front angle is solved so the front hooves stand where the rear ones do
         need = height - pad
         theta_gene = _num(genes, "front_angle")
+        infeasible: list[str] = []
+        belt_failures: list[str] = []
         if need > Lu + Lfc:
             theta = 0.0
-            warnings.append(f"The front legs are {need - Lu - Lfc:.1f} mm too short to reach the ground with the back "
-                            "level: the front hooves hang above it.")
+            infeasible.append(f"The front legs are {need - Lu - Lfc:.1f} mm too short to reach the ground with the back "
+                              "level: the front hooves hang above it.")
+            warnings.append(infeasible[-1])
         else:
             theta = u.rad_to_deg(math.acos(need / (Lu + Lfc)))
         if abs(theta - theta_gene) > 3.0:
@@ -265,7 +283,10 @@ class FeralCalfGenerator(PartGenerator):
                             f"about {theta_gene:g} deg as the gene says.")
 
         # ------------------------------------------------------------ belt catalog and drives (ADR-063)
-        catalog, cat_note = load_catalog(ctx.project_dir)
+        if gp.belt_catalog:  # type: ignore[attr-defined]
+            catalog, cat_note = BeltCatalog.from_dict(gp.belt_catalog, origin="inlined project catalog"), ""  # type: ignore[attr-defined]
+        else:
+            catalog, cat_note = load_catalog(ctx.project_dir)
         if cat_note:
             warnings.append(f"Belt catalog: {cat_note}.")
         ratio_for: dict[str, float] = {}
@@ -289,7 +310,7 @@ class FeralCalfGenerator(PartGenerator):
 
         reports: dict[str, DriveReport] = {}
         chosen_by_default: list[str] = []
-        stored: dict[str, dict[str, str]] = dict(gp.belts)  # type: ignore[attr-defined]
+        auto = bool(gp.auto_belts)  # type: ignore[attr-defined]
         stifle_range = tuple(ranges.get("stifle", (-30.0, 80.0)))
         rel_stifle = ry(af + at)  # tibia frame on the femur at standing
 
@@ -301,10 +322,12 @@ class FeralCalfGenerator(PartGenerator):
         for drive in belted:
             lo_hi = ranges.get(drive, (-90.0, 90.0))
             extra = hock_extra if drive == "hock" else None
-            choice_raw = stored.get(drive)
-            if choice_raw:
-                choice = BeltChoice.model_validate(choice_raw)
-                rep = evaluate_drive(catalog, layout(drive), choice, extra)
+            if not auto:
+                choice = belt_choice(genes, drive)
+                try:
+                    rep = evaluate_drive(catalog, layout(drive), choice, extra)
+                except CatalogError as exc:
+                    raise ValueError(f"Belt drive at the {drive}: {exc} (the genes name it; the catalog in use does not)") from exc
             else:
                 ch, rep_d, why = choose_default(catalog, layout(drive), gp.default_system or None,  # type: ignore[attr-defined]
                                                 gp.default_pulleys or None, extra=extra)  # type: ignore[attr-defined]
@@ -322,6 +345,8 @@ class FeralCalfGenerator(PartGenerator):
                 chosen_by_default.append(drive)
             reports[drive] = rep
             if not rep.ok:
+                infeasible.append(rejection(rep))
+                belt_failures.append(rejection(rep))
                 warnings.append(rejection(rep) + ". Simulation is refused until a valid belt is chosen.")
             ratio_for[drive] = rep.ratio
             width = lo_hi[1] - lo_hi[0]
@@ -577,6 +602,10 @@ class FeralCalfGenerator(PartGenerator):
             springs=springs,
             metadata={
                 "warnings": warnings,
+                # generic: evolution rejects a candidate that lists reasons here (ADR-070)
+                "infeasible": list(infeasible),
+                # the same reasons by kind: only belt failures narrow a belt_bound gene's search range (ADR-070)
+                "infeasible_by": {"belt": belt_failures, "other": [r for r in infeasible if r not in belt_failures]},
                 "missing_masses": list(missing.values()),
                 "feral": {
                     "standing_height_mm": round(height, 2),
@@ -588,6 +617,8 @@ class FeralCalfGenerator(PartGenerator):
                     "belt_drives": {d: {**r.model_dump(mode="json"), "default_chosen": d in chosen_by_default,
                                         "layout": layout(d).model_dump(mode="json")} for d, r in reports.items()},
                     "belts_ok": all(r.ok for r in reports.values()),
+                    # why this body cannot be built as it is (evolution rejects such a candidate, ADR-070)
+                    "infeasible": infeasible,
                     "belted": belted,
                     "springs": spring_meta,
                     "provisional": provisional,

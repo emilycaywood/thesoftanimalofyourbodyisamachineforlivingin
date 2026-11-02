@@ -37,7 +37,7 @@ class Candidate(BaseModel):
     descriptors: dict[str, float] = Field(default_factory=dict)
     metrics: dict[str, Any] = Field(default_factory=dict)
     cell: tuple[int, int] | None = None
-    status: str = "rejected"  # new | improved | rejected | failed
+    status: str = "rejected"  # new | improved | rejected | failed | infeasible
     mass_g: float = 0.0
     error: str | None = None
 
@@ -55,6 +55,8 @@ class EvolveProblem:
     controller: dict[str, Any]  # {key, params}
     fitness: dict[str, Any]  # FitnessPreset dump
     run_id: str = "run"
+    #: narrower search ranges for some genes (e.g. those the belt checks depend on, ADR-070)
+    bounds: dict[str, tuple[float, float]] = field(default_factory=dict)
     cancelled: Callable[[], bool] | None = None
 
 
@@ -108,9 +110,15 @@ class MapElitesCMA(Optimizer):
 
         p = self.params
         rng = np.random.default_rng(p.seed)  # type: ignore[attr-defined]
-        gdef = genome_definition(problem.genome["definition"])
+        gdef = genome_definition(problem.genome["definition"]).with_bounds(problem.bounds)
         base_values = gdef.complete(problem.genome["values"])
         only = list(p.genes) or None  # type: ignore[attr-defined]
+        fixed = gdef.not_evolvable(only or [])
+        if fixed:
+            raise ValueError(
+                f"These genes cannot be evolved: {', '.join(fixed)}. Only numeric genes marked evolvable can; catalog "
+                "choices such as the belt drives stay as they are in every candidate (ADR-070)."
+            )
         genes = gdef.evolvable(only)
         if not genes:
             raise ValueError("No evolvable genes selected")
@@ -202,6 +210,13 @@ class MapElitesCMA(Optimizer):
             new_cands: list[Candidate] = []
             for i, (task, out) in enumerate(zip(tasks, outs, strict=True)):
                 genome = task.payload["genome"]
+                if isinstance(out, dict) and out.get("infeasible"):
+                    new_cands.append(Candidate(
+                        id=task.id, run_id=problem.run_id, generation=gen, parents=parents[i], genome=genome,
+                        controller=problem.controller, fitness=-1e9, status="infeasible",
+                        error="; ".join(out["infeasible"]), mass_g=float(out.get("mass_g", 0.0)),
+                    ))
+                    continue
                 if not isinstance(out, dict) or out.get("error"):
                     cand = Candidate(
                         id=task.id,
@@ -244,7 +259,7 @@ class MapElitesCMA(Optimizer):
                 new_cands.append(cand)
             result.candidates += new_cands
 
-            ok = [c for c in new_cands if c.status != "failed"]
+            ok = [c for c in new_cands if c.status not in ("failed", "infeasible")]
             stats = archive.stats
             entry = {
                 "generation": gen,
@@ -256,7 +271,8 @@ class MapElitesCMA(Optimizer):
                 "qd_score": float(stats.qd_score),
                 "elites": int(stats.num_elites),
                 "evals": result.evals,
-                "failed": len(new_cands) - len(ok),
+                "failed": sum(1 for c in new_cands if c.status == "failed"),
+                "infeasible": sum(1 for c in new_cands if c.status == "infeasible"),
             }
             result.history.append(entry)
             result.archive = self.archive_view(result, by_id, dkeys, ranges)

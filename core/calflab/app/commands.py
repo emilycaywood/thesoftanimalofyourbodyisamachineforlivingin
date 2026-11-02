@@ -57,6 +57,11 @@ class SetGenes(Command):
         nt = node_types()[node.type]
         values = dict(self.params.values)  # type: ignore[attr-defined]
         definition = getattr(nt, "definition", None)
+        if definition is not None:
+            hidden = [k for k in values if definition.has(k) and definition.gene(k).open]
+            if hidden:  # catalog choices (belt drives) are checked by their own command (ADR-063, ADR-070)
+                raise _err(f"{', '.join(hidden)}: belt drives are chosen with set_belt_drive (the Belts panel), "
+                           "which checks every choice.")
         try:
             if self.params.real and definition is not None:  # type: ignore[attr-defined]
                 values = definition.stored_values(values, node.params)
@@ -534,10 +539,11 @@ class SetNodeParams(Command):
             node = state.graph.node(p.node)  # type: ignore[attr-defined]
         except KeyError as exc:
             raise _err(str(exc)) from exc
-        if node.type == "part_generator:feral_calf" and "belts" in p.params:  # type: ignore[attr-defined]
-            # belt drives change only through set_belt_drive, which validates every choice (ADR-063)
-            raise _err("Belt drives are chosen with set_belt_drive (the Belts panel), which checks every choice; "
-                       "they cannot be set as node parameters.")
+        locked = {"belts", "auto_belts", "belt_catalog", "default_system", "default_pulleys"} & set(p.params)  # type: ignore[attr-defined]
+        if node.type == "part_generator:feral_calf" and locked:
+            # belt drives change only through set_belt_drive, which validates every choice (ADR-063, ADR-070)
+            raise _err(f"{', '.join(sorted(locked))}: belt drives are chosen with set_belt_drive (the Belts panel), "
+                       "which checks every choice; they cannot be set as node parameters.")
         nt = node_types().get(node.type)
         merged = {**node.params, **p.params}  # type: ignore[attr-defined]
         try:
@@ -1170,10 +1176,16 @@ class SetBeltDrive(Command):
                 raise _err(f"Belt drive at the {p.drive} rejected: with {new.system} and {new.pulleys}, {why}.")  # type: ignore[attr-defined]
             new = ch
             note = f"The length was re-chosen ({ch.length}): {entry.id} is not offered for {system.id}."
-        belts = {**(node.params.get("belts") or {}), p.drive: new.model_dump()}  # type: ignore[attr-defined]
-        trial = {**node.params, "belts": belts}
+        from calflab.model.genome import Genome
+        from calflab.morphology.feral import belt_genes
+
+        genome_node = state.graph.role("genome")
+        trial = {**genome_node.params, **belt_genes(new, p.drive)}  # type: ignore[attr-defined]
+        trial_genome = Genome(definition=design.genome.definition, version=design.genome.version,
+                              values=node_types()[genome_node.type].clean_params(trial))
         try:
-            built = build_design(design.genome, [o for o in state.overrides if o.enabled], "feral_calf", trial, lab.project.path)
+            built = build_design(trial_genome, [o for o in state.overrides if o.enabled], "feral_calf", node.params,
+                                 lab.project.path)
         except Exception as exc:
             raise _err(f"Belt drive at the {p.drive} rejected: {exc}") from exc  # type: ignore[attr-defined]
         after = built.spec.metadata["feral"]["belt_drives"]
@@ -1184,7 +1196,7 @@ class SetBeltDrive(Command):
         if broken:
             rb = _Report.model_validate({k: v for k, v in after[broken[0]].items() if k in _Report.model_fields})
             raise _err(f"This {p.drive} belt would make the {broken[0]} drive fail: {rejection(rb)}")  # type: ignore[attr-defined]
-        node.params = node_types()[node.type].clean_params(trial)
+        genome_node.params = trial_genome.values
         return {"drive": p.drive, "choice": new.model_dump(), "c_mm": rep.c_mm,  # type: ignore[attr-defined]
                 "servo_axis_from_far_mm": rep.servo_axis_from_far_mm, "unknown": rep.unknown, "note": note}
 

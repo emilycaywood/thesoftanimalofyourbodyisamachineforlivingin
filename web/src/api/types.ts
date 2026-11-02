@@ -334,6 +334,8 @@ export interface GraphEdge {
 export interface GraphView {
   /** the genome as the Form shows it: real values (lengths in mm on the body) and ranges to match */
   genome_form?: { node: string; schema: Schema; values: Record<string, unknown>; scaled: string[] } | null;
+  /** what an evolution of this body uses where nothing is set (gene file `evolve:`) */
+  evolve_defaults?: Record<string, unknown> & { sim?: { duration_s?: number } };
   graph: {
     nodes: GraphNode[];
     edges: GraphEdge[];
@@ -443,6 +445,8 @@ export interface EvolveHistoryEntry {
   elites: number;
   evals: number;
   failed: number;
+  /** candidates rejected before simulation because the body could not be built (e.g. a belt drive fails, ADR-070) */
+  infeasible?: number;
 }
 
 export interface Meta {

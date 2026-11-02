@@ -47,6 +47,13 @@ class GeneDef(BaseModel):
     evolvable: bool = True
     #: a starting value the researcher has not confirmed (shown with a PROVISIONAL badge; listed in the ADRs)
     provisional: bool = False
+    #: an enum whose value is an id in a catalog outside the gene file (a belt drive's catalog reference,
+    #: ADR-070): any id is accepted here and the part generator checks it against the catalog it builds with
+    open: bool = False
+    #: not shown in schema forms (edited by its own command and panel, e.g. set_belt_drive)
+    hidden: bool = False
+    #: a geometry gene the belt drives' checks depend on: evolution keeps it where every belt still passes (ADR-070)
+    belt_bound: bool = False
 
     @model_validator(mode="after")
     def _check(self) -> GeneDef:
@@ -62,6 +69,8 @@ class GeneDef(BaseModel):
                 raise ValueError(f"Gene {self.id!r}: default not in choices")
         if self.absent is not None and self.coerce(self.absent) != self.absent:
             raise ValueError(f"Gene {self.id!r}: 'absent' is not a valid value for this gene")
+        if self.open and (self.type != "enum" or self.evolvable):
+            raise ValueError(f"Gene {self.id!r}: an open (catalog id) gene must be an enum with evolvable: false")
         return self
 
     def coerce(self, value: Any) -> GeneValue:
@@ -76,6 +85,10 @@ class GeneDef(BaseModel):
             if isinstance(value, str):
                 return value.strip().lower() in ("1", "true", "yes", "on")
             return bool(value)
+        if self.open:
+            if not isinstance(value, str) or not value.strip():
+                raise ValueError(f"Gene {self.id!r}: a catalog id is needed, got {value!r}")
+            return value
         if value not in (self.choices or []):
             raise ValueError(f"Gene {self.id!r}: {value!r} not in {self.choices}")
         return str(value)
@@ -86,6 +99,9 @@ class GenomeDefinition(BaseModel):
     version: int = 1
     description: str = ""
     genes: list[GeneDef]
+    #: defaults an evolution of this body starts with where the user set nothing: optimizer params
+    #: (e.g. archive descriptors that apply to it) and ``sim`` settings (ADR-070)
+    evolve: dict[str, Any] = Field(default_factory=dict)
 
     @model_validator(mode="after")
     def _unique(self) -> GenomeDefinition:
@@ -168,6 +184,20 @@ class GenomeDefinition(BaseModel):
             genes = [g for g in genes if g.id in only]
         return genes
 
+    def not_evolvable(self, only: list[str]) -> list[str]:
+        """The genes of ``only`` that evolution may not vary (unknown, fixed, or not numeric)."""
+        ok = {g.id for g in self.evolvable()}
+        return [g for g in only if g not in ok]
+
+    def with_bounds(self, bounds: dict[str, tuple[float, float]]) -> GenomeDefinition:
+        """A copy with narrower min/max for some numeric genes (an evolution's search space)."""
+        out = self.model_copy(deep=True)
+        for g in out.genes:
+            if g.id in bounds:
+                lo, hi = bounds[g.id]
+                g.min, g.max = max(float(g.min), float(lo)), min(float(g.max), float(hi))  # type: ignore[arg-type]
+        return out
+
     def encode(self, values: dict[str, GeneValue], only: list[str] | None = None) -> np.ndarray:
         genes = self.evolvable(only)
         return np.array(
@@ -187,6 +217,8 @@ class GenomeDefinition(BaseModel):
     def ui_schema(self) -> dict[str, Any]:
         fields = []
         for g in self.genes:
+            if g.hidden:
+                continue
             ftype = {"float": "number", "int": "integer", "bool": "boolean", "enum": "enum"}[g.type]
             f: dict[str, Any] = {
                 "name": g.id,

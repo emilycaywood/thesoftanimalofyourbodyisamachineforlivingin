@@ -192,7 +192,7 @@ def belt_panel(lab: Any) -> dict[str, Any]:
         choice = BeltChoice.model_validate(rep["choice"])
         drives[d] = {
             "report": rep,
-            "stored": d in (lab.state.graph.role("design").params.get("belts") or {}),
+            "genes": [f"belt_{d}_system", f"belt_{d}_pulleys", f"belt_{d}_length"],
             "options": drive_options(catalog, layouts[d], choice, extra.get(d)),
             "joints": [j.id for j in spec.joints if j.id.endswith(f".{d}")],
         }

@@ -227,6 +227,30 @@ class TrunkLength(BehaviorDescriptor):
 
 
 @register
+class StandingHeight(BehaviorDescriptor):
+    key = "standing_height"
+    label = "Standing height"
+    description = "Height of the body's root (hip and shoulder axles for the feral calf) above the ground, standing."
+    range = (450.0, 800.0)
+    unit = "mm"
+
+    def describe_candidate(self, spec: RobotSpec, metrics: dict[str, Any], controller_params: dict[str, Any]) -> float:
+        return float(spec.root.pos[2])
+
+
+@register
+class StepCycle(BehaviorDescriptor):
+    key = "step_cycle"
+    label = "Gait cycle"
+    description = "Duration of one full gait cycle chosen by the controller optimisation (feral_motion walk)."
+    range = (2.5, 8.0)
+    unit = "s"
+
+    def describe_candidate(self, spec: RobotSpec, metrics: dict[str, Any], controller_params: dict[str, Any]) -> float:
+        return float(controller_params.get("cycle_s", 0.0))
+
+
+@register
 class Speed(BehaviorDescriptor):
     key = "speed"
     label = "Forward speed"

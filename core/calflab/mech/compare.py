@@ -77,7 +77,7 @@ def belt_comparison(
                 row.update(status="not buildable", reason=f"{pair.id} is a {pair.pitch_mm:g} mm pitch pair; the belt is {system.pitch_mm:g} mm")
                 rows.append(row)
                 continue
-            params = {**generator_params, "belts": {}, "default_system": system.id, "default_pulleys": pair.id}
+            params = {**generator_params, "auto_belts": True, "default_system": system.id, "default_pulleys": pair.id}
             try:
                 design = build_design(genome, overrides, "feral_calf", params, project_dir)
             except Exception as exc:  # e.g. no length of this system is offered in its width

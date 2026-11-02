@@ -10,6 +10,7 @@ import numpy as np
 
 from calflab.components import library
 from calflab.design import build_design
+from calflab.evolve.constraints import infeasible
 from calflab.fitness.preset import FitnessPreset
 from calflab.model.genome import Genome
 from calflab.model.overrides import Override
@@ -65,6 +66,9 @@ def evaluate_candidate(payload: dict[str, Any]) -> dict[str, Any]:
         payload.get("generator", "calf"),
         payload.get("generator_params"),
     )
+    reasons = infeasible(design.spec)
+    if reasons:  # never repaired, never simulated (ADR-070)
+        return {"infeasible": reasons, "mass_g": design.spec.total_mass_g(), "evals": 0}
     settings = SimSettings.model_validate(payload.get("sim", {}))
     cm = compile_mjcf(design.spec, lib, CompileOptions.model_validate(payload.get("compile", {})), settings.seed)
     preset = FitnessPreset.model_validate(payload["fitness"])

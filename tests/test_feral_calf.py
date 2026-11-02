@@ -96,7 +96,7 @@ def test_hock_default_avoids_the_stifle_belt_through_the_range(default):
     assert drives["stifle"]["choice"] == STIFLE and drives["stifle"]["ok"]
     hock = drives["hock"]
     assert hock["choice"]["length"] == "GT2-2mm-400-C" and hock["ok"]
-    near_target = design(params={"belts": {"hock": {**STIFLE, "length": "GT2-2mm-450-C"}}})
+    near_target = design({"belt_hock_length": "GT2-2mm-450-C"})
     rep = near_target.spec.metadata["feral"]["belt_drives"]["hock"]
     sweep = next(c for c in rep["checks"] if c["id"] == "stifle_belt_clearance")
     assert sweep["status"] == "fail" and "78 deg of flexion" in sweep["detail"]
@@ -107,7 +107,12 @@ def test_hock_default_avoids_the_stifle_belt_through_the_range(default):
 def test_no_gene_or_parameter_sets_a_belt_distance():
     gdef = genome_definition("feral_calf")
     for g in gdef.genes:
-        assert not any(word in g.id for word in ("belt_c", "center", "centre", "servo_pos", "belt_length")), g.id
+        if g.id.startswith("belt_"):  # a belt is catalog ids only: never a number, never evolved (ADR-070)
+            assert g.type == "enum" and g.open and not g.evolvable and g.hidden, g.id
+        else:
+            assert not any(word in g.id for word in ("center", "centre", "servo_pos")), g.id
+    assert {g.id for g in gdef.genes if g.id.startswith("belt_")} == {
+        f"belt_{d}_{f}" for d in ("stifle", "hock", "carpus") for f in ("system", "pulleys", "length")}
     from calflab.morphology.feral import FeralCalfGenerator
 
     for name, f in FeralCalfGenerator.Params.model_fields.items():
@@ -215,22 +220,27 @@ def test_set_belt_drive_validates_and_undoes(tmp_path):
     assert (project.path / "catalog" / "belt_lengths.json").is_file()
     lab = Lab.open(project.path, create=False)
     try:
-        belts = lab.state.graph.node("morphology").params["belts"]
-        assert belts["stifle"]["length"] == "GT2-2mm-444-C" and belts["hock"]["length"] == "GT2-2mm-400-C"
+        def belts() -> dict:
+            return {k: v for k, v in lab.state.graph.node("genome").params.items() if k.startswith("belt_")}
+
+        start = belts()
+        assert start["belt_stifle_length"] == "GT2-2mm-444-C" and start["belt_hock_length"] == "GT2-2mm-400-C"
         with pytest.raises(LabError, match="rejected"):
             lab.execute("set_belt_drive", {"drive": "hock", "length": "GT2-2mm-450-C"})
         with pytest.raises(LabError, match="width unconfirmed"):
             lab.execute("set_belt_drive", {"drive": "hock", "length": "GT2-2mm-396-A"})
         with pytest.raises(LabError, match="set_belt_drive"):
-            lab.execute("set_node_params", {"node": "morphology", "params": {"belts": {}}})
-        assert lab.state.graph.node("morphology").params["belts"] == belts  # nothing changed
+            lab.execute("set_node_params", {"node": "morphology", "params": {"auto_belts": True}})
+        with pytest.raises(LabError, match="set_belt_drive"):
+            lab.execute("set_genes", {"values": {"belt_hock_length": "GT2-2mm-394-C"}})
+        assert belts() == start  # nothing changed
         out = lab.execute("set_belt_drive", {"drive": "hock", "length": "GT2-2mm-394-C"})["result"]
         assert out["c_mm"] == pytest.approx(151.7, abs=0.1)
         out = lab.execute("set_belt_drive", {"drive": "stifle", "system": "GT2-2mm-9mm-gates"})["result"]
         assert out["choice"]["length"].endswith("-B") and "re-chosen" in out["note"]
         lab.undo()
         lab.undo()
-        assert lab.state.graph.node("morphology").params["belts"] == belts
+        assert belts() == start
         panel = lab.analysis("belt_drives")
         hock_opts = {o["id"]: o for o in panel["drives"]["hock"]["options"]["lengths"]}
         assert not hock_opts["GT2-2mm-450-A"]["selectable"] and "width unconfirmed" in hock_opts["GT2-2mm-450-A"]["reason"]

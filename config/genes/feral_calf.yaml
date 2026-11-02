@@ -4,9 +4,15 @@
 # centre (mm, degrees). `provisional: true` marks a starting value the
 # researcher has not confirmed; the Form shows a PROVISIONAL badge on it.
 #
-# Belt drives are NOT genes: a belt drive is three catalog references chosen in
-# the Belts panel, and its centre distance is derived (ADR-063). If belts are
-# ever evolved they become discrete catalog indices, never distances.
+# Belt drives are three catalog references per drive (genes belt_<drive>_system,
+# _pulleys, _length: catalog ids, ADR-063, ADR-070). Their centre distance is
+# derived. They are chosen in the Belts panel (set_belt_drive), never in Form,
+# and evolution never varies them: a belt keeps its dimensions in every
+# candidate. Geometry the belt checks depend on is marked `belt_bound`:
+# evolution keeps it where every belt still passes.
+#
+# Evolvable: segment lengths and angles, the axle spacing and the springs.
+# Fixed: the catalog choices, tubes, rails, masses and positions of parts.
 #
 # Bump `version` and add a migration in core/calflab/model/migrations.py when
 # you rename, remove or re-scale a gene.
@@ -20,9 +26,17 @@ description: >
   stifles and hocks belt-driven 2:1; tension springs at stifle, hock and
   shoulder; head and neck as one lumped mass.
 
+# What an evolution of this body uses where the Evolve panel sets nothing
+# (ADR-070): archive axes that describe it, and rollouts long enough for the
+# slow walk (1.5 s ramp + two 4 s cycles).
+evolve:
+  descriptor_x: standing_height
+  descriptor_y: step_cycle
+  sim: {duration_s: 9.5, start_pose: stand, stop_on_fall: true}
+
 genes:
   # ------------------------------------------------------------- body
-  - {id: axle_spacing, default: 550, min: 400, max: 700, unit: mm, group: Body, provisional: true, evolvable: false,
+  - {id: axle_spacing, default: 550, min: 400, max: 700, unit: mm, group: Body, provisional: true, evolvable: true,
      label: "Hip axle to shoulder axle", description: "Distance between the hip axle and the shoulder axle (PROVISIONAL)."}
   - {id: body_length, default: 760, min: 500, max: 1000, unit: mm, group: Body, evolvable: false,
      label: "Overall body length", description: "Hip block rear face to chest block front face (about 2.5 ft). The blocks overhang the axles equally."}
@@ -33,23 +47,23 @@ genes:
      description: "Two 8 mm solid carbon fibre rods, or 1/2 in round aluminium tube with 0.049 in wall (PROVISIONAL). Aluminium density is not entered, so an aluminium rail's mass is unknown (0 g, listed)."}
 
   # ------------------------------------------------------------- rear legs
-  - {id: femur_length, default: 200, min: 120, max: 300, unit: mm, group: Rear legs, evolvable: false,
+  - {id: femur_length, belt_bound: true, default: 200, min: 120, max: 300, unit: mm, group: Rear legs, evolvable: true,
      description: "Hip axle to stifle."}
-  - {id: femur_angle, default: 40, min: 0, max: 70, unit: deg, group: Rear legs, evolvable: false,
+  - {id: femur_angle, belt_bound: true, default: 40, min: 0, max: 70, unit: deg, group: Rear legs, evolvable: true,
      description: "Standing angle of the femur, forward of vertical (fixed: no hip pitch motor)."}
-  - {id: tibia_length, default: 245, min: 150, max: 350, unit: mm, group: Rear legs, evolvable: false,
+  - {id: tibia_length, belt_bound: true, default: 245, min: 150, max: 350, unit: mm, group: Rear legs, evolvable: true,
      description: "Stifle to hock."}
-  - {id: tibia_angle, default: 35, min: 0, max: 70, unit: deg, group: Rear legs, evolvable: false,
+  - {id: tibia_angle, belt_bound: true, default: 35, min: 0, max: 70, unit: deg, group: Rear legs, evolvable: true,
      description: "Standing angle of the tibia, back of vertical."}
-  - {id: rear_cannon_length, default: 230, min: 150, max: 330, unit: mm, group: Rear legs, evolvable: false,
+  - {id: rear_cannon_length, default: 230, min: 150, max: 330, unit: mm, group: Rear legs, evolvable: true,
      description: "Hock to the end of the cannon."}
-  - {id: rear_cannon_angle, default: 10, min: -20, max: 30, unit: deg, group: Rear legs, evolvable: false,
+  - {id: rear_cannon_angle, default: 10, min: -20, max: 30, unit: deg, group: Rear legs, evolvable: true,
      description: "Standing angle of the rear cannon, forward of vertical (about 10)."}
 
   # ------------------------------------------------------------- front legs
-  - {id: upper_leg_length, default: 340, min: 200, max: 450, unit: mm, group: Front legs, evolvable: false,
+  - {id: upper_leg_length, belt_bound: true, default: 340, min: 200, max: 450, unit: mm, group: Front legs, evolvable: true,
      description: "Shoulder axle to carpus."}
-  - {id: front_cannon_length, default: 245, min: 150, max: 350, unit: mm, group: Front legs, evolvable: false,
+  - {id: front_cannon_length, default: 245, min: 150, max: 350, unit: mm, group: Front legs, evolvable: true,
      description: "Carpus to the end of the cannon."}
   - {id: front_angle, default: 5, min: 0, max: 20, unit: deg, group: Front legs, evolvable: false,
      label: "Front leg angle (about)",
@@ -86,6 +100,28 @@ genes:
   # ------------------------------------------------------------- mechanism
   - {id: actuator, type: enum, default: sts3215_c018, choices: [sts3215_c018], choices_from: actuator, group: Mechanism, evolvable: false,
      label: "Servo (all ten joints)", description: "The servo on every joint. Feetech STS3215 C018 at 12 V by default."}
+  # ------------------------------------------------------------- belt drives: catalog ids (ADR-070)
+  # Hidden from Form; set in the Belts panel. `open`: the value is an id in the
+  # project's belt catalog, checked by the build, not a list in this file.
+  - {id: belt_stifle_system, type: enum, default: GT2-2mm-10mm-generic, choices: [GT2-2mm-10mm-generic], open: true, hidden: true,
+     evolvable: false, group: Belts, label: "Stifle belt system", description: "Catalog id in catalog/belt_systems.json."}
+  - {id: belt_stifle_pulleys, type: enum, default: 30T-60T, choices: [30T-60T], open: true, hidden: true,
+     evolvable: false, group: Belts, label: "Stifle pulley pair", description: "Catalog id in catalog/pulleys.json."}
+  - {id: belt_stifle_length, type: enum, default: GT2-2mm-444-C, choices: [GT2-2mm-444-C], open: true, hidden: true,
+     evolvable: false, group: Belts, label: "Stifle belt length", description: "Catalog id in catalog/belt_lengths.json."}
+  - {id: belt_hock_system, type: enum, default: GT2-2mm-10mm-generic, choices: [GT2-2mm-10mm-generic], open: true, hidden: true,
+     evolvable: false, group: Belts, label: "Hock belt system", description: "Catalog id in catalog/belt_systems.json."}
+  - {id: belt_hock_pulleys, type: enum, default: 30T-60T, choices: [30T-60T], open: true, hidden: true,
+     evolvable: false, group: Belts, label: "Hock pulley pair", description: "Catalog id in catalog/pulleys.json."}
+  - {id: belt_hock_length, type: enum, default: GT2-2mm-400-C, choices: [GT2-2mm-400-C], open: true, hidden: true,
+     evolvable: false, group: Belts, label: "Hock belt length", description: "Catalog id in catalog/belt_lengths.json."}
+  - {id: belt_carpus_system, type: enum, default: GT2-2mm-10mm-generic, choices: [GT2-2mm-10mm-generic], open: true, hidden: true,
+     evolvable: false, group: Belts, label: "Carpus belt system", description: "Catalog id; used when the carpus is belted."}
+  - {id: belt_carpus_pulleys, type: enum, default: 30T-60T, choices: [30T-60T], open: true, hidden: true,
+     evolvable: false, group: Belts, label: "Carpus pulley pair", description: "Catalog id; used when the carpus is belted."}
+  - {id: belt_carpus_length, type: enum, default: GT2-2mm-640-C, choices: [GT2-2mm-640-C], open: true, hidden: true,
+     evolvable: false, group: Belts, label: "Carpus belt length", description: "Catalog id; used when the carpus is belted."}
+
   - {id: carpus_belt, type: bool, default: false, group: Mechanism, evolvable: false,
      label: "Belt-drive the carpus",
      description: "Off = carpus servo direct on the joint. On = the carpus is belted 2:1 with the same belt system; its servo rides on the upper leg just below the shoulder."}

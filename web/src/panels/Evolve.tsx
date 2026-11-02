@@ -136,7 +136,9 @@ export function EvolvePanel() {
   const backends = plugins.compute_backend ?? [];
   const [optKey, setOptKey] = useState("map_elites_cma");
   const [params, setParams] = useState<Record<string, unknown>>({});
-  const [duration, setDuration] = useState(4);
+  const [durationSet, setDuration] = useState<number | null>(null);
+  const bodyDefaults = useMemo(() => graph?.evolve_defaults ?? {}, [graph?.evolve_defaults]);
+  const duration = durationSet ?? Number(bodyDefaults.sim?.duration_s ?? 4);
   const opt = optimizers.find((o) => o.key === optKey);
   const active = jobs.find((j) => j.kind === "evolve" && (j.status === "running" || j.status === "queued"));
   const fitnessNode = graph?.graph.nodes.find((n) => n.id === graph.graph.roles.fitness);
@@ -145,9 +147,9 @@ export function EvolvePanel() {
   const evolveRuns = runs.filter((r) => r.kind === "evolve");
   const values = useMemo(() => {
     const d: Record<string, unknown> = {};
-    for (const f of opt?.schema.fields ?? []) d[f.name] = f.default;
+    for (const f of opt?.schema.fields ?? []) d[f.name] = bodyDefaults[f.name] ?? f.default;
     return { ...d, ...params };
-  }, [opt, params]);
+  }, [opt, params, bodyDefaults]);
   const budget = Number(values.generations ?? 0) * Number(values.batch_size ?? 0) * (1 + Number(values.inner_iterations ?? 0) * Number(values.inner_popsize ?? 0));
 
   const start = () =>
@@ -411,8 +413,14 @@ export function ArchivePanel() {
         <Section title="Fitness over generations">
           <FitnessChart history={history} />
           {last && (
-            <div className="mt-1 grid grid-cols-4 gap-1 text-center">
-              {[["Generation", last.generation + 1], ["Elites", last.elites], ["Coverage", `${(last.coverage * 100).toFixed(0)}%`], ["Rollouts", last.evals]].map(([k, v]) => (
+            <div className="mt-1 grid grid-cols-5 gap-1 text-center">
+              {[
+                ["Generation", last.generation + 1],
+                ["Elites", last.elites],
+                ["Coverage", `${(last.coverage * 100).toFixed(0)}%`],
+                ["Rollouts", last.evals],
+                ["Infeasible", history.reduce((n, h) => n + (h.infeasible ?? 0), 0)],
+              ].map(([k, v]) => (
                 <div key={k} className="rounded bg-bg p-1"><div className="text-[10px] text-dim">{k}</div><div className="font-semibold">{v}</div></div>
               ))}
             </div>

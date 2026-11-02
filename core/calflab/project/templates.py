@@ -49,14 +49,21 @@ def create_project(path: Path, template: str = "calf", name: str | None = None) 
 
 
 def _store_default_belts(project: Project) -> None:
-    """Build once with the project's catalog and store the drives it chose, so the document says what it uses."""
+    """Choose each belt by the default rule with the project's catalog and store the choice in the belt genes
+    (ADR-070), so the genome says what it uses even if the project's catalog differs from the template."""
     from calflab.design import build_design, genome_definition
     from calflab.graph import node_types
+    from calflab.mech.belts import BeltChoice
+    from calflab.morphology.feral import belt_genes
 
     state = project.state
     node = state.graph.node("morphology")
-    design = build_design(genome_definition("feral_calf").default_genome(), [], "feral_calf", node.params, project.path)
-    drives = design.spec.metadata["feral"]["belt_drives"]
-    node.params = node_types()[node.type].clean_params(
-        {**node.params, "belts": {d: r["choice"] for d, r in drives.items() if r["ok"]}})
+    genome = state.graph.node("genome")
+    gdef = genome_definition("feral_calf")
+    design = build_design(gdef.default_genome(), [], "feral_calf", {**node.params, "auto_belts": True}, project.path)
+    values = dict(genome.params)
+    for d, r in design.spec.metadata["feral"]["belt_drives"].items():
+        if r["ok"]:
+            values.update(belt_genes(BeltChoice.model_validate(r["choice"]), d))
+    genome.params = node_types()[genome.type].clean_params(values)
     project.save(state)

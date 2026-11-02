@@ -31,7 +31,7 @@ import numpy as np
 from pydantic import BaseModel
 
 from calflab import units as u
-from calflab.plugins import ControlInfo, Controller, Observation, register
+from calflab.plugins import ControlInfo, Controller, Observation, VectorDim, register
 from calflab.schema import P
 
 HIND = ("hl", "hr")
@@ -79,6 +79,23 @@ class FeralMotionController(Controller):
         phase_s: float = P(2.0, unit="s", ge=0.5, le=8.0, step=0.1, desc="Lie/rise: time for each move (kneel, lie, rise hind, reach forward, rise front).")
         hold_s: float = P(1.5, unit="s", ge=0.0, le=10.0, step=0.1, desc="Lie/rise: time lying still before rising.")
         ramp: float = P(1.5, unit="s", ge=0.0, le=3.0, step=0.1, desc="Walk: time to ramp in from standing (the body shifts over before the first step).")
+
+    @classmethod
+    def vector_dims(cls) -> list[VectorDim]:
+        """The walk's numbers, for CMA-ES (evolution's inner loop, ADR-070). Ranges keep one leg in the air at a
+        time and every joint near its standing angle; the mode stays as set."""
+        return [
+            VectorDim("cycle_s", 2.5, 8.0),
+            VectorDim("swing_fraction", 0.1, 0.22),
+            VectorDim("sway", 0.0, 6.0),
+            VectorDim("hind_sweep_stifle", -6.0, 0.0),
+            VectorDim("hind_sweep_hock", 0.0, 10.0),
+            VectorDim("hind_lift_stifle", 4.0, 25.0),
+            VectorDim("hind_lift_hock", 8.0, 40.0),
+            VectorDim("front_sweep_shoulder", -8.0, 0.0),
+            VectorDim("front_lift_carpus", 10.0, 60.0),
+            VectorDim("front_lift_shoulder", -25.0, 0.0),
+        ]
 
     def reset(self, info: ControlInfo, seed: int = 0) -> None:
         super().reset(info, seed)

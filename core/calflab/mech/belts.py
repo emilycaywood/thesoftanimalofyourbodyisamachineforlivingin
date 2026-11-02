@@ -338,6 +338,22 @@ def _stamp(directory: Path) -> tuple[tuple[str, float], ...]:
     return tuple((n, (directory / n).stat().st_mtime) for n in CATALOG_FILES if (directory / n).is_file())
 
 
+def catalog_dir(project_dir: Path | None) -> Path:
+    """Where the catalog of a project is read from: ``<project>/catalog``, else ``config/belts``."""
+    from calflab.paths import config_dir
+
+    directory = Path(project_dir) / "catalog" if project_dir is not None else None
+    if directory is not None and all((directory / n).is_file() for n in CATALOG_FILES):
+        return directory
+    return config_dir() / "belts"
+
+
+def catalog_files(project_dir: Path | None) -> dict[str, Any]:
+    """The parsed catalog files of a project, to inline into a job that builds away from it (ADR-070)."""
+    d = catalog_dir(project_dir)
+    return {n: json.loads((d / n).read_text(encoding="utf-8")) for n in CATALOG_FILES}
+
+
 def load_catalog(project_dir: Path | None) -> tuple[BeltCatalog, str]:
     """The project's belt catalog (``<project>/catalog``), or the repository's
     template (``config/belts``) when the project has none. Returns the catalog

@@ -262,7 +262,8 @@ class Lab:
             if isinstance(run.inputs.get(key), dict):
                 node = g.role(role)
                 nt = types.get(node.type)
-                node.params = nt.clean_params(run.inputs[key]) if nt else dict(run.inputs[key])
+                params = {k: v for k, v in run.inputs[key].items() if k != "belt_catalog"}
+                node.params = nt.clean_params(params) if nt else params
         return c, g, [Override.model_validate(o) for o in run.overrides]
 
     def candidate_scene(self, candidate_id: str) -> dict[str, Any]:
@@ -361,8 +362,12 @@ class Lab:
                 "outputs": [s.__dict__ for s in nt.outputs_for(n.params)] if nt else [],
                 "expensive": nt.expensive if nt else False,
             }
+        try:
+            evolve_defaults = genome_definition(graph.role("genome").type.split(":", 1)[1]).evolve
+        except (KeyError, ValueError):
+            evolve_defaults = {}
         return {"graph": graph.model_dump(mode="json"), "status": status, "revision": self.revision,
-                "genome_form": self.genome_form(graph, types)}
+                "genome_form": self.genome_form(graph, types), "evolve_defaults": evolve_defaults}
 
     @staticmethod
     def genome_form(graph: Graph, types: dict[str, Any] | None = None) -> dict[str, Any] | None:
@@ -601,6 +606,17 @@ class Lab:
         }
 
     # ------------------------------------------------------------------ evolution
+    def job_generator_params(self, g: Graph) -> dict[str, Any]:
+        """The design node's params for a job that builds bodies away from the project folder. A feral calf
+        gets the project's belt catalog inlined, so every worker checks belts against the same catalog (ADR-070)."""
+        node = g.role("design")
+        params = dict(node.params)
+        if node.type == "part_generator:feral_calf":
+            from calflab.mech.belts import catalog_files
+
+            params["belt_catalog"] = catalog_files(self.project.path)
+        return params
+
     def run_evolve(
         self,
         optimizer: str = "map_elites_cma",
@@ -633,6 +649,16 @@ class Lab:
                 dst.type, dst.params = src.type, dict(src.params)
             state.overrides = baked_overrides
             start = {"source": "design", "design": design}
+        # a body's own evolve defaults fill in what the caller did not set (ADR-070)
+        try:
+            evo = dict(genome_definition(g.role("genome").type.split(":", 1)[1]).evolve)
+        except (KeyError, ValueError):
+            evo = {}
+        evo_sim = dict(evo.pop("sim", {}) or {})
+        params = {**{k: v for k, v in evo.items() if k in (registry.get("optimizer", optimizer).Params.model_fields
+                                                            if registry.has("optimizer", optimizer) else {})},
+                  **(params or {})}
+        sim = {**evo_sim, **(sim or {})}
         try:
             opt = registry.get("optimizer", optimizer)(params or {})
         except Exception as exc:
@@ -645,11 +671,24 @@ class Lab:
         if not ok:
             raise LabError(f"Compute backend {bkey!r} is not available: {reason}")
         start_design = self._role_output("design", "design", g, state)
+        from calflab.evolve.constraints import infeasible
+
+        if infeasible(start_design.spec):  # evolution starts from a body that can be built (ADR-070)
+            raise LabError("Evolution refused: the starting body is not feasible: " + "; ".join(infeasible(start_design.spec)))
+        gdef_start = genome_definition(start_design.genome.definition)
+        try:
+            fixed = gdef_start.not_evolvable(list(getattr(opt.params, "genes", []) or []))
+        except Exception:
+            fixed = []
+        if fixed:
+            raise LabError(f"These genes cannot be evolved: {', '.join(fixed)}. Only numeric genes marked evolvable can; "
+                           "catalog choices such as the belt drives stay as they are in every candidate (ADR-070).")
         preset = presets().get(str(g.role("fitness").params.get("preset")))
         if preset is None:
             raise LabError("The fitness node has no valid preset")
         ctrl = self._role_output("controller", "controller", g, state)
         sim_params = {**g.role("simulation").params, **(sim or {})}
+        job_gen_params = self.job_generator_params(g)
         run_id = self.registry.new_run_id("evolve")
 
         def work(job: JobContext) -> dict[str, Any]:
@@ -674,11 +713,31 @@ class Lab:
             )
             self.registry.save_run(record)
             self.bus.emit("runs.changed", run_id=run_id)
+            # genes the belt checks depend on are searched only where every belt still passes (ADR-070)
+            from calflab.evolve.constraints import feasible_bounds
+
+            only = list(getattr(opt.params, "genes", []) or []) or None
+            job.report(0.0, "checking which geometry keeps the belts valid")
+            try:
+                scan = feasible_bounds(start_design.genome, [o for o in state.overrides if o.enabled],
+                                       g.role("design").type.split(":", 1)[1], g.role("design").params, self.project.path,
+                                       gdef_start.evolvable(only), cancelled=job.cancelled)
+            except ValueError as exc:
+                raise LabError(str(exc)) from exc
+            for gene, b in scan.items():
+                if b["narrowed"]:
+                    job.log(f"{gene}: searched {b['min']:.4g} to {b['max']:.4g} (gene range {b['gene_min']:g} to "
+                            f"{b['gene_max']:g}); outside it a belt drive fails")
+            record.inputs["bounds"] = scan
+            record.inputs["belts"] = {d: r["choice"] for d, r in
+                                      (start_design.spec.metadata.get("feral") or {}).get("belt_drives", {}).items()}
+            self.registry.save_run(record)
             problem = EvolveProblem(
                 genome=start_design.genome.model_dump(mode="json"),
                 overrides=record.overrides,
                 generator=g.role("design").type.split(":", 1)[1],
-                generator_params=g.role("design").params,
+                generator_params=job_gen_params,
+                bounds={k: (v["min"], v["max"]) for k, v in scan.items()},
                 compile=g.role("model").params,
                 sim=sim_params,
                 controller=ctrl,
@@ -707,7 +766,7 @@ class Lab:
 
             self.bus.emit("evolve.started", run_id=run_id, job=job.job.id)
             result = opt.run(problem, backend_obj, report)  # type: ignore[attr-defined]
-            ok_c = [c for c in result.candidates if c.status != "failed"]
+            ok_c = [c for c in result.candidates if c.status not in ("failed", "infeasible")]
             best_c = max(ok_c, key=lambda c: c.fitness, default=None)
             record.status = "cancelled" if job.cancelled() else "done"
             record.duration_s = time.perf_counter() - t0
@@ -767,7 +826,7 @@ class Lab:
             "genome": design.genome.model_dump(mode="json"),
             "overrides": overrides,
             "generator": g.role("design").type.split(":", 1)[1],
-            "generator_params": g.role("design").params,
+            "generator_params": self.job_generator_params(g),
             "compile": g.role("model").params,
             "sim": {**g.role("simulation").params, "start_pose": "stand"},
             "controller": ctrl,
@@ -875,7 +934,7 @@ class Lab:
         common = {
             "overrides": overrides,
             "generator": generator,
-            "generator_params": g.role("design").params,
+            "generator_params": self.job_generator_params(g),
             "compile": g.role("model").params,
             "sim": {**g.role("simulation").params, "duration_s": cfg.duration_s},
             "controller": ctrl,
@@ -964,7 +1023,7 @@ class Lab:
                     backend=bkey,
                     inputs={"settings": cfg.model_dump(mode="json"), "dimensions": dims, "sim": common["sim"],
                             "compile": common["compile"], "generator": g.role("design").type,
-                            "generator_params": common["generator_params"], "check_s": common["check_s"],
+                            "generator_params": g.role("design").params, "check_s": common["check_s"],
                             "mass": self._mass_record(design), "boards": self._boards_record(design), "geometry": geometry_record(design), "notes": notes,
                             "start": {"source": "document", "revision": self.revision}},
                     genome=design.genome.model_dump(mode="json"),
@@ -1013,7 +1072,8 @@ class Lab:
             if isinstance(run["inputs"].get(key), dict):
                 node = graph.role(role)
                 nt = types.get(node.type)
-                node.params = nt.clean_params(run["inputs"][key]) if nt else dict(run["inputs"][key])
+                params = {k: v for k, v in run["inputs"][key].items() if k != "belt_catalog"}
+                node.params = nt.clean_params(params) if nt else params
         return body, graph, [Override.model_validate(o) for o in run["overrides"]]
 
     def simulate_study_body(self, run_id: str, body_id: str, gait: str) -> Job:
