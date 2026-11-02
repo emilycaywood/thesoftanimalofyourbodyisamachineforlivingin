@@ -643,6 +643,11 @@ belt, C 274.8 mm, servo 65 mm below the shoulder. `robot-calf-final` was
 switched through the researcher's running lab. Its load runs, belt
 comparison and test evolution predate this and were not re-run.
 
+**Added after that (ADR-072):** toe-out and splay per pair of legs on
+the feral calf (Form): fixed mount angles, nothing held by a servo; belts
+unchanged; hooves regrounded. Default 0. The researcher's running lab needs
+a restart to use them (core code changed).
+
 **Scaffolded only (interfaces + tests, no behaviour):** PPO training, MJX
 simulator, RemoteSSH and CloudNotebook transports (job bundling is real),
 imitation reward, interactive selection, molds, skin patterns, nesting,

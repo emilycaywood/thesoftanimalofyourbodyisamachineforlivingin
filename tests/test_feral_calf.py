@@ -261,3 +261,35 @@ def test_walk_and_lie_rise_keep_the_body_upright(default):
         trunk = r.body_ids.index("trunk")
         assert not r.meta["fell"], mode
         assert r.body_pos[-1, trunk, 2] == pytest.approx(0.61, abs=0.01), mode
+
+
+# ---------------------------------------------------------------------- turned-out legs (ADR-072)
+def test_turned_out_legs_are_mount_angles_with_hooves_grounded_and_belts_unchanged(default):
+    from calflab.mech.statics import default_contacts
+    from calflab.model.xform import quat_mul, quat_rotate
+
+    out = design({"hind_leg_toe": 10, "front_leg_toe": 10, "hind_leg_splay": 8, "front_leg_splay": 8}).spec
+    for _body, p in default_contacts(out, out.world_poses()):
+        assert p[2] == pytest.approx(0.0, abs=1e-6)
+    base_feet = {b: p for b, p in default_contacts(default.spec, default.spec.world_poses())}
+    for b, p in default_contacts(out, out.world_poses()):
+        assert abs(p[1]) > abs(base_feet[b][1]) + 50  # 8 deg of splay puts every hoof well outward
+    # the hip ab/ad axis turns with its mount: 10 deg of toe-out, mirrored left and right
+    poses = out.world_poses()
+    for k, sign in (("hl", 1), ("hr", -1)):
+        j = out.joint(f"joint.{k}.hip_abd")
+        ax = quat_rotate(quat_mul(poses["trunk"][1], out.body(j.body).quat), j.axis)
+        assert ax[0] == pytest.approx(sign * math.cos(math.radians(10)), abs=1e-6)
+        assert ax[1] == pytest.approx(math.sin(math.radians(10)), abs=1e-6)
+    # no servo holds the angle: the joints, ranges and actuators are the same, and so are the belts
+    assert [(j.id, j.range_deg) for j in out.joints] == [(j.id, j.range_deg) for j in default.spec.joints]
+    assert {d: r["c_mm"] for d, r in out.metadata["feral"]["belt_drives"].items()} == {
+        d: r["c_mm"] for d, r in default.spec.metadata["feral"]["belt_drives"].items()}
+    assert out.metadata["feral"]["belts_ok"]
+
+
+def test_legs_straight_by_default():
+    gdef = genome_definition("feral_calf")
+    for gid in ("hind_leg_toe", "hind_leg_splay", "front_leg_toe", "front_leg_splay"):
+        g = gdef.gene(gid)
+        assert g.default == 0 and not g.evolvable

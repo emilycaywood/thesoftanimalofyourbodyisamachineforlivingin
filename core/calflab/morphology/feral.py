@@ -265,19 +265,26 @@ class FeralCalfGenerator(PartGenerator):
         Lfc = val(f"leg.{FRONT[0]}.cannon", "length")
         af, at, ac = _num(genes, "femur_angle"), _num(genes, "tibia_angle"), _num(genes, "rear_cannon_angle")
         rad = u.deg_to_rad
-        height = Lf * math.cos(rad(af)) + Lt * math.cos(rad(at)) + Lc * math.cos(rad(ac)) + pad
+        # turned-out legs (ADR-072): a fixed mount rotation per pair, yaw then roll, mirrored by side
+        def mount(pair: str, sy: int) -> Quat:
+            yaw, roll = _num(genes, f"{pair}_leg_toe"), _num(genes, f"{pair}_leg_splay")
+            return quat_mul(quat_axis_angle((0.0, 0.0, 1.0), sy * yaw), quat_axis_angle((1.0, 0.0, 0.0), sy * roll))
+
+        cos_h = math.cos(rad(_num(genes, "hind_leg_splay")))  # splay shortens a leg's height, toe-out does not
+        cos_f = math.cos(rad(_num(genes, "front_leg_splay")))
+        height = (Lf * math.cos(rad(af)) + Lt * math.cos(rad(at)) + Lc * math.cos(rad(ac))) * cos_h + pad
         # the back is level: the front angle is solved so the front hooves stand where the rear ones do
         need = height - pad
         theta_gene = _num(genes, "front_angle")
         infeasible: list[str] = []
         belt_failures: list[str] = []
-        if need > Lu + Lfc:
+        if need > (Lu + Lfc) * cos_f:
             theta = 0.0
-            infeasible.append(f"The front legs are {need - Lu - Lfc:.1f} mm too short to reach the ground with the back "
-                              "level: the front hooves hang above it.")
+            infeasible.append(f"The front legs are {need - (Lu + Lfc) * cos_f:.1f} mm too short to reach the ground with "
+                              "the back level: the front hooves hang above it.")
             warnings.append(infeasible[-1])
         else:
-            theta = u.rad_to_deg(math.acos(need / (Lu + Lfc)))
+            theta = u.rad_to_deg(math.acos(need / ((Lu + Lfc) * cos_f)))
         if abs(theta - theta_gene) > 3.0:
             warnings.append(f"To keep the back level the front segments stand at {theta:.1f} deg from vertical, not "
                             f"about {theta_gene:g} deg as the gene says.")
@@ -472,10 +479,10 @@ class FeralCalfGenerator(PartGenerator):
             for n, z in ((1, 0.0), (2, -length)):
                 body.geoms += ph_geom(f"{body.id}.plug{n}", "tube_plug_g", "Tube plug", (0.0, 0.0, z), body.id)
 
-        def hoof(body: Body, length: float, world_angle_fwd: float) -> None:
-            # world straight down in this body's frame (the segment stands world_angle_fwd forward of vertical)
-            d = quat_rotate(ry(world_angle_fwd), (0.0, 0.0, -1.0))
-            c = (d[0] * (pad - pad_r), 0.0, -length + d[2] * (pad - pad_r))
+        def hoof(body: Body, length: float, world_q: Quat) -> None:
+            # world straight down in this body's frame (``world_q``: the body's standing orientation)
+            d = quat_rotate(conj(world_q), (0.0, 0.0, -1.0))
+            c = (d[0] * (pad - pad_r), d[1] * (pad - pad_r), -length + d[2] * (pad - pad_r))
             m = placeholder("hoof_pad_g", "Hoof pad", body.id)
             body.geoms.append(Geom(id=f"{body.id}.hoof", shape="sphere", size=(pad_r, 0.0, 0.0), pos=c,
                                    layer="Structure", role="both", foot=True, mass_g=m or 0.0,
@@ -492,7 +499,9 @@ class FeralCalfGenerator(PartGenerator):
             name = LEG_NAMES[k]
             Lf_k, Lt_k, Lc_k = (val(f"leg.{k}.{p}", "length") for p in ("femur", "tibia", "cannon"))
             q_f = ry(-af)
-            femur = Body(id=f"leg.{k}.femur", name=f"{name} femur", parent="trunk", pos=(hx, sy * leg_y, 0.0), quat=q_f)
+            m_h = mount("hind", sy)
+            femur = Body(id=f"leg.{k}.femur", name=f"{name} femur", parent="trunk", pos=(hx, sy * leg_y, 0.0),
+                         quat=quat_mul(m_h, q_f))
             femur.geoms.append(tube(f"leg.{k}.femur.tube", "Femur", Lf_k, "femur_od", "femur_id"))
             plugs(femur, Lf_k)
             bearing(femur, f"joint.{k}.hip_abd")
@@ -501,7 +510,8 @@ class FeralCalfGenerator(PartGenerator):
                                 group="leg", damping=jd, friction=jf))
             actuate(k, "hip_abd", f"joint.{k}.hip_abd")
             trunk.geoms.append(servo_geom(f"act.{k}.hip_abd.motor", (hx, sy * (block_w / 2.0 - s_wid / 2.0 - 2.0), 0.0),
-                                          (s_dep, s_wid, s_len), f"{servo.name} (hip ab/ad, direct)"))
+                                          (s_dep, s_wid, s_len), f"{servo.name} (hip ab/ad, direct)").model_copy(
+                update={"quat": m_h}))  # the servo seat turns with the leg's mount
             trunk.geoms += ph_geom(f"act.{k}.hip_abd.horn", "servo_horn_g", "Servo horn", (hx, sy * block_w / 2.0, 0.0), "trunk",
                                    layer="Actuators")
             tibia = Body(id=f"leg.{k}.tibia", name=f"{name} tibia", parent=femur.id, pos=(0.0, 0.0, -Lf_k), quat=ry(af + at))
@@ -516,7 +526,7 @@ class FeralCalfGenerator(PartGenerator):
             cannon.geoms.append(tube(f"leg.{k}.cannon.tube", "Cannon", Lc_k, "rear_cannon_od", "rear_cannon_id"))
             plugs(cannon, Lc_k)
             bearing(cannon, f"joint.{k}.hock")
-            hoof(cannon, Lc_k, ac)
+            hoof(cannon, Lc_k, quat_mul(m_h, ry(-ac)))
             joints.append(Joint(id=f"joint.{k}.hock", name=f"{name} hock", body=cannon.id, axis=(0.0, -1.0, 0.0),
                                 range_deg=lim("hock", (-30, 80)), group="leg", damping=jd, friction=jf))
             actuate(k, "hock", f"joint.{k}.hock")
@@ -529,8 +539,9 @@ class FeralCalfGenerator(PartGenerator):
             sy = SIDE[k]
             name = LEG_NAMES[k]
             Lu_k, Lfc_k = val(f"leg.{k}.upper", "length"), val(f"leg.{k}.cannon", "length")
+            m_f = mount("front", sy)
             upper = Body(id=f"leg.{k}.upper", name=f"{name} upper leg", parent="trunk", pos=(sx, sy * leg_y, 0.0),
-                         quat=ry(-theta))
+                         quat=quat_mul(m_f, ry(-theta)))
             upper.geoms.append(tube(f"leg.{k}.upper.tube", "Upper leg", Lu_k, "upper_leg_od", "upper_leg_id"))
             plugs(upper, Lu_k)
             bearing(upper, f"joint.{k}.shoulder")
@@ -538,7 +549,8 @@ class FeralCalfGenerator(PartGenerator):
                                 range_deg=lim("shoulder", (-60, 60)), group="leg", damping=jd, friction=jf))
             actuate(k, "shoulder", f"joint.{k}.shoulder")
             trunk.geoms.append(servo_geom(f"act.{k}.shoulder.motor", (sx, sy * (block_w / 2.0 - s_dep / 2.0 - 2.0), 0.0),
-                                          (s_wid, s_dep, s_len), f"{servo.name} (shoulder, direct)"))
+                                          (s_wid, s_dep, s_len), f"{servo.name} (shoulder, direct)").model_copy(
+                update={"quat": m_f}))
             trunk.geoms += ph_geom(f"act.{k}.shoulder.horn", "servo_horn_g", "Servo horn", (sx, sy * block_w / 2.0, 0.0),
                                    "trunk", layer="Actuators")
             cannon = Body(id=f"leg.{k}.cannon", name=f"{name} cannon", parent=upper.id, pos=(0.0, 0.0, -Lu_k),
@@ -546,7 +558,7 @@ class FeralCalfGenerator(PartGenerator):
             cannon.geoms.append(tube(f"leg.{k}.cannon.tube", "Cannon", Lfc_k, "front_cannon_od", "front_cannon_id"))
             plugs(cannon, Lfc_k)
             bearing(cannon, f"joint.{k}.carpus")
-            hoof(cannon, Lfc_k, -theta)
+            hoof(cannon, Lfc_k, quat_mul(m_f, ry(theta)))
             joints.append(Joint(id=f"joint.{k}.carpus", name=f"{name} carpus", body=cannon.id, axis=(0.0, 1.0, 0.0),
                                 range_deg=lim("carpus", (-10, 130)), group="leg", damping=jd, friction=jf))
             actuate(k, "carpus", f"joint.{k}.carpus")
@@ -573,7 +585,9 @@ class FeralCalfGenerator(PartGenerator):
             joint_name = sname
             for k in legs:
                 if up_seg is None:  # the shoulder: anchored on the chest block, relative to the shoulder axle
-                    upper_body, upper_pos = "trunk", (sx + g["upper_normal"], SIDE[k] * leg_y, g["upper_along"])
+                    # in the plane of the leg, which its mount may have turned (ADR-072)
+                    off = quat_rotate(mount("front", SIDE[k]), (g["upper_normal"], 0.0, g["upper_along"]))
+                    upper_body, upper_pos = "trunk", (sx + off[0], SIDE[k] * leg_y + off[1], off[2])
                     seg_len = 0.0
                 else:
                     upper_body = f"leg.{k}.{up_seg}"

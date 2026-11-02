@@ -1782,3 +1782,46 @@ step).
 *Not re-run.* The load analysis, the belt comparison and the test evolution
 of ADR-069/070 were made with a direct carpus. The shoulder servo stays in
 the chest block, as requested.
+
+## ADR-072 — Turned-out legs on the feral calf: toe-out and splay as fixed mounts (**VERIFY**)
+
+*Requested 2026-11-02.* "The legs need to be turned out a little ... add
+toe-out and splay assuming mounting conditions for the servos, not active
+servo engagement to maintain."
+
+*Decision.* Four genes, as on the reference calf (ADR-060):
+`hind_leg_toe`, `front_leg_toe` (-30 to 30 deg) and `hind_leg_splay`,
+`front_leg_splay` (-15 to 30 deg), in Form under Rear legs and Front legs.
+They are 0 by default and not evolvable. A genome that does not mention them
+reads 0, so every existing body is unchanged; no version bump.
+* Each is a **fixed rotation of the leg's mount**, the servo seat in the hip
+  or chest block: yaw about the vertical (toe-out, front of the leg
+  outward), then roll about the fore-aft axis (splay, lower end outward),
+  mirrored left and right.
+  * The whole leg turns with it, joint axes included.
+  * The hind ab/ad axis yaws with toe-out; the shoulder axis turns with both
+    angles. The ab/ad and shoulder servo boxes in the blocks turn the same
+    way.
+  * **No joint, servo, range or control changes**: nothing holds the angle
+    but the mount. The hind ab/ad servo still has its own range around it.
+* **Belts are untouched.** Every belt lies in its leg's plane, which turns
+  rigidly with the mount, so C, the servo positions and the clearance sweep
+  are exactly the same: tested.
+* The shoulder spring's chest anchor turns with the front mount, so the
+  spring stays in the leg's plane; the other springs live on leg segments.
+* **Hooves stay on the ground, back level.** Toe-out leaves the height
+  alone. Splay shortens a leg's height by cos(splay). The hind height sets
+  the axle height and the front angle is solved again
+  (`(upper + cannon) cos(theta) cos(front splay)`). A front pair too short
+  for that is infeasible, as before.
+
+*Checked.* With 10 deg toe-out and 8 deg splay on both pairs:
+* the hooves stand 84/82 mm (toe-out only) or 162-166 mm (with splay) off
+  the centre line, against 79.5 mm straight;
+* the axle height drops from 610.4 to 604.8 mm;
+* it stands, and its slow walk covers 320 mm where the straight body covers
+  237 mm in the same time (untuned gait);
+* the belts' C values are identical.
+
+*Not done.* Toe-out and splay per leg (only per pair). Evolving them.
+Clearance between a splayed leg and the blocks: nothing checks it.

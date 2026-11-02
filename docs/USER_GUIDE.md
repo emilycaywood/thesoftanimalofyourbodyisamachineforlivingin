@@ -749,6 +749,13 @@ and joint ranges.
   it lives, and every part mass not entered yet (counted as 0 g; the Mass
   tab lists them too).
 
+**Turning the legs out (ADR-072).** Form > Rear legs and Front legs have
+*toe-out* (hooves pointing outward) and *splay* (lower end of the leg
+outward) for each pair. They are fixed mount angles of the leg's servo seat,
+not held by a servo. The whole leg turns with its mount, belts included, so
+the belts' C does not change. The hooves stay on the ground and the back
+stays level. 0 = straight.
+
 **Evolving it (ADR-070).** The body evolves in the Evolve workspace like
 the reference calf. What it varies and what it never touches:
 * Varied: segment lengths and angles, the axle spacing and the springs.
