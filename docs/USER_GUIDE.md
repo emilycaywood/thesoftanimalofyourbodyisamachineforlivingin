@@ -749,6 +749,12 @@ and joint ranges.
   it lives, and every part mass not entered yet (counted as 0 g; the Mass
   tab lists them too).
 
+**Gaits.** The simulation's controller is *Feral calf motions*: mode
+`stand`, `walk` (slow, one leg at a time), `trot` (diagonal pairs, about
+0.3 m/s) or `lie_rise`. Every mode keeps each joint under 90 % of its
+servo's speed (*speed fraction*; a 2:1 belt halves that speed). For a mix of
+behaviors, see the Behave workspace.
+
 **Turning the legs out (ADR-072).** Form > Rear legs and Front legs have
 *toe-out* (hooves pointing outward) and *splay* (lower end of the leg
 outward) for each pair. They are fixed mount angles of the leg's servo seat,
@@ -1011,9 +1017,44 @@ link (`calflab://run/<id>`, `calflab://design/<id>`) goes in at the caret, so
 one entry can link several runs without typing an id. In a saved entry a run
 link replays that run. *Capture viewport* attaches an image with provenance.
 
-### Behave *(planned, Phase 4)* and Deploy *(planned, Phase 3)*
-These tabs explain what will live there and list the plugins already
-scaffolded. Blender clips can already be sent to the motion library.
+### Behave (ADR-073)
+Behaviors from reference footage. The steps:
+1. **Track the video** with a pose tracker: DeepLabCut, SLEAP, or clicking
+   points by hand in any video tool. Track the landmarks the retarget map
+   names: hip, withers, stifle, hock, hind fetlock, shoulder, carpus, fore
+   fetlock, and the hooves for the ground line. From a side view, track the
+   near legs.
+2. **Copy its CSV** into `<project>\footage\`. DeepLabCut's own CSV works,
+   as does a long one (`frame,keypoint,x,y,likelihood`) or a wide one
+   (`frame,hip_x,hip_y,...`).
+3. **Import footage keypoints**: pick the file, the frame rate and the
+   retarget map (`feral_calf_side`; copy it to `<project>\motions\maps\`
+   and edit it if your labels differ). The clip records the animal's change
+   from its reference frame (the first, the median or a frame you give),
+   applied to the robot's standing pose. The far legs copy the near ones,
+   or follow half a gait later.
+4. **Clips** shows, for each clip, what this body can play of it:
+   * *plays*;
+   * *clamped*: some frames are past a joint's range and are played at the
+     limit;
+   * *too fast*: faster than the servos; play it at the speed shown.
+
+   Click a clip's name for the per-joint table. *Preview* poses the body
+   frame by frame (no physics) and replays it.
+5. **Add to behaviors** puts the clip into the stochastic behaviors at a
+   speed the servos can follow, switching the simulation's controller to
+   *Stochastic behaviors* if needed.
+
+That controller picks, with the run's seed, among idle sway, walking,
+trotting and your clips, each with a random duration, speed and amplitude,
+and sometimes mirrored left/right. The *transitions* table makes it a Markov
+chain. F5 simulates; the behaviors it chose are listed under the panel and
+stored with the run. Fitness preset `behave` rewards following the clips
+(the `imitation` term) without falling.
+
+### Deploy *(planned, Phase 3)*
+This tab explains what will live there and lists the plugins already
+scaffolded.
 
 ---
 

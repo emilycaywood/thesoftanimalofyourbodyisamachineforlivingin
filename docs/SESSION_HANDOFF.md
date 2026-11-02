@@ -648,11 +648,45 @@ the feral calf (Form): fixed mount angles, nothing held by a servo; belts
 unchanged; hooves regrounded. Default 0. The researcher's running lab needs
 a restart to use them (core code changed).
 
+**Added later on 2026-11-02 (researcher's requests: the trot back, and
+infrastructure for stochastic behaviors from reference footage; ADR-073,
+ADR-074):**
+
+* `feral_motion` mode `trot`: diagonal pairs, IMU roll feedback through the
+  hind ab/ad joints, about 0.30 m/s.
+* Every feral_motion and behaviors command stays under 90 % of each servo's
+  speed at its joint (`ControlInfo.speed_limit`). Before, the trot asked the
+  belted carpi for 190 deg/s against 135, and the walk exceeded it too. Load
+  analysis has a `trot` scenario.
+* `calflab.behave`:
+  * keypoint CSVs (DeepLabCut, long, wide) from `<project>/footage/`;
+  * cleaning;
+  * retargeting by map (`config/retarget/feral_calf_side.yaml`): the
+    animal's change from a reference frame applied to the robot's standing
+    pose;
+  * the per-clip body report (range, servo speed, verdict);
+  * a kinematic preview run.
+* `controller:behaviors`: a seeded random repertoire (clips, idle sway,
+  gaits) with weights or a transition table, random speed, amplitude and
+  mirroring, cross-fades. Episodes go into the rollout. Clips are inlined by
+  `Controller.resolve_params`, so workers have them.
+* Imitation is a real fitness term (metric `tracking_rms_deg`); preset
+  `behave`.
+* Commands `import_footage`, `preview_clip`, `add_behavior`,
+  `set_controller`; analysis `behave`. The Behave workspace is real
+  (`LAYOUT_VERSION` 8).
+* Checked with synthetic footage (the robot's own forward kinematics seen
+  from the side): angles back within 0.6 deg (carpus 2.3).
+* **No real footage has been through it yet.**
+* `projects/robot-calf-final` is unchanged: its controller is still
+  `feral_motion` walk.
+* Tests: `tests/test_behave.py` (13), `web/e2e/behave.spec.ts`.
+
 **Scaffolded only (interfaces + tests, no behaviour):** PPO training, MJX
 simulator, RemoteSSH and CloudNotebook transports (job bundling is real),
 imitation reward, interactive selection, molds, skin patterns, nesting,
 system ID, touch response, puppeteering blend, ball joints. UI placeholders:
-Behave and Deploy workspaces, reference images, inertia / heat-map /
+the Deploy workspace, reference images, inertia / heat-map /
 range-of-motion overlays, endpoint/midpoint/axis snaps, angle and clearance
 measurement, run comparison, Pareto / parallel coordinates. The component
 audit has no panel in the web lab yet (CLI and `lab.analysis` only).
@@ -814,7 +848,7 @@ Journal, Rhino bridge):**
 |---|---|
 | `CLAUDE.md` | Conventions for every session (loaded automatically) |
 | `PLAN.md` | Architecture, module boundaries, data flow, phases, risks, status |
-| `DECISIONS.md` | ADR log: every assumption (70 so far) |
+| `DECISIONS.md` | ADR log: every assumption (74 so far) |
 | `docs/proposals/anatomical-leg.md` | Proposal for a three-segment leg (set aside 2026-10-04; not built) |
 | `docs/USER_GUIDE.md` | How to use the lab |
 | `docs/CHAT_GUIDE_PROMPT.md` | Prompt that makes a chat assistant a guide to the whole lab |
@@ -852,6 +886,16 @@ Prefix each with the opening message from section 1.
 > lines put a joint elsewhere, tell me which belt no longer fits and refuse
 > the push, rather than moving the servo. Extend bridges/rhino and its check
 > script; update the user guide.
+
+**S. My first footage through the behavior pipeline**
+> I tracked <video, behavior, side> with <DeepLabCut / SLEAP / by hand>;
+> the CSV is in projects/robot-calf-final/footage/<file> at <fps> fps, and my
+> labels are <list>. Make a retarget map for my labels (copy
+> feral_calf_side), import it, and show me what the body can play of it
+> (range, servo speed) and the preview. Then put it in the stochastic
+> behaviors with idle and walk, simulate a minute with three seeds, and tell
+> me where it falls or clamps and what in the body (ranges, belts, springs)
+> limits it most. Do not change the belts.
 
 **R. A fitness for the feral calf and a first real evolution**
 > The feral calf evolves with its belts fixed (ADR-070), but it is scored

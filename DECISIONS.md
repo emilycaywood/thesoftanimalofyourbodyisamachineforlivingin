@@ -1825,3 +1825,136 @@ reads 0, so every existing body is unchanged; no version bump.
 
 *Not done.* Toe-out and splay per leg (only per pair). Evolving them.
 Clearance between a splayed leg and the blocks: nothing checks it.
+
+## ADR-073 — Behaviors from reference footage: keypoints, retargeting, a stochastic repertoire (**VERIFY**)
+
+*Requested 2026-11-02.* "Start implementing more stochastic behaviors from
+reference footage, so that the geometry is capable of more than just
+ambulating ... implementing infrastructure to accommodate that."
+
+*Decision: the pipeline, end to end, in the core (`calflab.behave`, the
+`behaviors` controller):*
+
+1. **Footage is tracked outside CALFLAB.** Pose tracking needs trained
+   networks (DeepLabCut, SLEAP) or a person clicking points; CALFLAB reads
+   their output instead of bundling one. `calflab.behave.keypoints` reads
+   three CSV layouts:
+   * DeepLabCut's (scorer/bodyparts/coords header);
+   * long (`frame, keypoint, x, y[, likelihood]`);
+   * wide (`frame, <name>_x, <name>_y`).
+
+   Image y is flipped to point up. Points under a likelihood threshold are
+   dropped, gaps up to 10 frames are interpolated (longer ones stay
+   missing), and a 3-frame moving average smooths the rest. Files go in
+   `<project>/footage/`.
+2. **Retargeting by a map file** (`config/retarget/<name>.yaml`, or the
+   project's `motions/maps/`, which wins).
+   * Per robot joint: a `flexion` (the interior angle at a landmark) or a
+     `swing` (a segment's direction in the trunk's frame), with sign and
+     scale. Landmarks may list alternative names.
+   * **Angles are the animal's change from a reference frame** of the
+     footage (first, median or a frame), applied to the robot's own standing
+     pose. A calf's proportions differ from the robot's, and the camera's
+     scale and angle do not matter this way; an absolute retarget would
+     need a full-body inverse kinematics nobody has calibrated.
+   * A side view sees one side: the far legs copy the near ones, lag half a
+     gait period, or hold.
+   * Hip ab/adduction cannot be seen from the side and holds its pose.
+   * The root path (pitch from the hip-withers line, height scaled to the
+     robot's axle height) is stored for previews only; the simulator does
+     not follow it.
+
+   `feral_calf_side` is the template map.
+3. **A clip is checked against the body, not changed** (`clip_report`):
+   * per joint, how much of it lies outside the range (the controller
+     clamps those frames);
+   * its fastest change against the servo's no-load speed at that joint (a
+     2:1 belt halves it), and the slow-down that would make the whole clip
+     followable;
+   * a verdict: plays, clamped, too fast, or both.
+
+   `preview_clip` poses the body frame by frame (no physics) as a run of
+   kind `clip` that replays in the viewport.
+4. **Stochastic behaviors** (`controller:behaviors`).
+   * A repertoire of `clip`, `idle` and `gait` entries (a gait is any other
+     controller, e.g. `feral_motion` walk or trot).
+   * The next one is drawn from weights or a transition table (a Markov
+     chain), with random speed, amplitude, repeats and left/right mirroring
+     within ranges. Switches cross-fade.
+   * Commands stay under 90 % of each servo's speed.
+   * Seeded, so a rollout is reproducible; the chosen episodes go into the
+     rollout (`meta.controller_log`) and the playback payload.
+   * Idle sway is an Ornstein-Uhlenbeck process shared by the left and right
+     joint of each pair. Independent sway of 2 deg tipped the feral calf
+     onto a diagonal and over. Shared, it survived 4 deg on five seeds out
+     of six, and the default repertoire (idle, walk, trot) ran 40 s on six
+     seeds without a fall.
+   * `add_behavior` adds a clip at a speed the servos can follow.
+5. **Clips reach workers.** A controller may resolve project data into its
+   params (`Controller.resolve_params`): the behaviors controller inlines
+   the angles of the clips it names when the graph evaluates it, so
+   evolution workers play the same clips; the controller node's cache key
+   includes the motion library.
+6. **Imitation is a real fitness term** (it was a Phase 2 stub): exp of
+   minus the squared ratio of the run's RMS joint tracking error (new
+   metric `tracking_rms_deg`, commanded vs achieved) to a scale. With
+   clips playing, that rewards a body that can actually perform them. New
+   preset `behave` (survival, imitation, stability, joint limits). The
+   root path is not compared yet.
+
+*Checked.* Synthetic footage: the feral calf posed by forward kinematics
+with a known pawing motion, seen from its left side and written as a
+DeepLabCut CSV. Retargeted, it gives back the angles within 0.6 deg
+(shoulder, stifle, hock) and 2.3 deg (carpus: the smoothing rounds off a
+sharp onset), and the report correctly finds the carpus 37 % too fast for
+its belted servo. Tested in `tests/test_behave.py` (13 tests, including
+import -> preview -> controller -> simulation in a project) and
+`web/e2e/behave.spec.ts`.
+
+*Not done.*
+* No real footage has been through it.
+* No 3D (multi-camera) keypoints.
+* No hip ab/ad from a front view.
+* Nothing chooses behaviors from sensors yet: the `touch_response` and
+  `puppeteer_blend` behaviors are still stubs.
+* No PPO imitation training (Phase 2).
+* The behaviors repertoire is edited as JSON in the controller form.
+* The feral calf has no neck or head joints, so a head toss or grazing
+  dip can only be played by the legs and trunk.
+
+## ADR-074 — The trot is back for the feral calf, and every gait stays within servo speed (**VERIFY**)
+
+*Asked 2026-11-02:* "Where did the trot gait go?" The reference calf's CPG
+finds joints by its own names (`hip_flex`, `knee`). It cannot drive the
+feral calf, whose project uses `feral_motion` (stand, walk, lie/rise); no
+trot was written for it.
+
+*Decision.*
+* **The trot** is `feral_motion` mode `trot`. Diagonal pairs (hind left +
+  front right, then the other two) swing together half a cycle apart,
+  reusing the walk's sweep and lift numbers scaled. There is no body shift,
+  and hind ab/ad roll feedback from the IMU is on at 0.5 deg per deg of
+  trunk roll. Open-loop trots fell in 3-8 s on this narrow-tracked body
+  (hooves 79 mm either side of the centre line) unless the steps were short
+  and low.
+* **Servo speed.** The simulator limits torque, not speed (ADR-047). Every
+  `feral_motion` command now moves no faster than 90 % of the servo's
+  no-load speed at its joint (`speed_fraction`). Controllers receive those
+  speeds in `ControlInfo.speed_limit`; a 2:1 belt halves them, to 135 deg/s
+  from the STS3215's 270 deg/s.
+  * Before this, the tuned trot asked the belted carpi for 190 deg/s, and
+    even the slow walk exceeded 135 deg/s at the carpus once it was belted
+    (ADR-071).
+* **Defaults**, tuned with the limit on: cycle 0.6 s, swing 0.45, lift 0.3x
+  the walk's, sweep 2x.
+  * Result: 0.30 m/s; lowest speed margin 0.18; lowest torque margin 0.81;
+    no fall.
+  * Also no fall with 8 deg of splay and 10 deg of toe-out (0.14 m/s) and
+    with a direct carpus.
+* The walk and lie/rise still run, now within servo speed: the walk's
+  speed margin is 0.08.
+* The load analysis has a `trot` scenario (ramp + 10 cycles).
+
+*Not done.* A torque-speed curve in the servo model. A trot tuned by
+evolution; its numbers are not in the CMA-ES vector yet, which is the
+walk's.
