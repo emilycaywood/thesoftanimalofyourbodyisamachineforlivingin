@@ -198,6 +198,7 @@ def run_rollout(
         lo=lo,
         hi=hi,
         control_dt=control_dt,
+        speed_limit=np.array(cm.actuator_speed_limit) if len(cm.actuator_speed_limit) == nA else None,
     )
     controller.reset(info, settings.seed)
 
@@ -403,6 +404,8 @@ def run_rollout(
         spring_force=arr("sf", (nS,)) if nS else None,
         spring_torque=arr("st", (nS,)) if nS else None,
         meta={
+            # what the controller says it did (e.g. the behaviors it chose, ADR-073)
+            "controller_log": controller.log() if hasattr(controller, "log") else None,
             "energy_j": energy,
             "fell": fell,
             "fall_time": fall_time,

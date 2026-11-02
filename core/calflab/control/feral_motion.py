@@ -12,6 +12,10 @@ carpus, a backward swing at the shoulder and abduction at the hip.
   (hind: stifle and hock flex together; front: carpus flexes, shoulder brings
   the hoof forward again) and moves forward; in stance it sweeps back. The hind
   ab/ad joints sway the body over the three supporting legs.
+* ``trot``: diagonal pairs (hind left + front right, then hind right + front
+  left) swing together, half a cycle apart, with the walk's sweep and lift
+  scaled up; no body shift (the two hooves on the ground carry it). A
+  faster, dynamically balanced gait.
 * ``lie_rise``: kneel on the front carpi, fold the hind legs and lie down,
   hold, then rise the way cattle do: hind end first, then the front from
   kneeling (both front legs reach forward and plant their hooves, then push
@@ -37,6 +41,8 @@ from calflab.schema import P
 HIND = ("hl", "hr")
 FRONT = ("fl", "fr")
 SEQUENCE = {"hl": 0.0, "fl": 0.25, "hr": 0.5, "fr": 0.75}
+#: trot: diagonal pairs move together (hind left with front right), half a cycle apart
+DIAGONALS = {"hl": 0.0, "fr": 0.0, "hr": 0.5, "fl": 0.5}
 SIDE = {"fl": 1.0, "fr": -1.0, "hl": 1.0, "hr": -1.0}
 
 
@@ -52,11 +58,11 @@ class FeralMotionController(Controller):
 
     key = "feral_motion"
     label = "Feral calf motions"
-    description = "Quiet standing, a slow statically stable walk, or lying down and rising (hind end first)."
+    description = "Quiet standing, a slow statically stable walk, a trot, or lying down and rising (hind end first)."
     version = "1"
 
     class Params(BaseModel):
-        mode: Literal["stand", "walk", "lie_rise"] = P("walk", desc="Which motion to play.")
+        mode: Literal["stand", "walk", "trot", "lie_rise"] = P("walk", desc="Which motion to play.")
         cycle_s: float = P(4.0, unit="s", ge=1.0, le=12.0, step=0.1, desc="Walk: one full gait cycle (all four legs step once).")
         swing_fraction: float = P(0.15, ge=0.1, le=0.25, step=0.01, desc="Walk: fraction of the cycle each leg is in the air (<= 0.25: one leg at a time).")
         hind_sweep_stifle: float = P(-1.6, unit="deg", ge=-20, le=20, step=0.1, desc="Walk: stifle angle that moves the hind hoof forward at the end of swing (half sweep).")
@@ -67,6 +73,20 @@ class FeralMotionController(Controller):
         front_lift_carpus: float = P(30.0, unit="deg", ge=0, le=90, step=0.5, desc="Walk: carpus flexion at mid-swing (folds the front hoof up).")
         front_lift_shoulder: float = P(-12.0, unit="deg", ge=-40, le=10, step=0.5, desc="Walk: shoulder angle at mid-swing that keeps the folded hoof under the body.")
         sway: float = P(3.0, unit="deg", ge=0, le=15, step=0.1, desc="Walk: hind ab/ad sway that moves the body over the supporting legs.")
+        trot_cycle_s: float = P(0.6, unit="s", ge=0.4, le=3.0, step=0.05, desc="Trot: one full cycle (each diagonal pair steps once).")
+        trot_swing: float = P(0.45, ge=0.2, le=0.5, step=0.01, desc="Trot: fraction of the cycle each pair is in the air.")
+        trot_sweep_scale: float = P(2.0, ge=0.0, le=5.0, step=0.1, desc="Trot: the walk's fore-aft sweep times this (longer strides).")
+        trot_lift_scale: float = P(0.3, ge=0.0, le=2.0, step=0.05, desc="Trot: the walk's lift times this.")
+        roll_gain: float = P(
+            0.5, ge=0.0, le=5.0, step=0.05,
+            desc="Trot: hind ab/ad turned by this many degrees per degree of trunk roll (from the IMU), against the roll. "
+                 "0 = open loop.",
+        )
+        pitch_gain: float = P(
+            0.0, ge=0.0, le=5.0, step=0.05,
+            desc="Trot: shoulders and stifles swung by this many degrees per degree of trunk pitch (IMU), to catch a "
+                 "nose-down or nose-up tip. 0 = open loop.",
+        )
         # lying down and rising
         kneel_shoulder: float = P(-20.0, unit="deg", ge=-60, le=60, step=0.5, desc="Lie/rise: shoulder angle kneeling on the carpi.")
         kneel_carpus: float = P(110.0, unit="deg", ge=0, le=130, step=0.5, desc="Lie/rise: carpus flexion kneeling.")
@@ -78,6 +98,12 @@ class FeralMotionController(Controller):
         reach_carpus: float = P(50.0, unit="deg", ge=0, le=130, step=0.5, desc="Lie/rise: carpus flexion while reaching forward from kneeling.")
         phase_s: float = P(2.0, unit="s", ge=0.5, le=8.0, step=0.1, desc="Lie/rise: time for each move (kneel, lie, rise hind, reach forward, rise front).")
         hold_s: float = P(1.5, unit="s", ge=0.0, le=10.0, step=0.1, desc="Lie/rise: time lying still before rising.")
+        speed_fraction: float = P(
+            0.9, ge=0.0, le=1.0, step=0.05,
+            desc="Commanded joint speed kept under this fraction of each servo's no-load speed at its joint (a 2:1 "
+                 "belt halves it). The simulator limits torque, not speed, so without this a gait can ask more than "
+                 "the servos turn. 0 = no limit.",
+        )
         ramp: float = P(1.5, unit="s", ge=0.0, le=3.0, step=0.1, desc="Walk: time to ramp in from standing (the body shifts over before the first step).")
 
     @classmethod
@@ -99,6 +125,7 @@ class FeralMotionController(Controller):
 
     def reset(self, info: ControlInfo, seed: int = 0) -> None:
         super().reset(info, seed)
+        self.prev: np.ndarray | None = None
         self.idx: dict[str, int] = {}
         for i, jid in enumerate(info.joint_ids):
             parts = jid.split(".")
@@ -117,7 +144,34 @@ class FeralMotionController(Controller):
             return {}
         if p.mode == "lie_rise":  # type: ignore[attr-defined]
             return self._lie_rise(t)
+        if p.mode == "trot":  # type: ignore[attr-defined]
+            return self._trot(t)
         return self._walk(t)
+
+    def _legs(self, ph: float, sw: float, leg: str, sweep_k: float, lift_k: float, ramp: float) -> dict[str, float]:
+        """One leg's joint offsets (deg) at phase ``ph`` of its own cycle: swing first (lift and bring forward),
+        then stance (sweep back)."""
+        p = self.params
+        if ph < sw:
+            s = ph / sw
+            sweep, lift = -math.cos(math.pi * s), math.sin(math.pi * s)
+        else:
+            sweep, lift = 1.0 - 2.0 * (ph - sw) / (1.0 - sw), 0.0
+        sweep, lift = sweep * sweep_k * ramp, lift * lift_k * ramp
+        if leg in HIND:
+            return {f"{leg}.stifle": sweep * p.hind_sweep_stifle + lift * p.hind_lift_stifle,  # type: ignore[attr-defined]
+                    f"{leg}.hock": sweep * p.hind_sweep_hock + lift * p.hind_lift_hock}  # type: ignore[attr-defined]
+        return {f"{leg}.shoulder": sweep * p.front_sweep_shoulder + lift * p.front_lift_shoulder,  # type: ignore[attr-defined]
+                f"{leg}.carpus": lift * p.front_lift_carpus}  # type: ignore[attr-defined]
+
+    def _trot(self, t: float) -> dict[str, float]:
+        p = self.params
+        T, sw = p.trot_cycle_s, p.trot_swing  # type: ignore[attr-defined]
+        ramp = smooth(t / p.ramp) if p.ramp > 0 else 1.0  # type: ignore[attr-defined]
+        out: dict[str, float] = {}
+        for leg, off in DIAGONALS.items():
+            out.update(self._legs(((t / T) - off) % 1.0, sw, leg, p.trot_sweep_scale, p.trot_lift_scale, ramp))  # type: ignore[attr-defined]
+        return out
 
     def _walk(self, t: float) -> dict[str, float]:
         p = self.params
@@ -185,10 +239,33 @@ class FeralMotionController(Controller):
 
     def act(self, obs: Observation) -> np.ndarray:
         target = self.info.rest.copy()
-        for name, deg in self.pose_at(obs.t).items():
+        pose = self.pose_at(obs.t)
+        p = self.params
+        if p.mode == "trot" and (p.roll_gain or p.pitch_gain):  # type: ignore[attr-defined]
+            w, x, y, z = (float(v) for v in obs.trunk_quat)
+            roll = u.rad_to_deg(math.atan2(2 * (w * x + y * z), 1 - 2 * (x * x + y * y)))
+            pitch = u.rad_to_deg(math.asin(max(-1.0, min(1.0, 2 * (w * y - z * x)))))
+            for leg in HIND:  # positive roll = left side up, tipping right: the right hind leg steps out, the left in
+                pose[f"{leg}.hip_abd"] = pose.get(f"{leg}.hip_abd", 0.0) - SIDE[leg] * p.roll_gain * roll  # type: ignore[attr-defined]
+            for leg in FRONT:  # nose down (positive pitch): swing the front legs forward under it
+                pose[f"{leg}.shoulder"] = pose.get(f"{leg}.shoulder", 0.0) - p.pitch_gain * pitch  # type: ignore[attr-defined]
+        for name, deg in pose.items():
             self._set(target, name, deg)
-        return target
+        return self.rate_limit(target)
+
+    def rate_limit(self, target: np.ndarray) -> np.ndarray:
+        """Move each commanded angle no faster than ``speed_fraction`` of its servo's speed at the joint."""
+        frac = float(self.params.speed_fraction)  # type: ignore[attr-defined]
+        lim = self.info.speed_limit
+        if frac <= 0 or lim is None:
+            return target
+        prev = self.info.rest if self.prev is None else self.prev
+        step = np.asarray(lim, dtype=float) * frac * self.info.control_dt
+        out = prev + np.clip(target - prev, -step, step)
+        self.prev = out
+        return out
 
     def cycle_period_s(self) -> float:
         """The window the 'sustained' checks use (one gait cycle)."""
-        return float(self.params.cycle_s)  # type: ignore[attr-defined]
+        p = self.params
+        return float(p.trot_cycle_s if p.mode == "trot" else p.cycle_s)  # type: ignore[attr-defined]

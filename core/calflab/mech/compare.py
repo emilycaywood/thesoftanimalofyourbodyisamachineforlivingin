@@ -45,7 +45,7 @@ def run_scenario(
     rollout = run_rollout(cm, ctrl, settings, lib)  # type: ignore[arg-type]
     rollout.meta["scenario"] = mode
     rollout.meta["torque_derating"] = 1.0
-    return rollout, params, float(params.get("cycle_s", 4.0))
+    return rollout, params, float(params.get("trot_cycle_s" if mode == "trot" else "cycle_s", 4.0))
 
 
 def belt_comparison(

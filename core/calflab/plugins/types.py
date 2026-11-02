@@ -127,6 +127,8 @@ class ControlInfo:
     lo: np.ndarray  # lower joint limit per actuator, rad
     hi: np.ndarray  # upper joint limit per actuator, rad
     control_dt: float  # s
+    #: recorded no-load speed of each actuator at its joint (rad/s, after any belt); None = not known
+    speed_limit: np.ndarray | None = None
 
     def index(self, joint_id: str) -> int | None:
         try:
@@ -166,6 +168,12 @@ class Controller(Plugin):
 
     def act(self, obs: Observation) -> np.ndarray:
         raise NotImplementedError
+
+    @classmethod
+    def resolve_params(cls, params: dict[str, Any], project_dir: Path | None) -> dict[str, Any]:
+        """Fill in project data the params refer to (e.g. motion clips by id) before the controller is built, so
+        jobs away from the project folder get the same data. Default: the params as they are."""
+        return params
 
     # ---- optional: expose parameters to optimizers as a bounded vector
     @classmethod

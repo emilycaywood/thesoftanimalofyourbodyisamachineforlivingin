@@ -39,6 +39,7 @@ from calflab.sim.rollout import Rollout
 SCENARIOS: dict[str, dict[str, Any]] = {
     "stand": {"mode": "stand", "label": "Quiet standing"},
     "walk": {"mode": "walk", "label": "Slow walk"},
+    "trot": {"mode": "trot", "label": "Trot"},
     "lie_rise": {"mode": "lie_rise", "label": "Lying down and rising (hind end first, then front from kneeling)"},
 }
 
@@ -47,6 +48,8 @@ def scenario_duration(mode: str, ctrl: dict[str, Any]) -> float:
     """How long to simulate a scenario (s): standing 4 s; walk ramp + 3 cycles; lie/rise its script + 2 s."""
     if mode == "walk":
         return float(ctrl.get("ramp", 1.5)) + 3.0 * float(ctrl.get("cycle_s", 4.0))
+    if mode == "trot":
+        return float(ctrl.get("ramp", 1.5)) + 10.0 * float(ctrl.get("trot_cycle_s", 0.6))
     if mode == "lie_rise":
         return 5.0 * float(ctrl.get("phase_s", 2.0)) + float(ctrl.get("hold_s", 1.5)) + 2.0
     return 4.0
