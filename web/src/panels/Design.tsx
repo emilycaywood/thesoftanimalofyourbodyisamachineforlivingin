@@ -19,7 +19,7 @@ export function useRoleNode(role: string): { node: GraphNode; type: NodeTypeInfo
   return node && type ? { node, type } : null;
 }
 
-function RoleForm({ role, filterGroup }: { role: string; filterGroup?: string }) {
+export function RoleForm({ role, filterGroup }: { role: string; filterGroup?: string }) {
   const rn = useRoleNode(role);
   const run = useLab((s) => s.run);
   const endGesture = useLab((s) => s.endGesture);

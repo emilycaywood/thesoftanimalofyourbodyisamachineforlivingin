@@ -347,6 +347,27 @@ def build_scene(
             "wires": [w.model_dump() for w in h.wires],
         }
 
+    # tension springs (ADR-065): anchors in their body frames (playback moves them) and the standing state
+    springs = []
+    if spec.springs:
+        from calflab.mech.loads import static_spring_report
+        from calflab.mech.statics import _world
+
+        state = {r["spring"]: r for r in static_spring_report(spec)}
+        for sp in spec.springs:
+            st = state[sp.id]
+            springs.append({
+                "id": sp.id, "label": sp.label, "joint": sp.joint,
+                "upper_body": sp.upper_body, "upper_local": _round(sp.upper_pos),
+                "lower_body": sp.lower_body, "lower_local": _round(sp.lower_pos),
+                "a": _round(_world(poses, sp.upper_body, sp.upper_pos)), "b": _round(_world(poses, sp.lower_body, sp.lower_pos)),
+                "force_n": round(st["force_n"], 2), "torque_nm": round(st["torque_nm"], 4), "arm_mm": round(st["arm_mm"], 1),
+                "side": st["side"], "slack": st["slack"],
+            })
+            elements[sp.id] = {"kind": "spring", "name": sp.label or sp.id, "layer": "Transmission", "joint": sp.joint,
+                               "k_n_per_mm": sp.k_n_per_mm, "free_length_mm": sp.free_length_mm,
+                               "force_n": round(st["force_n"], 2), "torque_nm": round(st["torque_nm"], 4), "side": st["side_note"]}
+
     com = spec.center_of_mass(poses)
     hull = convex_hull([(f["pos"][0], f["pos"][1]) for f in feet])
     margin = point_in_hull_margin(hull, (com[0], com[1]))
@@ -369,6 +390,7 @@ def build_scene(
         "joints": joints,
         "sensors": sensors,
         "harness": harness,
+        "springs": springs,
         "feet": feet,
         "com": _round(com),
         "support_polygon": [[round(x, 2), round(y, 2)] for x, y in hull],

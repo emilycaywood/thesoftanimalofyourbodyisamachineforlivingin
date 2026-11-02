@@ -4,6 +4,7 @@ import type { FC } from "react";
 import { ViewportPanel } from "@/viewport/Viewport";
 import { ConsolePanel, DesignsPanel, JobsPanel, LayersPanel, OverridesPanel, RunsPanel, TreePanel } from "./basic";
 import { GenomePanel, MechanismPanel, PlannedPanel, SimulatePanel } from "./Design";
+import { BeltsPanel } from "./Belts";
 import { ArchivePanel, EvolvePanel } from "./Evolve";
 import type { PanelId } from "./ids";
 import { MassPanel } from "./Mass";
@@ -51,6 +52,7 @@ export const PANELS: Record<PanelId, { title: string; component: FC }> = {
   genome: { title: "Form", component: GenomePanel },
   mass: { title: "Mass", component: MassPanel },
   mechanism: { title: "Mechanism", component: MechanismPanel },
+  belts: { title: "Belts and springs", component: BeltsPanel },
   simulate: { title: "Simulate", component: SimulatePanel },
   timeline: { title: "Timeline", component: TimelinePanel },
   runs: { title: "Runs", component: RunsPanel },

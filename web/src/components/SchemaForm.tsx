@@ -60,7 +60,18 @@ function Field({
   const tip = `${field.description}${field.min !== null && field.max !== null ? `\nRange: ${field.min} to ${field.max}${field.unit ? " " + field.unit : ""}` : ""}`;
   return (
     <label className="flex min-h-6 items-center gap-2 py-px" title={tip} data-field={field.name}>
-      <span className="w-[38%] shrink-0 truncate text-dim">{field.label}</span>
+      <span className="flex w-[38%] shrink-0 items-center gap-1 truncate text-dim">
+        <span className="truncate">{field.label}</span>
+        {field.provisional && (
+          <span
+            className="shrink-0 rounded bg-warn/20 px-0.5 text-[8px] font-semibold text-warn"
+            title="PROVISIONAL: a starting value not yet confirmed by the researcher (listed in DECISIONS.md)"
+            data-testid="provisional-badge"
+          >
+            PROV
+          </span>
+        )}
+      </span>
       <span className="flex min-w-0 flex-1 items-center gap-1">
         <Widget field={field} value={value} onChange={onChange} disabled={disabled} />
         {unit}

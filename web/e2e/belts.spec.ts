@@ -1,0 +1,46 @@
+// Belts and springs on the final feral calf (ADR-063..069): three dropdowns per
+// belt drive, everything else read-only; a failing choice is rejected with its
+// reason and the document is unchanged; a valid one moves C; undo restores it.
+// Runs against the second lab of playwright.config.ts (a fresh feral project).
+import { expect, test } from "@playwright/test";
+import { feralPort } from "../playwright.config";
+
+test.use({ baseURL: `http://127.0.0.1:${feralPort}` });
+
+test("choose belts from the catalog: C is derived, a failing belt is rejected, springs are listed", async ({ page }) => {
+  const errors: string[] = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  await page.goto("/");
+  await expect(page.getByTestId("connection")).toHaveText(/Connected/);
+  await page.getByTestId("tour-skip").click();
+  // PROVISIONAL genes carry a badge in the Form
+  await expect(page.getByTestId("provisional-badge").first()).toBeVisible();
+
+  await page.locator('[data-workspace="mechanism"]').click();
+  await page.locator(".dv-default-tab", { hasText: /^Belts and springs$/ }).first().click();
+  const panel = page.getByTestId("belts-panel");
+  await expect(panel.getByTestId("belt-stifle-derived")).toContainText("176.7 mm");
+  await expect(panel.getByTestId("belt-hock-length")).toHaveValue("GT2-2mm-400-C");
+  // no control sets the centre distance: only the three selects per drive
+  await expect(panel.getByTestId("belt-hock").locator("input")).toHaveCount(0);
+  await expect(panel.getByTestId("belt-hock").locator("select")).toHaveCount(3);
+  // a length outside the belt's confirmed width is greyed
+  await expect(panel.getByTestId("belt-hock-length").locator('option[value="GT2-2mm-450-A"]')).toBeDisabled();
+
+  // the 450 mm belt hits the stifle belt late in the stifle's range: rejected, nothing changes
+  await panel.getByTestId("belt-hock-length").selectOption("GT2-2mm-450-C");
+  await expect(panel.getByTestId("belt-message")).toContainText("rejected");
+  await expect(panel.getByTestId("belt-message")).toContainText("stifle belt");
+  await expect(panel.getByTestId("belt-hock-length")).toHaveValue("GT2-2mm-400-C");
+
+  // a valid one: C follows the catalog entry
+  await panel.getByTestId("belt-hock-length").selectOption("GT2-2mm-394-C");
+  await expect(panel.getByTestId("belt-hock-derived")).toContainText("151.7 mm");
+  await page.request.post("/api/commands/undo");
+  await expect(panel.getByTestId("belt-hock-length")).toHaveValue("GT2-2mm-400-C");
+
+  // springs in the standing pose, with their side
+  await expect(panel.getByTestId("spring-table")).toContainText("hl.stifle");
+  await expect(panel.getByTestId("spring-table")).toContainText("resists");
+  expect(errors).toEqual([]);
+});

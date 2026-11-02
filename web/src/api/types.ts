@@ -16,6 +16,8 @@ export interface FieldSchema {
   description: string;
   group: string | null;
   advanced: boolean;
+  /** a starting value the researcher has not confirmed */
+  provisional?: boolean;
   choices?: unknown[];
   fields?: FieldSchema[];
 }
@@ -218,6 +220,23 @@ export interface LayerState {
   color: string;
 }
 
+export interface SpringInfo {
+  id: string;
+  label: string;
+  joint: string;
+  upper_body: string;
+  upper_local: Vec3;
+  lower_body: string;
+  lower_local: Vec3;
+  a: Vec3;
+  b: Vec3;
+  force_n: number;
+  torque_nm: number;
+  arm_mm: number;
+  side: "resists" | "helps_collapse" | "slack" | "no_load";
+  slack: boolean;
+}
+
 export interface Scene {
   name: string;
   revision?: number;
@@ -225,6 +244,8 @@ export interface Scene {
   joints: JointInfo[];
   sensors: { id: string; type: string; body: string; pos: Vec3 }[];
   harness: { id: string; points: Vec3[]; length_mm: number }[];
+  /** tension springs: anchors in their body frames, and their state in the standing pose (ADR-065) */
+  springs?: SpringInfo[];
   feet: { id: string; body: string; pos: Vec3; radius: number }[];
   com: Vec3;
   support_polygon: [number, number][];

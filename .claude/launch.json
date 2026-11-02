@@ -12,6 +12,12 @@
       "runtimeExecutable": "powershell",
       "runtimeArgs": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "calflab.ps1", "lab", "--no-browser", "--port", "8010", "--project", "projects/_scratch-check"],
       "port": 8010
+    },
+    {
+      "name": "calflab-feral",
+      "runtimeExecutable": "powershell",
+      "runtimeArgs": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "calflab.ps1", "lab", "--no-browser", "--port", "8020", "--project", "projects/robot-calf-final"],
+      "port": 8020
     }
   ]
 }

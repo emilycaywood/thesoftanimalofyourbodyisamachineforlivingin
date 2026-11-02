@@ -635,11 +635,17 @@ def drive_options(
             "purchase_confirmed": e.purchase_confirmed, "selectable": selectable, "reason": reason,
             "c_mm": None, "ok": False, "failed": [], "unknown": [],
         }
-        if choice.pulleys in pair_ok:
+        if choice.pulleys in pair_ok and selectable:
             rep = evaluate_drive(catalog, layout, BeltChoice(system=system.id, pulleys=choice.pulleys, length=e.id), extra)
             row.update(c_mm=rep.c_mm, ok=rep.ok,
                        failed=[c.label for c in rep.checks if c.status == "fail" and c.id != "length_source"],
                        unknown=rep.unknown)
+        elif choice.pulleys in pair_ok:  # not offered in this width: its C is shown, its checks are not run
+            pair = catalog.pair(choice.pulleys)
+            try:
+                row["c_mm"] = center_distance(e.pitch_length_mm, pair.d1_mm, pair.d2_mm)
+            except ValueError:
+                pass
         lengths.append(row)
     return {"systems": systems, "pairs": pairs, "lengths": lengths}
 

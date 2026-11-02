@@ -10,6 +10,7 @@ export const PANEL_IDS = [
   "genome",
   "mass",
   "mechanism",
+  "belts",
   "simulate",
   "timeline",
   "runs",

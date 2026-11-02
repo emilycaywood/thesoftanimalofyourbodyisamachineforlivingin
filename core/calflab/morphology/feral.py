@@ -629,7 +629,7 @@ def stifle_clearance_check(
         return Check(id="stifle_belt_clearance", label=label, status="unknown",
                      detail="the stifle drive has no valid geometry to check against")
     lo, hi = float(stifle_range[0]), float(stifle_range[1])
-    n = max(2, int(math.ceil((hi - lo) / 2.5)) + 1)
+    n = max(2, int(math.ceil((hi - lo) / 2.5)) + 1)  # every 2.5 deg, both ends included
     angles = [lo + (hi - lo) * i / (n - 1) for i in range(n)]
     dirs = []
     for q in angles:

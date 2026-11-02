@@ -1,11 +1,11 @@
 // World-space overlays: grid, centre of mass, support polygon, contact forces,
-// harness routes, sensors. Values come from the server (design pose) or from the
+// harness routes, sensors, tension springs. Values come from the server (design pose) or from the
 // recorded rollout (playback); nothing is computed here beyond drawing.
 import { Grid, Line } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { useMemo, useRef } from "react";
 import * as THREE from "three";
-import type { LayerState, Scene, Vec3 } from "@/api/types";
+import type { LayerState, Scene, SpringInfo, Vec3 } from "@/api/types";
 import { currentFrameIndex, usePlayback } from "@/store/playback";
 import { useView } from "@/store/view";
 
@@ -24,6 +24,55 @@ function HarnessRoute({ points, color, selected }: { points: Vec3[]; color: stri
           <sphereGeometry args={[selected ? 7 : 5, 12, 8]} />
           <meshBasicMaterial color={shown} depthTest={false} transparent />
         </mesh>
+      ))}
+    </>
+  );
+}
+
+const SPRING_COLORS: Record<SpringInfo["side"], string> = {
+  resists: "#57b97a",
+  helps_collapse: "#e05252",
+  slack: "#8a94a3",
+  no_load: "#8a94a3",
+};
+
+/** Tension springs as lines between their anchors; during playback the anchors move with their bodies. */
+function Springs({ springs }: { springs: SpringInfo[] }) {
+  const lines = useMemo(
+    () =>
+      springs.map((s) => {
+        const geom = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(...s.a), new THREE.Vector3(...s.b)]);
+        const line = new THREE.Line(geom, new THREE.LineBasicMaterial({ color: SPRING_COLORS[s.side], depthTest: false }));
+        line.renderOrder = HARNESS_ORDER;
+        line.frustumCulled = false;
+        return line;
+      }),
+    [springs],
+  );
+  const tmp = useMemo(() => ({ q: new THREE.Quaternion(), v: new THREE.Vector3() }), []);
+  useFrame(() => {
+    const i = currentFrameIndex();
+    const pb = usePlayback.getState();
+    springs.forEach((s, k) => {
+      const attr = lines[k].geometry.getAttribute("position") as THREE.BufferAttribute;
+      const ends: [string, Vec3, Vec3][] = [[s.upper_body, s.upper_local, s.a], [s.lower_body, s.lower_local, s.b]];
+      ends.forEach(([body, local, rest], e) => {
+        const bi = i >= 0 ? pb.bodyIds.indexOf(body) : -1;
+        const pos = bi >= 0 ? pb.pos[i] : undefined;
+        const quat = bi >= 0 ? pb.quat[i] : undefined;
+        if (pos && quat) {
+          tmp.q.set(quat[4 * bi + 1], quat[4 * bi + 2], quat[4 * bi + 3], quat[4 * bi]);
+          tmp.v.set(local[0], local[1], local[2]).applyQuaternion(tmp.q);
+          attr.setXYZ(e, pos[3 * bi] + tmp.v.x, pos[3 * bi + 1] + tmp.v.y, pos[3 * bi + 2] + tmp.v.z);
+        } else attr.setXYZ(e, rest[0], rest[1], rest[2]);
+      });
+      attr.needsUpdate = true;
+    });
+  });
+  return (
+    <>
+      {lines.map((l, k) => (
+        <primitive key={springs[k].id} object={l} />
       ))}
     </>
   );
@@ -140,6 +189,7 @@ export function Overlays({ scene, layers }: { scene: Scene; layers: Record<strin
               <HarnessRoute key={h.id} points={h.points} color={layers.Harness?.color ?? "#c4504e"} selected={selection.includes(h.id)} />
             ),
         )}
+      {scene.springs && scene.springs.length > 0 && layers.Transmission?.visible !== false && <Springs springs={scene.springs} />}
       {sensorsVisible &&
         scene.sensors.map((s) => (
           <mesh key={s.id} position={s.pos} renderOrder={8}>
