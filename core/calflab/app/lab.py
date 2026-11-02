@@ -601,6 +601,8 @@ class Lab:
             "foot_force": np.round(r.foot_force.astype(float), 2).tolist(),
             "foot_geoms": r.foot_geoms,
             "series": timeseries(r),
+            # what the controller did, e.g. the behaviors it chose (ADR-073)
+            "controller_log": r.meta.get("controller_log"),
             "scene": scene,
             "metrics": rec.metrics,
         }

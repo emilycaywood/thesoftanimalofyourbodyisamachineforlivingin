@@ -21,7 +21,7 @@ export const WORKSPACES: WorkspaceDef[] = [
   { id: "mechanism", label: "Mechanism", ready: true, center: ["viewport"], left: LEFT, right: ["mechanism", "belts", "properties", "mass"], bottom: BOTTOM },
   { id: "simulate", label: "Simulate", ready: true, center: ["viewport", "graph"], left: LEFT, right: ["simulate", "properties"], bottom: ["timeline", "runs", ...BOTTOM] },
   { id: "evolve", label: "Evolve", ready: true, center: ["viewport", "archive", "study"], left: LEFT, right: ["evolve", "properties"], bottom: ["timeline", "designs", ...BOTTOM] },
-  { id: "behave", label: "Behave", ready: false, center: ["viewport"], left: LEFT, right: ["behave"], bottom: ["timeline", ...BOTTOM] },
+  { id: "behave", label: "Behave", ready: true, center: ["viewport"], left: LEFT, right: ["behave", "simulate"], bottom: ["timeline", "runs", ...BOTTOM] },
   { id: "fabricate", label: "Fabricate", ready: true, center: ["viewport"], left: LEFT, right: ["fabricate", "properties"], bottom: BOTTOM },
   { id: "wire", label: "Wire", ready: true, center: ["viewport", "wire"], left: LEFT, right: ["properties"], bottom: BOTTOM },
   { id: "deploy", label: "Deploy", ready: false, center: ["viewport"], left: LEFT, right: ["deploy"], bottom: BOTTOM },

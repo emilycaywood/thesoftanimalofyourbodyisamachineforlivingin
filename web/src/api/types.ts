@@ -407,6 +407,7 @@ export interface Channel {
 
 export interface RolloutPayload {
   run_id: string;
+  controller_log?: { episodes?: { name: string; kind: string; t0: number; t1: number; [k: string]: unknown }[] } | null;
   body_ids: string[];
   dt: number;
   t: number[];

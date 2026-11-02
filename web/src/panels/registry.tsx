@@ -4,6 +4,7 @@ import type { FC } from "react";
 import { ViewportPanel } from "@/viewport/Viewport";
 import { ConsolePanel, DesignsPanel, JobsPanel, LayersPanel, OverridesPanel, RunsPanel, TreePanel } from "./basic";
 import { GenomePanel, MechanismPanel, PlannedPanel, SimulatePanel } from "./Design";
+import { BehavePanel } from "./Behave";
 import { BeltsPanel } from "./Belts";
 import { ArchivePanel, EvolvePanel } from "./Evolve";
 import type { PanelId } from "./ids";
@@ -13,20 +14,6 @@ import { FabricatePanel, JournalPanel, WirePanel } from "./Output";
 import { PropertiesPanel } from "./Properties";
 import { StudyPanel } from "./Study";
 import { TimelinePanel } from "./Timeline";
-
-const BehavePanel: FC = () => (
-  <PlannedPanel
-    title="Behave (planned for Phase 4)"
-    intro="Author reference motions and behaviors here. The motion library already accepts clips exported from the Blender add-on."
-    items={[
-      "Blender/Maya-style timeline: keyframes, dope sheet, curve editor for reference motions",
-      "Behavior graph / state-machine editor with live sensor values on nodes",
-      "Library of imported Blender animations (motions/ in the project)",
-      "Performance mode: an operator blends authored animation with autonomous behavior",
-    ]}
-    plugins={[["behavior", "idle"], ["behavior", "touch_response"], ["behavior", "puppeteer_blend"], ["fitness_term", "imitation"]]}
-  />
-);
 
 const DeployPanel: FC = () => (
   <PlannedPanel

@@ -1298,6 +1298,48 @@ class PreviewClip(Command):
 
 
 @register
+class AddBehavior(Command):
+    key = "add_behavior"
+    label = "Add clip to the behaviors"
+    description = (
+        "Add a motion clip to the stochastic behaviors' repertoire (switching the simulation to the behaviors "
+        "controller first if it uses another), played at a speed the body's servos can follow."
+    )
+    category = "Behave"
+    mutates = True
+
+    class Params(BaseModel):
+        clip: str = P("", desc="Motion-library clip id.")
+        weight: float = P(1.0, ge=0.0, le=100.0, desc="How often it is chosen, relative to the others.")
+        mirror: bool = P(True, desc="It may play with left and right swapped.")
+
+    def title(self) -> str:
+        return f"Add behavior {self.params.clip}"  # type: ignore[attr-defined]
+
+    def run(self, lab: Any, state: DocumentState) -> Any:
+        from calflab.behave.feasibility import clip_report
+        from calflab.components import library
+
+        p = self.params
+        try:
+            clip = lab.motions.get(p.clip)  # type: ignore[attr-defined]
+        except KeyError as exc:
+            raise _err(str(exc)) from exc
+        node = state.graph.role("controller")
+        nt = node_types()["controller:behaviors"]
+        params = dict(node.params) if node.type == "controller:behaviors" else nt.default_params()
+        report = clip_report(clip, lab.design().spec, library())
+        top = report["playable_speed"]  # never faster than the servos can follow
+        entry = {"name": clip.id, "kind": "clip", "clip": clip.id, "weight": p.weight,  # type: ignore[attr-defined]
+                 "speed": [round(0.8 * top, 3), round(top, 3)], "mirror": p.mirror}  # type: ignore[attr-defined]
+        rep_ = [e for e in params.get("repertoire", []) if e.get("name") != clip.id] + [entry]
+        switched = node.type != "controller:behaviors"
+        node.type = "controller:behaviors"
+        node.params = nt.clean_params({**params, "repertoire": rep_})
+        return {"entry": entry, "switched": switched, "report": report}
+
+
+@register
 class SetController(Command):
     key = "set_controller"
     label = "Use controller"

@@ -21,6 +21,8 @@ interface PlaybackStore {
   footForce: number[][];
   series: Record<string, Channel>;
   metrics: Record<string, any> | null;
+  /** what the controller did in the run, e.g. the behaviors it chose */
+  controllerLog: { episodes?: { name: string; kind: string; t0: number; t1: number; [k: string]: unknown }[] } | null;
   frame: number; // fractional frame index
   playing: boolean;
   speed: number;
@@ -47,6 +49,7 @@ const EMPTY = {
   footForce: [] as number[][],
   series: {} as Record<string, Channel>,
   metrics: null,
+  controllerLog: null,
   frame: 0,
   playing: false,
 };
@@ -81,6 +84,7 @@ export const usePlayback = create<PlaybackStore>((set, get) => ({
       footForce: r.foot_force,
       series: r.series.channels,
       metrics: r.metrics,
+      controllerLog: r.controller_log ?? null,
       frame: autoplay ? 0 : Math.min(get().frame, r.t.length - 1),
       playing: autoplay,
     });
