@@ -143,6 +143,17 @@ export function MassPanel() {
           <div className="mt-1 text-[10px] text-dim">These sensors have no body in the model, so their library mass is not in the total.</div>
         </Section>
       )}
+      {(b.missing?.length ?? 0) > 0 && (
+        <Section title="Masses not entered (counted as 0 g)">
+          {b.missing?.map((m) => (
+            <div key={m.item} className="flex justify-between gap-2 text-dim" title={m.where.join(", ")} data-testid="mass-missing">
+              <span className="text-warn">{m.qty} x {m.label}</span>
+              <span className="truncate text-[10px]">{m.enter_in}</span>
+            </div>
+          ))}
+          <div className="mt-1 text-[10px] text-dim">The total above leaves these out. Enter them where shown; never guessed.</div>
+        </Section>
+      )}
     </PanelScroll>
   );
 }

@@ -131,6 +131,8 @@ export interface MassBreakdown {
   unverified_g: number;
   bodies: MassBodyRow[];
   not_counted: { component: string; name: string; qty: number; mass_g: number }[];
+  /** parts whose mass is a required value not entered yet: counted as 0 g (ADR-068) */
+  missing?: { item: string; label: string; qty: number; where: string[]; enter_in: string }[];
 }
 
 export interface MaterialChoice {
