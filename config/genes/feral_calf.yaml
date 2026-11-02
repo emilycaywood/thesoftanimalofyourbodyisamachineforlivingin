@@ -122,9 +122,10 @@ genes:
   - {id: belt_carpus_length, type: enum, default: GT2-2mm-640-C, choices: [GT2-2mm-640-C], open: true, hidden: true,
      evolvable: false, group: Belts, label: "Carpus belt length", description: "Catalog id; used when the carpus is belted."}
 
-  - {id: carpus_belt, type: bool, default: false, group: Mechanism, evolvable: false,
+  # Belted by default since 2026-11-02 (ADR-071); a genome that does not mention it was made with a direct carpus.
+  - {id: carpus_belt, type: bool, default: true, absent: false, group: Mechanism, evolvable: false,
      label: "Belt-drive the carpus",
-     description: "Off = carpus servo direct on the joint. On = the carpus is belted 2:1 with the same belt system; its servo rides on the upper leg just below the shoulder."}
+     description: "On = the carpus is belted 2:1 with the same belt system; its servo rides on the upper leg just below the shoulder. Off = carpus servo direct on the joint."}
 
   # ------------------------------------------------------------- springs (tension only; ADR-065)
   # Anchors are measured from the joint axis in the plane of the leg: 'along' up

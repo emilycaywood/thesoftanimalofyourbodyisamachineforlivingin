@@ -676,7 +676,8 @@ The final calf is its own kind of project, with its own genome
 `projects\robot-calf-final` already exists. The body: a hip block and a
 chest block on two rails; rear legs hip ab/adduction, a femur fixed at 40 deg,
 stifle, hock; front legs shoulder, carpus; ten STS3215 C018 servos; stifles
-and hocks belted 2:1. Form shows your dimensions as sliders. A **PROV** badge
+and hocks belted 2:1, and the carpi too (since ADR-071; *Belt-drive the
+carpus* in Mechanism turns it off). Form shows your dimensions as sliders. A **PROV** badge
 marks a starting value you have not confirmed. The front leg angle is
 solved so the back stays level: 7.2 deg with your lengths, where you said
 about 5. The values that are not genes live in `config/feral_calf.yaml`:

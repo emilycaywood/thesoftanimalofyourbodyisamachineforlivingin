@@ -55,7 +55,7 @@ def test_ten_servos_and_the_joint_map(default):
         assert f"joint.{k}.shoulder" in acts and f"joint.{k}.carpus" in acts and f"joint.{k}.hip_abd" not in acts
     trans = {t.id: t for t in spec.transmissions}
     belted = {a.joint for a in acts.values() if a.transmission}
-    assert belted == {f"joint.{k}.{j}" for k in ("hl", "hr") for j in ("stifle", "hock")}
+    assert belted == {f"joint.{k}.{j}" for k in ("hl", "hr") for j in ("stifle", "hock")} | {"joint.fl.carpus", "joint.fr.carpus"}
     assert all(t.ratio == 2.0 and t.type == "belt" for t in trans.values())
 
 
@@ -72,8 +72,8 @@ def test_no_belt_crosses_a_joint_it_does_not_drive(default):
 
 
 def test_carpus_belt_option(default):
-    assert "carpus" not in default.spec.metadata["feral"]["belted"]
-    belted = design({"carpus_belt": True})
+    assert "carpus" not in design({"carpus_belt": False}).spec.metadata["feral"]["belted"]
+    belted = default  # belted by default since ADR-071
     meta = belted.spec.metadata["feral"]
     assert "carpus" in meta["belted"]
     rep = meta["belt_drives"]["carpus"]
@@ -169,7 +169,9 @@ def test_mass_adds_up_and_missing_parts_are_listed(default):
     rails = 2 * math.pi / 4 * 8**2 * 550 * 1.55 / 1000
     assert b["by_source_g"]["tube"] == pytest.approx(legs + rails, abs=0.01)
     missing = {m["item"]: m["qty"] for m in b["missing"]}
-    assert missing["servo_horn_g"] == 10 and missing["pulley_30t"] == 4 and missing["hip_block_g"] == 1
+    # six belted joints: a 30T and a 60T pulley each; collars on the hock and carpus servos
+    assert missing["servo_horn_g"] == 10 and missing["pulley_30t"] == 6 and missing["clamp_collar_g"] == 4
+    assert missing["hip_block_g"] == 1
 
 
 def test_unknown_stall_current_is_reported_not_guessed():

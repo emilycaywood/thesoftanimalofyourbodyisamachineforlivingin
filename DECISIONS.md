@@ -1754,3 +1754,31 @@ candidate (an angle combination the one-at-a-time scan could not foresee),
 and kept both belts' C to the micrometre. The fitness preset is still
 `walk` (target 0.5 m/s, far above this body's 0.02 m/s), so its scores only
 rank candidates against each other.
+
+## ADR-071 — The front carpus is belted by default (**VERIFY**)
+
+*Requested 2026-11-02.* Looking at the evolved body, the researcher said the
+front knee (carpus) "should be belt drive as well". In the original request
+the belted carpus was an option, off by default (ADR-066).
+
+*Decision.* Gene `carpus_belt` defaults to **on**, with `absent: false`: a
+genome saved before this change keeps its direct carpus, as with every
+default changed after genomes were saved (ADR-047). `projects/robot-calf-final`
+was switched on through the researcher's running lab (`set_genes`, one undo
+step).
+* With the default body the carpus takes the 640 mm 10 mm belt: the
+  longest offered in that width, against the request's target of about
+  680 mm. C is 274.8 mm, so the carpus servo rides on the upper leg 65.2 mm
+  below the shoulder axle.
+* All five checks pass (14.7 teeth in mesh; the case fits for any
+  output-axis position).
+* The servo's mass moves from the carpus up to near the shoulder: the centre
+  of mass rises from 515 to 538 mm and moves 3 mm back. The total is
+  unchanged.
+* Six belted joints now: six 30T and six 60T pulleys, and four clamp collars
+  (hock and carpus servos), all still to be weighed.
+* `upper_leg_length` is now an active belt-bound gene in evolution.
+
+*Not re-run.* The load analysis, the belt comparison and the test evolution
+of ADR-069/070 were made with a direct carpus. The shoulder servo stays in
+the chest block, as requested.

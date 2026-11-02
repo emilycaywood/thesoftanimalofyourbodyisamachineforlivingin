@@ -638,6 +638,11 @@ evolvable with its belts unchanged; ADR-070):**
   also checks that Form hides the belt genes and that Evolve shows the
   body's defaults. 369 pytest tests.
 
+**Added after that (ADR-071):** the carpus is belted by default: 640 mm
+belt, C 274.8 mm, servo 65 mm below the shoulder. `robot-calf-final` was
+switched through the researcher's running lab. Its load runs, belt
+comparison and test evolution predate this and were not re-run.
+
 **Scaffolded only (interfaces + tests, no behaviour):** PPO training, MJX
 simulator, RemoteSSH and CloudNotebook transports (job bundling is real),
 imitation reward, interactive selection, molds, skin patterns, nesting,

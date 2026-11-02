@@ -121,4 +121,4 @@ def test_evolution_keeps_every_belt_as_it_is(lab):
             seen.add((drive, round(r["c_mm"], 9), round(r["servo_axis_from_driven_mm"], 9)))
         if c["status"] == "infeasible":
             assert c["error"]
-    assert len(seen) == 2  # one C and one servo position per drive, the same in every candidate
+    assert len(seen) == 3  # stifle, hock, carpus: one C and one servo position each, the same in every candidate
