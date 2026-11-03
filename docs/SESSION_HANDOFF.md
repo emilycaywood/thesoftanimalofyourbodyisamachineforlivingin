@@ -2,10 +2,11 @@
 
 Everything a new Claude Code session (or a new collaborator) needs to pick up
 CALFLAB. Last updated 2026-11-03 on branch `robot-calf-final` (cut from
-`chassis-mass`), after session T: a video inbox with pose tracking, review of
-candidate clips with the researcher's affect tags, composition of behaviors,
-and evolving the body to perform a repertoire safely (section 4, "Added
-2026-11-03"; run `git log --oneline -12` for the current state). The commits since 2026-10-10 are local: not pushed.
+`chassis-mass`), after the session that added the 3D lift: 3D motion from
+ordinary single-camera videos, and a review player that plays (section 4,
+"Added later on 2026-11-03"; before it, session T: video inbox, pose
+tracking, composition, repertoire evolution). Run `git log --oneline -12`
+for the current state. The commits since 2026-10-10 are local: not pushed.
 
 ---
 
@@ -785,6 +786,62 @@ All four stop points were built; nothing was handed off unfinished:**
 
   `calflab test` passes: ruff, 430 pytest tests (default suite 128 s; the new modules add about 20 s), mypy, web typecheck and eslint, 14 Vitest, 11 Playwright tests.
 
+**Added later on 2026-11-03 (the researcher's request after the first real
+video: 3D motion from one camera; ADR-080, ADR-081). Nothing installed.**
+
+* **3D lift** (`calflab.behave.lift`, ADR-080): per frame the robot's own
+  skeleton (its forward kinematics and joint ranges) and a weak-perspective
+  camera are fitted to the 2D keypoints of both sides. Proportions (trunk
+  length, width, front leg against the hind leg), camera elevation and roll
+  and where the tracker's Hip / Knee / Shoulder sit on the robot are fitted
+  per video and reported. Width: the 0.35 W/L prior (PROVISIONAL) unless the
+  footage clearly pins it.
+* **Ambiguities recorded per frame**: toward/away (the depth flip, a
+  two-state Viterbi on near-side confidence and continuity), limb flips (a
+  second basin within a leg's ranges), joints the view cannot see, leg
+  labels exchanged by the tracker.
+* **Per-frame reliability** (residual px and body lengths, yaw, state,
+  reasons) replaces "too oblique" in 3D; unreliable stretches over 10 frames
+  are gaps for the segmentation.
+* **Clips in 3D**: angles relative to the standing frame or, without one,
+  the robot's standing pose; heading, pitch, roll and ground path in
+  `root_quat` / `root_pos`; far legs `tracked` (a leg hidden most of the
+  time takes its twin). The preview shows the turn; **the simulator does
+  not steer to follow it**.
+* **Mode per project** (`FootageSettings.mode`, Settings in the Video
+  inbox): 3D for new projects; a project that processed videos before stays
+  2D until switched. *Analyse again* (`reanalyse_video`) re-runs the analysis
+  on stored tracks. Lifts in `footage/lift/<sha16>.json`.
+* **Review**: a reliability strip with the yaw line under the frame slider,
+  the 3D summary line, the body report as a table (ab/adduction included),
+  the clip's turn and travel. Routes `/api/footage/<file>/lift` and
+  `POST /api/footage/<file>/prefetch`.
+* **Player fix** (ADR-081): `FrameCache` (open readers, 600 cached frames,
+  read-ahead on a second reader); Play asks for the next frame only when the
+  shown one has loaded. Measured in the lab's browser pane on the real
+  video: 108 frames in 4 s (30 fps), where before it stayed on frame 0.
+* **Maps**: `config/retarget/ap10k_3d.yaml` (AP-10K; your Knee/Elbow
+  assumptions kept: hock tied to stifle, Elbow = carpus) and
+  `feral_calf_3d.yaml` (the robot's own joints).
+* **Synthetic 3D footage**: `synthetic_tracks_3d` (`Camera3D`, `Script3D`):
+  the robot's forward kinematics from any camera yaw and elevation, with
+  ab/adduction, a turn, proportions, noise and dropped points.
+* **`projects/robot-calf-final`**: switched to 3D (the researcher asked for
+  the real video in 3D) and its video analysed again: no "too oblique", 75 %
+  reliable, yaw following the video (side view, a turn toward the camera up
+  to 84 deg at the ball, side view), two candidates (0-108 turning 58 deg
+  left; 156-225), camera elevation 7 deg. **2D on the same tracks gives
+  exactly the record of before** (map, side, view, segmentation,
+  candidates compared field by field). `projects/_scratch-footage` was not
+  touched (its settings stay 2D).
+* Tests: `tests/test_lift.py` (9, one slow: four camera yaws).
+  `tests/test_footage.py` and `web/e2e/footage.spec.ts` now say `mode: 2d`
+  (they test the side-view pipeline on fresh projects, which default to
+  3D). The new fast tests add about 45 s to the default suite.
+  `calflab test` passes: ruff, 440 pytest tests (default suite 223 s, slow
+  ones apart; the slow four-yaw test passes on its own), mypy, web typecheck
+  and eslint, 14 Vitest, 11 Playwright tests.
+
 **Scaffolded only (interfaces + tests, no behaviour):** PPO training, MJX
 simulator, RemoteSSH and CloudNotebook transports (job bundling is real),
 imitation reward, interactive selection, molds, skin patterns, nesting,
@@ -822,6 +879,30 @@ Journal, Rhino bridge):**
   Properties, entry in Overrides).
 * `doctor` warned "uv not found" on top of the three expected warnings:
   false alarm, fixed (see Tests above).
+
+**The researcher must verify (new with the 3D lift, ADR-080):**
+
+* **The yaw strip against what you see** in Review for your video (the lab
+  says a side view for the first 2.6 s, a turn toward the camera up to 84
+  deg around frames 100-140, a side view at the end).
+* **Knee and Elbow**: on your first video AP-10K's "Knee" sits on the
+  calf's **hock** (the lift places it 0.96 of the way from stifle to hock)
+  and "Elbow" on its **carpus**. Your assumptions were kept (hock tied to
+  stifle, Elbow = carpus). Untying the hock in `ap10k_3d` (two hind angles)
+  is the natural next step: your call.
+* **Hip and Shoulder sit well down the leg** on a calf (fitted 0.60 down
+  the femur, 0.42 down the upper leg); check on a few frames.
+* The PROVISIONAL values: width/length 0.35 (used for your video), 60 deg
+  field of view (travel toward/away only), and the thresholds (70 deg from
+  a side view, residual 2 x the video's median or 0.12 body lengths, 6
+  points, 10-frame gaps, the 4-unit limb ambiguity test).
+* **"Ambiguous" is frequent on real footage** (57 % of your frames, mostly
+  a leg whose other bend fits within the 24 px noise). Say if you want it
+  stricter.
+* **Peak joint speeds** of real clips include tracker noise (up to 870
+  deg/s in the preview): a smoothing choice for clips is open.
+* The camera must stay still: a pan or zoom reads as the calf turning or
+  approaching (your screen recording shows some of both, frames 120-160).
 
 **The researcher must verify (new on 2026-11-03):**
 
@@ -978,7 +1059,7 @@ Journal, Rhino bridge):**
 |---|---|
 | `CLAUDE.md` | Conventions for every session (loaded automatically) |
 | `PLAN.md` | Architecture, module boundaries, data flow, phases, risks, status |
-| `DECISIONS.md` | ADR log: every assumption (79 so far) |
+| `DECISIONS.md` | ADR log: every assumption (81 so far) |
 | `docs/proposals/anatomical-leg.md` | Proposal for a three-segment leg (set aside 2026-10-04; not built) |
 | `docs/USER_GUIDE.md` | How to use the lab |
 | `docs/CHAT_GUIDE_PROMPT.md` | Prompt that makes a chat assistant a guide to the whole lab |
@@ -994,9 +1075,44 @@ Journal, Rhino bridge):**
 
 Prefix each with the opening message from section 1.
 
+**X. Untie the hind leg and smooth what the tracker adds**
+(written 2026-11-03 after the 3D lift, ADR-080.)
+> In projects/robot-calf-final the 3D lift found AP-10K's Knee on my
+> calf's hock and its Elbow on the carpus. Make a project map from ap10k_3d
+> with the Knee at the hock and the hock untied from the stifle, re-analyse
+> my video, and show me side by side (old map / new map): the residual per
+> landmark, the hind angles, and how often frames are ambiguous. Then add a
+> clip smoothing setting (in the core, recorded in each clip's provenance)
+> so the body report's peak speeds reflect the calf rather than tracker
+> noise, and tell me how the playable speed of my two candidates changes.
+> Do not change the belts.
+
+**Y. A robot that turns as the calf did**
+> Clips from the 3D lift carry the calf's heading (root_quat) and ground
+> path, but the simulator does not steer: the behaviors controller plays
+> the joints only. Give the feral calf's walk and trot a turn rate (from
+> the hind ab/ad and stride length left/right, as the body allows), and
+> make the behaviors controller follow a clip's heading with it, measured
+> in simulation against the clip (heading error over time). Show me my
+> 58 deg turning candidate in physics, and say what limits the turn rate
+> (servo speed, ab/ad range, stability). Do not change the belts.
+
+**Z. More of my videos in 3D, and the camera that moves**
+> I dropped <videos> into projects/robot-calf-final/footage/videos (some
+> hand-held). Go through the 3D results with me: the yaw strip against
+> what I see, the camera elevation and whether it was judged fixed, the
+> proportions per video (are they consistent across videos of the same
+> calf?), and the candidates. If a camera pans or zooms, add a camera
+> motion estimate from the background (OpenCV, already installed) so that
+> panning is not read as turning, and report where it was removed. If a
+> learned lifter or mesh model would clearly help, stop and compare
+> options with sizes and licences before installing anything.
+
 **U. My first real calf video through the inbox**
 (written 2026-11-03 after session T built the video inbox, RTMPose AP-10K
-tracking, composition and repertoire evolution, ADR-076 to ADR-079.)
+tracking, composition and repertoire evolution, ADR-076 to ADR-079. Its
+first video went through the 3D lift on 2026-11-03; what remains is the 2D
+map and segmentation tuning.)
 > I dropped <video file(s), what the calf does, which side faces the camera>
 > into projects/robot-calf-final/footage/videos. Go through what the inbox
 > made of it with me: the tracker's points on a few frames where you think
@@ -1031,7 +1147,7 @@ tracking, composition and repertoire evolution, ADR-076 to ADR-079.)
 > penalise per constraint, the window, the joint-limit share) instead of
 > editing the preset file. Do not change the belts.
 
-*(T, from a video in a folder to behaviors an evolved body performs safely, was done on 2026-11-03: ADR-076 to ADR-079.)*
+*(T, from a video in a folder to behaviors an evolved body performs safely, was done on 2026-11-03: ADR-076 to ADR-079. 3D motion from one camera and the review player were done later the same day: ADR-080, ADR-081.)*
 
 **O. The feral calf: enter what I measured and re-check the belts**
 > In projects/robot-calf-final: the STS3215 C018 output axis is <N> mm from

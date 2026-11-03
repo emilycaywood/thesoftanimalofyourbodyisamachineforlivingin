@@ -557,7 +557,7 @@ def _global_init(sk: Skeleton, glob: np.ndarray, fr: _Frame, sigma: float, step:
     X = sk.points(np.zeros((1, sk.n)), glob)[0]
     cam = camera_matrix(glob[3], glob[4])
     starts = []
-    for hd in np.deg2rad(np.arange(0.0, 360.0, 30.0)):
+    for hd in u.deg_to_rad(np.arange(0.0, 360.0, 30.0)):
         R = rotation(cam, np.array([hd]), np.zeros(1), np.zeros(1))[0]
         s, t, sse = _closed_form_st((X @ R.T)[:, :2], fr.obs, fr.w)
         starts.append((sse, np.concatenate([[hd, 0.0, 0.0, math.log(max(s, 1e-6)), t[0], t[1]], np.zeros(sk.n)])))

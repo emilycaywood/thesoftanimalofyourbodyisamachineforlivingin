@@ -41,6 +41,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
+from calflab import units as u
 from calflab.behave import inbox
 from calflab.behave.clips import cut, near_angles, settle_side, standing_frame
 from calflab.behave.keypoints import clean
@@ -292,7 +293,7 @@ def analyse_3d(lab: Any, tracks: Any, s: FootageSettings, stem: str, sha: str, r
     xy = np.array([p[:2] for p in full.root_pos])
     fps = tracks.fps
     speed = np.hypot(*np.gradient(xy, axis=0).T) * fps / max(sk_len, 1e-9) if len(xy) > 1 else np.zeros(len(xy))
-    turn = np.abs(np.gradient(np.deg2rad(full.meta["lift"]["heading_deg"]))) * fps / 2.0 if len(xy) > 1 else 0.0
+    turn = np.abs(np.gradient(u.deg_to_rad(np.asarray(full.meta["lift"]["heading_deg"])))) * fps / 2.0 if len(xy) > 1 else 0.0
     trunk = np.hypot(speed, turn)
     bad = ~res.reliable()
     gaps = np.zeros(len(bad), dtype=bool)

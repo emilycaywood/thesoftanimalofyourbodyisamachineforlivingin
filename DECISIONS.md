@@ -2387,3 +2387,212 @@ On the scratch project the cost estimate for the default 6 x 8, inner
 * The safety policy is set in the preset file, not in the panel.
 * Domain randomisation of servo strength is off (`torque_scale` held at 1).
 * The archive cannot show more than two axes at once.
+
+## ADR-080 — 3D motion from one camera: the robot's skeleton lifted onto the keypoints (**VERIFY**)
+
+*Requested 2026-11-03* (after the first real video): "Get 3D motion out of
+ordinary single-camera videos of calves, not only clean side views ...
+recover joint angles in 3D (including hip ab/adduction and the far-side legs)
+and the animal's turning, instead of rejecting anything past 25 deg of yaw."
+
+The first real video (7.45 s, 1780 x 990, screen recording, ~30.19 fps)
+tracked well with RTMPose AP-10K, but the 2D view check called it "too
+oblique" (median yaw 28.4 deg), found no standing frame, and gave one
+`other` candidate. The 2D retarget (ADR-073) measures angles in the image, so
+foreshortening corrupts them off-axis; the far legs are copied; ab/adduction
+holds.
+
+*Decision: a new retarget mode, `3d`, beside the unchanged `2d`.*
+
+1. **Model-based lift** (`calflab.behave.lift`). Per frame the body's own
+   skeleton (`RobotSpec` forward kinematics, joint ranges, standing pose;
+   vectorised in `Skeleton`, checked against `RobotSpec.world_poses` in a
+   test) and a camera are fitted so the projected landmarks match the
+   tracked 2D points, weighted by confidence, with a robust (soft L1) loss.
+   * **Camera: weak perspective**, `uv = s (R x)[:2] + t`. R = camera roll x
+     camera elevation x (level camera at the animal's left side) x heading x
+     trunk pitch x trunk roll. Elevation and roll are one pair for the video
+     (the camera is assumed fixed); heading, pitch, roll, scale and image
+     position are per frame.
+   * **Full perspective is not used.** It needs the lens's focal length,
+     which one uncalibrated video does not give, and the calf's depth is
+     small against its distance. The focal length enters only through
+     `camera_hfov_deg` (60, PROVISIONAL), which turns the change of image
+     scale into travel toward or away from the camera.
+   * **Maps** are YAML files with `kind: lift` in `config/retarget/`:
+     landmark name -> a point on a robot body, the origin of a joint, the
+     hoof, or a point between two joints (`toward`, `at`). Keys with `{S}`
+     are written once for both sides. `ties` make a joint follow another.
+     `ap10k_3d` (AP-10K) and `feral_calf_3d` (the robot's own joints, for
+     synthetic footage or hand-clicked points) are provided.
+2. **Stages**: (A) frame by frame from the previous frame, also trying the
+   pose turned the other way and, where the fit fails, a fresh start from
+   12 headings; (B) toward or away (below); (C1) proportions, camera
+   elevation and roll from up to 120 good frames; a second round of A to C1
+   with the fitted proportions; (C2) every frame refined together with a
+   smoothness term, in windows of 400 frames; (D) diagnostics.
+3. **Ambiguities, explicit and recorded per frame**:
+   * *Toward or away (depth flip of the whole body).* In weak perspective a
+     symmetric body turned toward the camera with its left side near looks
+     the same as one turned away with its right side near, once the
+     tracker's L/R labels are exchanged (`mirror_pose`, exact for a level
+     camera). Both are kept; a two-state Viterbi chooses by which side is
+     tracked more confidently (the far legs are partly hidden; smoothed over
+     0.5 s) and charges for a jump in heading. Frames where the cue is under
+     `min_cue` (0.03) are marked `ambiguous: depth`. A tracker that labels
+     the whole animal the wrong way round is recovered (tested).
+   * *Turned the other way with the labels kept* (+yaw vs -yaw): each frame
+     is also solved from the opposite heading and judged with the same
+     continuity term, so noise cannot flip it.
+   * *Limb flips:* every leg's free joints are searched on a grid inside
+     their ranges with the trunk held; a second local minimum more than 20
+     deg away and nearly as good (within 4 noise units) marks
+     `ambiguous: leg <id>`. The chosen solution is the one continuous with
+     the previous frame.
+   * *Unobservable joints:* a joint whose 10 deg change moves its landmarks
+     by less than 2 % of the body length is listed per frame (hip
+     ab/adduction in a level side view). It holds near its prior
+     (ab/adduction toward standing, sd 15 deg, smoothness 60 deg/s).
+   * *Leg labels:* where a frame fits badly, exchanging one leg pair's
+     labels is tried and kept if it fits 30 % better (`swapped`).
+4. **Proportions.** The calf is not the robot. Per video: trunk length,
+   trunk width and front leg as ratios to the robot's, with the hind leg as
+   the reference (the per-frame scale absorbs size), held over the clip and
+   reported. They start from the tracked segment lengths (90th percentile).
+   * **The width is identified only together with the yaw**, and only when
+     the animal shows several yaws or the camera looks down. A curvature
+     test was not enough: on real footage systematic misfit made a very
+     narrow calf (W/L 0.12) turned 50 deg look "pinned". So the width comes
+     from the prior `width_over_length` 0.35 (**PROVISIONAL**, an
+     assumption about calves, sd 0.2 in log) unless fitting it freely
+     lowers the residual of the whole smoothed video by at least 10 %
+     (`min_width_gain`) and the footage pins it within 15 %. The result says
+     which (`width_source`).
+   * **Where the tracker's points sit on the robot can be fitted** too
+     (`fit_at: [lo, hi]` on a `toward` landmark; one value per left/right
+     pair, held over the video, reported as `landmark_at`).
+5. **Noise scale.** Real keypoints are much noisier than synthetic ones (14
+   to 22 px RMS on a 300 px calf here). The residuals are scaled by the
+   larger of `noise_bl` (1 % of the body) and the frame-by-frame fit's
+   median residual, so priors and smoothness keep their weight on real
+   footage.
+6. **Animal motion vs camera.** Heading (unwrapped, + = turning left),
+   trunk pitch and roll, and the trunk's path on the ground (from the image
+   position and scale, with the assumed field of view) become part of the
+   clip (`root_quat` = heading x pitch x roll, `root_pos`, re-zeroed at the
+   clip's start, height from the robot's own feet on the ground). The
+   camera is assumed fixed; if the trunk's pitch or roll wander by more
+   than 8 deg the result says the camera may tilt or roll. **A camera that
+   pans or zooms cannot be told from the animal turning or approaching.**
+7. **Per-frame reliability** replaces the "too oblique" verdict: residual
+   (px and body lengths), estimated yaw from the nearest side view (+ =
+   toward the camera), points used, state `ok` / `ambiguous` / `unreliable`
+   / `missing` with reasons. Unreliable: fewer than 6 confident points; a
+   residual over 2 x the video's median (at least 0.05) or over 0.12 body
+   lengths; more than 70 deg from a side view (head-on / tail-on, where the
+   legs' fore-aft angles become depth). Unreliable stretches longer than 10
+   frames are gaps for the segmentation; shorter ones are interpolated.
+8. **Segmentation on the 3D angles** (`segment(..., trunk_bl_s, gaps)`):
+   trunk motion = ground speed and half the turning rate in body lengths/s;
+   limb activity from every lifted joint. The standing reference is the
+   middle of the longest still stretch; **without one, the robot's own
+   standing pose** (the lifted angles are already the robot's), and the
+   candidate says so (`reference`). Candidates carry reliable and ambiguous
+   fractions, yaw range, turn and per-leg tracking; `far_side: tracked`
+   keeps every leg as fitted, and a leg seen in under half the frames takes
+   its twin (copy, or half a period later in a gait), recorded in the clip.
+9. **Mode per project** (`FootageSettings.mode`, Settings in the Video
+   inbox, `set_footage_settings mode=`). 3D for a new project; a project
+   that processed videos before, or whose settings were saved before the
+   mode existed, stays 2D until switched. `reanalyse_video` (*Analyse
+   again*) re-runs the analysis on the stored tracks. Lifts are stored per
+   video hash in `footage/lift/<sha16>.json`; the record keeps the summary.
+10. **Packages.** None installed. `scipy` (already used by the core through
+    `infill` and `pushed_model`, installed with `ribs`/`trimesh`) does the
+    least squares. A learned lifter or a mesh quadruped model was not
+    needed for this first version; see "Not done".
+
+*Your assumptions, kept as you asked (VERIFY):* the hock tied to the stifle
+(ap10k_side's half-and-half split of the hind fold) and AP-10K "Elbow" =
+the robot's carpus. **What the first real video shows** (frames 0, 45, 200
+drawn with the points): AP-10K "Knee" sits on that calf's **hock** (the fit
+places it 0.96 of the way from stifle to hock) and "Elbow" on its
+**carpus**; "Hip" and "Shoulder" sit on the thigh and at the point of the
+shoulder, well below the top of the back (fitted: Hip 0.60 of the way down
+the femur, Shoulder 0.42 down the upper leg). With the Knee at the
+hock, untying the hock (two hind angles instead of one) is the natural next
+step: your decision.
+
+*Assumptions of this ADR (VERIFY):* weak perspective; a fixed camera; the
+trunk level on average (makes elevation and roll identifiable); W/L 0.35;
+60 deg field of view for depth travel; Neck, Root of tail and the head not
+used; the thresholds above (first guesses tested on synthetic footage and
+one real video).
+
+*The first real video in 3D* (`projects/robot-calf-final`, switched to 3D
+with `set_footage_settings mode=3d`, then *Analyse again* on its stored
+tracks): no "too oblique"; 75 % of frames reliable; median yaw 15 deg; a
+side view (10 to 27 deg) for the first 2.6 s, turning toward the camera up
+to 84 deg around frames 100 to 140 (the calf at the ball, head-on and
+motion-blurred: unreliable, a gap), then a side view again (1 to 17 deg).
+Camera elevation 7 deg, judged fixed. Calf against robot: trunk 1.56 x,
+front leg 1.12 x the hind leg's ratio, width from the prior. Median
+residual 24 px on a 270 px body. No still stretch, so the angles are
+relative to the robot's standing pose. Two candidates: 0-108 (`other`,
+turns 58 deg left, all four legs tracked) and 156-225. The preview's trunk
+turns 0 -> 58 deg. 57 % of frames are `ambiguous`, nearly all one hind or
+fore leg whose second basin fits within the noise (24 px). The peak joint
+speeds of the preview (up to 870 deg/s) include frame-to-frame tracker
+noise.
+
+*Checked* (`tests/test_lift.py`, 9 tests, one slow): synthetic footage of
+the robot's own forward kinematics, both sides, seen from yaw 0, 30, 45 and
+60 deg at 10 deg elevation, with 8 deg ab/adduction, a 35 deg turn, a calf
+1.15 x longer, 1.2 x wider, with 0.9 x front legs, 1 px noise and 5 % of
+points dropped. On reliable frames: sagittal joints within 2.5 deg RMS, hip
+ab/adduction within 2.5 deg, heading within 1.5 deg, elevation within 1.5
+deg, ratios within 3 %; every frame more than 75 deg from a side view is
+unreliable. A level side view reports ab/adduction unobservable and uses
+the width prior. Labels swapped by the tracker are recovered as the depth
+flip. A video through the inbox in 3D (CSV tracker): no "too oblique",
+candidates with reliability, a preview with the turn and ab/adduction in
+the body report. 2D on the real video: map, side, view verdict,
+segmentation and candidates identical to the record made before this
+change.
+
+*Not done.*
+* Full perspective, camera motion (pan, zoom: they read as turning and
+  approaching), several animals.
+* The simulator does not steer: the turn is in the clip and the preview;
+  playing it in physics needs a controller that follows `root_quat`.
+* No learned 2D-to-3D lifter or mesh-based quadruped model (none was
+  needed to meet the synthetic tolerances; on real footage the residual,
+  14 to 22 px, is dominated by tracker noise and the robot's own skeleton
+  differing from a calf's, which a better lifter would not remove).
+* Head, neck and tail motion (the robot has no joints there).
+* Speed: about 0.23 s per frame on this laptop's CPU (90 real frames in
+  21 s; the 225-frame video took about 2 min while the test suite ran
+  beside it).
+
+## ADR-081 — A review player that plays: frames from an open reader and a cache
+
+*Reported 2026-11-03.* Play in the Review asked for a new frame every ~33 to
+40 ms, but serving one frame of the 1780 x 990 H.264 video took 300 to 500
+ms: OpenCV reopened the file and seeked for every request. Each request
+cancelled the last and the image never left the first frame.
+
+*Decision.*
+* **Server** (`FrameCache` in `calflab.app.footage`, one per lab): one
+  reader kept open per video (at most two), the last 600 encoded frames
+  kept, keyed by path, modification time, size, frame and width. A request
+  starts a read-ahead thread that decodes the next 45 frames in order
+  (sequential decoding is fast; seeking is what was slow). Opening a
+  candidate in the review prefetches its range
+  (`POST /api/footage/<file>/prefetch`).
+* **Browser**: Play follows the clock but asks for a new frame only once
+  the shown one has loaded; frames that are late are dropped, never
+  queued. The tracked points are drawn for the frame actually shown.
+
+*Checked.* `tests/test_lift.py::test_frames_come_from_an_open_reader_and_a_cache`
+(cache hit, read-ahead), and Play on the real video in the lab's browser
+pane.

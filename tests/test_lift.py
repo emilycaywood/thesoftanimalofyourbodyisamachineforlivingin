@@ -199,7 +199,13 @@ def test_new_projects_lift_in_3d_and_older_ones_stay_2d(lab, tmp_path):
 
 
 def test_a_video_through_the_inbox_in_3d(lab, spec):
-    from calflab.app.footage import FootageSettings, candidate_clip, footage_lift, preview_candidate, save_settings
+    from calflab.app.footage import (
+        FootageSettings,
+        candidate_clip,
+        footage_lift,
+        preview_candidate,
+        save_settings,
+    )
 
     save_settings(lab.project.path, FootageSettings(tracker="csv", mode="3d", map_3d="feral_calf_3d"))
     script = Script3D(seconds=2.5, turn_deg=25.0, period_s=0.8)
@@ -228,7 +234,7 @@ def test_a_video_through_the_inbox_in_3d(lab, spec):
 
 def test_frames_come_from_an_open_reader_and_a_cache(tmp_path, spec):
     from calflab.app.footage import FrameCache
-    from calflab.behave.synthetic import SyntheticScript, Stretch, write_synthetic_video
+    from calflab.behave.synthetic import Stretch, SyntheticScript, write_synthetic_video
 
     path = tmp_path / "v.avi"
     write_synthetic_video(spec, path, SyntheticScript(stretches=[Stretch(kind="walk", seconds=2.0)]))

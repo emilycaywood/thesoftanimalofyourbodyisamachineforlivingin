@@ -1055,9 +1055,11 @@ link replays that run. *Capture viewport* attaches an image with provenance.
 
 ### Behave (ADR-073 to ADR-078)
 Behaviors from reference footage.
-#### From a video in a folder (ADR-076, ADR-077)
-1. **Drop a video** (mp4, mov, avi, mkv) of a calf filmed from the side
-   into `<project>\footage\videos\`. The lab looks at that folder every two
+#### From a video in a folder (ADR-076, ADR-077, ADR-080, ADR-081)
+1. **Drop a video** (mp4, mov, avi, mkv) of a calf into
+   `<project>\footage\videos\`. In **3D mode** (below) any view works
+   (turned, walking toward or away, an off-axis camera); in 2D mode, film
+   from the side. The lab looks at that folder every two
    seconds; the **Video inbox** at the top of the Behave panel lists each
    file:
 
@@ -1070,6 +1072,10 @@ Behaviors from reference footage.
    | *needs review* | candidate clips are ready |
    | *ready* | every candidate accepted or rejected |
    | *failed* | with the reason; *Retry* after fixing it |
+
+   *Retry* tracks the video again; *Analyse again* keeps its tracks and
+   only re-runs the analysis with the current *Settings* (use it after
+   switching between 2D and 3D or changing a map).
 
    A video is processed once. The lab keeps its SHA-256; a file you replace
    with different content is processed again, a file merely touched is not.
@@ -1084,7 +1090,25 @@ Behaviors from reference footage.
    markers, and the synthetic test calf). Change them under *Settings*,
    with the retarget map and the segmentation thresholds;
    `.\calflab.ps1 tracker list` shows what is ready.
-3. **What the lab works out.** Which side faces the camera (an animal
+3. **2D or 3D** (*Settings* > *mode*, per project). **3D** is the default
+   for new projects; a project that processed videos before stays 2D until
+   you switch it.
+   * **3D lift**: the robot's own skeleton (its joints, ranges and standing
+     pose) and a camera are fitted to every frame so that the robot's
+     landmarks land on the tracked points. Both sides are used, so the far
+     legs are tracked, hip ab/adduction is measured where the view shows it,
+     and the animal's turning becomes part of the clip. Map: `ap10k_3d`
+     (or `feral_calf_3d` for points on the robot's own joints).
+   * **2D side view**: angles measured in the image, as before; map
+     `ap10k_side`.
+
+   In 3D the lab also reports, for the whole video: the camera's elevation
+   (and whether it seems fixed), the calf's proportions against the robot's
+   (trunk length, width and front leg, relative to the hind leg), and where
+   the tracker's Hip, Knee and Shoulder sit on the robot (hover the ⓘ).
+   When the footage cannot tell the calf's width, it uses 0.35 x the trunk
+   length (PROVISIONAL) and says so.
+4. **What the lab works out (2D).** Which side faces the camera (an animal
    facing right shows its right side; with AP-10K the confidence of each
    side is a cross-check) and whether it is a side view: "side view OK",
    "too oblique" (judged from how far apart the left and right hips and
@@ -1097,12 +1121,34 @@ Behaviors from reference footage.
    * *other*: moving without a clear rhythm.
 
    Angles are relative to the middle of the video's longest still stretch.
-4. **Review** (click *Review*): the video frame with the tracked points
+
+   **In 3D** there is no "too oblique": each frame gets a **reliability**
+   instead: *ok*, *ambiguous* (usable, but a second answer fits nearly as
+   well: whether the calf is turned toward or away from you, or a leg bent
+   one way or the other) or *unreliable* (too few points, a fit that stands
+   out, or more than 70 deg from a side view: nearly head-on or tail-on).
+   Unreliable stretches longer than a third of a second are gaps that no
+   candidate covers. Candidates are cut on the 3D angles; each shows how
+   much of it is reliable, its yaw range and how far the calf turns. If the
+   video has no still stretch, the angles are relative to the robot's own
+   standing pose and the candidate says so.
+5. **Review** (click *Review*): the video frame with the tracked points
    drawn over it (orange = the points the map uses, hollow red = below the
-   confidence threshold), *Play* and a frame slider. *Start here* /
+   confidence threshold), *Play* and a frame slider. *Play* shows the frames
+   as fast as they arrive and skips late ones (it never stalls on the
+   first). In 3D a **strip under the slider** shows each frame's
+   reliability (green ok, amber ambiguous, red unreliable) and a line for
+   the estimated yaw (middle = side view, up = turned toward you, down =
+   away); below it, the current frame's state, yaw, heading, fit residual
+   and reasons. Click the strip to jump. *Start here* /
    *End here* trim the cut (a gait stays whole cycles). *Preview on robot*
    poses the body with the cut (no physics), replays it in the viewport and
-   shows the body report. Then:
+   shows the body report: per joint the range the clip uses against the
+   joint's range and the peak speed against the servo's (ab/adduction
+   included in 3D), and in 3D how far it turns and travels and how each leg
+   was obtained (*tracked*, or copied from the other side where a leg was
+   hidden most of the time). The turn is in the clip and the preview; the
+   simulator does not steer to follow it yet. Then:
    * **Accept as clip**: give it a name and **your affect tags**: valence
      (-1 unpleasant to +1 pleasant), arousal (0 calm to 1 agitated), words
      (comma-separated: wary, curious) and a note. Leave a value *not set*
@@ -1111,7 +1157,7 @@ Behaviors from reference footage.
 
    The clip keeps where it came from: the video's hash, frames, tracker
    and model version, the map, the cleaning and segmentation settings.
-5. **Clips** can be filtered by your tags (*Filter by your affect tags*)
+6. **Clips** can be filtered by your tags (*Filter by your affect tags*)
    and renamed or re-tagged (*Name and tags*).
 
 **Check on your own footage** before trusting it: tracking accuracy, where
@@ -1119,8 +1165,19 @@ AP-10K puts "Knee" on a calf's hind leg and "Elbow" on its fore leg (the
 `ap10k_side` map splits the hind fold half and half between stifle and
 hock, and takes the carpus from the fore "Elbow"), and where the
 segmentation cuts. To change the map, copy
-`config\retarget\ap10k_side.yaml` to `<project>\motions\maps\`, edit it,
-pick it in *Settings* and *Retry* the video.
+`config\retarget\ap10k_side.yaml` (2D) or `ap10k_3d.yaml` (3D) to
+`<project>\motions\maps\`, edit it, pick it in *Settings* and *Analyse
+again*.
+
+**What 3D cannot recover from one camera:** a camera that pans or zooms
+looks like the calf turning or approaching (keep the camera still); how far
+the calf travels toward or away from you rests on an assumed 60 deg field
+of view; the head, neck and tail (the robot has no joints there); a calf
+seen head-on or tail-on (unreliable); the calf's width when it never turns
+and the camera is level (the 0.35 prior is used); and hip pitch on the hind
+legs (the robot has none, so the stifle and hock carry the swing). Joint
+speeds from noisy tracks are higher than the calf's real ones: read the
+body report's peaks with that in mind.
 
 #### Composing behaviors (ADR-078)
 The Stochastic behaviors form has a **Composition** group:
