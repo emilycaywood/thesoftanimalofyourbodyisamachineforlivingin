@@ -132,3 +132,105 @@ def behave_view(lab: Any, filters: dict[str, Any] | None = None) -> dict[str, An
         "tag_words": sorted(words),
         "filtered": cond is not None,
     }
+
+
+# ---------------------------------------------------------------------- composition study (ADR-078)
+def behaviors_params(lab: Any, extra: dict[str, Any] | None = None) -> dict[str, Any]:
+    """The behaviors controller's parameters as the document has them (active, or kept from before), with
+    ``extra`` over them and the project's clips resolved, so workers away from the project play the same clips."""
+    from calflab.plugins import registry
+
+    cls = registry.get("controller", "behaviors")
+    node = lab.state.graph.role("controller")
+    if node.type == "controller:behaviors":
+        base = dict(node.params)
+    else:
+        base = dict((lab.state.settings.get("controller_params") or {}).get("controller:behaviors") or {})
+    params = {**cls.Params().model_dump(mode="json"), **base, **(extra or {})}
+    params.pop("clips", None)
+    params.pop("pools", None)
+    try:
+        cls.Params.model_validate(params)
+        return cls.resolve_params(params, lab.project.path)  # type: ignore[attr-defined]
+    except Exception as exc:
+        raise BehaveError(f"Behaviors: {exc}") from exc
+
+
+def run_composition_study(lab: Any, settings: dict[str, Any] | None = None) -> Any:
+    """Play each composition with each seed on the document's body; table of features, tracking and safety."""
+    from calflab.behave.study import CompositionStudySettings, randomization, summarize, table_csv
+    from calflab.evolve.safety import SafetyPolicy
+    from calflab.plugins import Task, registry
+
+    try:
+        cfg = CompositionStudySettings.model_validate(settings or {})
+    except Exception as exc:
+        raise BehaveError(f"Composition study: invalid settings: {exc}") from exc
+    if not cfg.compositions or not cfg.seeds:
+        raise BehaveError("Give at least one composition and one seed")
+    g = lab.state.graph.model_copy(deep=True)
+    design = lab.design()
+    from calflab.app.loads_jobs import FeralError, refuse_invalid_belts
+
+    try:
+        refuse_invalid_belts(design)
+    except FeralError as exc:
+        raise BehaveError(str(exc)) from exc
+    params = [behaviors_params(lab, c.params) for c in cfg.compositions]
+    overrides = [o.model_dump(mode="json") for o in lab.state.overrides if o.enabled]
+    compile_params = {**g.role("model").params, "torque_derating": 1.0,
+                      "randomization": randomization(cfg.randomize, cfg.friction, cfg.mass_scale)}
+    common = {"genome": design.genome.model_dump(mode="json"), "overrides": overrides,
+              "generator": g.role("design").type.split(":", 1)[1], "generator_params": lab.job_generator_params(g),
+              "compile": compile_params, "safety": SafetyPolicy().model_dump(mode="json")}
+    bkey = lab.backend_key
+    backend = registry.get("compute_backend", bkey)()
+    run_id = lab.registry.new_run_id("composition")
+
+    def work(job: Any) -> dict[str, Any]:
+        t0 = time.perf_counter()
+        tasks = []
+        for ci, prm in enumerate(params):
+            for seed in cfg.seeds:
+                sim = {**g.role("simulation").params, "duration_s": cfg.duration_s, "seed": seed}
+                tasks.append(Task(fn="calflab.behave.study:evaluate_composition",
+                                  payload={**common, "compile": {**compile_params}, "sim": sim,
+                                           "controller": {"key": "behaviors", "params": prm}},
+                                  id=f"{run_id}-c{ci}-s{seed}"))
+        done = [0]
+
+        def on_result(_i: int, _r: Any) -> None:
+            done[0] += 1
+            job.report(done[0] / len(tasks), f"{done[0]} of {len(tasks)} rollouts")
+
+        results = backend.map(tasks, on_result=on_result, cancelled=job.cancelled)  # type: ignore[attr-defined]
+        n = len(cfg.seeds)
+        per = [results[i * n:(i + 1) * n] for i in range(len(params))]
+        rows = summarize(cfg.compositions, list(cfg.seeds), per)
+        run_dir = lab.registry.run_dir(run_id)
+        from calflab.behave.descriptors import NOTE
+        from calflab.behave.study import feature_columns
+
+        write_json(run_dir / "composition_study.json", {
+            "run_id": run_id, "settings": cfg.model_dump(mode="json"), "rows": rows, "features": feature_columns(),
+            "note": NOTE, "compile": compile_params, "safety_policy": common["safety"],
+            "runs": [{"composition": cfg.compositions[i].name, "seed": cfg.seeds[k], **(r if isinstance(r, dict) else {"error": str(r)})}
+                     for i, rs in enumerate(per) for k, r in enumerate(rs)],
+        })
+        (run_dir / "composition_study.csv").write_bytes(table_csv(rows).encode("utf-8"))
+        lab.registry.save_run(RunRecord(
+            id=run_id, kind="composition", title="Composition study", duration_s=time.perf_counter() - t0, backend=bkey,
+            status="cancelled" if job.cancelled() else "done",
+            inputs={"settings": cfg.model_dump(mode="json"), "compile": compile_params, "safety_policy": common["safety"],
+                    "controllers": params, "mass": lab._mass_record(design)},
+            genome=design.genome.model_dump(mode="json"), overrides=overrides,
+            metrics={"compositions": len(rows), "rollouts": len(tasks),
+                     "falls": sum(r["falls"] for r in rows)},
+            artifacts={"study": f"runs/{run_id}/composition_study.json", "csv": f"runs/{run_id}/composition_study.csv"},
+        ))
+        lab.bus.emit("runs.changed", run_id=run_id)
+        return {"run_id": run_id, "rows": len(rows)}
+
+    job = lab.jobs.submit("composition", "Composition study", work, backend=bkey)
+    job.result = {"run_id": run_id}
+    return job

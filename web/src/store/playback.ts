@@ -22,7 +22,7 @@ interface PlaybackStore {
   series: Record<string, Channel>;
   metrics: Record<string, any> | null;
   /** what the controller did in the run, e.g. the behaviors it chose */
-  controllerLog: { episodes?: { name: string; kind: string; t0: number; t1: number; [k: string]: unknown }[] } | null;
+  controllerLog: { episodes?: { name: string; kind: string; t0: number; t1: number; composition?: { label?: string }; [k: string]: unknown }[] } | null;
   frame: number; // fractional frame index
   playing: boolean;
   speed: number;

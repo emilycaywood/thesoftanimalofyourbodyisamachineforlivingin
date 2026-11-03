@@ -22,6 +22,23 @@ each servo's speed at its joint, as in ``feral_motion``.
 Clips are referred to by id; the lab inlines their angles into ``clips``
 when the controller is evaluated (``resolve_params``), so jobs that run away
 from the project folder (evolution workers) play the same clips.
+
+**Composition** (ADR-078): a clip entry may name its clips by the
+researcher's affect tags (``select``) instead of an id; it then plays one of
+the matching clips each time. Five groups of parameters with a kinematic
+meaning shape the whole performance:
+
+* *tempo*: clip speed, the gaits' clock and the idle sway's pace;
+* *amplitude*: clip angles and the idle sway's size;
+* *stillness*: the share of idle behaviors and their noise;
+* *smoothness*: the cross-fade time and a low-pass filter on the commands;
+* *phrasing*: the chance to repeat the last behavior, and pauses (the pose
+  held) between behaviors.
+
+An optional ``affect_curve`` sets any of these over time (keyframes,
+interpolated), and can steer the choice of clips toward a target valence or
+arousal *as tagged by the researcher*. The lab never infers affect: targets
+only weigh clips by the tags a person gave them.
 """
 
 from __future__ import annotations
@@ -38,12 +55,44 @@ from calflab.plugins import ControlInfo, Controller, Observation, register, regi
 from calflab.schema import P
 
 
+class ClipSelect(BaseModel):
+    """Clips chosen by the researcher's affect tags: every condition given must hold."""
+
+    words: list[str] = Field(default_factory=list)
+    valence: tuple[float, float] | None = None
+    arousal: tuple[float, float] | None = None
+
+
+#: composition parameters an affect-curve keyframe may set
+CURVE_PARAMS = ("tempo", "amplitude", "idle_share", "idle_noise_deg", "blend_s", "lowpass_hz", "repeat_prob",
+                "pause_prob")
+
+
+class Keyframe(BaseModel):
+    """A point of the affect curve: parameters to reach at ``t_s`` (unset = as the controller's)."""
+
+    t_s: float = Field(0.0, ge=0.0)
+    label: str = ""  # the researcher's name for this moment (e.g. calm, agitated); not interpreted
+    tempo: float | None = None
+    amplitude: float | None = None
+    idle_share: float | None = None
+    idle_noise_deg: float | None = None
+    blend_s: float | None = None
+    lowpass_hz: float | None = None
+    repeat_prob: float | None = None
+    pause_prob: float | None = None
+    #: steer clip choice toward clips the researcher tagged near these values
+    target_valence: float | None = None
+    target_arousal: float | None = None
+
+
 class BehaviorEntry(BaseModel):
     """One behavior of the repertoire."""
 
     name: str
     kind: Literal["clip", "idle", "gait"] = "idle"
     clip: str = ""  # motion-library id (kind clip)
+    select: ClipSelect | None = None  # kind clip without an id: one of the clips with these tags
     controller: dict[str, Any] = Field(default_factory=dict)  # {key, params} (kind gait)
     weight: float = Field(1.0, ge=0.0)
     duration_s: tuple[float, float] = (2.0, 5.0)  # idle and gait; a clip lasts its own length / speed x repeats
@@ -51,6 +100,9 @@ class BehaviorEntry(BaseModel):
     amplitude: tuple[float, float] = (0.85, 1.1)  # clip angle scale
     repeats: tuple[int, int] = (1, 1)  # clip loops
     mirror: bool = False  # a clip may play with left and right swapped
+    #: the repertoire fitness requires this clip (imitation averaged over required clips, ADR-079)
+    required: bool = False
+    imitation_weight: float = Field(1.0, ge=0.0)
 
 
 def _default_repertoire() -> list[dict[str, Any]]:
@@ -91,9 +143,37 @@ class BehaviorsController(Controller):
             0.9, ge=0.0, le=1.0, step=0.05,
             desc="Commanded joint speed kept under this fraction of each servo's speed at its joint. 0 = no limit.",
         )
+        tempo: float = P(1.0, ge=0.25, le=3.0, step=0.05, group="Composition",
+                         desc="Tempo: clip speed, the gaits' clock and the idle sway's pace (1 = as given).")
+        amplitude: float = P(1.0, ge=0.0, le=2.0, step=0.05, group="Composition",
+                             desc="Amplitude: scales clip angles and the idle sway (1 = as given).")
+        idle_share: float = P(-1.0, ge=-1.0, le=1.0, step=0.05, group="Composition",
+                              desc="Stillness: chance that the next behavior is an idle one (-1 = the weights decide).")
+        lowpass_hz: float = P(0.0, unit="Hz", ge=0.0, le=20.0, step=0.5, group="Composition",
+                              desc="Smoothness: low-pass filter on the commands (0 = off; lower = smoother).")
+        repeat_prob: float = P(0.0, ge=0.0, le=1.0, step=0.05, group="Composition",
+                               desc="Phrasing: chance that a behavior plays again right away.")
+        pause_prob: float = P(0.0, ge=0.0, le=1.0, step=0.05, group="Composition",
+                              desc="Phrasing: chance of a pause (the pose held) between behaviors.")
+        pause_s: tuple[float, float] = P((0.5, 1.5), unit="s", ui="json", group="Composition",
+                                         desc="Phrasing: how long a pause lasts (drawn in this range, divided by tempo).")
+        affect_curve: list[Keyframe] = P(
+            default_factory=list, ui="json", group="Composition",
+            desc="Optional keyframes {t_s, label, tempo, amplitude, idle_share, idle_noise_deg, blend_s, lowpass_hz, "
+                 "repeat_prob, pause_prob, target_valence, target_arousal}: the parameters move between them over the "
+                 "run; targets favour clips you tagged near those values.",
+        )
+        target_width: float = P(0.25, ge=0.05, le=2.0, step=0.05, group="Composition", advanced=True,
+                                desc="How sharply a valence/arousal target favours clips tagged near it.")
+        play_required_first: bool = P(False, advanced=True,
+                                      desc="Play every required clip once (in a seeded order) before choosing freely.")
         clips: dict[str, Any] = P(
             default_factory=dict, ui="json", advanced=True,
             desc="Filled in by the lab from the motion library when the controller is evaluated; not edited.",
+        )
+        pools: dict[str, list[str]] = P(
+            default_factory=dict, ui="json", advanced=True,
+            desc="Filled in by the lab: the clips each tag-selected entry may play; not edited.",
         )
 
     # ------------------------------------------------------------------ clips from the library
@@ -105,17 +185,47 @@ class BehaviorsController(Controller):
 
         out = dict(params)
         clips = dict(out.get("clips") or {})
-        for e in out.get("repertoire") or []:
-            cid = e.get("clip") if isinstance(e, dict) else getattr(e, "clip", "")
-            kind = e.get("kind") if isinstance(e, dict) else getattr(e, "kind", "")
-            if kind != "clip" or not cid or cid in clips:
-                continue
+        pools = dict(out.get("pools") or {})
+        library: list[MotionClip] | None = None
+
+        def load(cid: str) -> MotionClip:
             path = Path(project_dir) / "motions" / f"{slugify(cid)}.json" if project_dir else None
             if path is None or not path.is_file():
                 raise ValueError(f"Behavior clip {cid!r} is not in the project's motion library")
-            c = MotionClip.model_validate(read_json(path))
-            clips[cid] = {"fps": c.fps, "joints": c.joints}
+            return MotionClip.model_validate(read_json(path))
+
+        def inline(c: MotionClip) -> None:
+            clips[c.id] = {"fps": c.fps, "joints": c.joints,
+                           "affect": c.affect.model_dump(mode="json") if c.affect else None}
+
+        for raw in out.get("repertoire") or []:
+            e = raw if isinstance(raw, dict) else raw.model_dump()
+            if e.get("kind") != "clip":
+                continue
+            cid = e.get("clip")
+            if cid:
+                if cid not in clips:
+                    inline(load(cid))
+                continue
+            sel = e.get("select")
+            if sel is None or e["name"] in pools:
+                continue
+            if library is None:
+                d = Path(project_dir) / "motions" if project_dir else None
+                library = ([MotionClip.model_validate(read_json(f)) for f in sorted(d.glob("*.json"))]
+                           if d and d.is_dir() else [])
+            cond = ClipSelect.model_validate(sel)
+            match = [c for c in library if c.affect is not None
+                     and c.affect.matches(cond.words or None, cond.valence, cond.arousal)]
+            if not match:
+                raise ValueError(f"Behavior {e['name']!r}: no clip in the motion library has the tags "
+                                 f"{cond.model_dump(exclude_none=True)}")
+            for c in match:
+                if c.id not in clips:
+                    inline(c)
+            pools[e["name"]] = [c.id for c in match]
         out["clips"] = clips
+        out["pools"] = pools
         return out
 
     # ------------------------------------------------------------------ runtime
@@ -137,37 +247,122 @@ class BehaviorsController(Controller):
             self.group[i] = groups.setdefault(key, len(groups))
         self.noise = np.zeros(len(groups))
         self.prev: np.ndarray | None = None
+        self.filtered: np.ndarray | None = None
         self.fade_from: np.ndarray | None = None
         self.episode: dict[str, Any] | None = None
         self.episodes: list[dict[str, Any]] = []
         self.sub: Controller | None = None
+        self.curve = sorted(p.affect_curve, key=lambda k: k.t_s)  # type: ignore[attr-defined]
+        self.last_behavior: str | None = None
+        self.held = info.rest.copy()
+        self._static_mod = self.mod(0.0)
+        for e in self.entries:
+            if e.kind == "clip" and not e.clip and e.name not in p.pools:  # type: ignore[attr-defined]
+                raise ValueError(f"Behavior {e.name!r} selects clips by tag, but they were not resolved from the "
+                                 "motion library")
+        required = [e.name for e in self.entries if e.required]
+        self.queue: list[str] = ([required[i] for i in self.rng.permutation(len(required))]
+                                 if p.play_required_first else [])  # type: ignore[attr-defined]
 
-    def _choose(self) -> BehaviorEntry:
+    # ------------------------------------------------------------------ composition
+    def mod(self, t: float) -> dict[str, Any]:
+        """Composition parameters in effect at time t: the controller's, moved by the affect curve."""
         p = self.params
-        last = self.episode["name"] if self.episode else None
+        out: dict[str, Any] = {k: float(getattr(p, k)) for k in CURVE_PARAMS}
+        out["target_valence"] = out["target_arousal"] = None
+        out["label"] = ""
+        if not self.curve:
+            return out
+        before = [k for k in self.curve if k.t_s <= t]
+        after = [k for k in self.curve if k.t_s > t]
+        a = before[-1] if before else None
+        b = after[0] if after else None
+        for name in (*CURVE_PARAMS, "target_valence", "target_arousal"):
+            va = getattr(a, name) if a is not None else None
+            vb = getattr(b, name) if b is not None else None
+            if va is not None and vb is not None and b is not None and a is not None and b.t_s > a.t_s:
+                w = (t - a.t_s) / (b.t_s - a.t_s)
+                out[name] = (1 - w) * va + w * vb
+            elif va is not None:
+                out[name] = va
+            elif vb is not None and a is None and name.startswith("target_"):
+                out[name] = vb
+        out["label"] = a.label if a is not None else ""
+        return out
+
+    def _clip_score(self, clip_id: str, m: dict[str, Any]) -> float:
+        """How well a clip's tags match the curve's targets (1 = no target or exact)."""
+        aff = (self.params.clips.get(clip_id) or {}).get("affect") or {}  # type: ignore[attr-defined]
+        w = 1.0
+        width = float(self.params.target_width)  # type: ignore[attr-defined]
+        for key in ("valence", "arousal"):
+            target = m.get(f"target_{key}")
+            if target is None:
+                continue
+            v = aff.get(key)
+            # an untagged clip is neither near nor far: it keeps a small chance
+            w *= 0.05 if v is None else math.exp(-(((float(v) - target) / width) ** 2))
+        return w
+
+    def _entry_clips(self, e: BehaviorEntry) -> list[str]:
+        return [e.clip] if e.clip else list(self.params.pools.get(e.name, []))  # type: ignore[attr-defined]
+
+    def _choose(self, m: dict[str, Any]) -> BehaviorEntry:
+        p = self.params
+        last = self.last_behavior
+        if self.queue:
+            return self.by_name[self.queue.pop(0)]
         if last is None and p.start:  # type: ignore[attr-defined]
             if p.start not in self.by_name:  # type: ignore[attr-defined]
                 raise ValueError(f"Start behavior {p.start!r} is not in the repertoire")  # type: ignore[attr-defined]
             return self.by_name[p.start]  # type: ignore[attr-defined]
+        if last is not None and m["repeat_prob"] > 0 and self.rng.random() < m["repeat_prob"]:
+            return self.by_name[last]
         table = p.transitions.get(last) if last else None  # type: ignore[attr-defined]
         names = list(table) if table else [e.name for e in self.entries]
         w = np.array([float(table[n]) if table else self.by_name[n].weight for n in names])
+        if m["target_valence"] is not None or m["target_arousal"] is not None:
+            for i, n in enumerate(names):
+                e = self.by_name[n]
+                if e.kind == "clip":
+                    w[i] *= max((self._clip_score(c, m) for c in self._entry_clips(e)), default=1.0)
+        share = m["idle_share"]
+        if share >= 0:
+            idle = np.array([self.by_name[n].kind == "idle" for n in names])
+            if idle.any() and (~idle).any() and w[idle].sum() > 0 and w[~idle].sum() > 0:
+                w = np.where(idle, share * w / w[idle].sum(), (1 - share) * w / w[~idle].sum())
         if w.sum() <= 0:
             raise ValueError(f"No behavior can follow {last!r}: every weight is 0")
         return self.by_name[names[int(self.rng.choice(len(names), p=w / w.sum()))]]
 
     def _start(self, t: float) -> None:
-        e = self._choose()
+        m = self.mod(t)
+        p = self.params
+        pausing = (self.episode is not None and self.episode["kind"] != "pause" and m["pause_prob"] > 0
+                   and self.rng.random() < m["pause_prob"])
+        if pausing:  # phrasing: hold the pose for a moment between behaviors
+            lo, hi = p.pause_s  # type: ignore[attr-defined]
+            pause = {"name": "pause", "kind": "pause", "t0": t, "t1": t + float(self.rng.uniform(lo, hi)) / m["tempo"]}
+            self._begin(pause, m)
+            return
+        e = self._choose(m)
+        self.last_behavior = e.name
         ep: dict[str, Any] = {"name": e.name, "kind": e.kind, "t0": t}
         if e.kind == "clip":
-            clip = self.params.clips.get(e.clip)  # type: ignore[attr-defined]
+            pool = self._entry_clips(e)
+            if len(pool) > 1:
+                w = np.array([self._clip_score(c, m) for c in pool])
+                cid = pool[int(self.rng.choice(len(pool), p=w / w.sum()))]
+            else:
+                cid = pool[0]
+            clip = self.params.clips.get(cid)  # type: ignore[attr-defined]
             if clip is None:
-                raise ValueError(f"Clip {e.clip!r} was not resolved from the motion library")
-            speed = float(self.rng.uniform(*e.speed))
+                raise ValueError(f"Clip {cid!r} was not resolved from the motion library")
+            speed = float(self.rng.uniform(*e.speed)) * m["tempo"]
             reps = int(self.rng.integers(e.repeats[0], e.repeats[1] + 1))
             frames = len(next(iter(clip["joints"].values()))) if clip["joints"] else 1
-            ep.update(clip=e.clip, speed=speed, amplitude=float(self.rng.uniform(*e.amplitude)), repeats=reps,
-                      mirror=bool(e.mirror and self.rng.random() < 0.5),
+            ep.update(clip=cid, speed=speed, amplitude=float(self.rng.uniform(*e.amplitude)) * m["amplitude"],
+                      repeats=reps, mirror=bool(e.mirror and self.rng.random() < 0.5),
                       t1=t + reps * frames / (clip["fps"] * speed))
         else:
             ep["t1"] = t + float(self.rng.uniform(*e.duration_s))
@@ -176,9 +371,18 @@ class BehaviorsController(Controller):
                 sub: Controller = cls(dict(e.controller.get("params", {})))  # type: ignore[assignment]
                 sub.reset(self.info, int(self.rng.integers(0, 2**31 - 1)))
                 self.sub = sub
+                ep["tempo"] = m["tempo"]
+        self._begin(ep, m)
+
+    def _begin(self, ep: dict[str, Any], m: dict[str, Any]) -> None:
         self.fade_from = self.prev.copy() if self.prev is not None else None
+        self.held = self.prev.copy() if self.prev is not None else self.info.rest.copy()
         self.episode = ep
-        self.episodes.append({k: (round(v, 4) if isinstance(v, float) else v) for k, v in ep.items()})
+        ep["blend_s"] = m["blend_s"]
+        logged = {k: (round(v, 4) if isinstance(v, float) else v) for k, v in ep.items()}
+        logged["composition"] = {k: (round(v, 4) if isinstance(v, float) else v) for k, v in m.items() if v is not None
+                                 and v != ""}
+        self.episodes.append(logged)
 
     def _clip_pose(self, ep: dict[str, Any], t: float) -> np.ndarray:
         clip = self.params.clips[ep["clip"]]  # type: ignore[attr-defined]
@@ -208,22 +412,29 @@ class BehaviorsController(Controller):
             self._start(t)
         ep = self.episode
         assert ep is not None
+        m = self.mod(t) if self.curve else self._static_mod
         if ep["kind"] == "clip":
             target = self._clip_pose(ep, t)
+        elif ep["kind"] == "pause":
+            target = self.held.copy()
         elif ep["kind"] == "gait" and self.sub is not None:
-            sub_obs = Observation(t=t - ep["t0"], q=obs.q, dq=obs.dq, trunk_quat=obs.trunk_quat,
-                                  trunk_gyro=obs.trunk_gyro, foot_contact=obs.foot_contact)
+            sub_obs = Observation(t=(t - ep["t0"]) * ep.get("tempo", 1.0), q=obs.q, dq=obs.dq,
+                                  trunk_quat=obs.trunk_quat, trunk_gyro=obs.trunk_gyro, foot_contact=obs.foot_contact)
             target = np.asarray(self.sub.act(sub_obs), dtype=float)  # type: ignore[attr-defined]
         else:  # idle: mean-reverting random shifts around the standing pose
             dt = self.info.control_dt
-            tau = float(p.idle_tau_s)  # type: ignore[attr-defined]
-            sigma = u.deg_to_rad(float(p.idle_noise_deg))  # type: ignore[attr-defined]
+            tau = float(p.idle_tau_s) / m["tempo"]  # type: ignore[attr-defined]
+            sigma = u.deg_to_rad(m["idle_noise_deg"]) * m["amplitude"]
             self.noise += -self.noise * dt / tau + sigma * math.sqrt(2 * dt / tau) * self.rng.standard_normal(len(self.noise))
             target = self.info.rest + self.noise[self.group]
-        blend = float(p.blend_s)  # type: ignore[attr-defined]
+        blend = float(ep.get("blend_s", p.blend_s))  # type: ignore[attr-defined,arg-type]
         if self.fade_from is not None and blend > 0 and t - ep["t0"] < blend:
             w = 0.5 - 0.5 * math.cos(math.pi * (t - ep["t0"]) / blend)
             target = (1 - w) * self.fade_from + w * target
+        if m["lowpass_hz"] > 0:  # smoothness: first-order low-pass on the commands
+            a = 1.0 - math.exp(-2.0 * math.pi * m["lowpass_hz"] * self.info.control_dt)
+            self.filtered = target.copy() if self.filtered is None else self.filtered + a * (target - self.filtered)
+            target = self.filtered.copy()
         target = np.clip(target, self.info.lo, self.info.hi)
         frac = float(p.speed_fraction)  # type: ignore[attr-defined]
         if frac > 0 and self.info.speed_limit is not None:
@@ -234,5 +445,5 @@ class BehaviorsController(Controller):
         return target
 
     def log(self) -> dict[str, Any]:
-        """The behaviors chosen during the rollout, in order."""
+        """The behaviors chosen during the rollout, in order, each with the composition in effect when it began."""
         return {"episodes": list(self.episodes)}

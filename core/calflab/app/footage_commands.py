@@ -242,3 +242,36 @@ class DownloadTrackerModel(Command):
             return {"package": key, "files": [f["name"] for f in man["files"]]}
 
         return {"job": lab.jobs.submit("download", f"Download {key}", work).id}
+
+
+@register
+class RunCompositionStudy(Command):
+    key = "run_composition_study"
+    label = "Composition study"
+    description = ("Play the stochastic behaviors on this body in several compositions (tempo, amplitude, stillness, "
+                   "smoothness, phrasing, affect curve...), each with several seeds; tabulate movement features, clip "
+                   "tracking and safety. A job; the document is not changed.")
+    category = "Behave"
+
+    class Params(BaseModel):
+        compositions: list[dict[str, Any]] = P(
+            default_factory=lambda: [c.model_dump() for c in _default_compositions()], ui="json",
+            desc="[{name, params}]: behaviors parameters over the document's, e.g. {\"tempo\": 0.7, \"idle_share\": 0.6}.")
+        seeds: list[int] = P(default_factory=lambda: [0, 1, 2], ui="json", desc="Seeds; every composition plays each.")
+        duration_s: float = P(20.0, unit="s", ge=2.0, le=300.0, step=1.0, desc="Simulated time per rollout.")
+        randomize: bool = P(False, desc="Mildly randomise floor friction (0.7-1.1) and mass (x0.95-1.05) per seed.")
+
+    def run(self, lab: Any, state: Any) -> Any:
+        from calflab.app.behave_jobs import BehaveError, run_composition_study
+
+        try:
+            job = run_composition_study(lab, self.params.model_dump())
+        except BehaveError as exc:
+            raise _err(str(exc)) from exc
+        return {"job": job.id, "run_id": job.result["run_id"]}
+
+
+def _default_compositions() -> list[Any]:
+    from calflab.behave.study import _default_compositions as d
+
+    return d()

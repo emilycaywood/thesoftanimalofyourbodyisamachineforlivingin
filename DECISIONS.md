@@ -2168,3 +2168,96 @@ Speeds were estimates; nothing was installed before the answer.
 through it). The speed on a real 10 s clip. Which joints AP-10K's knee and
 elbow are on a calf. Whether the YOLOX detector finds a young calf
 reliably.
+
+## ADR-078 — Affect tags, composition as an expressive instrument, movement features (**VERIFY**)
+
+*Requested 2026-11-03* (session T): accepted clips carry the researcher's affect
+tags; the behaviors controller composes them with parameters of clear
+kinematic meaning; rollouts are described by movement features, "labelled as
+movement features, not emotions"; a composition study compares compositions.
+
+*Decision.*
+* **Affect tags** (`MotionClip.affect`):
+  * valence -1..+1 (unpleasant..pleasant), arousal 0..1 (calm..agitated),
+    free words, a note, and when tagged;
+  * set only by the researcher (`accept_candidate`, `tag_clip`); the lab
+    never infers or fills them;
+  * an untouched valence or arousal stays unset ("not set" in the form),
+    not 0;
+  * the Behave analysis filters clips by words and value ranges on the
+    server and lists the words in use.
+
+  The scales are a choice of convenience (valence and arousal as in
+  circumplex models); change them here if another scale is wanted.
+* **Clips by tag.** A clip entry may give `select: {words, valence, arousal}`
+  instead of an id. `resolve_params` inlines every matching clip and lists
+  them in `pools`, so workers play the same set. The entry plays one of them
+  each time. An entry whose tags match nothing is an error naming the tags.
+* **Modulation parameters** (group "Composition" of the behaviors
+  controller; the defaults leave every earlier rollout unchanged, the random
+  draws included):
+  * `tempo`: clip speed x tempo, the gait's clock x tempo, idle sway time
+    constant / tempo;
+  * `amplitude`: clip angles and idle sway size;
+  * stillness: `idle_share` (the chance the next behavior is idle; -1 = the
+    weights decide) and the existing `idle_noise_deg`;
+  * smoothness: the existing `blend_s` and `lowpass_hz` (first-order
+    low-pass on the commands, before the servo-speed limit);
+  * phrasing: `repeat_prob` (play the same behavior again), `pause_prob` and
+    `pause_s` (hold the last pose; never two pauses in a row).
+* **Affect curve** (`affect_curve`): keyframes at times, each setting any of
+  the parameters above (interpolated linearly), with a free `label` (the
+  researcher's word for the moment, never interpreted).
+  * A keyframe may give `target_valence` / `target_arousal`. Clip choice is
+    then weighed by exp(-((tag - target) / target_width)^2) over the
+    *researcher's* tags. An untagged clip keeps a small weight (0.05).
+  * The lab ships no mapping from affect words to kinematics: what "calm"
+    means in tempo or stillness is the researcher's to set in the curve.
+* **Logged per episode**: every episode records the composition in effect
+  when it began (parameters, targets, label).
+* **Required clips** (for ADR-079): an entry may be `required` with an
+  `imitation_weight`. `play_required_first` plays each required clip once,
+  in a seeded order, before choosing freely.
+* **Movement features** (`calflab.behave.descriptors`), each with a unit,
+  and a note on every result that they are kinematics, not emotions:
+  * quantity of motion (mean joint speed);
+  * trunk speed;
+  * jerk RMS and smoothness (-log10 jerk);
+  * tempo (period of the strongest repetition of joint activity) and its
+    regularity;
+  * stillness ratio (joints under 5 deg/s);
+  * expressive range (spread of 1 s windows of motion);
+  * postural height (trunk / standing);
+  * openness (foot spread / standing);
+  * approach / retreat (net travel along the initial heading).
+
+  Per-clip tracking error comes from the episode log.
+* **Composition study** (`run_composition_study`, a job, run kind
+  `composition`): each composition (behaviors params over the document's)
+  plays with each seed, optionally with friction 0.7-1.1 and mass x0.95-1.05
+  randomised.
+  * It is compiled with `torque_derating` 1.0, as the load analysis is
+    (ADR-069), so a servo can reach stall and the stall constraint means
+    something.
+  * The table gives mean +/- spread per composition: falls, clip tracking,
+    safety margin and violations (ADR-079), and every movement feature.
+  * It is stored as `composition_study.json` / `.csv`. The document is not
+    changed.
+
+*Checked.* `tests/test_composition.py`:
+* selection by tags;
+* tempo, amplitude, stillness, pauses and repeats, low-pass;
+* the curve's interpolation and its steering toward clips tagged near the
+  target;
+* seeding;
+* features of a known motion;
+* a two-composition study.
+
+On a scratch project the "as set" composition of a stick-calf walk fell on
+one seed of two (the walk clip moves the legs as the drawing did, without
+balance); "still" did not.
+
+*Not done.* Composition parameters are edited in the controller's form
+(JSON for the curve and the compositions); a curve editor would be easier.
+Movement features are not yet archive axes outside the repertoire run
+(ADR-079).

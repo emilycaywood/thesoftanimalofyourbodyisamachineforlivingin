@@ -10,6 +10,7 @@ import { Badge, Button, Empty, PanelScroll, Section, fmt } from "@/components/ui
 import { onLabEvent, useLab } from "@/store/lab";
 import { usePlayback } from "@/store/playback";
 import { RoleForm } from "./Design";
+import { CompositionStudy } from "./Composition";
 import { CandidateReview, FootageInbox, type InboxData } from "./Footage";
 
 interface JointRow {
@@ -212,13 +213,14 @@ export function BehavePanel() {
             <div className="text-[10px] uppercase text-dim">In the run on the timeline</div>
             {log.episodes.map((e, i) => (
               <div key={i} className="flex justify-between text-[11px]">
-                <span>{e.name} <span className="text-dim">({e.kind}{e.mirror ? ", mirrored" : ""})</span></span>
+                <span>{e.name} <span className="text-dim">({e.kind}{e.mirror ? ", mirrored" : ""}{e.composition?.label ? `, ${e.composition.label}` : ""})</span></span>
                 <span className="text-dim">{fmt(e.t0, 1)}–{fmt(e.t1, 1)} s</span>
               </div>
             ))}
           </div>
         )}
       </Section>
+      <CompositionStudy say={say} />
     </PanelScroll>
   );
 }
