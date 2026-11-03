@@ -1,0 +1,40 @@
+# Retarget map: a calf filmed from the side and tracked with the AP-10K keypoints
+# (pose tracker rtmpose_ap10k, ADR-077). Names are the model's own, from MMPose's
+# AP-10K metainfo: L_/R_ Shoulder, Elbow, F_Paw, Hip, Knee, B_Paw, plus Neck,
+# Root of tail, Nose and the eyes. "{side}" becomes L or R for the side that faces
+# the camera, which is detected from the footage (near_side: auto).
+#
+# AP-10K gives only three points per leg, so this map makes choices that you
+# must check against your footage (VERIFY, ADR-077):
+#  * hind leg: the fold at the AP-10K "Knee" (hip - knee - hind paw) is shared
+#    half and half between the robot's stifle and hock (scale 0.5 each);
+#  * front leg: the shoulder swings with the whole leg (shoulder -> front paw);
+#    the carpus takes the fold at the AP-10K "Elbow" (shoulder - elbow - paw).
+# Copy to <project>/motions/maps/<name>.yaml and change scales or landmarks.
+name: ap10k_side
+description: >
+  Side view tracked with AP-10K keypoints (RTMPose). Near side detected from the
+  facing direction. Hind fold at the AP-10K knee split between stifle and hock;
+  front leg swing from shoulder to paw; carpus from the fold at the AP-10K elbow.
+  Far legs copy the near ones (half a period later for a gait).
+body: feral_calf
+trunk: [["{side}_Hip", "Root of tail"], ["{side}_Shoulder", "Neck"]]
+joints:
+  hl.stifle: {flexion: ["{side}_Hip", "{side}_Knee", "{side}_B_Paw"], scale: 0.5}
+  hl.hock: {flexion: ["{side}_Hip", "{side}_Knee", "{side}_B_Paw"], scale: 0.5}
+  fl.shoulder: {swing: ["{side}_Shoulder", "{side}_F_Paw"]}
+  fl.carpus: {flexion: ["{side}_Shoulder", "{side}_Elbow", "{side}_F_Paw"]}
+near_side: auto
+joints_side: left
+side_names: {left: L, right: R}
+far_side: copy
+standing: first
+ground: ["{side}_B_Paw", "{side}_F_Paw"]
+view:
+  pairs: [[L_Hip, R_Hip], [L_Shoulder, R_Shoulder]]
+  width_over_length: 0.35
+  max_oblique_deg: 25
+# RTMPose's SimCC scores are not probabilities; 0.3 is the threshold its tools use
+min_likelihood: 0.3
+max_gap_frames: 10
+smooth_frames: 3

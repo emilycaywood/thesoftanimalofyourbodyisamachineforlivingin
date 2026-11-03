@@ -49,3 +49,10 @@ def home_dir() -> Path:
 def default_project() -> Path:
     env = os.environ.get("CALFLAB_PROJECT")
     return Path(env) if env else projects_dir() / "sample-calf"
+
+
+def models_dir() -> Path:
+    """Downloaded model weights (pose trackers, ADR-077): ``<repo>/models`` (not in git), or ``CALFLAB_MODELS``.
+    Inside the repo so a lab started from the Claude app and one from a terminal share one copy."""
+    env = os.environ.get("CALFLAB_MODELS")
+    return Path(env) if env else repo_root() / "models"

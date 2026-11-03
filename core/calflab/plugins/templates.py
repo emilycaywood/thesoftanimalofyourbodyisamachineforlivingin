@@ -352,6 +352,53 @@ class {cls}(Command):
     def run(self, lab: Any, state: Any) -> Any:
         return {{"message": self.params.message}}
 ''',
+    "pose_tracker": '''from collections.abc import Callable
+from pathlib import Path
+
+import numpy as np
+from pydantic import BaseModel
+
+from calflab.behave.keypoints import KeypointTracks
+from calflab.behave.video import open_video
+from calflab.plugins import PoseTracker, TrackerCancelled, register
+from calflab.schema import P
+
+
+@register
+class {cls}(PoseTracker):
+    key = "{name}"
+    label = "{label}"
+    description = "TODO: describe this pose tracker (model, keypoints, licence)."
+    model_id = "{name}"
+    model_version = "0"
+
+    class Params(BaseModel):
+        min_confidence: float = P(0.3, ge=0, le=1, step=0.05, desc="Points below this are reported as not seen.")
+
+    def available(self) -> tuple[bool, str]:
+        # Say what is missing (package, model file) without importing anything heavy.
+        return True, "ok"
+
+    def keypoint_names(self) -> list[str]:
+        return ["nose", "withers", "tail_base"]
+
+    def track(self, video: Path, report: Callable[[float, str], None] | None = None,
+              cancelled: Callable[[], bool] | None = None) -> KeypointTracks:
+        names = self.keypoint_names()
+        with open_video(video) as r:
+            n = r.info.frames
+            xy = np.full((n, len(names), 2), np.nan)
+            conf = np.zeros((n, len(names)))
+            for i, frame in r.frames():
+                if cancelled is not None and cancelled():
+                    raise TrackerCancelled()
+                # TODO: find each landmark in `frame` (RGB uint8, [h, w, 3]); image pixels, y down.
+                if report is not None:
+                    report((i + 1) / max(n, 1), f"frame {{i + 1}}/{{n}}")
+            xy[:, :, 1] = -xy[:, :, 1]  # KeypointTracks have y up
+            return KeypointTracks(fps=r.info.fps, names=names, xy=xy, likelihood=conf, source=Path(video).name,
+                                  model=self.provenance(), image_size=(r.info.width, r.info.height))
+''',
 }
 
 _TEST = '''"""Contract test for the {ptype} plugin `{name}` (generated)."""

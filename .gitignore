@@ -35,3 +35,6 @@ desktop.ini
 .vscode/
 .idea/
 *.tmp
+
+# Downloaded model weights (pose trackers, ADR-077)
+models/

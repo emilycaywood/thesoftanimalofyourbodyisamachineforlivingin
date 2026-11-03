@@ -17,6 +17,7 @@ import numpy as np
 from calflab.plugins.base import Plugin
 
 if TYPE_CHECKING:
+    from calflab.behave.keypoints import KeypointTracks
     from calflab.components.library import Component, Library
     from calflab.model.genome import GeneValue, GenomeDefinition
     from calflab.model.overrides import ElementParams, Override
@@ -38,6 +39,7 @@ PLUGIN_TYPES: list[str] = [
     "analysis",
     "panel",
     "command",
+    "pose_tracker",
 ]
 
 
@@ -394,6 +396,61 @@ class Command(Plugin):
         }
 
 
+# ============================================================ footage
+class PoseTracker(Plugin):
+    """Video -> keypoint tracks with a confidence per point (ADR-077).
+
+    ``track`` reads the video itself (``calflab.behave.video``), reports
+    progress as ``report(fraction, message)``, raises
+    :class:`TrackerCancelled` as soon as ``cancelled()`` returns True, and
+    returns
+    :class:`~calflab.behave.keypoints.KeypointTracks` in image pixels with
+    y up, at the video's own frame rate, with ``model`` filled from
+    :meth:`provenance`. Heavy dependencies are imported inside ``track``;
+    ``available`` says what is missing without importing them.
+    """
+
+    plugin_type = "pose_tracker"
+    #: identifier and version of the model behind the tracker, stored with every clip
+    model_id: ClassVar[str] = ""
+    model_version: ClassVar[str] = ""
+    #: True if the tracker reads a file next to the video (e.g. a CSV) rather than the frames alone
+    needs_sidecar: ClassVar[bool] = False
+
+    def available(self) -> tuple[bool, str]:
+        """(usable right now, what is missing and how to get it)."""
+        return True, "ok"
+
+    def keypoint_names(self) -> list[str]:
+        """The landmark names the tracker gives (empty = they depend on the input, e.g. a CSV)."""
+        return []
+
+    def provenance(self) -> dict[str, Any]:
+        return {"tracker": self.key, "model": self.model_id or self.key, "version": self.model_version or self.version,
+                "params": self.params.model_dump(mode="json")}
+
+    def track(
+        self,
+        video: Path,
+        report: Callable[[float, str], None] | None = None,
+        cancelled: Callable[[], bool] | None = None,
+    ) -> KeypointTracks:
+        raise NotImplementedError
+
+    @classmethod
+    def extra(cls) -> dict[str, Any]:
+        try:
+            ok, why = cls().available()
+        except Exception as exc:  # a broken tracker must not take the UI down
+            ok, why = False, str(exc)
+        return {"model_id": cls.model_id, "model_version": cls.model_version, "available": ok,
+                "availability": why, "needs_sidecar": cls.needs_sidecar}
+
+
+class TrackerCancelled(Exception):
+    """Raised by a tracker when ``cancelled()`` became true."""
+
+
 BASES: dict[str, type[Plugin]] = {
     "gene_definition": GeneDefinition,
     "part_generator": PartGenerator,
@@ -410,4 +467,5 @@ BASES: dict[str, type[Plugin]] = {
     "analysis": Analysis,
     "panel": Panel,
     "command": Command,
+    "pose_tracker": PoseTracker,
 }

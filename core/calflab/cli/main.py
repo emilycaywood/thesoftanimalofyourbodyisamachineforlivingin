@@ -32,6 +32,8 @@ components_app = typer.Typer(help="Component library: verification worksheet and
 app.add_typer(registry_app, name="registry")
 app.add_typer(components_app, name="components")
 app.add_typer(bridge_app, name="bridge")
+tracker_app = typer.Typer(help="Pose trackers for footage: model downloads, synthetic test video.", no_args_is_help=True)
+app.add_typer(tracker_app, name="tracker")
 console = Console()
 
 ProjectOpt = typer.Option(None, "--project", "-p", help="Project folder (default: projects/sample-calf).")
@@ -499,6 +501,57 @@ def components_new(
     console.print("Enter each value from the datasheet. If a value is not on it, enter your best guess and add the "
                   "field's name to 'guessed:'. Leave optional values blank to see them reported as 'default assumed'.")
     console.print("Check it with: calflab components audit")
+
+
+@tracker_app.command("list")
+def tracker_list() -> None:
+    """Pose trackers, whether each can run here, and the model packages (source, size, licence)."""
+    from calflab.behave import models
+    from calflab.plugins import load_plugins, registry
+
+    load_plugins()
+    for key, cls in sorted(registry.all("pose_tracker").items()):
+        ok, why = cls().available()  # type: ignore[attr-defined]
+        console.print(f"[bold]{key}[/bold] ({cls.label}): {'[green]ready[/green]' if ok else '[yellow]' + why + '[/yellow]'}")
+    for key in models.PACKAGES:
+        st = models.status(key)
+        console.print(f"model package [bold]{key}[/bold]: {st['label']}, {st['size_mb']} MB, licence {st['licence']}; "
+                      f"research use: {st['research_use']}; "
+                      + ("[green]downloaded[/green]" if not st["missing"] else f"missing {', '.join(st['missing'])}"))
+
+
+@tracker_app.command("download")
+def tracker_download(package: str = typer.Argument("rtmpose_ap10k", help="Model package key.")) -> None:
+    """Download a tracker's model weights into <repo>/models, checking SHA-256."""
+    from calflab.behave import models
+
+    if package not in models.PACKAGES:
+        console.print(f"[red]No package {package!r}; known: {', '.join(models.PACKAGES)}[/red]")
+        raise typer.Exit(2)
+    pkg = models.PACKAGES[package]
+    console.print(f"{pkg.label}: {sum(f.size_mb for f in pkg.files):.0f} MB, licence {pkg.licence}")
+    man = models.download(package, lambda f, m: console.print(f"  {f:4.0%} {m}", end="\r"))
+    console.print()
+    console.print(f"Done: {', '.join(f['name'] for f in man['files'])} in {models.package_dir(package)}")
+
+
+@tracker_app.command("synthetic")
+def tracker_synthetic(
+    out: Path = typer.Argument(..., help="AVI file to write, e.g. projects/x/footage/videos/stick.avi"),
+    project: Path = ProjectOpt,
+) -> None:
+    """Write a synthetic video of the project's body (a stick calf: stand, walk, stand) for the colour-marker tracker."""
+    from calflab.behave.synthetic import write_synthetic_video
+
+    lab = _open_lab(project)
+    try:
+        truth = write_synthetic_video(lab.design().spec, out)
+    finally:
+        lab.close()
+    parts = ", ".join(f"{s['kind']} {s['start']}-{s['end']}" for s in truth["stretches"])
+    console.print(f"Wrote {out}: {parts} "
+                  f"(frames, {truth['fps']:g} fps). Process it with the 'synthetic' tracker and a map for its "
+                  "landmark names (feral_calf_side).")
 
 
 @components_app.command("worksheet")

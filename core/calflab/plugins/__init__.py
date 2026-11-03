@@ -32,8 +32,10 @@ from calflab.plugins.types import (
     Optimizer,
     Panel,
     PartGenerator,
+    PoseTracker,
     Simulator,
     Task,
+    TrackerCancelled,
     VectorDim,
 )
 
@@ -60,9 +62,11 @@ __all__ = [
     "PartGenerator",
     "Plugin",
     "PluginWatcher",
+    "PoseTracker",
     "Registry",
     "Simulator",
     "Task",
+    "TrackerCancelled",
     "VectorDim",
     "load_plugins",
     "register",

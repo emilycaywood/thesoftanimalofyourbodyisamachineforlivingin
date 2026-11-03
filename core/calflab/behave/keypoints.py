@@ -22,10 +22,10 @@ from __future__ import annotations
 import csv
 import io
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 import numpy as np
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 Format = Literal["auto", "dlc", "long", "wide"]
 
@@ -40,6 +40,10 @@ class KeypointTracks(BaseModel):
     xy: np.ndarray  # [frames, landmarks, 2]
     likelihood: np.ndarray  # [frames, landmarks]; 1 where the format has none
     source: str = ""
+    #: who made the tracks: {tracker, model, version, params} (ADR-077); empty for a CSV read directly
+    model: dict[str, Any] = Field(default_factory=dict)
+    #: (width, height) of the video in pixels, when the tracks come from a video
+    image_size: tuple[int, int] | None = None
 
     @property
     def frames(self) -> int:

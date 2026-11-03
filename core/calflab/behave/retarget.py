@@ -48,13 +48,30 @@ class JointRule(BaseModel):
     scale: float = 1.0
 
 
+class ViewCheck(BaseModel):
+    """How to judge the camera view from the trunk landmarks (ADR-076)."""
+
+    #: left/right landmark pairs (hips, shoulders) whose horizontal separation shows a turned animal
+    pairs: list[list[str]] = Field(default_factory=list)
+    #: the animal's trunk width over the hip-shoulder length (an assumption about calves, not measured)
+    width_over_length: float = 0.35
+    #: largest yaw from a true side view still accepted (deg)
+    max_oblique_deg: float = 25.0
+
+
 class RetargetMap(BaseModel):
     name: str
     description: str = ""
     body: str = ""  # genome definition the joint names belong to
     trunk: list[Landmark] = Field(default_factory=list)  # [rear, front]
     joints: dict[str, JointRule]  # "hl.stifle" -> rule
-    near_side: Literal["left", "right"] = "left"  # which legs the camera sees
+    #: which legs the camera sees; "auto" = decided from the footage (which way the animal faces)
+    near_side: Literal["left", "right", "auto"] = "left"
+    #: the side the joint keys (hl.*, fl.*) are written for; the map is mirrored for the other side
+    joints_side: Literal["left", "right"] = "left"
+    #: what ``{side}`` in a landmark name becomes for each side (e.g. AP-10K: L_Hip / R_Hip)
+    side_names: dict[str, str] = Field(default_factory=dict)
+    view: ViewCheck = Field(default_factory=ViewCheck)
     far_side: Literal["copy", "half_cycle", "hold"] = "copy"
     period_s: float | None = None  # for half_cycle
     standing: str | int = "first"
@@ -62,6 +79,35 @@ class RetargetMap(BaseModel):
     min_likelihood: float = 0.6
     max_gap_frames: int = 10
     smooth_frames: int = 3
+
+
+def _fill(lm: Landmark, name: str) -> Landmark:
+    return lm.replace("{side}", name) if isinstance(lm, str) else [x.replace("{side}", name) for x in lm]
+
+
+def for_side(m: RetargetMap, side: Literal["left", "right"]) -> RetargetMap:
+    """The map with ``near_side`` = ``side``: ``{side}`` landmarks filled in and the joint keys mirrored if the map
+    was written for the other side."""
+    name = m.side_names.get(side, "")
+    flip = side != m.joints_side
+
+    def key(k: str) -> str:
+        leg, part = k.split(".", 1)
+        if flip and len(leg) == 2 and leg[1] in "lr":
+            leg = leg[0] + {"l": "r", "r": "l"}[leg[1]]
+        return f"{leg}.{part}"
+
+    joints = {}
+    for k, r in m.joints.items():
+        joints[key(k)] = r.model_copy(update={
+            "flexion": [_fill(x, name) for x in r.flexion] if r.flexion else None,
+            "swing": [_fill(x, name) for x in r.swing] if r.swing else None,
+        })
+    return m.model_copy(update={
+        "near_side": side, "joints_side": side, "joints": joints,
+        "trunk": [_fill(x, name) for x in m.trunk], "ground": [_fill(x, name) for x in m.ground],
+        "view": m.view.model_copy(update={"pairs": [[_fill(a, name) for a in pr] for pr in m.view.pairs]}),
+    })
 
 
 def map_dirs(project_dir: Path | None) -> list[Path]:
@@ -134,12 +180,22 @@ def retarget(
     robot_height_mm: float | None = None,
 ) -> MotionClip:
     """A motion clip (degrees relative to standing; root in mm and quaternions) from keypoint tracks."""
+    side_report: dict[str, Any] | None = None
+    if m.near_side == "auto":
+        from calflab.behave.view import detect_near_side
+
+        side_report = detect_near_side(tracks, m)
+        m = for_side(m, side_report["near_side"])
+    elif m.side_names:
+        m = for_side(m, m.near_side)
     cleaned, missing = clean(tracks, m.min_likelihood, m.max_gap_frames, m.smooth_frames)
     ref = m.standing if standing is None else standing
     near, far = ("l", "r") if m.near_side == "left" else ("r", "l")
     joints: dict[str, np.ndarray] = {}
     report: dict[str, Any] = {"joints": {}, "omitted": {}, "landmarks_missing": {k: round(v, 3) for k, v in missing.items()},
-                              "reference": ref, "map": m.name, "far_side": m.far_side}
+                              "reference": ref, "map": m.name, "far_side": m.far_side, "near_side": m.near_side}
+    if side_report is not None:
+        report["near_side_detected"] = side_report
     rear = _pick(cleaned, m.trunk[0]) if len(m.trunk) == 2 else None
     front = _pick(cleaned, m.trunk[1]) if len(m.trunk) == 2 else None
     tf = _trunk_frame(cleaned.point(rear), cleaned.point(front)) if rear and front else None

@@ -309,6 +309,34 @@ def _command(cls: type[Plugin]) -> list[str]:
     return out
 
 
+def _pose_tracker(cls: type[Plugin]) -> list[str]:
+    """Provenance and availability always; a self-contained tracker that is available also tracks a blank video."""
+    from calflab.behave.keypoints import KeypointTracks
+    from calflab.behave.video import write_avi
+
+    out = []
+    t = cls()
+    ok, why = t.available()  # type: ignore[attr-defined]
+    if not isinstance(ok, bool) or not isinstance(why, str):
+        out.append("available() must return (bool, str)")
+    prov = t.provenance()  # type: ignore[attr-defined]
+    for k in ("tracker", "model", "version"):
+        if not prov.get(k):
+            out.append(f"provenance() lacks {k!r}")
+    if ok and not cls.needs_sidecar:  # type: ignore[attr-defined]
+        with tempfile.TemporaryDirectory() as d:
+            video = write_avi(Path(d) / "blank.avi", np.zeros((3, 24, 32), dtype=np.uint8), 10.0,
+                              np.array([[255, 255, 255]]))
+            tracks = t.track(video)  # type: ignore[attr-defined]
+            if not isinstance(tracks, KeypointTracks):
+                out.append("track() must return KeypointTracks")
+            elif tracks.frames != 3 or tracks.likelihood.shape != tracks.xy.shape[:2] or tracks.fps != 10.0:
+                out.append("track() must give one row per frame, a confidence per point and the video's frame rate")
+            elif not tracks.model.get("model"):
+                out.append("track() must fill KeypointTracks.model from provenance()")
+    return out
+
+
 _SPECIFIC: dict[str, Callable[[type[Plugin]], list[str]]] = {
     "gene_definition": _gene_definition,
     "part_generator": _part_generator,
@@ -325,6 +353,7 @@ _SPECIFIC: dict[str, Callable[[type[Plugin]], list[str]]] = {
     "analysis": _analysis,
     "panel": _panel,
     "command": _command,
+    "pose_tracker": _pose_tracker,
 }
 
 

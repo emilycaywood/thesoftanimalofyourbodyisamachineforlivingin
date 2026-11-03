@@ -29,6 +29,15 @@ dependencies = [
 cad = ["build123d>=0.7"]
 # Harness diagrams. Rendering also needs the Graphviz `dot` binary on PATH.
 wire = ["wireviz>=0.4"]
+# Reading video files (mp4, mov, avi, mkv) for the footage inbox (ADR-076).
+video = ["opencv-python-headless>=4.9"]
+# The RTMPose AP-10K pose tracker through ONNX Runtime; DirectML uses the AMD GPU on Windows (ADR-077).
+# The model weights are not a package: `calflab tracker download rtmpose_ap10k` fetches them.
+track = [
+    "opencv-python-headless>=4.9",
+    "onnxruntime-directml>=1.17; sys_platform == 'win32'",
+    "onnxruntime>=1.17; sys_platform != 'win32'",
+]
 
 [dependency-groups]
 dev = [
