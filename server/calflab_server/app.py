@@ -341,6 +341,25 @@ def create_app(lab: Lab, web_dist: Path | None = None, watch_plugins: bool = Tru
         except (FootageError, FileNotFoundError) as exc:
             raise HTTPException(404, str(exc)) from exc
 
+    @app.get("/api/footage/{file}/lift")
+    def footage_lift(file: str) -> dict[str, Any]:
+        from calflab.app.footage import FootageError
+        from calflab.app.footage import footage_lift as fl
+
+        try:
+            return fl(lab, file)
+        except FootageError as exc:
+            raise HTTPException(404, str(exc)) from exc
+
+    @app.post("/api/footage/{file}/prefetch")
+    def footage_prefetch(file: str, start: int = 0, end: int = 0, width: int = 640) -> dict[str, Any]:
+        from calflab.app.footage import FootageError, prefetch_frames
+
+        try:
+            return prefetch_frames(lab, file, start, end, width)
+        except FootageError as exc:
+            raise HTTPException(404, str(exc)) from exc
+
     # ------------------------------------------------------------------ files
     @app.get("/api/files/{rel:path}")
     def files(rel: str) -> FileResponse:

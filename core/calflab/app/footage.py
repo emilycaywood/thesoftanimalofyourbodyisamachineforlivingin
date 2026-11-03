@@ -13,9 +13,19 @@ folder, processing each new video as a job, and reviewing its candidates.
 * The server serves frames (:func:`frame_image`) and tracked points
   (:func:`frame_points`); the browser only draws them.
 
-Settings (tracker, map, segmentation) are the project's, in
+Settings (tracker, map, segmentation, 2D or 3D mode) are the project's, in
 ``<project>/footage/settings.json``, not the undoable document, like the
 motion library itself.
+
+**3D mode** (ADR-080): instead of measuring angles in the image (a side view,
+ADR-073), the robot's own skeleton and a camera are fitted to every frame
+(:mod:`calflab.behave.lift`); segmentation runs on those angles, with
+unreliable frames as gaps, and clips carry the animal's turning. New projects
+start in 3D; a project that processed videos before keeps 2D until switched.
+
+**Frames for the review** come from :class:`FrameCache`: one open reader per
+video and recently decoded frames, read ahead, so Play does not reopen and
+seek the file for every frame (ADR-081).
 """
 
 from __future__ import annotations
@@ -25,14 +35,16 @@ import json
 import logging
 import threading
 import time
+from collections import OrderedDict
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
 from calflab.behave import inbox
 from calflab.behave.clips import cut, near_angles, settle_side, standing_frame
 from calflab.behave.keypoints import clean
+from calflab.behave.lift import LiftMap, LiftSettings, cut_lift, lift, lift_clip, load_lift_map
 from calflab.behave.retarget import RetargetMap, load_map
 from calflab.behave.segment import SegmentSettings, segment
 from calflab.behave.video import VideoError, encode_image, open_video
@@ -50,10 +62,14 @@ class FootageError(Exception):
 class FootageSettings(BaseModel):
     tracker: str = "rtmpose_ap10k"
     tracker_params: dict[str, Any] = Field(default_factory=dict)
-    map: str = "ap10k_side"
-    #: decide the near side from the footage (overrides the map's near_side)
+    #: "2d": angles measured in the image (a side view, ADR-076); "3d": the body's skeleton lifted (ADR-080)
+    mode: Literal["2d", "3d"] = "3d"
+    map: str = "ap10k_side"  # the 2D map
+    map_3d: str = "ap10k_3d"  # the 3D lift map
+    #: decide the near side from the footage (overrides the map's near_side; 2D)
     auto_side: bool = True
     segmentation: SegmentSettings = Field(default_factory=SegmentSettings)
+    lift: LiftSettings = Field(default_factory=LiftSettings)
     poll_s: float = 2.0
 
 
@@ -62,10 +78,15 @@ def settings_path(project_dir: Path) -> Path:
 
 
 def load_settings(project_dir: Path) -> FootageSettings:
+    """The project's settings. 3D is the default only for a new project: settings saved before the mode existed,
+    or a project that processed videos without saving settings, stay 2D (ADR-080)."""
     p = settings_path(project_dir)
     if p.is_file():
-        return FootageSettings.model_validate(json.loads(p.read_text(encoding="utf-8")))
-    return FootageSettings()
+        data = json.loads(p.read_text(encoding="utf-8"))
+        data.setdefault("mode", "2d")
+        return FootageSettings.model_validate(data)
+    used = (Path(project_dir) / "footage" / "inbox.json").is_file()
+    return FootageSettings(mode="2d" if used else "3d")
 
 
 def save_settings(project_dir: Path, s: FootageSettings) -> None:
@@ -84,6 +105,7 @@ class FootageInbox:
         self._stop = threading.Event()
         self._busy: str | None = None  # file being processed
         self._lock = threading.Lock()
+        self.frames = FrameCache()  # decoded frames for the review (ADR-081)
         inbox.videos_dir(self.project_dir)  # the folder the researcher drops videos into exists from the start
 
     @property
@@ -100,6 +122,7 @@ class FootageInbox:
     def stop(self) -> None:
         self._stop.set()
         self._thread = None
+        self.frames.close()
 
     def _loop(self) -> None:
         while not self._stop.is_set():
@@ -180,12 +203,7 @@ def process_video(lab: Any, file: str, job: Any) -> dict[str, Any]:
         job.log(f"Tracked {tracks.frames} frames with {s.tracker} in {time.perf_counter() - t0:.1f} s")
         inbox.save_tracks(pdir, sha, tracks)
         _set(lab, file, sha, status="retargeting", progress=0.85, tracker=tracks.model)
-        out = analyse(lab, tracks, _map_for(lab, s), s.segmentation, path.stem)
-        _set(lab, file, sha, status="needs_review", progress=1.0, map=out["map"], near_side=out["near_side"],
-             view=out["view"], standing_frame=out["standing_frame"], segmentation=out["segmentation"],
-             candidates=out["candidates"],
-             reason="" if out["candidates"] else "No stretch long enough was found (see the segmentation settings)")
-        return {"file": file, "candidates": len(out["candidates"]), "view": out["view"]["verdict"]}
+        return _analyse_and_store(lab, file, sha, tracks, s, path.stem, job, 0.85)
     except TrackerCancelled:
         _set(lab, file, sha, status="cancelled", reason="cancelled")
         raise
@@ -196,6 +214,142 @@ def process_video(lab: Any, file: str, job: Any) -> dict[str, Any]:
         _set(lab, file, sha, status="failed", reason=f"{type(exc).__name__}: {exc}" if not isinstance(
             exc, FootageError | VideoError) else str(exc))
         raise
+
+
+def _analyse_and_store(lab: Any, file: str, sha: str, tracks: Any, s: FootageSettings, stem: str, job: Any,
+                       p0: float) -> dict[str, Any]:
+    """Analyse tracked footage in the project's mode and store the result in the record."""
+    pdir = Path(lab.project.path)
+    if s.mode == "3d":
+        def report(frac: float, msg: str) -> None:
+            job.report(p0 + (0.99 - p0) * frac, msg)
+
+        out = analyse_3d(lab, tracks, s, stem, sha, report, job.cancelled)
+    else:
+        out = analyse(lab, tracks, _map_for(lab, s), s.segmentation, stem)
+        inbox.lift_path(pdir, sha).unlink(missing_ok=True)
+    _set(lab, file, sha, status="needs_review", progress=1.0, map=out["map"], near_side=out["near_side"],
+         view=out["view"], standing_frame=out["standing_frame"], segmentation=out["segmentation"],
+         candidates=out["candidates"], mode=s.mode, lift=out.get("lift", {}), reference=out.get("reference", ""),
+         reason="" if out["candidates"] else "No stretch long enough was found (see the segmentation settings)")
+    return {"file": file, "mode": s.mode, "candidates": len(out["candidates"]), "view": out["view"].get("verdict")}
+
+
+def reanalyse_video(lab: Any, file: str) -> dict[str, Any]:
+    """Analyse a tracked video again with the current settings (mode, map, segmentation), keeping its tracks.
+    A job; tracking is not repeated."""
+    rec = _record(lab, file)
+    if rec.status in ("tracking", "retargeting", "queued", "waiting"):
+        raise FootageError(f"{file} is being processed; wait for it or cancel it first")
+    pdir = Path(lab.project.path)
+    try:
+        tracks = inbox.load_tracks(pdir, rec.sha256)
+    except FileNotFoundError as exc:
+        raise FootageError(f"{file} has no stored tracks; use Retry to track it") from exc
+    sha = rec.sha256
+    s = load_settings(pdir)
+
+    def work(job: Any) -> dict[str, Any]:
+        _set(lab, file, sha, status="retargeting", reason="", progress=0.0, job=job.job.id, candidates=[])
+        try:
+            return _analyse_and_store(lab, file, sha, tracks, s, Path(file).stem, job, 0.0)
+        except Exception as exc:
+            if job.cancelled():
+                _set(lab, file, sha, status="cancelled", reason="cancelled")
+                raise
+            _set(lab, file, sha, status="failed", reason=str(exc) if isinstance(exc, FootageError | ValueError)
+                 else f"{type(exc).__name__}: {exc}")
+            raise
+
+    return {"job": lab.jobs.submit("footage", f"Analyse video {file} ({s.mode.upper()})", work).id}
+
+
+def _lift_map_for(lab: Any, s: FootageSettings) -> LiftMap:
+    try:
+        return load_lift_map(s.map_3d, lab.project.path)
+    except KeyError as exc:
+        raise FootageError(str(exc)) from exc
+
+
+def analyse_3d(lab: Any, tracks: Any, s: FootageSettings, stem: str, sha: str, report: Any = None,
+               cancelled: Any = None) -> dict[str, Any]:
+    """3D lift, segmentation on its angles (unreliable stretches are gaps), standing reference, candidates."""
+    import numpy as np
+
+    from calflab.behave.keypoints import KeypointTracks
+
+    m = _lift_map_for(lab, s)
+    spec = lab.design().spec
+    try:
+        res = lift(tracks, m, spec, s.lift, report, cancelled)
+    except ValueError as exc:
+        raise FootageError(f"3D lift with map {m.name}: {exc}; the tracker's names: {', '.join(tracks.names)}") from exc
+    inbox.save_lift(lab.project.path, sha, res)
+    full = lift_clip(res, spec, None, stem)
+    joints = {k: np.asarray(v) for k, v in full.joints.items()}
+    # trunk motion: travel on the ground and turning, in robot body lengths per second
+    sk_len = _robot_length(spec) * float(res.proportions.get("trunk_length", 1.0))
+    xy = np.array([p[:2] for p in full.root_pos])
+    fps = tracks.fps
+    speed = np.hypot(*np.gradient(xy, axis=0).T) * fps / max(sk_len, 1e-9) if len(xy) > 1 else np.zeros(len(xy))
+    turn = np.abs(np.gradient(np.deg2rad(full.meta["lift"]["heading_deg"]))) * fps / 2.0 if len(xy) > 1 else 0.0
+    trunk = np.hypot(speed, turn)
+    bad = ~res.reliable()
+    gaps = np.zeros(len(bad), dtype=bool)
+    run = 0
+    for i in range(len(bad) + 1):  # unreliable stretches longer than a short gap are not candidates
+        if i < len(bad) and bad[i]:
+            run += 1
+            continue
+        if run > s.lift.max_gap_frames:
+            gaps[i - run:i] = True
+        run = 0
+    stub = KeypointTracks(fps=fps, names=[], xy=np.zeros((tracks.frames, 0, 2)), likelihood=np.zeros((tracks.frames, 0)))
+    segs = segment(stub, None, None, joints, s.segmentation, None, trunk_bl_s=trunk, gaps=gaps)
+    stand = standing_frame(segs["candidates"])
+    ref_clip = lift_clip(res, spec, stand, stem) if stand is not None else full
+    reference = ref_clip.meta["reference"]
+    counts: dict[str, int] = {}
+    cands: list[inbox.Candidate] = []
+    rel = res.reliable()
+    vy = np.asarray(res.view_yaw_deg)
+    hd = np.asarray(ref_clip.meta["lift"]["heading_deg"])
+    for c in segs["candidates"]:
+        a, b = c["start"], c["end"]
+        counts[c["kind"]] = counts.get(c["kind"], 0) + 1
+        frac = float(np.mean(rel[a:b]))
+        seen = {leg: round(float(np.mean(v[a:b])), 3) for leg, v in res.legs_seen.items()}
+        row = {k: v for k, v in c.items() if k in inbox.Candidate.model_fields}
+        row.update(far_side="tracked", reliable_fraction=round(frac, 3),
+                   ambiguous_fraction=round(float(np.mean([st == "ambiguous" for st in res.state[a:b]])), 3),
+                   view_yaw_range_deg=(round(float(vy[a:b].min()), 1), round(float(vy[a:b].max()), 1)),
+                   turn_deg=round(float(hd[b - 1] - hd[a]), 1), reference=reference, legs_seen=seen,
+                   view_ok=frac >= 0.8)
+        cands.append(inbox.Candidate(id=f"c{len(cands) + 1}", name=f"{stem} {c['kind']} {counts[c['kind']]}", **row))
+    summary = res.summary
+    verdict = (f"3D lift: {summary['reliable_fraction']:.0%} of frames reliable, median yaw "
+               f"{summary['median_view_yaw_deg']} deg" if summary.get("median_view_yaw_deg") is not None else
+               "3D lift: no reliable frame")
+    return {
+        "map": m.model_dump(mode="json"),
+        "near_side": {"near_side": summary.get("near_side"), "method": "3d lift"},
+        "view": {"verdict": verdict, "note": res.camera["note"], "median_yaw_deg": summary.get("median_view_yaw_deg")},
+        "standing_frame": stand,
+        "reference": reference,
+        "segmentation": {"settings": segs["settings"], "standing_frame": stand, "signals": segs["signals"],
+                         "gaps": int(gaps.sum())},
+        "candidates": cands,
+        "lift": {"map": m.name, "summary": summary, "camera": res.camera, "proportions": res.proportions,
+                 "settings": res.settings},
+    }
+
+
+def _robot_length(spec: Any) -> float:
+    """Hip-to-shoulder distance of the robot (mm), the body length of the 3D signals."""
+    root = spec.root.id
+    hind = [b.pos[0] for b in spec.bodies if b.parent == root and b.id.startswith("leg.h")]
+    front = [b.pos[0] for b in spec.bodies if b.parent == root and b.id.startswith("leg.f")]
+    return abs(sum(front) / len(front) - sum(hind) / len(hind)) if hind and front else 500.0
 
 
 def analyse(lab: Any, tracks: Any, m: RetargetMap, seg: SegmentSettings, stem: str) -> dict[str, Any]:
@@ -255,6 +409,8 @@ def candidate_clip(lab: Any, file: str, cid: str, start: int | None = None, end:
     if not rec.map:
         raise FootageError(f"{file} has not been processed yet ({rec.status})")
     c = _candidate(rec, cid)
+    if rec.mode == "3d":
+        return _candidate_clip_3d(lab, rec, c, start, end, name, far_side)
     tracks = inbox.load_tracks(lab.project.path, rec.sha256)
     m = RetargetMap.model_validate(rec.map)
     height = lab.design().spec.root.pos[2]
@@ -281,14 +437,45 @@ def candidate_clip(lab: Any, file: str, cid: str, start: int | None = None, end:
     return clip
 
 
+def _candidate_clip_3d(lab: Any, rec: inbox.VideoRecord, c: inbox.Candidate, start: int | None, end: int | None,
+                       name: str, far_side: str) -> MotionClip:
+    try:
+        res = inbox.load_lift(lab.project.path, rec.sha256)
+    except FileNotFoundError as exc:
+        raise FootageError(str(exc)) from exc
+    full = lift_clip(res, lab.design().spec, rec.standing_frame, Path(rec.file).stem)
+    a = c.start if start is None else int(start)
+    b = c.end if end is None else int(end)
+    fs = far_side or c.far_side or "tracked"
+    period = c.period_s
+    if fs == "half_cycle" and (a, b) != (c.start, c.end) and period:
+        cycles = max(1, int((b - a) / (period * res.fps)))
+        b = a + int(round(cycles * period * res.fps))
+    try:
+        clip = cut_lift(full, a, b, name or c.name, fs, period)
+    except ValueError as exc:
+        raise FootageError(str(exc)) from exc
+    clip.meta.update({
+        "footage": rec.file, "video_sha256": rec.sha256, "video": rec.info, "candidate": c.id, "kind": c.kind,
+        "tracker": rec.tracker, "map": rec.map, "near_side_detected": rec.near_side, "view": rec.view,
+        "lift": rec.lift, "standing_frame": rec.standing_frame,
+        "segmentation": rec.segmentation.get("settings"),
+    })
+    return clip
+
+
 def preview_candidate(lab: Any, file: str, cid: str, start: int | None = None, end: int | None = None,
                       far_side: str = "") -> dict[str, Any]:
     from calflab.app.behave_jobs import preview_run
 
     clip = candidate_clip(lab, file, cid, start, end, far_side=far_side)
     clip.id = f"{Path(file).stem}-{cid}"
-    return preview_run(lab, clip, 1.0, f"Candidate preview: {file} {cid}",
-                       {"footage": file, "candidate": cid, "frame_range": clip.meta["frame_range"]})
+    out = preview_run(lab, clip, 1.0, f"Candidate preview: {file} {cid}",
+                      {"footage": file, "candidate": cid, "frame_range": clip.meta["frame_range"]})
+    if clip.meta.get("mode") == "3d":
+        out["motion"] = {k: clip.meta.get(k) for k in ("turn_deg", "heading_range_deg", "travel_mm", "legs",
+                                                         "reference", "unreliable_frames")}
+    return out
 
 
 def accept_candidate(lab: Any, file: str, cid: str, name: str = "", start: int | None = None, end: int | None = None,
@@ -346,13 +533,168 @@ def cancel_video(lab: Any, file: str) -> dict[str, Any]:
 
 
 # ---------------------------------------------------------------------- frames and points for the browser
+class FrameCache:
+    """Frames for the review (ADR-081). Keeps readers open per video (one for requests, one for reading ahead; at
+    most ``readers`` in all), the most recent encoded frames (at most ``frames``), and reads ahead from a
+    requested frame on a thread, sequentially, which is fast; reopening and seeking an H.264 file for every frame
+    took 300-500 ms. A request for a frame the read-ahead is about to reach waits for it instead of seeking."""
+
+    def __init__(self, frames: int = 600, readers: int = 4, ahead: int = 45):
+        self._readers: OrderedDict[tuple[str, int, int, str], tuple[Any, threading.Lock]] = OrderedDict()
+        self._frames: OrderedDict[tuple[str, int, int, int, int], tuple[bytes, str]] = OrderedDict()
+        self._lock = threading.Lock()
+        self._added = threading.Condition(self._lock)
+        self._ahead: dict[tuple[str, int, int], tuple[int, int]] = {}  # video -> (next frame, end) being read
+        self._jump: dict[tuple[str, int, int], int] = {}  # video -> where the read-ahead should go on from
+        self.max_frames, self.max_readers, self.ahead = frames, readers, ahead
+
+    @staticmethod
+    def _key(path: Path) -> tuple[str, int, int]:
+        st = path.stat()
+        return (str(path), st.st_mtime_ns, st.st_size)
+
+    def _reader(self, key: tuple[str, int, int], role: str = "serve") -> tuple[Any, threading.Lock]:
+        rk = (*key, role)
+        with self._lock:
+            if rk in self._readers:
+                self._readers.move_to_end(rk)
+                return self._readers[rk]
+        r = open_video(Path(key[0]))
+        with self._lock:
+            if rk in self._readers:  # opened by another thread meanwhile
+                r.close()
+                return self._readers[rk]
+            self._readers[rk] = (r, threading.Lock())
+            while len(self._readers) > self.max_readers:
+                _, (old, olock) = self._readers.popitem(last=False)
+                with olock:
+                    old.close()
+            return self._readers[rk]
+
+    def _decode(self, key: tuple[str, int, int], index: int, width: int, role: str = "serve") -> tuple[bytes, str]:
+        fk = (*key, index, width)
+        with self._lock:
+            hit = self._frames.get(fk)
+            if hit is not None:
+                self._frames.move_to_end(fk)
+                return hit
+            if role == "serve" and key in self._ahead:
+                nxt, end = self._ahead[key]
+                if nxt <= index < min(end, nxt + 60):  # the read-ahead gets there sooner than a seek would
+                    self._added.wait_for(lambda: fk in self._frames or key not in self._ahead, timeout=2.0)
+                    hit = self._frames.get(fk)
+                    if hit is not None:
+                        return hit
+        r, rlock = self._reader(key, role)
+        with rlock:
+            with self._lock:
+                hit = self._frames.get(fk)
+            if hit is not None:
+                return hit
+            out = encode_image(r.frame(int(index)), width)
+        with self._lock:
+            self._frames[fk] = out
+            while len(self._frames) > self.max_frames:
+                self._frames.popitem(last=False)
+            self._added.notify_all()
+        return out
+
+    def get(self, path: Path, index: int, width: int = 640) -> tuple[bytes, str]:
+        key = self._key(path)
+        out = self._decode(key, index, width)
+        self.read_ahead(path, index + 1, index + 1 + self.ahead, width)
+        return out
+
+    def cached(self, path: Path, index: int, width: int = 640) -> bool:
+        with self._lock:
+            return (*self._key(path), index, width) in self._frames
+
+    def read_ahead(self, path: Path, start: int, end: int, width: int = 640) -> None:
+        """Decode [start, end) in order on a thread (one per video at a time), skipping frames already cached."""
+        key = self._key(path)
+        with self._lock:
+            if key in self._ahead:
+                nxt, cur_end = self._ahead[key]
+                if nxt <= start <= cur_end + 30:  # already reading there: just read further
+                    self._ahead[key] = (nxt, max(cur_end, end))
+                else:  # elsewhere (a scrub): the running thread jumps there
+                    self._jump[key] = max(0, start)
+                    self._ahead[key] = (nxt, end)
+                return
+            self._ahead[key] = (max(0, start), end)
+
+        def run() -> None:
+            try:
+                r, _ = self._reader(key, "ahead")
+                i = max(0, start)
+                while True:
+                    with self._lock:
+                        if key in self._jump:
+                            i = self._jump.pop(key)
+                        stop = self._ahead[key][1]
+                        if r.info.frames:
+                            stop = min(stop, r.info.frames)
+                        if i >= stop:
+                            break
+                        self._ahead[key] = (i, self._ahead[key][1])
+                        have = (*key, i, width) in self._frames
+                    if not have:
+                        self._decode(key, i, width, "ahead")
+                    i += 1
+            except Exception:  # the end of a file whose frame count was approximate, or a closed reader
+                log.debug("read-ahead stopped", exc_info=True)
+            finally:
+                with self._lock:
+                    self._ahead.pop(key, None)
+                    self._jump.pop(key, None)
+                    self._added.notify_all()
+
+        threading.Thread(target=run, name="calflab-frames", daemon=True).start()
+
+    def close(self) -> None:
+        with self._lock:
+            for r, rlock in self._readers.values():
+                with rlock:
+                    r.close()
+            self._readers.clear()
+            self._frames.clear()
+
+
 def frame_image(lab: Any, file: str, index: int, max_width: int = 640) -> tuple[bytes, str]:
     path = inbox.videos_dir(lab.project.path) / Path(file).name
+    if not path.is_file():
+        raise FootageError(f"No video {file!r} in the videos folder")
     try:
-        with open_video(path) as r:
-            return encode_image(r.frame(int(index)), max_width)
+        return lab.footage.frames.get(path, int(index), max_width)
     except VideoError as exc:
         raise FootageError(str(exc)) from exc
+
+
+def prefetch_frames(lab: Any, file: str, start: int, end: int, max_width: int = 640) -> dict[str, Any]:
+    """Start decoding [start, end) into the frame cache (a candidate's range, when the review opens it)."""
+    path = inbox.videos_dir(lab.project.path) / Path(file).name
+    if not path.is_file():
+        raise FootageError(f"No video {file!r} in the videos folder")
+    lab.footage.frames.read_ahead(path, int(start), int(end), max_width)
+    return {"file": file, "start": start, "end": end}
+
+
+def footage_lift(lab: Any, file: str) -> dict[str, Any]:
+    """Per-frame reliability of a 3D lift for the review's strip: state, estimated yaw and heading, residual."""
+    rec = _record(lab, file)
+    if rec.mode != "3d":
+        return {"mode": rec.mode, "frames": 0}
+    try:
+        res = inbox.load_lift(lab.project.path, rec.sha256)
+    except FileNotFoundError as exc:
+        raise FootageError(str(exc)) from exc
+    return {
+        "mode": "3d", "frames": res.frames, "fps": res.fps, "state": res.state,
+        "view_yaw_deg": res.view_yaw_deg, "heading_deg": [round(v - res.heading_deg[0], 1) for v in res.heading_deg],
+        "residual_px": res.residual_px, "residual_bl": res.residual_bl, "reasons": res.reasons,
+        "ambiguous": res.ambiguous, "unobservable": res.unobservable, "near_side": res.near_side,
+        "summary": res.summary, "camera": res.camera, "proportions": res.proportions,
+    }
 
 
 def frame_points(lab: Any, file: str, start: int = 0, end: int | None = None) -> dict[str, Any]:
@@ -369,7 +711,9 @@ def frame_points(lab: Any, file: str, start: int = 0, end: int | None = None) ->
     names = set(tracks.names)
     links = [list(link) for link in (*AP10K_SKELETON, *STICKS) if link[0] in names and link[1] in names]
     used: set[str] = set()
-    if rec.map:
+    if rec.map and rec.mode == "3d":
+        used.update(LiftMap.model_validate(rec.map).expanded()[0])
+    elif rec.map:
         m = rec.map
         for r in m.get("joints", {}).values():
             for lm in (r.get("flexion") or []) + (r.get("swing") or []):
@@ -380,7 +724,7 @@ def frame_points(lab: Any, file: str, start: int = 0, end: int | None = None) ->
     for f in range(xy.shape[0]):
         rows.append([[None if v != v else round(float(v), 1) for v in xy[f, k]] + [round(float(tracks.likelihood[start + f, k]), 3)]
                      for k in range(len(tracks.names))])
-    thr = RetargetMap.model_validate(rec.map).min_likelihood if rec.map else 0.5
+    thr = float(rec.map.get("min_likelihood", 0.5)) if rec.map else 0.5
     return {"names": tracks.names, "links": links, "used": sorted(used & names), "start": start, "end": end,
             "image_size": tracks.image_size, "fps": tracks.fps, "min_likelihood": thr, "frames": rows}
 
@@ -396,6 +740,12 @@ def footage_view(lab: Any) -> dict[str, Any]:
         d = r.model_dump(mode="json")
         d["segmentation"] = {k: v for k, v in r.segmentation.items() if k != "signals"}
         d["map"] = {"name": r.map.get("name"), "near_side": r.map.get("near_side")} if r.map else {}
+        if r.lift:
+            d["lift"] = {k: r.lift.get(k) for k in ("map", "camera", "proportions")} | {
+                "summary": {k: v for k, v in r.lift.get("summary", {}).items()
+                            if k not in ("unobservable_fraction", "landmark_residual_px")},
+                "landmark_residual_px": r.lift.get("summary", {}).get("landmark_residual_px"),
+                "unobservable_fraction": r.lift.get("summary", {}).get("unobservable_fraction")}
         rows.append(d)
     trackers = [{"key": k, "label": c.label, **c.extra()} for k, c in sorted(registry.all("pose_tracker").items())]
     return {

@@ -59,6 +59,23 @@ class RetryVideo(Command):
 
 
 @register
+class ReanalyseVideo(Command):
+    key = "reanalyse_video"
+    label = "Analyse video again"
+    description = ("Analyse a tracked video again with the current footage settings (2D or 3D, map, segmentation), "
+                   "keeping its tracks: nothing is tracked again. A job; the video's candidates are replaced.")
+    category = "Behave"
+
+    class Params(BaseModel):
+        file: str = P("", desc="Video file name in <project>/footage/videos.")
+
+    def run(self, lab: Any, state: Any) -> Any:
+        from calflab.app.footage import reanalyse_video
+
+        return _call(reanalyse_video, lab, self.params.file)  # type: ignore[attr-defined]
+
+
+@register
 class CancelVideo(Command):
     key = "cancel_video"
     label = "Cancel video processing"
@@ -86,7 +103,8 @@ class PreviewCandidate(Command):
         candidate: str = P("", desc="Candidate id (c1, c2, ...).")
         start: int = P(-1, ge=-1, desc="First frame (-1 = the candidate's).")
         end: int = P(-1, ge=-1, desc="Frame after the last (-1 = the candidate's).")
-        far_side: str = P("", choices=["", "copy", "half_cycle", "hold"], desc="Far legs (empty = suggested).")
+        far_side: str = P("", choices=["", "tracked", "copy", "half_cycle", "hold"],
+                          desc="Far legs (empty = suggested; tracked = as the 3D lift fitted them).")
 
     def run(self, lab: Any, state: Any) -> Any:
         from calflab.app.footage import preview_candidate
@@ -115,7 +133,8 @@ class AcceptCandidate(Command):
         name: str = P("", desc="Clip name (empty = the suggested one).")
         start: int = P(-1, ge=-1, desc="First frame (-1 = the candidate's).")
         end: int = P(-1, ge=-1, desc="Frame after the last (-1 = the candidate's).")
-        far_side: str = P("", choices=["", "copy", "half_cycle", "hold"], desc="Far legs (empty = suggested).")
+        far_side: str = P("", choices=["", "tracked", "copy", "half_cycle", "hold"],
+                          desc="Far legs (empty = suggested; tracked = as the 3D lift fitted them).")
         valence: float | None = P(None, ge=-1.0, le=1.0, step=0.1, desc="Your reading: -1 unpleasant .. +1 pleasant.")
         arousal: float | None = P(None, ge=0.0, le=1.0, step=0.1, desc="Your reading: 0 calm .. 1 agitated.")
         words: str = P("", desc="Free words, separated by commas (wary, curious, ...).")
@@ -187,18 +206,24 @@ class TagClip(Command):
 class SetFootageSettings(Command):
     key = "set_footage_settings"
     label = "Footage settings"
-    description = ("Which pose tracker and retarget map the inbox uses, whether it decides the near side from the "
-                   "footage, and the segmentation thresholds. Applies to videos processed from now on (Retry for "
-                   "older ones).")
+    description = ("Which pose tracker the inbox uses, 2D side view or 3D lift and their maps, whether it decides the "
+                   "near side from the footage (2D), the lift's and the segmentation's thresholds. Applies to videos "
+                   "processed from now on (Analyse again for older ones).")
     category = "Behave"
 
     class Params(BaseModel):
         tracker: str = P("rtmpose_ap10k", desc="Pose tracker plugin key.")
         tracker_params: dict[str, Any] = P(default_factory=dict, ui="json", desc="Its parameters (partial).")
-        map: str = P("ap10k_side", desc="Retarget map name.")
+        mode: str = P("", choices=["", "2d", "3d"],
+                      desc="2d: angles measured in the image (side views only). 3d: the body's skeleton and a camera "
+                           "fitted to every frame (turning, ab/adduction, far legs). Empty = unchanged.")
+        map: str = P("ap10k_side", desc="2D retarget map name.")
+        map_3d: str = P("", desc="3D lift map name (empty = unchanged).")
         auto_side: bool = P(True, desc="Decide the near side from which way the animal faces.")
         segmentation: dict[str, Any] = P(default_factory=dict, ui="json",
                                          desc="Segmentation thresholds (partial; see the user guide).")
+        lift: dict[str, Any] = P(default_factory=dict, ui="json",
+                                 desc="3D lift settings (partial: max_view_yaw_deg, max_residual_bl, camera_hfov_deg...).")
 
     def run(self, lab: Any, state: Any) -> Any:
         from calflab.app.footage import FootageSettings, load_settings, save_settings
@@ -210,8 +235,10 @@ class SetFootageSettings(Command):
         cur = load_settings(lab.project.path)
         new = FootageSettings.model_validate({
             **cur.model_dump(), "tracker": p.tracker, "tracker_params": p.tracker_params, "map": p.map,  # type: ignore[attr-defined]
-            "auto_side": p.auto_side,  # type: ignore[attr-defined]
+            "auto_side": p.auto_side, "mode": p.mode or cur.mode,  # type: ignore[attr-defined]
+            "map_3d": p.map_3d or cur.map_3d,  # type: ignore[attr-defined]
             "segmentation": {**cur.segmentation.model_dump(), **p.segmentation},  # type: ignore[attr-defined]
+            "lift": {**cur.lift.model_dump(), **p.lift},  # type: ignore[attr-defined]
         })
         save_settings(lab.project.path, new)
         lab.bus.emit("footage.changed")

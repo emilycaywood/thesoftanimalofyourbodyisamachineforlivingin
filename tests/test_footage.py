@@ -26,7 +26,7 @@ def lab(tmp_path):
 
     project = create_project(tmp_path / "feral", "feral_calf")
     lab = Lab.open(project.path, create=False)
-    save_settings(lab.project.path, FootageSettings(tracker="synthetic", map="feral_calf_side"))
+    save_settings(lab.project.path, FootageSettings(tracker="synthetic", map="feral_calf_side", mode="2d"))
     yield lab
     lab.close()
 
@@ -120,14 +120,14 @@ def test_the_watcher_processes_a_file_once_and_again_when_it_changes(lab, spec):
 def test_a_failing_tracker_marks_the_video_failed_and_retry_queues_it(lab, spec):
     from calflab.app.footage import FootageSettings, save_settings
 
-    save_settings(lab.project.path, FootageSettings(tracker="csv", map="feral_calf_side"))
+    save_settings(lab.project.path, FootageSettings(tracker="csv", map="feral_calf_side", mode="2d"))
     _drop(lab, spec, script=SyntheticScript(stretches=[Stretch(kind="stand", seconds=1.0)]))
     lab.footage.poll()
     lab.footage.poll()
     _wait(lab)
     rec = inbox.load(lab.project.path)["calf.avi"]
     assert rec.status == "failed" and "No CSV beside calf.avi" in rec.reason
-    save_settings(lab.project.path, FootageSettings(tracker="synthetic", map="feral_calf_side"))
+    save_settings(lab.project.path, FootageSettings(tracker="synthetic", map="feral_calf_side", mode="2d"))
     assert lab.execute("retry_video", {"file": "calf.avi"})["result"]["started"] == "calf.avi"
     _wait(lab)
     assert inbox.load(lab.project.path)["calf.avi"].status == "needs_review"

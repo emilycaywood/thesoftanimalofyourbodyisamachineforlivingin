@@ -16,7 +16,7 @@ test("a dropped video is tracked, reviewed and accepted as a tagged clip", async
   page.on("pageerror", (e) => errors.push(e.message));
   const inbox = await (await page.request.get("/api/footage")).json();
   const settings = await page.request.post("/api/commands/set_footage_settings", {
-    data: { tracker: "synthetic", map: "feral_calf_side", auto_side: true },
+    data: { tracker: "synthetic", map: "feral_calf_side", auto_side: true, mode: "2d" }, // the side-view pipeline (ADR-076)
   });
   expect(settings.ok()).toBeTruthy();
   const project = path.dirname(path.dirname(inbox.dir));
