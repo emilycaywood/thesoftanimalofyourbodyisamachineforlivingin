@@ -2,10 +2,10 @@
 
 Everything a new Claude Code session (or a new collaborator) needs to pick up
 CALFLAB. Last updated 2026-11-03 on branch `robot-calf-final` (cut from
-`chassis-mass`), after the session that added the 3D lift: 3D motion from
-ordinary single-camera videos, and a review player that plays (section 4,
-"Added later on 2026-11-03"; before it, session T: video inbox, pose
-tracking, composition, repertoire evolution). Run `git log --oneline -12`
+`chassis-mass`), after session X: the hind Knee at the hock in a project
+map, lift maps compared side by side, and clip smoothing (section 4, "Added
+at the end of 2026-11-03"; before it the 3D lift and the review player, and
+session T: video inbox, pose tracking, composition, repertoire evolution). Run `git log --oneline -12`
 for the current state. The commits since 2026-10-10 are local: not pushed.
 
 ---
@@ -842,6 +842,49 @@ video: 3D motion from one camera; ADR-080, ADR-081). Nothing installed.**
   ones apart; the slow four-yaw test passes on its own), mypy, web typecheck
   and eslint, 14 Vitest, 11 Playwright tests.
 
+**Added at the end of 2026-11-03 (session X: untie the hind leg, smooth
+what the tracker adds; ADR-082). Belts not touched:**
+
+* **Project map** `projects/robot-calf-final/motions/maps/ap10k_3d_hock.yaml`:
+  AP-10K's hind Knee exactly at the hock, the hock untied from the stifle;
+  the rest as `ap10k_3d`. The project's Settings use it (`map_3d`); the
+  video was analysed again in your running lab (port 8020) through its own
+  commands.
+* **Lifts kept per map** (`footage/lift/<sha16>.<map>.json`) and the
+  command `compare_lift_maps file=<video>`: reliable/ambiguous shares and
+  why, residual per landmark, proportions, hind angles over the frames both
+  maps call reliable. Command line only, no panel.
+* **On your video**, tied -> untied: reliable 75 -> 82 %, ambiguous 57 ->
+  71 % (hind legs 34/21 -> 52/56 %), median residual 24 -> 19 px, hind paw
+  residual 29/22 -> 13/12 px, hock now differs from the stifle by 23-25 deg
+  RMS. The stifle reaches its -30 deg limit under both maps. Candidates
+  are now 0-109 and 140-225 (were 0-108 and 156-225). Full table in
+  ADR-082.
+* **Clip smoothing** (`calflab.behave.smoothing`, Settings >
+  *clip_smoothing*): zero-lag Butterworth on joint angles and the root,
+  whole video before cutting, never past the raw range. `auto` (new
+  projects) picks the cutoff by Winter's residual analysis; `lowpass` at a
+  fixed Hz; `none`. Every clip records the setting, the cutoff and each
+  joint's peak speed raw and smoothed (`meta.smoothing`). Older projects'
+  settings load as `none`; `robot-calf-final` is set to `auto`, which
+  chose **3.5 Hz** (noise 1.8 deg).
+* **Playable speed of your two candidates**: 0-109: 0.29 (old map) -> 0.16
+  (new map, raw) -> **0.39** (new map, auto); 140-225: 0.17 -> 0.14 ->
+  **0.28**. Still limited by the left stifle (351 deg/s) and the left carpus
+  (489 deg/s, at the ball). What remains is mostly the fit jumping between
+  a leg's two bends on ambiguous frames, which smoothing only spreads out.
+* **Your running lab** still runs the old core code: it analysed the video
+  with the new map (map files are read when used), but it does not know the
+  smoothing until restarted. Restart it before previewing or accepting.
+* Tests: `tests/test_smoothing.py` (4) and additions to
+  `tests/test_lift.py`. `calflab test` passes: ruff, 445 pytest tests
+  (default suite 255 s), mypy, web typecheck and eslint, 14 Vitest, 11
+  Playwright tests. (The first full run failed only on ruff's import order
+  in the new test file; fixed, and ruff re-run on `core`, `server`, `tests`,
+  `plugins`.)
+* Not looked at in the browser: the two new fields in the inbox Settings
+  form come from the command's schema, with no web code changed.
+
 **Scaffolded only (interfaces + tests, no behaviour):** PPO training, MJX
 simulator, RemoteSSH and CloudNotebook transports (job bundling is real),
 imitation reward, interactive selection, molds, skin patterns, nesting,
@@ -880,16 +923,30 @@ Journal, Rhino bridge):**
 * `doctor` warned "uv not found" on top of the three expected warnings:
   false alarm, fixed (see Tests above).
 
+**The researcher must verify (new in session X, ADR-082):**
+
+* **The Knee exactly at the hock** on a few frames of your video (Review:
+  the orange L/R_Knee points against the calf's hocks).
+* **The hind angles** of the untied map against what you see: the hock now
+  bends on its own (mean 9-13 deg flexed, sd 10-13 deg), the stifle swings
+  -30..+30 deg and sits at its PROVISIONAL -30 deg limit in about 5 % of
+  reliable frames.
+* **More frames are ambiguous** with the hock free (71 %, mostly hind legs).
+  Say whether a stronger continuity choice for ambiguous legs is the next
+  step (session X2 below).
+* **The smoothing method**: `auto` (Winter, one cutoff per video, all
+  joints pooled) and "no new extremes" are my choices; 6 Hz for `lowpass` is
+  the human-gait convention, not a calf measurement.
+* Restart the lab on port 8020 before previewing or accepting candidates.
+
 **The researcher must verify (new with the 3D lift, ADR-080):**
 
 * **The yaw strip against what you see** in Review for your video (the lab
   says a side view for the first 2.6 s, a turn toward the camera up to 84
   deg around frames 100-140, a side view at the end).
 * **Knee and Elbow**: on your first video AP-10K's "Knee" sits on the
-  calf's **hock** (the lift places it 0.96 of the way from stifle to hock)
-  and "Elbow" on its **carpus**. Your assumptions were kept (hock tied to
-  stifle, Elbow = carpus). Untying the hock in `ap10k_3d` (two hind angles)
-  is the natural next step: your call.
+  calf's **hock** and "Elbow" on its **carpus**. Done in session X for this
+  project (`ap10k_3d_hock`); `ap10k_3d` itself keeps the tie.
 * **Hip and Shoulder sit well down the leg** on a calf (fitted 0.60 down
   the femur, 0.42 down the upper leg); check on a few frames.
 * The PROVISIONAL values: width/length 0.35 (used for your video), 60 deg
@@ -899,8 +956,8 @@ Journal, Rhino bridge):**
 * **"Ambiguous" is frequent on real footage** (57 % of your frames, mostly
   a leg whose other bend fits within the 24 px noise). Say if you want it
   stricter.
-* **Peak joint speeds** of real clips include tracker noise (up to 870
-  deg/s in the preview): a smoothing choice for clips is open.
+* **Peak joint speeds** of real clips include tracker noise: clip
+  smoothing (session X) removes the jitter, not limb-flip jumps.
 * The camera must stay still: a pan or zoom reads as the calf turning or
   approaching (your screen recording shows some of both, frames 120-160).
 
@@ -1059,7 +1116,7 @@ Journal, Rhino bridge):**
 |---|---|
 | `CLAUDE.md` | Conventions for every session (loaded automatically) |
 | `PLAN.md` | Architecture, module boundaries, data flow, phases, risks, status |
-| `DECISIONS.md` | ADR log: every assumption (81 so far) |
+| `DECISIONS.md` | ADR log: every assumption (82 so far) |
 | `docs/proposals/anatomical-leg.md` | Proposal for a three-segment leg (set aside 2026-10-04; not built) |
 | `docs/USER_GUIDE.md` | How to use the lab |
 | `docs/CHAT_GUIDE_PROMPT.md` | Prompt that makes a chat assistant a guide to the whole lab |
@@ -1075,17 +1132,17 @@ Journal, Rhino bridge):**
 
 Prefix each with the opening message from section 1.
 
-**X. Untie the hind leg and smooth what the tracker adds**
-(written 2026-11-03 after the 3D lift, ADR-080.)
-> In projects/robot-calf-final the 3D lift found AP-10K's Knee on my
-> calf's hock and its Elbow on the carpus. Make a project map from ap10k_3d
-> with the Knee at the hock and the hock untied from the stifle, re-analyse
-> my video, and show me side by side (old map / new map): the residual per
-> landmark, the hind angles, and how often frames are ambiguous. Then add a
-> clip smoothing setting (in the core, recorded in each clip's provenance)
-> so the body report's peak speeds reflect the calf rather than tracker
-> noise, and tell me how the playable speed of my two candidates changes.
-> Do not change the belts.
+**X2. Settle the ambiguous legs**
+(written 2026-11-03 after session X, ADR-082.)
+> In projects/robot-calf-final, with the map ap10k_3d_hock, 71 % of frames
+> are ambiguous and the remaining peak speeds are mostly the fit jumping
+> between a leg's two bends. Make the lift choose each leg's bend over a
+> window (both basins kept per frame, a Viterbi on fit and continuity, as
+> the depth flip already does) instead of frame by frame, and show me side
+> by side (before / after) on my video: the ambiguous share per leg, the
+> jumps over 12 deg per frame, the residual per landmark, and the playable
+> speed of my two candidates with auto smoothing. Check it on synthetic
+> footage with a known bend. Do not change the belts.
 
 **Y. A robot that turns as the calf did**
 > Clips from the 3D lift carry the calf's heading (root_quat) and ground
@@ -1094,7 +1151,7 @@ Prefix each with the opening message from section 1.
 > the hind ab/ad and stride length left/right, as the body allows), and
 > make the behaviors controller follow a clip's heading with it, measured
 > in simulation against the clip (heading error over time). Show me my
-> 58 deg turning candidate in physics, and say what limits the turn rate
+> 61 deg turning candidate (frames 0-109) in physics, and say what limits the turn rate
 > (servo speed, ab/ad range, stability). Do not change the belts.
 
 **Z. More of my videos in 3D, and the camera that moves**
@@ -1147,7 +1204,7 @@ map and segmentation tuning.)
 > penalise per constraint, the window, the joint-limit share) instead of
 > editing the preset file. Do not change the belts.
 
-*(T, from a video in a folder to behaviors an evolved body performs safely, was done on 2026-11-03: ADR-076 to ADR-079. 3D motion from one camera and the review player were done later the same day: ADR-080, ADR-081.)*
+*(T, from a video in a folder to behaviors an evolved body performs safely, was done on 2026-11-03: ADR-076 to ADR-079. 3D motion from one camera and the review player were done later the same day: ADR-080, ADR-081. X, the hind Knee at the hock and clip smoothing, at the end of that day: ADR-082.)*
 
 **O. The feral calf: enter what I measured and re-check the belts**
 > In projects/robot-calf-final: the STS3215 C018 output axis is <N> mm from

@@ -2596,3 +2596,124 @@ cancelled the last and the image never left the first frame.
 *Checked.* `tests/test_lift.py::test_frames_come_from_an_open_reader_and_a_cache`
 (cache hit, read-ahead), and Play on the real video in the lab's browser
 pane.
+
+## ADR-082 — The hind Knee at the hock, maps compared side by side, and clip smoothing (**VERIFY**)
+
+*Requested 2026-11-03* (session X): "Make a project map from ap10k_3d with
+the Knee at the hock and the hock untied from the stifle, re-analyse my
+video, and show me side by side (old map / new map): the residual per
+landmark, the hind angles, and how often frames are ambiguous. Then add a
+clip smoothing setting (in the core, recorded in each clip's provenance) so
+the body report's peak speeds reflect the calf rather than tracker noise ...
+Do not change the belts."
+
+*Decision.*
+* **Project map** `projects/robot-calf-final/motions/maps/ap10k_3d_hock.yaml`
+  (projects are not in git; the map is reproduced in
+  `tests/test_smoothing.py::_hock_map`): `ap10k_3d` with `{S}_Knee` at the
+  origin of `leg.h{s}.cannon` (the hock) and no ties. The Knee sits exactly
+  at the hock, not fitted (`ap10k_3d` had fitted it 0.96 of the way from
+  stifle to hock). Everything else unchanged: Elbow = carpus, Hip and
+  Shoulder fitted along the femur and upper leg. The project's settings use
+  it (`map_3d: ap10k_3d_hock`); `config/retarget/ap10k_3d.yaml` is unchanged
+  and still the default for new projects.
+* **Lifts kept per map**: `footage/lift/<sha16>.<map>.json` beside the
+  current `<sha16>.json` (the last lift with each map). `inbox.lift_maps`,
+  `load_lift(..., map_name)`. The `ap10k_3d` lift of the first video, made
+  before this, was copied to that name by hand.
+* **Side by side**: `calflab.behave.lift.compare_lifts` and the command
+  `compare_lift_maps` (no UI beyond the command line): per map the reliable,
+  ambiguous and unreliable shares, what made frames ambiguous, proportions
+  and fitted landmark places; the median residual per landmark (same tracks,
+  so the same points); the hind angles over the frames every map calls
+  reliable, and the RMS of hock minus stifle.
+* **Clip smoothing** (`calflab.behave.smoothing`, `FootageSettings.smoothing`,
+  `set_footage_settings clip_smoothing=auto|lowpass|none
+  clip_smoothing_hz=<Hz>`):
+  * a Butterworth low-pass, order 2, forward and backward (zero lag), with
+    Winter's correction for two passes;
+  * applied to the whole video's joint angles and root (path, orientation,
+    heading/pitch/roll of a lift) before a candidate is cut, in 2D and 3D;
+  * the smoothed angles are kept within the range the raw angles covered
+    over the video. Without that, ringing at the stifle's -30 deg limit made
+    both candidates "clamped", which the raw lift never was;
+  * `auto` (default for new projects): Winter's residual analysis on all
+    joints pooled. Cutoffs from 1 Hz in 0.5 Hz steps up to 95 % of Nyquist
+    after correction (11.4 Hz at 30 fps). A straight line through the top
+    40 % of that band gives the noise RMS at 0 Hz; the cutoff is the lowest
+    whose residual is down to it;
+  * `lowpass`: a fixed cutoff (default 6 Hz, the walking-kinematics
+    convention: PROVISIONAL); `none`: as before;
+  * every clip records `meta.smoothing`: the setting, whether it applied,
+    the cutoff (and for `auto` the noise RMS and residual curve), and each
+    joint's peak speed raw and smoothed. `preview_candidate` returns it too;
+  * settings saved before this load as `none`, so every other project cuts
+    clips as before; accepted clips are never changed. Segmentation, the
+    lift itself and CSV imports (ADR-073, their own 3-frame average) are not
+    smoothed by it.
+* `projects/robot-calf-final` set to `auto` with the researcher's request as
+  the reason (the request asked for smoothing; the method is my choice).
+
+*Results on the first video* (`Recording 2026-11-03 111941.mp4`, 225
+frames, 30.19 fps; re-analysed in the researcher's running lab):
+
+| | ap10k_3d (tied) | ap10k_3d_hock (untied) |
+|---|---|---|
+| reliable | 74.7 % | 81.8 % |
+| ambiguous | 57.3 % | 70.7 % |
+| ambiguous by a hind leg (L / R) | 34 / 21 % | 52 / 56 % |
+| ambiguous by a fore leg (L / R) | 21 / 22 % | 14 / 25 % |
+| depth (toward/away) | 3.1 % | 3.1 % |
+| median residual | 24.2 px | 19.4 px (body 274 px) |
+| hind paw residual L / R | 29.4 / 22.3 px | 13.1 / 12.1 px |
+| Knee residual L / R | 19.6 / 16.2 px | 19.6 / 12.6 px |
+| other landmarks | | the same or up to 3.2 px lower |
+| trunk / front leg ratio | 1.56 / 1.12 | 1.47 / 1.00 |
+| Hip / Shoulder fitted at | 0.60 / 0.42 | 0.67 / 0.36 |
+| hind L stifle / hock, mean +/- sd | 6.5 +/- 18.5 (tied) | 4.1 +/- 19.7 / 9.3 +/- 10.0 |
+| hind R stifle / hock | -1.1 +/- 14.1 (tied) | -2.7 +/- 13.9 / 12.7 +/- 13.2 |
+| hock - stifle RMS L / R | 0 | 22.9 / 24.9 deg |
+
+(168 frames reliable under both maps; angles in deg from standing.) In both
+the stifle reaches its -30 deg limit (5th percentile -30). The hock now
+carries its own motion and the hind paw fits twice as well, but more frames
+are ambiguous: with the hock free, the hind leg's swing seen at a slant
+often has a second bend that fits within the noise. The candidates became
+0-109 and 140-225 (were 0-108 and 156-225).
+
+Playable speed (the body report's, `clip_report`) on the same frames:
+
+| map, smoothing (cutoff) | 0-109 | 140-225 (156-225 for the tied map) |
+|---|---|---|
+| tied, none | 0.29 (left stifle) | 0.17 (left carpus) |
+| tied, auto (4.0 Hz) | 0.40 | 0.29 |
+| untied, none | 0.16 (left stifle) | 0.14 (left carpus) |
+| untied, lowpass 6 Hz | 0.26 | 0.20 |
+| untied, auto (3.5 Hz, noise 1.8 deg) | **0.39** (left stifle 351 deg/s) | **0.28** (left carpus 489 deg/s) |
+
+Peak speeds that remain are mostly single-frame jumps of 15-30 deg on
+frames marked ambiguous (the fit moving between a leg's two bends) and, in
+the second candidate, the carpus folding about 80 deg in 0.2 s at the ball,
+bridged across unreliable frames. Smoothing cannot remove a jump; a median
+filter before the low-pass (3 to 7 frames) raised the playable speeds by
+0 to 0.06.
+
+*Assumptions (VERIFY):* the Knee exactly at the hock; Winter's method as the
+default with all joints pooled into one cutoff per video; no new extremes;
+6 Hz for `lowpass`.
+
+*Checked.* `tests/test_smoothing.py` (4): a 1 Hz + 3 Hz swing with 2 deg of
+jitter (auto keeps the harmonic, finds the noise level, peak speed back
+within 30 %, no lag, no new extremes; fixed, none and out-of-band
+cutoffs); synthetic footage whose hock and stifle move differently, lifted
+with both maps (untied within 3 deg RMS; tied hock = stifle; the hind paw
+residual lower untied); lifts kept per map. `tests/test_lift.py`: new
+projects default to `auto`, older settings to `none`; a clip's provenance
+through the inbox; the settings command and view.
+
+*Not done.*
+* The limb-flip jumps themselves: a stronger continuity term for legs
+  marked ambiguous, or choosing between basins over a window rather than
+  frame by frame, would remove what smoothing cannot.
+* No panel for the comparison (command line and JSON).
+* `ap10k_3d_hock` is not offered as a built-in map for new projects.

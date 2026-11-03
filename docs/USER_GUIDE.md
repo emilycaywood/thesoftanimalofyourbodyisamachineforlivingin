@@ -1156,7 +1156,27 @@ Behaviors from reference footage.
    * **Reject**.
 
    The clip keeps where it came from: the video's hash, frames, tracker
-   and model version, the map, the cleaning and segmentation settings.
+   and model version, the map, the cleaning and segmentation settings, and
+   its smoothing (below).
+
+   **Clip smoothing** (*Settings* > *clip_smoothing*, ADR-082). A tracker's
+   points jitter by a few pixels per frame, which reads as hundreds of deg/s
+   in the body report. Every clip previewed or accepted is therefore
+   low-passed (joint angles and the trunk's path; no lag; never past the
+   range the raw angles covered):
+   * **auto** (new projects): the cutoff is found from the video (Winter's
+     residual analysis: the lowest cutoff at which what the filter removes
+     is down to the noise level). The clip records the cutoff, the noise
+     level in degrees, and every joint's peak speed before and after.
+   * **lowpass**: at *clip_smoothing_hz* (6 Hz is the usual choice for
+     walking).
+   * **none**: as retargeted. Projects whose settings were saved before this
+     existed start at *none*; clips already accepted are never changed.
+
+   Smoothing cannot tell a fit that jumps between a leg's two bends (an
+   *ambiguous* frame) from a fast movement: it only spreads the jump over a
+   few frames. Peak speeds still above the servo's may be the calf, or such
+   a jump: look at the frames.
 6. **Clips** can be filtered by your tags (*Filter by your affect tags*)
    and renamed or re-tagged (*Name and tags*).
 
@@ -1169,6 +1189,15 @@ segmentation cuts. To change the map, copy
 `<project>\motions\maps\`, edit it, pick it in *Settings* and *Analyse
 again*.
 
+**Comparing 3D maps.** The last lift with each map is kept per video
+(`footage\lift\<hash>.<map>.json`). After *Analyse again* with a second
+map, the command `compare_lift_maps file="<video>"` (command line) gives,
+side by side: reliable and ambiguous shares and what made frames ambiguous,
+the median residual per landmark, the fitted proportions, and the hind
+angles (stifle, hock, and how far the hock differs from the stifle) over
+the frames both maps call reliable. `projects\robot-calf-final` has
+`ap10k_3d_hock`: AP-10K's hind Knee on the hock, the hock untied.
+
 **What 3D cannot recover from one camera:** a camera that pans or zooms
 looks like the calf turning or approaching (keep the camera still); how far
 the calf travels toward or away from you rests on an assumed 60 deg field
@@ -1176,8 +1205,9 @@ of view; the head, neck and tail (the robot has no joints there); a calf
 seen head-on or tail-on (unreliable); the calf's width when it never turns
 and the camera is level (the 0.35 prior is used); and hip pitch on the hind
 legs (the robot has none, so the stifle and hock carry the swing). Joint
-speeds from noisy tracks are higher than the calf's real ones: read the
-body report's peaks with that in mind.
+speeds from noisy tracks are higher than the calf's real ones; clip
+smoothing (above) removes the jitter, not a fit that jumps between a
+leg's two bends.
 
 #### Composing behaviors (ADR-078)
 The Stochastic behaviors form has a **Composition** group:
