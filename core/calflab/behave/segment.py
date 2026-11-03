@@ -57,15 +57,19 @@ def _smooth(v: np.ndarray, n: int) -> np.ndarray:
 
 
 def signals(tracks: KeypointTracks, rear: str | None, front: str | None, joints: dict[str, np.ndarray],
-            settings: SegmentSettings, window: int | None = None) -> dict[str, np.ndarray]:
+            settings: SegmentSettings, window: int | None = None, trunk_bl_s: np.ndarray | None = None
+            ) -> dict[str, np.ndarray]:
     """Per-frame trunk motion (body lengths/s), limb activity (deg/s) and the body length (px), smoothed over
-    ``window`` frames (default ``settings.smooth_s``)."""
+    ``window`` frames (default ``settings.smooth_s``). ``trunk_bl_s`` gives the trunk motion directly (the 3D
+    lift's travel and turning, ADR-080) instead of the image landmarks."""
     fps = tracks.fps
     n = tracks.frames
     w = window if window is not None else max(1, int(round(settings.smooth_s * fps)))
     trunk = np.zeros(n)
     body_px = float("nan")
-    if rear and front:
+    if trunk_bl_s is not None:
+        trunk = _smooth(np.nan_to_num(np.asarray(trunk_bl_s, dtype=float)), w)
+    elif rear and front:
         r, f = tracks.point(rear), tracks.point(front)
         mid = (r + f) / 2.0
         body_px = float(np.nanmedian(np.hypot(*(f - r).T)))
@@ -113,11 +117,14 @@ def _runs(labels: np.ndarray) -> list[list[int]]:
 
 
 def segment(tracks: KeypointTracks, rear: str | None, front: str | None, joints: dict[str, np.ndarray],
-            settings: SegmentSettings | None = None, turned: list[bool] | None = None) -> dict[str, Any]:
-    """Candidate clips of the video: [{start, end, kind, period_s, far_side, ...}] and the signals."""
+            settings: SegmentSettings | None = None, turned: list[bool] | None = None,
+            trunk_bl_s: np.ndarray | None = None, gaps: np.ndarray | None = None) -> dict[str, Any]:
+    """Candidate clips of the video: [{start, end, kind, period_s, far_side, ...}] and the signals.
+
+    ``gaps`` marks frames that cannot be used (the 3D lift's unreliable stretches): no candidate covers them."""
     s = settings or SegmentSettings()
     fps = tracks.fps
-    sig = signals(tracks, rear, front, joints, s)
+    sig = signals(tracks, rear, front, joints, s, trunk_bl_s=trunk_bl_s)
     trunk, act = sig["trunk_bl_s"], sig["activity_deg_s"]
     moving = (trunk >= s.still_trunk_bl_s) | (act >= s.still_activity_deg_s)
     labels = moving.astype(int)
@@ -137,7 +144,7 @@ def segment(tracks: KeypointTracks, rear: str | None, front: str | None, joints:
                 changed = True
                 break
     # the smoothing widens moving stretches by half a window each side: give back the edge frames that are still
-    fine = signals(tracks, rear, front, joints, s, window=3)
+    fine = signals(tracks, rear, front, joints, s, window=3, trunk_bl_s=trunk_bl_s)
     still_fine = (fine["trunk_bl_s"] < s.still_trunk_bl_s) & (fine["activity_deg_s"] < s.still_activity_deg_s)
     half = max(1, int(round(s.smooth_s * fps / 2)))
     for a, b in _runs(labels):
@@ -152,8 +159,13 @@ def segment(tracks: KeypointTracks, rear: str | None, front: str | None, joints:
             labels[a:a2] = 0
         if b2 < b:
             labels[b2:b] = 0
+    if gaps is not None:
+        labels = labels.copy()
+        labels[np.asarray(gaps, dtype=bool)] = 2
     cands: list[dict[str, Any]] = []
     for a, b in _runs(labels):
+        if labels[a] == 2:
+            continue
         seconds = (b - a) / fps
         row: dict[str, Any] = {"start": a, "end": b, "seconds": round(seconds, 3),
                                "trunk_bl_s": round(float(np.mean(trunk[a:b])), 4),

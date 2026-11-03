@@ -58,6 +58,13 @@ class Candidate(BaseModel):
     clip: str = ""  # motion-library id once accepted
     #: the cut as the researcher trimmed it (frames), when different from start/end
     trim: tuple[int, int] | None = None
+    # 3D lift (ADR-080); None for 2D candidates
+    reliable_fraction: float | None = None
+    ambiguous_fraction: float | None = None
+    view_yaw_range_deg: tuple[float, float] | None = None
+    turn_deg: float | None = None  # heading change over the stretch (+ = turning left)
+    reference: str = ""  # what the angles are relative to
+    legs_seen: dict[str, float] | None = None  # share of the frames where each leg is tracked
 
 
 class VideoRecord(BaseModel):
@@ -74,6 +81,11 @@ class VideoRecord(BaseModel):
     map: dict[str, Any] = Field(default_factory=dict)  # the retarget map used, side settled
     near_side: dict[str, Any] = Field(default_factory=dict)
     view: dict[str, Any] = Field(default_factory=dict)  # verdict, note, median yaw (per-frame arrays not kept here)
+    #: "2d" (side view, ADR-076) or "3d" (lift, ADR-080); records written before the lift are 2D
+    mode: str = "2d"
+    #: the 3D lift's summary, camera and proportions (per-frame arrays are in footage/lift/<sha16>.json)
+    lift: dict[str, Any] = Field(default_factory=dict)
+    reference: str = ""  # what the angles are relative to
     standing_frame: int | None = None
     segmentation: dict[str, Any] = Field(default_factory=dict)  # settings, body_px
     candidates: list[Candidate] = Field(default_factory=list)
@@ -177,6 +189,27 @@ def scan(project_dir: Path) -> dict[str, list[str]]:
                 gone.append(name)
         save(project_dir, recs)
     return {"queued": queued, "gone": gone}
+
+
+def lift_path(project_dir: Path, sha: str) -> Path:
+    d = Path(project_dir) / "footage" / "lift"
+    d.mkdir(parents=True, exist_ok=True)
+    return d / f"{sha[:16]}.json"
+
+
+def save_lift(project_dir: Path, sha: str, result: Any) -> Path:
+    p = lift_path(project_dir, sha)
+    p.write_bytes(result.model_dump_json().encode())
+    return p
+
+
+def load_lift(project_dir: Path, sha: str) -> Any:
+    from calflab.behave.lift import LiftResult
+
+    p = lift_path(project_dir, sha)
+    if not p.is_file():
+        raise FileNotFoundError(f"No 3D lift stored for {sha[:16]}: analyse the video again")
+    return LiftResult.model_validate_json(p.read_bytes())
 
 
 def save_tracks(project_dir: Path, sha: str, tracks: KeypointTracks) -> Path:

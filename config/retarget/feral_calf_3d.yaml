@@ -1,0 +1,24 @@
+# 3D lift map (ADR-080) for landmarks on the robot's own joints, both sides:
+# what the synthetic 3D stick calf draws, and what you would click by hand
+# (or train a tracker on) to follow every joint. Names L_hip, R_hip, ...
+# "{S}" is written once for both sides (L / R); "{s}" in a body name is l / r.
+name: feral_calf_3d
+kind: lift
+description: >
+  3D lift of landmarks on the feral calf's joints, both sides: hip, stifle,
+  hock and hind hoof; shoulder, carpus and fore hoof. Every leg joint and hip
+  ab/adduction is fitted; nothing is tied.
+body: feral_calf
+side_names: {left: L, right: R}
+landmarks:
+  "{S}_hip": {body: "leg.h{s}.femur"}
+  "{S}_stifle": {body: "leg.h{s}.tibia"}
+  "{S}_hock": {body: "leg.h{s}.cannon"}
+  "{S}_hind_hoof": {body: "leg.h{s}.cannon", foot: true}
+  "{S}_shoulder": {body: "leg.f{s}.upper"}
+  "{S}_carpus": {body: "leg.f{s}.cannon"}
+  "{S}_fore_hoof": {body: "leg.f{s}.cannon", foot: true}
+abduction: [hip_abd]
+prior:
+  width_over_length: 0.35
+min_likelihood: 0.3

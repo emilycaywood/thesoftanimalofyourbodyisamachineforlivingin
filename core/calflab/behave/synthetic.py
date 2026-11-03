@@ -181,3 +181,112 @@ def write_synthetic_video(spec: RobotSpec, path: Path, script: SyntheticScript |
     frames, truth = render(spec, script)
     write_avi(path, frames, script.fps, palette())
     return truth
+
+
+# ---------------------------------------------------------------------- 3D: any camera, both sides (ADR-080)
+class Camera3D(BaseModel):
+    """Where the synthetic camera looks from. ``yaw_deg`` is the animal's starting heading against a left-side view
+    (+ = turned toward the camera); elevation + = looking down."""
+
+    yaw_deg: float = 0.0
+    elevation_deg: float = 10.0
+    roll_deg: float = 0.0
+    px_per_mm: float = 0.5  # at the starting distance
+    width: int = 640
+    height: int = 360
+    hfov_deg: float = 60.0  # for the image scale changing with distance
+
+
+class Script3D(BaseModel):
+    """A walk with hip ab/adduction and a slow turn, seen from :class:`Camera3D`."""
+
+    seconds: float = 4.0
+    fps: float = 30.0
+    period_s: float = 1.0
+    turn_deg: float = 40.0  # heading change over the clip (+ = turning left, toward the camera when facing left)
+    abduction_deg: float = 8.0  # hind ab/adduction amplitude
+    speed_mm_s: float = 100.0
+    #: the animal's proportions against the robot's (log ratios as the lift fits them: 0 = the robot's)
+    trunk_length: float = 1.0
+    trunk_width: float = 1.0
+    front_leg: float = 1.0
+    noise_px: float = 1.0
+    drop: float = 0.05  # share of points dropped (low confidence)
+    far_confidence: float = 0.75  # the far side's mean confidence (the near side's is about 0.95)
+    seed: int = 0
+
+
+def gait_angles_3d(joint: str, phase: float, abduction_deg: float) -> float:
+    """Angle change (deg, from standing) of one joint at gait phase 0..1; the right legs run half a cycle later."""
+    s, c = math.sin(2 * math.pi * phase), math.cos(2 * math.pi * phase)
+    part = joint.split(".")[-1]
+    return {"stifle": 10.0 * s, "hock": 6.0 * (1.0 - c), "hip_abd": abduction_deg * math.sin(2 * math.pi * phase + 1.0),
+            "shoulder": -12.0 * s, "carpus": 12.5 * (1.0 - c)}.get(part, 0.0)
+
+
+def synthetic_tracks_3d(spec: RobotSpec, lmap: Any, camera: Camera3D | None = None, script: Script3D | None = None
+                        ) -> tuple[Any, dict[str, Any]]:
+    """Keypoint tracks of the robot's own forward kinematics seen from ``camera`` (weak perspective, the scale
+    following the distance), with noise and dropped points; and the truth per frame: absolute angles of the
+    fitted joints (deg), heading, view yaw, near side."""
+    from calflab import units as u
+    from calflab.behave.keypoints import KeypointTracks
+    from calflab.behave.lift import N_POSE, Skeleton, camera_matrix, project
+
+    cam = camera or Camera3D()
+    sc = script or Script3D()
+    sk = Skeleton(spec, lmap)
+    rng = np.random.default_rng(sc.seed)
+    n = int(round(sc.seconds * sc.fps))
+    t = np.arange(n) / sc.fps
+    ramp = 0.5 - 0.5 * np.cos(np.pi * np.clip(t / max(sc.seconds, 1e-9), 0.0, 1.0))
+    heading = u.deg_to_rad(cam.yaw_deg + sc.turn_deg * ramp)
+    pitch = u.deg_to_rad(2.0 * np.sin(2 * np.pi * t / sc.period_s))
+    roll = u.deg_to_rad(1.0 * np.sin(2 * np.pi * t / sc.period_s + 0.5))
+    d = np.zeros((n, sk.n))
+    for i, jid in enumerate(sk.free_ids):
+        late = 0.5 if ".hr." in jid or ".fr." in jid else 0.0
+        sgn = -1.0 if "hip_abd" in jid and late else 1.0
+        d[:, i] = [u.deg_to_rad(sgn * gait_angles_3d(jid, (tt / sc.period_s + late) % 1.0, sc.abduction_deg)) for tt in t]
+    d = np.clip(d, sk.free_lo, sk.free_hi)
+    # the trunk walks along its heading; the camera looks at where it starts
+    step = sc.speed_mm_s / sc.fps
+    pos = np.zeros((n, 3))
+    for f in range(1, n):
+        pos[f] = pos[f - 1] + step * np.array([math.cos(heading[f]), math.sin(heading[f]), 0.0])
+    cm = camera_matrix(u.deg_to_rad(cam.elevation_deg), u.deg_to_rad(cam.roll_deg))
+    f_px = (cam.width / 2.0) / math.tan(u.deg_to_rad(cam.hfov_deg) / 2.0)
+    dist0 = f_px / cam.px_per_mm
+    pc = pos @ cm.T  # camera frame; + z toward the camera
+    scale = f_px / (dist0 - pc[:, 2])
+    tx = cam.width / 2.0 + scale * pc[:, 0]
+    ty = -cam.height / 2.0 + scale * pc[:, 1] - 0.15 * cam.height
+    glob = sk.initial_globals()
+    glob[:5] = [math.log(sc.trunk_length), math.log(sc.trunk_width), math.log(sc.front_leg),
+                u.deg_to_rad(cam.elevation_deg), u.deg_to_rad(cam.roll_deg)]
+    x = np.concatenate([np.stack([heading, pitch, roll, np.log(scale), tx, ty], axis=1), d], axis=1)
+    assert x.shape[1] == N_POSE + sk.n
+    uv = project(sk, x, glob)
+    uv = uv + rng.normal(0.0, sc.noise_px, uv.shape)
+    near_left = np.cos(heading) > 0
+    conf = np.where(sk.side_of[None] == 0, 0.9, 0.0) + np.where(
+        (sk.side_of[None] > 0) == near_left[:, None], rng.uniform(0.85, 1.0, uv.shape[:2]),
+        np.clip(rng.normal(sc.far_confidence, 0.05, uv.shape[:2]), 0.0, 1.0))
+    conf = np.where(sk.side_of[None] == 0, rng.uniform(0.85, 1.0, uv.shape[:2]), conf)
+    dropped = rng.random(uv.shape[:2]) < sc.drop
+    conf[dropped] = 0.05
+    uv[dropped] = np.nan
+    tracks = KeypointTracks(fps=sc.fps, names=list(sk.names), xy=uv, likelihood=conf, source="synthetic 3D",
+                            model={"tracker": "synthetic_3d", "camera": cam.model_dump(), "script": sc.model_dump()},
+                            image_size=(cam.width, cam.height))
+    full = sk.full_angles(d)
+    truth = {
+        "joints_deg": {j: u.rad_to_deg(full[:, k]) for k, j in enumerate(sk.joint_ids)},
+        "free_ids": sk.free_ids,
+        "heading_deg": u.rad_to_deg(heading),
+        "view_yaw_deg": u.rad_to_deg(np.arctan2(np.sin(heading), np.abs(np.cos(heading)))),
+        "pitch_deg": u.rad_to_deg(pitch), "roll_deg": u.rad_to_deg(roll),
+        "elevation_deg": cam.elevation_deg, "roll_cam_deg": cam.roll_deg,
+        "position_mm": pos, "scale": scale,
+    }
+    return tracks, truth

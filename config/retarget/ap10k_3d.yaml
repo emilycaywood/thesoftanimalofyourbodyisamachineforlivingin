@@ -1,0 +1,63 @@
+# 3D lift map (ADR-080): AP-10K keypoints (pose tracker rtmpose_ap10k, ADR-077)
+# placed on the feral calf's own skeleton. The lift fits that skeleton and a
+# camera to every frame, so both sides' points are used and the far legs are
+# tracked, not copied.
+#
+# "{S}" is written once for both sides: it becomes L or R (side_names), "{s}"
+# in a body or joint name becomes l or r, and a point's y is mirrored on the
+# right. Points are in the body's frame, mm, at the robot's size (the lift
+# fits the calf's proportions per video).
+#
+# A landmark with "toward" lies between two of the robot's joints, "at" of the
+# way. With "fit_at: [lo, hi]" that place is fitted per video (held for the
+# whole clip) and reported, because where the tracker puts the point on a calf
+# is not known.
+#
+# Your assumptions, carried over from ap10k_side (VERIFY, ADR-077, ADR-080):
+#  * AP-10K "Knee" on the hind leg: ap10k_side splits the hind fold half and
+#    half between stifle and hock; here that is the tie "hock = stifle"
+#    below. Where the Knee sits between the robot's stifle and hock is fitted
+#    (0 = stifle, 1 = hock). On the first real video (2026-11-03) the points
+#    sit on the calf's hock.
+#  * AP-10K "Elbow" on the fore leg is the robot's carpus (as ap10k_side takes
+#    the carpus from the fold at the Elbow). On the first real video the
+#    points sit on the calf's carpus.
+# Assumptions of the 3D map (ADR-080):
+#  * AP-10K "Hip" and "Shoulder" sit on the calf's thigh and at the point of
+#    the shoulder, well below the top of the back, while the robot's hip and
+#    shoulder axles are at the top of its trunk. Their place along the
+#    robot's femur (hip axle -> stifle) and upper leg (shoulder axle ->
+#    carpus) is fitted.
+#  * Neck, Root of tail and the head (eyes, nose) are not used: the robot has
+#    no neck joint, a calf's head moves on its own, and where a calf's neck
+#    base and tail root lie against the robot's trunk is not known.
+#  * The robot has no hind hip pitch (the femur is fixed): a calf's hind leg
+#    swinging at the hip can only be followed by the stifle and hock.
+name: ap10k_3d
+kind: lift
+description: >
+  3D lift of AP-10K keypoints onto the feral calf: both sides tracked. Hock
+  tied to stifle (as ap10k_side splits the hind fold); fore Elbow = carpus.
+  Where Hip, Shoulder and Knee sit on the robot is fitted per video. Hip
+  ab/adduction fitted where the view shows it.
+body: feral_calf
+side_names: {left: L, right: R}
+landmarks:
+  "{S}_Hip": {body: "leg.h{s}.femur", toward: "leg.h{s}.tibia", at: 0.4, fit_at: [0.0, 0.9]}
+  "{S}_Knee": {body: "leg.h{s}.tibia", toward: "leg.h{s}.cannon", at: 0.5, fit_at: [0.0, 1.0]}
+  "{S}_B_Paw": {body: "leg.h{s}.cannon", foot: true}
+  "{S}_Shoulder": {body: "leg.f{s}.upper", toward: "leg.f{s}.cannon", at: 0.4, fit_at: [0.0, 0.9]}
+  "{S}_Elbow": {body: "leg.f{s}.cannon"}
+  "{S}_F_Paw": {body: "leg.f{s}.cannon", foot: true}
+ties:
+  "h{s}.hock": {to: "h{s}.stifle", ratio: 1.0}
+abduction: [hip_abd]
+prior:
+  # an assumption about calves, PROVISIONAL: used only when the footage cannot tell the width
+  width_over_length: 0.35
+  abduction_sd_deg: 15.0
+  trunk_tilt_sd_deg: 10.0
+  joint_sd_deg: 60.0
+  segment_sd: 0.5
+# RTMPose's SimCC scores are not probabilities; 0.3 is the threshold its tools use
+min_likelihood: 0.3
