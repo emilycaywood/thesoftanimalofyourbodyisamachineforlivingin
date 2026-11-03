@@ -204,6 +204,20 @@ class Controller(Plugin):
             vals.append((v - d.lo) / ((d.hi - d.lo) or 1.0))
         return np.clip(np.array(vals, dtype=float), 0.0, 1.0)
 
+    # ---- optional: dimensions that depend on the params and the body (e.g. one per clip of a repertoire)
+    @classmethod
+    def vector_dims_for(cls, params: dict[str, Any], spec: Any = None) -> list[VectorDim]:
+        """Optimisable parameters for these params on this body (default: :meth:`vector_dims`)."""
+        return cls.vector_dims()
+
+    @classmethod
+    def params_from_vector_for(cls, base: dict[str, Any], x: np.ndarray, spec: Any = None) -> dict[str, Any]:
+        return cls.params_from_vector(base, x)
+
+    @classmethod
+    def vector_from_params_for(cls, params: dict[str, Any], spec: Any = None) -> np.ndarray:
+        return cls.vector_from_params(params)
+
     @classmethod
     def relevant_dims(cls, joint_ids: list[str]) -> list[str]:
         """Names of the optimisable parameters that have any effect on a robot

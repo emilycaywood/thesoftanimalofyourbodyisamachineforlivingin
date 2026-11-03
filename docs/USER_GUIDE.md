@@ -898,6 +898,39 @@ its speed. Evolution can therefore find fast gaits the real servos could not
 follow (the default trot was tuned with joint speed capped at 120 deg/s for
 this reason; ADR-047). Read high stride frequencies with that in mind.
 
+#### Evolving the body to perform a repertoire (ADR-079)
+1. In Behave, put your clips into the stochastic behaviors and mark the
+   ones the body must perform: in the repertoire, `"required": true` (and
+   `"imitation_weight"` to weigh them).
+2. In Evolve, choose the fitness preset **repertoire**. The panel shows how
+   it evaluates each candidate:
+   * three seeds, each with floor friction 0.7-1.1 and mass x0.95-1.05;
+   * scored as the mean minus the spread;
+   * safety as constraints: **stall and belt breaking reject a candidate;
+     sustained servo load over rated, sustained belt tension over its
+     allowable, joint speed over the servo's, and time at joint limits cost
+     fitness**.
+
+   The required clips play first in each evaluation.
+3. The inner loop now tunes, per clip, the top of its speed range (never
+   faster than this body's servos can follow, from the clip report) and
+   of its amplitude.
+4. Good archive axes: **Expressive range** x **Safety margin** (or Quantity
+   of motion), to see the trade-off.
+5. Press **Estimate cost** first. It times one rollout and tells you how
+   long the run will take, and offers **Use the small budget** (2 x 4) to
+   try first.
+
+Each candidate shows its seeds (friction, mass, fitness, falls) and the
+worst seed's safety table (value / limit for each constraint, rejects in
+red, penalties in orange). Candidates a constraint rejected are counted as
+**Unsafe**, stored with the reason, and never repaired. Belts stay fixed,
+as in every evolution of the feral calf.
+
+To change what rejects and what costs fitness, edit
+`config\fitness\repertoire.yaml` (`evaluation: safety: actions:`) and bump
+its `version`.
+
 #### Proportions: comparing bodies instead of finding one
 
 The lab has three ways to look for a better body or gait:
@@ -1020,8 +1053,121 @@ link (`calflab://run/<id>`, `calflab://design/<id>`) goes in at the caret, so
 one entry can link several runs without typing an id. In a saved entry a run
 link replays that run. *Capture viewport* attaches an image with provenance.
 
-### Behave (ADR-073)
-Behaviors from reference footage. The steps:
+### Behave (ADR-073 to ADR-078)
+Behaviors from reference footage.
+#### From a video in a folder (ADR-076, ADR-077)
+1. **Drop a video** (mp4, mov, avi, mkv) of a calf filmed from the side
+   into `<project>\footage\videos\`. The lab looks at that folder every two
+   seconds; the **Video inbox** at the top of the Behave panel lists each
+   file:
+
+   | Status | Meaning |
+   |---|---|
+   | *waiting* | still being copied |
+   | *queued* | waiting for its turn (one video at a time) |
+   | *tracking* | the pose tracker reads it, with a progress bar and *Cancel* |
+   | *retargeting* | turning the keypoints into joint angles |
+   | *needs review* | candidate clips are ready |
+   | *ready* | every candidate accepted or rejected |
+   | *failed* | with the reason; *Retry* after fixing it |
+
+   A video is processed once. The lab keeps its SHA-256; a file you replace
+   with different content is processed again, a file merely touched is not.
+   *Scan now* looks at once.
+2. **The tracker.** By default *RTMPose AP-10K*: a pretrained animal model
+   (17 keypoints, Apache-2.0, trained on AP-10K, CC-BY-4.0) that runs on
+   your AMD graphics card through DirectML. Its weights live in
+   `C:\CALFLABHOME\models\`; if they are missing, the panel offers
+   *Download* (or run `.\calflab.ps1 tracker download`). Other trackers:
+   *CSV next to the video* (put `myvideo.csv` from DeepLabCut, SLEAP or
+   hand tracking beside `myvideo.mp4`) and *Colour markers* (painted
+   markers, and the synthetic test calf). Change them under *Settings*,
+   with the retarget map and the segmentation thresholds;
+   `.\calflab.ps1 tracker list` shows what is ready.
+3. **What the lab works out.** Which side faces the camera (an animal
+   facing right shows its right side; with AP-10K the confidence of each
+   side is a cross-check) and whether it is a side view: "side view OK",
+   "too oblique" (judged from how far apart the left and right hips and
+   shoulders appear; that assumes a trunk width of 0.35 x its length), or
+   "unknown" with one side tracked. Then it cuts the video into
+   **candidates**:
+   * *idle*: still for a second or more;
+   * *gait*: moving with a repeating rhythm, cut to whole cycles, its
+     period shown, far legs half a period behind;
+   * *other*: moving without a clear rhythm.
+
+   Angles are relative to the middle of the video's longest still stretch.
+4. **Review** (click *Review*): the video frame with the tracked points
+   drawn over it (orange = the points the map uses, hollow red = below the
+   confidence threshold), *Play* and a frame slider. *Start here* /
+   *End here* trim the cut (a gait stays whole cycles). *Preview on robot*
+   poses the body with the cut (no physics), replays it in the viewport and
+   shows the body report. Then:
+   * **Accept as clip**: give it a name and **your affect tags**: valence
+     (-1 unpleasant to +1 pleasant), arousal (0 calm to 1 agitated), words
+     (comma-separated: wary, curious) and a note. Leave a value *not set*
+     if you have no reading. The lab never infers or fills these.
+   * **Reject**.
+
+   The clip keeps where it came from: the video's hash, frames, tracker
+   and model version, the map, the cleaning and segmentation settings.
+5. **Clips** can be filtered by your tags (*Filter by your affect tags*)
+   and renamed or re-tagged (*Name and tags*).
+
+**Check on your own footage** before trusting it: tracking accuracy, where
+AP-10K puts "Knee" on a calf's hind leg and "Elbow" on its fore leg (the
+`ap10k_side` map splits the hind fold half and half between stifle and
+hock, and takes the carpus from the fore "Elbow"), and where the
+segmentation cuts. To change the map, copy
+`config\retarget\ap10k_side.yaml` to `<project>\motions\maps\`, edit it,
+pick it in *Settings* and *Retry* the video.
+
+#### Composing behaviors (ADR-078)
+The Stochastic behaviors form has a **Composition** group:
+
+| Setting | What it does |
+|---|---|
+| *Tempo* | clip speed, the gaits' clock and the idle sway's pace |
+| *Amplitude* | scales clip angles and the idle sway |
+| *Idle share* | stillness: the chance the next behavior is an idle one (-1 = weights decide) |
+| *Low-pass* | smoothness: filters the commands (lower Hz = smoother); with *Blend* |
+| *Repeat* | phrasing: the chance to play the same behavior again right away |
+| *Pause*, *pause length* | phrasing: hold the pose for a moment between behaviors |
+
+A clip entry of the repertoire can choose its clips **by your tags**
+instead of by id: `{"name": "wary moments", "kind": "clip", "select":
+{"words": ["wary"]}}`, or `"select": {"arousal": [0.6, 1]}`.
+
+The **affect curve** sets any of these over the run, e.g. calm then
+agitated:
+
+```json
+[{"t_s": 0, "label": "calm", "tempo": 0.7, "idle_share": 0.6, "lowpass_hz": 2, "target_arousal": 0.2},
+ {"t_s": 40, "label": "agitated", "tempo": 1.4, "idle_share": 0.1, "target_arousal": 0.8}]
+```
+
+Values move linearly between keyframes. A target valence or arousal
+favours clips *you* tagged near it. What "calm" means in tempo or stillness
+is yours to set: the lab has no mapping of its own. The episodes list shows
+which label was in effect.
+
+**Composition study** (bottom of the panel): list compositions as
+`[{"name": "...", "params": {...}}]` (behaviors settings over the ones
+above), the seeds and the length, and *Run study*. The table gives, per
+composition, mean +/- spread over seeds of:
+* falls;
+* clip tracking error;
+* safety margin and the constraints violated (see Evolve);
+* the **movement features**: quantity of motion, trunk speed, jerk and
+  smoothness, tempo and its regularity, stillness ratio, expressive range,
+  postural height, openness (stance width), approach / retreat.
+
+These are kinematics, not emotions: how a composition *reads* is your
+judgement. The study is compiled with full servo torque (as the load
+analysis), and its CSV is in the run folder.
+
+#### Keypoints tracked elsewhere (CSV import)
+The older route, still there for tracking done outside CALFLAB:
 1. **Track the video** with a pose tracker: DeepLabCut, SLEAP, or clicking
    points by hand in any video tool. Track the landmarks the retarget map
    names: hip, withers, stifle, hock, hind fetlock, shoulder, carpus, fore
@@ -1221,7 +1367,8 @@ lab hot-reloads it, and its parameters appear as sliders with units and
 tooltips without any UI code. Plugin types: gene definitions, part generators,
 joint types, components, controllers, behaviors, fitness terms, behavior
 descriptors, optimizers, simulators, compute backends, exporters, analyses,
-panels, commands. `CLAUDE.md` has the rules for each.
+panels, commands, pose trackers (`new-plugin pose_tracker my_tracker`: video in,
+keypoints with confidences out). `CLAUDE.md` has the rules for each.
 
 ---
 

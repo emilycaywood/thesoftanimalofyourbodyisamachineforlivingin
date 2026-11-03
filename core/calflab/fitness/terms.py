@@ -168,6 +168,37 @@ class Imitation(FitnessTerm):
         return math.exp(-((float(err) / self.params.scale_deg) ** 2))  # type: ignore[attr-defined]
 
 
+@register
+class ImitationRequired(FitnessTerm):
+    """Imitation averaged over the clips the researcher marked as required (ADR-079).
+
+    Per required behavior: exp(-(RMS tracking error while it played / scale)^2); a required behavior that never
+    played in the rollout scores 0. The weighted mean over required behaviors (their ``imitation_weight``). With
+    no required behavior, every clip played counts equally; with no clip at all, the overall tracking error.
+    """
+
+    key = "imitation_required"
+    label = "Imitation of the required clips"
+    description = "Weighted mean, over the clips marked required, of how closely the body followed each while it played."
+
+    class Params(BaseModel):
+        scale_deg: float = P(8.0, unit="deg", ge=0.5, le=90, step=0.5, desc="RMS error that scores exp(-1) = 0.37.")
+
+    def evaluate(self, metrics: dict[str, Any], context: dict[str, Any]) -> float:
+        s = float(self.params.scale_deg)  # type: ignore[attr-defined]
+        req = metrics.get("required_clips") or {}
+        if req:
+            total = sum(float(r["weight"]) for r in req.values()) or 1.0
+            return sum(float(r["weight"]) * (0.0 if r.get("tracking_rms_deg") is None
+                                             else math.exp(-((float(r["tracking_rms_deg"]) / s) ** 2)))
+                       for r in req.values()) / total
+        clips = metrics.get("clip_tracking") or {}
+        if clips:
+            return sum(math.exp(-((float(c["tracking_rms_deg"]) / s) ** 2)) for c in clips.values()) / len(clips)
+        err = metrics.get("tracking_rms_deg")
+        return 0.0 if err is None else math.exp(-((float(err) / s) ** 2))
+
+
 # ============================================================ behavior descriptors
 def _leg_length_mm(spec: RobotSpec) -> float:
     try:
@@ -264,3 +295,48 @@ class Speed(BehaviorDescriptor):
 
     def describe_candidate(self, spec: RobotSpec, metrics: dict[str, Any], controller_params: dict[str, Any]) -> float:
         return max(0.0, _m(metrics, "speed_mps"))
+
+
+# ---- movement features and safety as archive axes (ADR-079); a candidate scored without them reads 0
+def _movement(metrics: dict[str, Any], key: str) -> float:
+    v = (metrics.get("movement") or {}).get(key)
+    return float(v) if isinstance(v, int | float) and math.isfinite(v) else 0.0
+
+
+@register
+class ExpressiveRange(BehaviorDescriptor):
+    key = "expressive_range"
+    label = "Expressive range"
+    description = ("Spread of the quantity of motion over 1 s windows (90th - 10th percentile): how far the performance "
+                   "ranges between stillness and activity. A movement feature, not an emotion.")
+    range = (0.0, 60.0)
+    unit = "deg/s"
+
+    def describe_candidate(self, spec: RobotSpec, metrics: dict[str, Any], controller_params: dict[str, Any]) -> float:
+        return _movement(metrics, "expressive_range_deg_s")
+
+
+@register
+class QuantityOfMotion(BehaviorDescriptor):
+    key = "quantity_of_motion"
+    label = "Quantity of motion"
+    description = "Mean joint speed over the run. A movement feature, not an emotion."
+    range = (0.0, 40.0)
+    unit = "deg/s"
+
+    def describe_candidate(self, spec: RobotSpec, metrics: dict[str, Any], controller_params: dict[str, Any]) -> float:
+        return _movement(metrics, "quantity_of_motion_deg_s")
+
+
+@register
+class SafetyMargin(BehaviorDescriptor):
+    key = "safety_margin"
+    label = "Safety margin"
+    description = ("Smallest headroom over the safety constraints (servo torque, stall, belt tension, joint speed, "
+                   "joint limits) in the worst seed: 1 unloaded, 0 at a limit, below 0 over it.")
+    range = (-1.0, 1.0)
+    unit = ""
+
+    def describe_candidate(self, spec: RobotSpec, metrics: dict[str, Any], controller_params: dict[str, Any]) -> float:
+        v = metrics.get("safety_margin")
+        return float(v) if isinstance(v, int | float) and math.isfinite(v) else 0.0

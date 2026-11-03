@@ -64,11 +64,12 @@ core/calflab/
   morphology/         part generators (reference calf; final feral calf)
   mech/               belt drives from catalogs (derived C, checks), tension springs, statics, load analysis
   sim/                MJCF/URDF compile, MuJoCo rollouts, metrics, skin
+  behave/             footage: video reading, pose trackers, inbox, retarget maps, segmentation, clips, movement features, composition study
   control/            controllers (CPG)
   fitness/            terms, presets, behavior descriptors
   graph/              typed DAG, cache, node types
   compute/            LocalProcessPool, RemoteSSH (stub), CloudNotebook (stub)
-  evolve/             CMA-ES inner loop, MAP-Elites outer loop, gait tuning, proportion study, lineage
+  evolve/             CMA-ES inner loop, MAP-Elites outer loop, gait tuning, proportion study, lineage, safety constraints, robust (multi-seed) evaluation
   export/             glTF, STL/3MF, STEP, 3dm, URDF
   wiring/             BOM, power budget, harness, WireViz
   project/            project folder, registry, command log, journal, templates (new-project)
@@ -114,6 +115,7 @@ Types and what to implement:
 | `analysis` | `Analysis` | `Params`, `run(lab, params)` → JSON-able result |
 | `panel` | `Panel` | declarative layout (`widgets`) — no code runs in the browser |
 | `command` | `Command` | `Params`, `run(lab, params)`; set `mutates=True` for document edits |
+| `pose_tracker` | `PoseTracker` | `available()`, `keypoint_names()`, `track(video, report, cancelled)` → `KeypointTracks` (pixels, y up, confidence per point, `model` = `provenance()`) |
 
 Rules for all plugins:
 

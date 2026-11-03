@@ -2164,10 +2164,17 @@ Speeds were estimates; nothing was installed before the answer.
   0.3: SimCC scores are not probabilities; 0.3 is RTMPose's own threshold.
 * **Default inbox settings**: tracker `rtmpose_ap10k`, map `ap10k_side`.
 
+*Measured* (2026-11-03): 250 frames of 640 x 360 (10 s at 25 fps), detector
+on every frame, pose with a fixed box:
+* DirectML (AMD GPU): about 4.9 s (detector 2.8 s, pose 2.1 s);
+* CPU: about 32 s (detector 26 s, pose 6 s).
+
+So `detect_every` > 1 mostly saves time on the CPU. Random frames were
+used, so this is model time, not accuracy.
+
 *Not verified.* Tracking accuracy on calf footage (no real video has been
-through it). The speed on a real 10 s clip. Which joints AP-10K's knee and
-elbow are on a calf. Whether the YOLOX detector finds a young calf
-reliably.
+through it). Which joints AP-10K's knee and elbow are on a calf. Whether the
+YOLOX detector finds a young calf reliably.
 
 ## ADR-078 — Affect tags, composition as an expressive instrument, movement features (**VERIFY**)
 
@@ -2261,3 +2268,122 @@ balance); "still" did not.
 (JSON for the curve and the compositions); a curve editor would be easier.
 Movement features are not yet archive axes outside the repertoire run
 (ADR-079).
+
+## ADR-079 — Evolving the body to perform a repertoire, consistently and safely (**VERIFY**)
+
+*Requested 2026-11-03* (session T): a fitness preset for a repertoire,
+safety as constraints from the load analysis, consistency over seeds and
+mild randomisation, an inner loop over per-clip playback limits, archive
+axes from movement features, and a cost estimate before running. The
+researcher chose the safety policy: **reject breaking and stall, penalise
+the rest** (2026-11-03).
+
+*Decision.*
+* **Preset `repertoire`** (`config/fitness/repertoire.yaml`):
+  * `imitation_required` (scale 8 deg): the weighted mean, over the
+    behaviors marked `required`, of exp(-(RMS tracking error while they
+    played / scale)^2). A required behavior that never played scores 0.
+  * `survival` and `stability`.
+
+  Clips are marked required in the behaviors controller's repertoire
+  (`required`, `imitation_weight`). Under this preset the controller plays
+  every required clip once, in a seeded order, before choosing freely
+  (`play_required_first`), so a short evaluation cannot miss one.
+* **A preset may say how candidates are evaluated** (`evaluation:`). A
+  preset without it (walk, gentle, behave) evaluates exactly as before. With
+  it:
+  * **seeds** [0, 1, 2], each compiled with its own floor friction
+    (0.7-1.1) and mass scale (x0.95-1.05); torque, stiffness, damping and
+    skin are not randomised;
+  * **aggregate**: mean minus 1 x spread over seeds (or the worst seed);
+  * **every seed recorded** (friction, mass, fitness, penalty, fall, margin,
+    violations) in the candidate's `metrics.seeds`;
+  * compiled with `torque_derating` 1.0, as the load analysis is, so a servo
+    can reach stall and the stall constraint is meaningful (the document's
+    default 0.6 caps torque below stall).
+* **Safety constraints** (`calflab.evolve.safety`, built on
+  `mech.loads.analyse`):
+
+  | Constraint | Violated when | Default action |
+  |---|---|---|
+  | `servo_sustained` | above `rated_fraction` (0.6) x rated torque for more than `sustained_fraction` (0.25) of a window | penalise |
+  | `stall` | any moment at or above stall torque | **reject** |
+  | `belt_sustained` | above allowable working tension for more than `sustained_fraction` of a window | penalise |
+  | `belt_breaking` | a peak above `breaking_fraction` (0.25) x breaking strength | **reject** |
+  | `joint_speed` | a joint faster than its servo's no-load speed at that joint | penalise |
+  | `joint_limit` | more than `joint_limit_max` of the time within 1 deg of a limit | penalise |
+
+  * The fractions are the body's own checks (`config/feral_calf.yaml`, ADR-069).
+  * **The window is 2 s** (`window_s`): a repertoire has no single gait
+    cycle, and 2 s is about one slow walk cycle of this body.
+  * **`joint_limit_max` 0.05** is an assumption.
+  * A penalised violation costs `weight` (0.5) x the relative excess, at
+    most 0.5 per constraint and seed.
+  * Loads are judged **up to a fall**: after it they are not the motion's
+    loads (ADR-069).
+  * A reject in **any** seed rejects that controller setting. Inside the
+    inner loop it scores 10 lower, so CMA-ES moves away from it.
+  * If the best setting found is still rejected, the candidate is stored with
+    status `unsafe` and its reasons, not archived, and counted in the
+    history. It is never repaired.
+  * `margin` = the smallest 1 - value/limit over known constraints, in the
+    worst seed.
+* **Inner loop** for the behaviors controller: two numbers per clip entry,
+  the top of its speed range (from 0.2 up to `clip_report`'s playable speed
+  *on this candidate's body*) and the top of its amplitude range (0.3 to 1,
+  the clip as recorded). Each range becomes [0.8 x top, top]. Controllers
+  can now give dimensions that depend on their params and the body
+  (`vector_dims_for`, `params_from_vector_for`, `vector_from_params_for`;
+  the defaults are the old class-level vectors, so `feral_motion` and the
+  CPG are unchanged).
+* **Archive axes**:
+  * `expressive_range` (0-60 deg/s, the spread of 1 s windows of quantity
+    of motion);
+  * `quantity_of_motion` (0-40 deg/s);
+  * `safety_margin` (-1 to 1).
+
+  For example, x = expressive range and y = safety margin shows the
+  trade-off rather than one winner. A candidate evaluated without these
+  metrics reads 0 on them.
+* **Kept from ADR-070**:
+  * belts are fixed catalog genes;
+  * belt-bound ranges are narrowed before the run;
+  * infeasible bodies are rejected before simulation;
+  * workers get the project's catalog inlined;
+  * clips (and tag-selected pools) are inlined by `resolve_params`.
+* **Cost estimate** (`estimate_evolve`, Evolve panel > *Estimate cost*):
+  * one 2 s rollout of the working design is timed;
+  * rollouts = generations x batch x (1 + inner iterations x popsize) x
+    seeds;
+  * wall time = generations x ceil(batch / workers) x one candidate's
+    rollouts.
+
+  It also offers a small budget (2 x 4, inner 1 x 4) with its own estimate
+  and a button to use it.
+* **Evolve panel**: the preset's evaluation (seeds, randomisation,
+  aggregate, what each constraint does); per candidate, the seeds and the
+  worst seed's safety table; an Unsafe counter.
+
+*Checked.* `tests/test_repertoire.py`:
+* a carpus slammed through 100 deg in 0.1 s hits stall: rejected. The same
+  rollout under a penalise-only policy is kept with a penalty. A gentle
+  sway passes.
+* Robust evaluation over three seeds, each with its own friction;
+  aggregate = mean - spread. A clip that folds both carpi to their limit
+  makes the shoulders exceed rated torque for about 70 % of a window and is
+  `unsafe` under a stricter policy.
+* The inner loop's speed bound equals the clip report's playable speed.
+* A 1 x 2 repertoire evolution (slow test): belts identical in every
+  candidate, three seeds recorded, axes expressive range x safety margin.
+
+Note: the inner loop slows a clip to what the servos can follow, so a clip
+that is only *too fast* becomes safe rather than rejected. That is intended:
+the loop tunes playback limits within the clip report.
+
+On the scratch project the cost estimate for the default 6 x 8, inner
+3 x 6 run was 2736 rollouts of 9.9 s, about 27 min on 7 workers.
+
+*Not done.*
+* The safety policy is set in the preset file, not in the panel.
+* Domain randomisation of servo strength is off (`torque_scale` held at 1).
+* The archive cannot show more than two axes at once.

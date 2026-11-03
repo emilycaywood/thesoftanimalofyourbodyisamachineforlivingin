@@ -37,7 +37,7 @@ class Candidate(BaseModel):
     descriptors: dict[str, float] = Field(default_factory=dict)
     metrics: dict[str, Any] = Field(default_factory=dict)
     cell: tuple[int, int] | None = None
-    status: str = "rejected"  # new | improved | rejected | failed | infeasible
+    status: str = "rejected"  # new | improved | rejected | failed | infeasible | unsafe
     mass_g: float = 0.0
     error: str | None = None
 
@@ -217,6 +217,16 @@ class MapElitesCMA(Optimizer):
                         error="; ".join(out["infeasible"]), mass_g=float(out.get("mass_g", 0.0)),
                     ))
                     continue
+                if isinstance(out, dict) and out.get("unsafe"):  # a safety constraint rejected it (ADR-079)
+                    result.evals += int(out.get("evals", 0))
+                    new_cands.append(Candidate(
+                        id=task.id, run_id=problem.run_id, generation=gen, parents=parents[i], genome=genome,
+                        controller={"key": problem.controller["key"], "params": out["controller_params"]},
+                        controller_x=out["controller_x"], fitness=-1e9, fitness_terms=out["fitness_terms"],
+                        metrics=out["metrics"], status="unsafe", error="; ".join(out["unsafe"]),
+                        mass_g=float(out.get("mass_g", 0.0)),
+                    ))
+                    continue
                 if not isinstance(out, dict) or out.get("error"):
                     cand = Candidate(
                         id=task.id,
@@ -259,7 +269,7 @@ class MapElitesCMA(Optimizer):
                 new_cands.append(cand)
             result.candidates += new_cands
 
-            ok = [c for c in new_cands if c.status not in ("failed", "infeasible")]
+            ok = [c for c in new_cands if c.status not in ("failed", "infeasible", "unsafe")]
             stats = archive.stats
             entry = {
                 "generation": gen,
@@ -273,6 +283,7 @@ class MapElitesCMA(Optimizer):
                 "evals": result.evals,
                 "failed": sum(1 for c in new_cands if c.status == "failed"),
                 "infeasible": sum(1 for c in new_cands if c.status == "infeasible"),
+                "unsafe": sum(1 for c in new_cands if c.status == "unsafe"),
             }
             result.history.append(entry)
             result.archive = self.archive_view(result, by_id, dkeys, ranges)

@@ -275,3 +275,24 @@ def _default_compositions() -> list[Any]:
     from calflab.behave.study import _default_compositions as d
 
     return d()
+
+
+@register
+class EstimateEvolve(Command):
+    key = "estimate_evolve"
+    label = "Estimate evolution cost"
+    description = ("Time one short rollout and estimate the CPU and wall-clock time of an evolution with these settings "
+                   "(and of a small budget to try first) before starting it.")
+    category = "Evolve"
+
+    class Params(BaseModel):
+        optimizer: str = P("map_elites_cma", desc="Optimizer plugin key.")
+        params: dict[str, Any] = P(default_factory=dict, ui="json", desc="Optimizer parameters (partial).")
+        sim: dict[str, Any] = P(default_factory=dict, ui="json", desc="Simulation settings (partial).")
+
+    def run(self, lab: Any, state: Any) -> Any:
+        p = self.params
+        try:
+            return lab.estimate_evolve(p.optimizer, dict(p.params), dict(p.sim))  # type: ignore[attr-defined]
+        except Exception as exc:
+            raise _err(f"estimate_evolve: {exc}") from exc

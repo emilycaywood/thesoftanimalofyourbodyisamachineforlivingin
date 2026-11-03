@@ -74,11 +74,27 @@ def evaluate_candidate(payload: dict[str, Any]) -> dict[str, Any]:
     preset = FitnessPreset.model_validate(payload["fitness"])
     ctrl_cls = registry.get("controller", payload["controller"]["key"])
     base_params: dict[str, Any] = dict(payload["controller"].get("params", {}))
-    dims = ctrl_cls.vector_dims()  # type: ignore[attr-defined]
+    spec = design.spec
+    dims = ctrl_cls.vector_dims_for(base_params, spec)  # type: ignore[attr-defined]
     seed = int(payload.get("seed", 0))
+    # settings a safety constraint rejected: id -> (the params, kept so the id is never reused; reasons)
+    unsafe: dict[int, tuple[dict[str, Any], list[str]]] = {}
+    evals = 0
 
     def score(params: dict[str, Any]) -> tuple[float, dict[str, Any], dict[str, Any]]:
+        nonlocal evals
+        if preset.evaluation is not None:  # several seeds, randomised, safety as constraints (ADR-079)
+            from calflab.evolve.repertoire import UNSAFE_LOSS, evaluate
+
+            out = evaluate(design, lib, payload, ctrl_cls, params, preset)
+            evals += out["evals"]
+            fit = {"total": out["fitness"], "preset": preset.ref, "terms": out["terms"]}
+            if out["rejected"]:
+                unsafe[id(params)] = (params, out["rejected"])
+                return out["fitness"] - UNSAFE_LOSS, fit, out["metrics"]
+            return out["fitness"], fit, out["metrics"]
         rollout = run_rollout(cm, ctrl_cls(params), settings, lib)  # type: ignore[arg-type]
+        evals += 1
         metrics = compute_metrics(rollout)
         fit = preset.evaluate(metrics)
         return float(fit["total"]), fit, metrics
@@ -87,12 +103,11 @@ def evaluate_candidate(payload: dict[str, Any]) -> dict[str, Any]:
     x_start = (
         np.clip(np.asarray(x0, dtype=float), 0.0, 1.0)
         if x0 is not None and len(x0) == len(dims)
-        else ctrl_cls.vector_from_params(base_params)  # type: ignore[attr-defined]
+        else ctrl_cls.vector_from_params_for(base_params, spec)  # type: ignore[attr-defined]
     )
-    best_params = ctrl_cls.params_from_vector(base_params, x_start) if dims else base_params  # type: ignore[attr-defined]
+    best_params = ctrl_cls.params_from_vector_for(base_params, x_start, spec) if dims else base_params  # type: ignore[attr-defined]
     best_f, best_fit, best_metrics = score(best_params)
     best_x = x_start
-    evals = 1
 
     inner = payload.get("inner", {})
     iterations = int(inner.get("iterations", 0))
@@ -111,14 +126,17 @@ def evaluate_candidate(payload: dict[str, Any]) -> dict[str, Any]:
             xs = es.ask()
             losses = []
             for x in xs:
-                params = ctrl_cls.params_from_vector(base_params, np.asarray(x))  # type: ignore[attr-defined]
+                params = ctrl_cls.params_from_vector_for(base_params, np.asarray(x), spec)  # type: ignore[attr-defined]
                 f, fit, metrics = score(params)
-                evals += 1
                 losses.append(-f)
                 if f > best_f:
                     best_f, best_fit, best_metrics, best_params, best_x = f, fit, metrics, params, np.asarray(x)
             es.tell(xs, losses)
 
+    if id(best_params) in unsafe:  # no setting the inner loop tried is safe: rejected, never repaired
+        return {"unsafe": unsafe[id(best_params)][1], "fitness": best_f, "fitness_terms": best_fit["terms"],
+                "controller_params": best_params, "controller_x": [float(v) for v in best_x],
+                "metrics": slim_metrics(best_metrics), "mass_g": design.spec.total_mass_g(), "evals": evals}
     descriptors = {}
     for key in payload.get("descriptors", []):
         d = registry.get("behavior_descriptor", key)()

@@ -151,6 +151,19 @@ export function EvolvePanel() {
     return { ...d, ...params };
   }, [opt, params, bodyDefaults]);
   const budget = Number(values.generations ?? 0) * Number(values.batch_size ?? 0) * (1 + Number(values.inner_iterations ?? 0) * Number(values.inner_popsize ?? 0));
+  const [estimate, setEstimate] = useState<CostEstimate | null>(null);
+  const [estimating, setEstimating] = useState(false);
+  const estimateCost = () => {
+    setEstimating(true);
+    void run<CostEstimate>("estimate_evolve", { optimizer: optKey, params: values, sim: { duration_s: duration } })
+      .then(setEstimate).catch(() => setEstimate(null)).finally(() => setEstimating(false));
+  };
+  const useSmall = () => {
+    if (!estimate) return;
+    const { generations, batch_size, inner_iterations, inner_popsize } = estimate.small;
+    setParams((p) => ({ ...p, generations, batch_size, inner_iterations, inner_popsize }));
+    setEstimate(null);
+  };
 
   const start = () =>
     void run("run_evolve", { optimizer: optKey, params, backend: state?.backend ?? "local", sim: { duration_s: duration, record_hz: 25 }, design: startDesign }).catch(() => undefined);
@@ -167,10 +180,28 @@ export function EvolvePanel() {
         ) : (
           <>
             <Button variant="primary" disabled={!opt || opt.stub} onClick={start} data-testid="evolve-start">Start evolution</Button>
-            <span className="text-dim">about {budget} rollouts</span>
+            <span className="text-dim">about {budget * (preset?.evaluation?.seeds?.length ?? 1)} rollouts</span>
+            <Button size="sm" variant="ghost" disabled={estimating} onClick={estimateCost} data-testid="evolve-estimate"
+              title="Time one short rollout and estimate how long this run takes, before starting it">
+              {estimating ? "Timing..." : "Estimate cost"}
+            </Button>
           </>
         )}
       </div>
+      {estimate && (
+        <div className="border-b border-line bg-bg p-2 text-[11px]" data-testid="evolve-estimate-result">
+          <div>
+            This run: <b>{estimate.run.rollouts}</b> rollouts of {fmt(estimate.rollout_s, 1)} s, about <b>{duration_text(estimate.run.wall_s)}</b> on{" "}
+            {estimate.workers} worker{estimate.workers > 1 ? "s" : ""} ({duration_text(estimate.run.cpu_s)} of CPU).
+          </div>
+          <div>
+            A small budget first ({estimate.small.generations} x {estimate.small.batch_size}, inner {estimate.small.inner_iterations} x {estimate.small.inner_popsize}):{" "}
+            {estimate.small.rollouts} rollouts, about {duration_text(estimate.small.wall_s)}.{" "}
+            <Button size="sm" onClick={useSmall} data-testid="evolve-use-small">Use the small budget</Button>
+          </div>
+          <div className="text-dim">{estimate.note}</div>
+        </div>
+      )}
       <Section title="Start from">
         <Row label="Starting design" title="The first candidate is this design; the others vary its evolvable genes">
           <select className="min-w-0 flex-1" value={startDesign} data-testid="evolve-start-from" onChange={(e) => useEvolve.setState({ startDesign: e.target.value })}>
@@ -217,6 +248,16 @@ export function EvolvePanel() {
                 <span>x {t.weight}</span>
               </div>
             ))}
+            {preset.evaluation && (
+              <div className="mt-1 text-[10px]" data-testid="preset-evaluation">
+                Each candidate: {preset.evaluation.seeds.length} seeds ({preset.evaluation.seeds.join(", ")})
+                {preset.evaluation.randomize ? `, friction ${preset.evaluation.friction.join("-")} and mass x${preset.evaluation.mass_scale.join("-")} randomised` : ""};
+                scored as {preset.evaluation.aggregate === "worst" ? "the worst seed" : `mean - ${preset.evaluation.spread_k} x spread`}.
+                {preset.evaluation.safety && (
+                  <span> Safety: {Object.entries(preset.evaluation.safety.actions ?? {}).map(([k, a]) => `${k.replace(/_/g, " ")} ${a === "reject" ? "rejects" : "costs fitness"}`).join(", ")}.</span>
+                )}
+              </div>
+            )}
           </div>
         )}
         <Row label="Compute backend">
@@ -413,13 +454,14 @@ export function ArchivePanel() {
         <Section title="Fitness over generations">
           <FitnessChart history={history} />
           {last && (
-            <div className="mt-1 grid grid-cols-5 gap-1 text-center">
+            <div className="mt-1 grid grid-cols-6 gap-1 text-center">
               {[
                 ["Generation", last.generation + 1],
                 ["Elites", last.elites],
                 ["Coverage", `${(last.coverage * 100).toFixed(0)}%`],
                 ["Rollouts", last.evals],
                 ["Infeasible", history.reduce((n, h) => n + (h.infeasible ?? 0), 0)],
+                ["Unsafe", history.reduce((n, h) => n + ((h as any).unsafe ?? 0), 0)],
               ].map(([k, v]) => (
                 <div key={k} className="rounded bg-bg p-1"><div className="text-[10px] text-dim">{k}</div><div className="font-semibold">{v}</div></div>
               ))}
@@ -442,6 +484,8 @@ export function ArchivePanel() {
                 <span>{k}</span><span>{t.value.toFixed(2)} x {t.weight} = {t.weighted.toFixed(2)}</span>
               </div>
             ))}
+            {candidate.metrics.seeds && <SeedTable seeds={candidate.metrics.seeds} aggregate={candidate.metrics.aggregate} />}
+            {candidate.metrics.safety && <SafetyTable report={candidate.metrics.safety} />}
             <div className="mt-1 text-[10px] font-semibold text-dim uppercase">Lineage ({lineage.length})</div>
             {lineage.map((l) => (
               <div key={l.id} className="flex justify-between font-mono text-[10px]">
@@ -465,6 +509,57 @@ export function ArchivePanel() {
           <div className="p-3 text-dim">Click a cell to replay that candidate in the viewport and see its genes and lineage.</div>
         )}
       </PanelScroll>
+    </div>
+  );
+}
+
+interface CostEstimate {
+  run: { rollouts: number; cpu_s: number; wall_s: number };
+  small: { generations: number; batch_size: number; inner_iterations: number; inner_popsize: number; rollouts: number; cpu_s: number; wall_s: number };
+  seeds: number;
+  workers: number;
+  rollout_s: number;
+  note: string;
+}
+
+function duration_text(s: number): string {
+  if (s < 90) return `${Math.round(s)} s`;
+  if (s < 5400) return `${Math.round(s / 60)} min`;
+  return `${(s / 3600).toFixed(1)} h`;
+}
+
+interface SafetyRow { key: string; label: string; value: number | null; limit: number; violated: boolean; unknown: boolean; action: string; penalty: number; detail: string }
+
+/** The worst seed's safety constraints of a candidate (computed by the server, ADR-079). */
+function SafetyTable({ report }: { report: { constraints: SafetyRow[]; rejected: boolean; penalty: number; margin: number | null; judged_until_s?: number | null } }) {
+  return (
+    <div className="mt-1" data-testid="candidate-safety">
+      <div className="text-[10px] font-semibold uppercase text-dim">
+        Safety (worst seed){report.margin !== null ? ` · margin ${fmt(report.margin, 2)}` : ""}{report.penalty ? ` · penalty ${fmt(report.penalty, 2)}` : ""}
+        {report.judged_until_s ? ` · judged until the fall at ${fmt(report.judged_until_s, 1)} s` : ""}
+      </div>
+      {report.constraints.map((c) => (
+        <div key={c.key} className="flex justify-between gap-2 text-[10px]" title={c.detail}>
+          <span className={c.violated ? (c.action === "reject" ? "text-err" : "text-warn") : ""}>{c.label}</span>
+          <span className="shrink-0 font-mono">{c.value === null ? "unknown" : `${fmt(c.value, 2)} / ${fmt(c.limit, 2)}`}{c.violated ? (c.action === "reject" ? " reject" : " -" + fmt(c.penalty, 2)) : ""}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function SeedTable({ seeds, aggregate }: { seeds: { seed: number; fitness: number; penalty: number; fell: boolean; scales: Record<string, number>; margin: number | null }[]; aggregate?: { method: string; value: number; mean: number; spread: number } }) {
+  return (
+    <div className="mt-1" data-testid="candidate-seeds">
+      <div className="text-[10px] font-semibold uppercase text-dim">
+        Seeds{aggregate ? ` · ${aggregate.method === "worst" ? "worst" : "mean - spread"} = ${fmt(aggregate.value, 3)} (mean ${fmt(aggregate.mean, 3)}, spread ${fmt(aggregate.spread, 3)})` : ""}
+      </div>
+      {seeds.map((s) => (
+        <div key={s.seed} className="flex justify-between font-mono text-[10px]">
+          <span>seed {s.seed}{s.scales?.friction ? ` · friction ${fmt(s.scales.friction, 2)} · mass x${fmt(s.scales.mass, 3)}` : ""}</span>
+          <span className={s.fell ? "text-err" : ""}>{fmt(s.fitness, 3)}{s.fell ? " fell" : ""}</span>
+        </div>
+      ))}
     </div>
   );
 }

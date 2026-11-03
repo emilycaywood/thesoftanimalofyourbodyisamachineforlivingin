@@ -818,6 +818,54 @@ class Lab:
         job.result = {"run_id": run_id}
         return job
 
+    def estimate_evolve(self, optimizer: str = "map_elites_cma", params: dict[str, Any] | None = None,
+                        sim: dict[str, Any] | None = None) -> dict[str, Any]:
+        """CPU cost of an evolution before starting it (ADR-079): one short rollout of the working design is
+        timed, then scaled by the number of rollouts (generations x batch x (1 + inner iterations x popsize) x the
+        preset's seeds) and divided by the workers. Also a small budget to try first."""
+        from calflab.fitness import presets
+        from calflab.sim import CompileOptions, SimSettings, compile_mjcf, run_rollout
+
+        g = self.state.graph
+        try:
+            evo = dict(genome_definition(g.role("genome").type.split(":", 1)[1]).evolve)
+        except (KeyError, ValueError):
+            evo = {}
+        evo_sim = dict(evo.pop("sim", {}) or {})
+        cls = registry.get("optimizer", optimizer)
+        p = cls.Params.model_validate({**{k: v for k, v in evo.items() if k in cls.Params.model_fields}, **(params or {})})
+        sim_p = {**g.role("simulation").params, **evo_sim, **(sim or {})}
+        preset = presets().get(str(g.role("fitness").params.get("preset")))
+        seeds = len(preset.evaluation.seeds) if preset is not None and preset.evaluation is not None else 1
+        design = self.design()
+        ctrl = self._role_output("controller", "controller", g, self.state)
+        lib = library()
+        probe_s = 2.0
+        cm = compile_mjcf(design.spec, lib, CompileOptions.model_validate(g.role("model").params), 0)
+        t0 = time.perf_counter()
+        run_rollout(cm, registry.get("controller", ctrl["key"])(ctrl["params"]),  # type: ignore[arg-type]
+                    SimSettings.model_validate({**sim_p, "duration_s": probe_s, "stop_on_fall": False}), lib)
+        per_sim_s = (time.perf_counter() - t0) / (probe_s + float(sim_p.get("settle_s", 0.4)))
+        backend = registry.get("compute_backend", self.backend_key)()
+        workers = int(getattr(backend, "n_workers", lambda: 1)())
+        duration = float(sim_p.get("duration_s", 6.0)) + float(sim_p.get("settle_s", 0.4))
+
+        def cost(gens: int, batch: int, iters: int, pop: int) -> dict[str, Any]:
+            rollouts = gens * batch * (1 + iters * pop) * seeds
+            # candidates run in parallel, one per worker; a candidate's rollouts run one after another
+            secs = gens * -(-batch // max(1, workers)) * (1 + iters * pop) * seeds * duration * per_sim_s
+            return {"generations": gens, "batch_size": batch, "inner_iterations": iters, "inner_popsize": pop,
+                    "rollouts": rollouts, "cpu_s": round(rollouts * duration * per_sim_s, 1), "wall_s": round(secs, 1)}
+
+        full = cost(int(getattr(p, "generations", 1)), int(getattr(p, "batch_size", 1)),
+                    int(getattr(p, "inner_iterations", 0)), int(getattr(p, "inner_popsize", 1)))
+        small = cost(2, min(4, int(getattr(p, "batch_size", 4))), min(1, int(getattr(p, "inner_iterations", 0))),
+                     min(4, int(getattr(p, "inner_popsize", 4))))
+        return {"run": full, "small": small, "seeds": seeds, "workers": workers, "rollout_s": round(duration, 2),
+                "seconds_per_simulated_second": round(per_sim_s, 4), "preset": preset.ref if preset else None,
+                "note": (f"Measured on one {probe_s:g} s rollout of the working design; each evaluation runs {seeds} "
+                         f"seed{'s' if seeds > 1 else ''}. Try the small budget first.")}
+
     # ------------------------------------------------------------------ gait tuning
     def tune_gait(self, settings: dict[str, Any] | None = None, backend: str | None = None) -> Job:
         """Search a gait for the working design as it is (body fixed), within the

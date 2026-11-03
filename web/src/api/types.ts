@@ -461,11 +461,31 @@ export interface Meta {
   layers: { name: string; color: string }[];
   socket_types: Record<string, string>;
   metrics: Record<string, { label: string; unit: string; better: string }>;
-  fitness_presets: Record<string, { name: string; version: number; description: string; terms: any[] }>;
+  fitness_presets: Record<string, FitnessPresetInfo>;
   plugin_errors: Record<string, string>;
 }
 
 export interface LabEvent {
   type: string;
   [k: string]: any;
+}
+
+/** How a preset evaluates a candidate: seeds, randomisation, aggregate, safety (ADR-079). */
+export interface PresetEvaluation {
+  seeds: number[];
+  randomize: boolean;
+  friction: [number, number];
+  mass_scale: [number, number];
+  aggregate: "mean_minus_sd" | "worst";
+  spread_k: number;
+  safety: { actions?: Record<string, string>; window_s?: number } | null;
+  torque_derating: number | null;
+}
+
+export interface FitnessPresetInfo {
+  name: string;
+  version: number;
+  description: string;
+  terms: any[];
+  evaluation?: PresetEvaluation | null;
 }

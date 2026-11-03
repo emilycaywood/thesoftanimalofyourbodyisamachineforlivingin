@@ -6,7 +6,7 @@ stay interpretable after the preset file changes.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -20,11 +20,30 @@ class TermRef(BaseModel):
     params: dict[str, Any] = Field(default_factory=dict)
 
 
+class EvaluationSettings(BaseModel):
+    """How a candidate is evaluated under this preset (ADR-079): over several seeds with mild domain randomisation,
+    a pessimistic aggregate, and safety constraints. A preset without it evaluates once, as before."""
+
+    seeds: list[int] = Field(default_factory=lambda: [0, 1, 2])
+    randomize: bool = True
+    friction: tuple[float, float] = (0.7, 1.1)
+    mass_scale: tuple[float, float] = (0.95, 1.05)
+    aggregate: Literal["mean_minus_sd", "worst"] = "mean_minus_sd"
+    spread_k: float = 1.0
+    #: safety constraints (calflab.evolve.safety.SafetyPolicy); None = not applied
+    safety: dict[str, Any] | None = Field(default_factory=dict)
+    #: compile with this torque derating (1.0 = a servo can reach stall, as the load analysis); None = the document's
+    torque_derating: float | None = 1.0
+    #: the behaviors controller plays every required clip once before choosing freely
+    play_required_first: bool = True
+
+
 class FitnessPreset(BaseModel):
     name: str
     version: int = 1
     description: str = ""
     terms: list[TermRef]
+    evaluation: EvaluationSettings | None = None
 
     @property
     def ref(self) -> str:

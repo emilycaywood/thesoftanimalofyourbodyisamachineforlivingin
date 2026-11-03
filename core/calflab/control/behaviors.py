@@ -51,7 +51,7 @@ import numpy as np
 from pydantic import BaseModel, Field
 
 from calflab import units as u
-from calflab.plugins import ControlInfo, Controller, Observation, register, registry
+from calflab.plugins import ControlInfo, Controller, Observation, VectorDim, register, registry
 from calflab.schema import P
 
 
@@ -227,6 +227,64 @@ class BehaviorsController(Controller):
         out["clips"] = clips
         out["pools"] = pools
         return out
+
+    # ------------------------------------------------------------------ inner loop: per-clip playback limits (ADR-079)
+    @classmethod
+    def vector_dims_for(cls, params: dict[str, Any], spec: Any = None) -> list[VectorDim]:
+        """Two numbers per clip entry: the top of its speed range, up to what the body's servos can follow
+        (``clip_report``'s playable speed on this body), and the top of its amplitude range (up to 1 = the clip
+        as recorded). Each range is then [0.8 x top, top]."""
+        dims = []
+        for raw in params.get("repertoire") or []:
+            e = raw if isinstance(raw, dict) else raw.model_dump()
+            if e.get("kind") != "clip":
+                continue
+            top = cls._playable(params, e, spec)
+            dims.append(VectorDim(f"speed:{e['name']}", min(0.2, top), top))
+            dims.append(VectorDim(f"amplitude:{e['name']}", 0.3, 1.0))
+        return dims
+
+    @staticmethod
+    def _playable(params: dict[str, Any], e: dict[str, Any], spec: Any) -> float:
+        if spec is None:
+            return 1.0
+        from calflab.behave.feasibility import clip_report
+        from calflab.components import library
+        from calflab.project.motions import MotionClip
+
+        ids = [e["clip"]] if e.get("clip") else list((params.get("pools") or {}).get(e["name"], []))
+        tops = []
+        for cid in ids:
+            c = (params.get("clips") or {}).get(cid)
+            if c:
+                tops.append(clip_report(MotionClip(name=cid, fps=c["fps"], joints=c["joints"]), spec, library())["playable_speed"])
+        return max(0.05, min(tops)) if tops else 1.0
+
+    @classmethod
+    def params_from_vector_for(cls, base: dict[str, Any], x: np.ndarray, spec: Any = None) -> dict[str, Any]:
+        out = dict(base)
+        dims = cls.vector_dims_for(base, spec)
+        vals = {d.name: d.lo + float(v) * (d.hi - d.lo) for d, v in zip(dims, np.clip(x, 0.0, 1.0), strict=True)}
+        rep = []
+        for raw in base.get("repertoire") or []:
+            e = dict(raw if isinstance(raw, dict) else raw.model_dump())
+            if f"speed:{e['name']}" in vals:
+                s, a = vals[f"speed:{e['name']}"], vals[f"amplitude:{e['name']}"]
+                e["speed"] = [round(0.8 * s, 4), round(s, 4)]
+                e["amplitude"] = [round(0.8 * a, 4), round(a, 4)]
+            rep.append(e)
+        out["repertoire"] = rep
+        return out
+
+    @classmethod
+    def vector_from_params_for(cls, params: dict[str, Any], spec: Any = None) -> np.ndarray:
+        dims = cls.vector_dims_for(params, spec)
+        by = {}
+        for raw in params.get("repertoire") or []:
+            e = raw if isinstance(raw, dict) else raw.model_dump()
+            by[f"speed:{e['name']}"] = float(e.get("speed", (1.0, 1.0))[1])
+            by[f"amplitude:{e['name']}"] = float(e.get("amplitude", (1.0, 1.0))[1])
+        return np.clip(np.array([(by.get(d.name, d.hi) - d.lo) / ((d.hi - d.lo) or 1.0) for d in dims]), 0.0, 1.0)
 
     # ------------------------------------------------------------------ runtime
     def reset(self, info: ControlInfo, seed: int = 0) -> None:

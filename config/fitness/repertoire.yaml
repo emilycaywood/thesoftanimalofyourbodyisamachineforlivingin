@@ -1,0 +1,27 @@
+# Fitness preset: perform a repertoire of behaviors consistently and safely (ADR-079).
+# Mark clips as required in the behaviors controller (repertoire entries: required, imitation_weight).
+# Bump `version` whenever you change terms, weights, params or evaluation.
+name: repertoire
+version: 1
+description: >
+  Play the required clips faithfully (imitation averaged over them, weighted), without falling and steadily;
+  scored over three seeds with mild friction and mass randomisation (mean minus spread), with safety as
+  constraints (stall and belt breaking reject, the rest cost fitness).
+terms:
+  - {term: imitation_required, weight: 1.0, params: {scale_deg: 8.0}}
+  - {term: survival, weight: 1.0}
+  - {term: stability, weight: 0.5}
+evaluation:
+  seeds: [0, 1, 2]
+  randomize: true
+  friction: [0.7, 1.1]
+  mass_scale: [0.95, 1.05]
+  aggregate: mean_minus_sd
+  spread_k: 1.0
+  safety:
+    actions: {servo_sustained: penalise, stall: reject, belt_sustained: penalise, belt_breaking: reject,
+              joint_speed: penalise, joint_limit: penalise}
+    window_s: 2.0
+    joint_limit_max: 0.05
+  torque_derating: 1.0
+  play_required_first: true
