@@ -28,7 +28,7 @@ from calflab.project.motions import MotionClip
 from calflab.sim.metrics import METRIC_DEFS
 from fastapi import Body, FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, Response
 
 from calflab_server.hops import hops_router
 
@@ -60,7 +60,8 @@ class Hub:
             q.put_nowait(text)
 
 
-def create_app(lab: Lab, web_dist: Path | None = None, watch_plugins: bool = True) -> FastAPI:
+def create_app(lab: Lab, web_dist: Path | None = None, watch_plugins: bool = True,
+               watch_footage: bool = True) -> FastAPI:
     hub = Hub()
     watcher: PluginWatcher | None = None
 
@@ -78,7 +79,10 @@ def create_app(lab: Lab, web_dist: Path | None = None, watch_plugins: bool = Tru
 
             watcher = PluginWatcher(plugins_dir(), on_change=changed)
             watcher.start()
+        if watch_footage:  # the video inbox (ADR-076): polling on its own thread
+            lab.footage.start()
         yield
+        lab.footage.stop()
         unsubscribe()
         if watcher:
             watcher.stop()
@@ -310,6 +314,32 @@ def create_app(lab: Lab, web_dist: Path | None = None, watch_plugins: bool = Tru
             raise LabError(f"Invalid motion clip: {exc}") from exc
         lab.bus.emit("motions.changed", clip_id=clip.id)
         return {"id": clip.id, "frames": clip.frames, "duration_s": clip.duration_s}
+
+    # ------------------------------------------------------------------ footage inbox (ADR-076)
+    @app.get("/api/footage")
+    def footage() -> dict[str, Any]:
+        from calflab.app.footage import footage_view
+
+        return footage_view(lab)
+
+    @app.get("/api/footage/{file}/frame/{index}")
+    def footage_frame(file: str, index: int, width: int = 640) -> Response:
+        from calflab.app.footage import FootageError, frame_image
+
+        try:
+            data, media = frame_image(lab, file, index, width)
+        except FootageError as exc:
+            raise HTTPException(404, str(exc)) from exc
+        return Response(content=data, media_type=media, headers={"Cache-Control": "max-age=3600"})
+
+    @app.get("/api/footage/{file}/points")
+    def footage_points(file: str, start: int = 0, end: int | None = None) -> dict[str, Any]:
+        from calflab.app.footage import FootageError, frame_points
+
+        try:
+            return frame_points(lab, file, start, end)
+        except (FootageError, FileNotFoundError) as exc:
+            raise HTTPException(404, str(exc)) from exc
 
     # ------------------------------------------------------------------ files
     @app.get("/api/files/{rel:path}")

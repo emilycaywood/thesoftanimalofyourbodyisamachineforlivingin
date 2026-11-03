@@ -316,9 +316,17 @@ class LoadsReport(Analysis):
 class BehaveView(Analysis):
     key = "behave"
     label = "Behaviors from footage"
-    description = "Motion clips with what this body can play of each, retarget maps, footage files, and the controller."
+    description = ("Motion clips with what this body can play of each (optionally only those with given affect tags), "
+                   "retarget maps, footage files, the video inbox, and the controller.")
+
+    class Params(BaseModel):
+        words: str = P("", desc="Only clips tagged with all these words (comma-separated).")
+        valence_min: float = P(-1.0, ge=-1.0, le=1.0, step=0.1, desc="Only clips whose valence is at least this.")
+        valence_max: float = P(1.0, ge=-1.0, le=1.0, step=0.1, desc="... and at most this.")
+        arousal_min: float = P(0.0, ge=0.0, le=1.0, step=0.1, desc="Only clips whose arousal is at least this.")
+        arousal_max: float = P(1.0, ge=0.0, le=1.0, step=0.1, desc="... and at most this.")
 
     def run(self, lab: Any) -> dict[str, Any]:
         from calflab.app.behave_jobs import behave_view
 
-        return behave_view(lab)
+        return behave_view(lab, self.params.model_dump())

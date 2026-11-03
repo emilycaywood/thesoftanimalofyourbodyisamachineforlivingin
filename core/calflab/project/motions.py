@@ -1,7 +1,9 @@
-"""Motion library: reference-motion clips (from Blender) stored in ``motions/``.
+"""Motion library: reference-motion clips (from Blender or footage) stored in ``motions/``.
 
 A clip is joint angles plus a root trajectory over time. Clips feed the Behave
-timeline and (Phase 2) imitation rewards.
+timeline, the stochastic behaviors and the imitation term. A clip may carry
+the researcher's affect tags (ADR-078): what *they* read in the movement. The
+lab stores and filters by them; it never infers them.
 """
 
 from __future__ import annotations
@@ -11,6 +13,26 @@ from typing import Any
 from pydantic import BaseModel, Field, model_validator
 
 from calflab.project.store import Project, now_iso, read_json, slugify, write_json
+
+
+class AffectTags(BaseModel):
+    """The researcher's reading of a clip. Never set by the lab."""
+
+    valence: float | None = Field(None, ge=-1.0, le=1.0)  # -1 unpleasant .. +1 pleasant
+    arousal: float | None = Field(None, ge=0.0, le=1.0)  # 0 calm .. 1 agitated
+    words: list[str] = Field(default_factory=list)  # free words: wary, curious, ...
+    note: str = ""
+    tagged: str = ""  # when (ISO time)
+
+    def matches(self, words: list[str] | None = None, valence: tuple[float, float] | None = None,
+                arousal: tuple[float, float] | None = None) -> bool:
+        """All given conditions hold: every word is among the tags (case-insensitive), values inside the ranges."""
+        mine = {w.strip().lower() for w in self.words}
+        if words and not all(w.strip().lower() in mine for w in words):
+            return False
+        if valence is not None and (self.valence is None or not valence[0] <= self.valence <= valence[1]):
+            return False
+        return not (arousal is not None and (self.arousal is None or not arousal[0] <= self.arousal <= arousal[1]))
 
 
 class MotionClip(BaseModel):
@@ -25,6 +47,7 @@ class MotionClip(BaseModel):
     source: str = "blender"
     created: str = Field(default_factory=now_iso)
     meta: dict[str, Any] = Field(default_factory=dict)
+    affect: AffectTags | None = None
 
     @model_validator(mode="after")
     def _consistent(self) -> MotionClip:
@@ -88,6 +111,7 @@ class MotionLibrary:
                     "joints": sorted(c.joints),
                     "source": c.source,
                     "created": c.created,
+                    "affect": c.affect.model_dump(mode="json") if c.affect else None,
                 }
             )
         return out

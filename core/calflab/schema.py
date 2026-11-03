@@ -112,6 +112,11 @@ def _strip_optional(tp: Any) -> Any:
     return tp
 
 
+def _nullable(tp: Any) -> bool:
+    origin = get_origin(tp)
+    return (origin is typing.Union or origin is types.UnionType) and type(None) in get_args(tp)
+
+
 def _field_type(tp: Any) -> tuple[str, list[Any] | None]:
     """Map a Python annotation to (ui type name, enum choices)."""
     tp = _strip_optional(tp)
@@ -192,6 +197,8 @@ def field_schema(name: str, info: FieldInfo) -> dict[str, Any]:
     }
     if extra.get("provisional"):
         out["provisional"] = True
+    if _nullable(info.annotation) and ftype in ("number", "integer"):
+        out["nullable"] = True  # "not set" is a value of its own (e.g. an affect tag left blank)
     if choices is not None:
         out["choices"] = choices
     if ftype == "group":

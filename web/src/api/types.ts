@@ -18,6 +18,8 @@ export interface FieldSchema {
   advanced: boolean;
   /** a starting value the researcher has not confirmed */
   provisional?: boolean;
+  /** a number that may be left unset (null) */
+  nullable?: boolean;
   choices?: unknown[];
   fields?: FieldSchema[];
 }

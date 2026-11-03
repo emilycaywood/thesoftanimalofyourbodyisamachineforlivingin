@@ -91,6 +91,23 @@ function Widget({
   onChange: (v: unknown, final: boolean) => void;
   disabled?: boolean;
 }) {
+  if (field.nullable && (value === null || value === undefined)) {
+    const start = field.default ?? (field.min !== null && field.max !== null ? (field.min + field.max) / 2 : 0);
+    return (
+      <button type="button" className="text-[11px] text-dim hover:text-fg" disabled={disabled} data-unset={field.name}
+        onClick={() => onChange(start, true)}>
+        not set (click to set)
+      </button>
+    );
+  }
+  if (field.nullable) {
+    return (
+      <span className="flex min-w-0 flex-1 items-center gap-1">
+        <Widget field={{ ...field, nullable: false }} value={value} onChange={onChange} disabled={disabled} />
+        <button type="button" className="text-dim hover:text-err" title="Clear (not set)" disabled={disabled} onClick={() => onChange(null, true)}>×</button>
+      </span>
+    );
+  }
   switch (field.ui) {
     case "slider":
       return <SliderInput field={field} value={Number(value)} onChange={onChange} disabled={disabled} />;

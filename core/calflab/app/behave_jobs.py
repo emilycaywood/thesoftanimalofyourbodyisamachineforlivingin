@@ -12,6 +12,7 @@ from __future__ import annotations
 import time
 from typing import Any
 
+from calflab.app.footage import footage_view
 from calflab.app.scene import build_scene
 from calflab.behave.feasibility import clip_report
 from calflab.behave.keypoints import read_tracks
@@ -62,6 +63,11 @@ def preview_clip(lab: Any, clip_id: str, speed: float = 1.0) -> dict[str, Any]:
         clip = lab.motions.get(clip_id)
     except KeyError as exc:
         raise BehaveError(str(exc)) from exc
+    return preview_run(lab, clip, speed, f"Clip preview: {clip.name}", {"clip": clip.id})
+
+
+def preview_run(lab: Any, clip: Any, speed: float, title: str, inputs: dict[str, Any]) -> dict[str, Any]:
+    """Pose the body with ``clip`` (saved or not) and store it as a run of kind ``clip``."""
     design = lab.design()
     rollout = preview_rollout(clip, design.spec, speed)
     run_id = lab.registry.new_run_id("clip")
@@ -71,8 +77,8 @@ def preview_clip(lab: Any, clip_id: str, speed: float = 1.0) -> dict[str, Any]:
     write_json(run_dir / "scene.json", build_scene(design, state.layers, state.settings))
     report = clip_report(clip, design.spec, library())
     lab.registry.save_run(RunRecord(
-        id=run_id, kind="clip", title=f"Clip preview: {clip.name}", duration_s=0.0, backend="local",
-        inputs={"clip": clip.id, "speed": speed, "kinematic": True, "report": report},
+        id=run_id, kind="clip", title=title, duration_s=0.0, backend="local",
+        inputs={**inputs, "speed": speed, "kinematic": True, "report": report},
         genome=design.genome.model_dump(mode="json"),
         metrics={"verdict": report["verdict"], "duration_s": round(rollout.meta["duration_s"], 3)},
         artifacts={"rollout": f"runs/{run_id}/rollout.npz", "scene": f"runs/{run_id}/scene.json"},
@@ -81,12 +87,34 @@ def preview_clip(lab: Any, clip_id: str, speed: float = 1.0) -> dict[str, Any]:
     return {"run_id": run_id, "report": report}
 
 
-def behave_view(lab: Any) -> dict[str, Any]:
-    """Everything the Behave panel shows: clips with their reports for this body, maps, footage files, controller."""
+def clip_filter(f: dict[str, Any] | None) -> dict[str, Any] | None:
+    """Affect-tag conditions from the analysis params, or None when nothing narrows the list."""
+    f = f or {}
+    words = [w.strip() for w in str(f.get("words", "")).split(",") if w.strip()]
+    val = (float(f.get("valence_min", -1.0)), float(f.get("valence_max", 1.0)))
+    aro = (float(f.get("arousal_min", 0.0)), float(f.get("arousal_max", 1.0)))
+    if not words and val == (-1.0, 1.0) and aro == (0.0, 1.0):
+        return None
+    return {"words": words or None, "valence": None if val == (-1.0, 1.0) else val,
+            "arousal": None if aro == (0.0, 1.0) else aro}
+
+
+def behave_view(lab: Any, filters: dict[str, Any] | None = None) -> dict[str, Any]:
+    """Everything the Behave panel shows: clips with their reports for this body (only those whose affect tags
+    match ``filters``, if any), maps, footage files, the inbox, controller."""
+    from calflab.project.motions import AffectTags
+
     design = lab.design()
     lib = library()
+    cond = clip_filter(filters)
     clips = []
+    words: set[str] = set()
     for row in lab.motions.list():
+        tags = AffectTags.model_validate(row["affect"]) if row.get("affect") else None
+        if tags:
+            words.update(w.strip().lower() for w in tags.words)
+        if cond is not None and (tags is None or not tags.matches(**cond)):
+            continue
         try:
             c = lab.motions.get(row["id"])
             clips.append({**row, "report": clip_report(c, design.spec, lib), "retarget": c.meta.get("retarget"),
@@ -100,4 +128,7 @@ def behave_view(lab: Any) -> dict[str, Any]:
         "footage": footage_files(lab),
         "footage_dir": str(lab.project.dir("footage")),
         "controller": {"type": ctrl.type, "params": ctrl.params},
+        "inbox": footage_view(lab),
+        "tag_words": sorted(words),
+        "filtered": cond is not None,
     }

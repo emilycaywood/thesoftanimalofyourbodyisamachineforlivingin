@@ -18,6 +18,7 @@ import numpy as np
 from calflab import CODE_VERSION
 from calflab import units as u
 from calflab.app.events import EventBus
+from calflab.app.footage import FootageInbox
 from calflab.app.jobs import Job, JobContext, JobManager
 from calflab.app.scene import build_scene, foot_tracks, geometry_record
 from calflab.components import library
@@ -60,6 +61,7 @@ class Lab:
         self.registry = Registry(project)
         self.journal = Journal(project)
         self.motions = MotionLibrary(project)
+        self.footage = FootageInbox(self)  # polling starts with start(): the server does, tests may not
         self.log = CommandLog(project.path / LOG_FILE)
         self.evaluator = Evaluator(Cache(disk_dir=project.path / ".cache"))
         self.revision = self.log.total
@@ -79,6 +81,7 @@ class Lab:
         return cls(Project.create(path, name))
 
     def close(self) -> None:
+        self.footage.stop()
         self.jobs.shutdown()
         self.registry.close()
 

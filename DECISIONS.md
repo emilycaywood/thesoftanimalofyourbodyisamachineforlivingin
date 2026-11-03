@@ -1984,3 +1984,187 @@ back to *Feral calf motions*.
 
 *Checked.* `tests/test_behave.py` (switch, change, switch back, undo,
 fits), and `web/e2e/behave.spec.ts` drives the list in the browser.
+
+## ADR-076 — A video inbox: from a video in a folder to candidate clips (**VERIFY**)
+
+*Requested 2026-11-03* (session T): "I drop a video of a calf into a folder;
+CALFLAB turns it into behavior clips". Before this, footage had to be tracked
+outside CALFLAB and imported as a CSV (ADR-073).
+
+*Decision.*
+* **The folder** is `<project>/footage/videos/`, created when the lab opens.
+  mp4, mov, avi and mkv are picked up.
+* **The watcher** is a thread of the lab (`FootageInbox`), started by the
+  server, polling every 2 s (`poll_s`). It never runs in the UI. It runs one
+  processing job at a time (tracking is CPU/GPU heavy), with progress and
+  cancel like any job. Tests and the CLI call `poll()` directly.
+* **Status records** in `<project>/footage/inbox.json`, keyed by file name:
+  `waiting` -> `queued` -> `tracking` -> `retargeting` -> `needs_review` ->
+  `ready`, or `failed` + reason, `cancelled`, `missing`.
+  * A new file waits until its size and modification time are the same on
+    two polls (still being copied otherwise).
+  * The record holds the file's **SHA-256**. It is recomputed only when the
+    size or modification time changes. A touched but identical file is not
+    processed again; changed content starts over (new record, new
+    candidates). Clips already accepted stay in the motion library with the
+    old hash.
+  * A job never writes into a record whose hash changed meanwhile.
+* **Reading video** (`calflab.behave.video`):
+  * OpenCV (`opencv-python-headless`, optional extra `video`, Apache-2.0,
+    installed with the researcher's approval 2026-11-03) reads every
+    format;
+  * a built-in reader handles uncompressed and MJPEG AVI, so the synthetic
+    footage and its tests need no package.
+
+  The **frame rate is the file's own** (OpenCV `CAP_PROP_FPS`; AVI
+  rate/scale), never assumed. OpenCV's frame count can be approximate for
+  some containers; tracking reads to the end anyway.
+* **Processing** a video: track (ADR-077) -> settle the near side (below)
+  -> check the camera view -> retarget the whole video (near legs only) ->
+  segment -> candidates. Tracks are kept per hash in
+  `footage/tracks/<sha16>.npz` so review and trimming never re-track.
+* **Near side.** An animal facing right in the image shows its right side.
+  The facing comes from the rear and front trunk landmarks over the whole
+  video. With two-sided keypoints (AP-10K), the side tracked more
+  confidently is reported as a cross-check (`agree`). A map can be written
+  for either side (`joints_side`, `side_names`, `{side}` in landmark names)
+  and is mirrored. The inbox always decides the side from the footage
+  (`auto_side`, default on).
+* **Camera view.** Separation of the left/right hips and shoulders over the
+  trunk length = (W/L) tan(yaw). **W/L = 0.35 is an assumption about
+  calves**, a map setting (`view.width_over_length`), not measured.
+  * The verdict is "side view OK" for a median yaw up to 25 deg, else
+    "too oblique".
+  * With one side tracked: "unknown (one side tracked)". Frames whose trunk
+    looks shorter than cos(25 deg) of its longest are marked turned.
+* **Segmentation** (`calflab.behave.segment`):
+  * trunk motion in body lengths/s (hip-shoulder distance = 1);
+  * limb activity: mean |d angle/dt| of the retargeted joints;
+  * periodicity: the first autocorrelation peak of the angles in
+    0.3-3 s.
+
+  Still = trunk under 0.05 BL/s and activity under 8 deg/s (0.5 s smoothing,
+  edges refined with the unsmoothed signal). Runs under 0.6 s join their
+  neighbour. Kinds:
+  * still runs of 1 s or more are `idle`;
+  * moving runs with a peak of 0.4 or more and at least 2 cycles are
+    `gait`, trimmed to whole cycles, with far legs suggested `half_cycle`;
+  * other moving runs of 0.6 s or more are `other`.
+
+  A camera that pans with the animal hides travel, so gaits are found by
+  periodic limbs, not by trunk motion. **All thresholds are first guesses
+  tested only on synthetic footage**; they are settings
+  (`set_footage_settings`) and are stored with every clip.
+* **Standing reference.** A clip's angles are relative to the middle of the
+  video's longest still stretch (the map's `standing` if there is none), not
+  to the clip's first frame: a walk cut mid-stride must not be offset.
+* **Review** (Behave panel). The server serves frames
+  (`/api/footage/<file>/frame/<i>`, JPEG) and tracked points
+  (`/api/footage/<file>/points`, image pixels, confidences, skeleton, the
+  landmarks the map uses). The browser only draws them.
+  * Candidates are previewed on the robot (a kinematic `clip` run), trimmed
+    (a trimmed gait keeps whole cycles), renamed, and accepted or rejected.
+  * Accepted clips store the video's SHA-256 and info, frame range, tracker
+    provenance, the full map with its side settled, the detected side and
+    view, standing frame, cleaning and segmentation settings, and the
+    retarget report.
+* **Commands** (none edits the document, as imports before): `scan_footage`,
+  `retry_video`, `cancel_video`, `preview_candidate`, `accept_candidate`,
+  `reject_candidate`, `set_footage_settings`.
+* **Synthetic footage** (`calflab.behave.synthetic`, `calflab tracker
+  synthetic <out.avi>`): the feral calf posed by forward kinematics (stand,
+  walk at a known period while travelling, paw), drawn as a stick calf with
+  coloured markers, facing left (left legs near), 8-bit paletted AVI.
+* **Schema forms**: an optional number (`float | None`) is `nullable` in the
+  UI schema and shows "not set" until clicked, with a clear button, so an
+  untouched valence stays unset instead of reading 0.
+
+*Checked.* `tests/test_footage.py`:
+* synthetic video -> colour-marker tracker -> inbox -> candidates
+  idle/gait/idle, period 1.2 s found, near side left;
+* angles back within 1.5 deg (measured 0.4-1.0 deg);
+* the walk's cuts within 1-3 frames;
+* watcher once / touched / changed / missing;
+* a failing tracker then retry;
+* frames and points;
+* segmentation of walk-pause-walk at two periods;
+* side and view on two-sided keypoints.
+
+`web/e2e/footage.spec.ts` drives drop -> watcher -> review -> preview ->
+tag -> accept in the browser.
+
+*Not done.* Several animals in one video (the tracker follows one). Videos
+over about 2 GB in the built-in reader (OpenCV handles them). A per-frame
+camera-motion estimate (a panning camera's travel is not measured).
+
+## ADR-077 — Pose tracking as a plugin type; RTMPose AP-10K on this machine (**VERIFY**)
+
+*Requested 2026-11-03.* A plugin type `pose_tracker`; a CSV tracker, a
+synthetic one, and one pretrained quadruped model that runs on this AMD,
+no-CUDA machine, compared and recommended before installing.
+
+*The comparison put to the researcher (2026-11-03).*
+* **A. RTMPose-m AP-10K (ONNX)**: 17 keypoints; ONNX Runtime on CPU or
+  DirectML; about 87 MB of weights with the detector; Apache-2.0 code and
+  weights, AP-10K data CC-BY-4.0 (read in the AP-10K README).
+* **B. DeepLabCut SuperAnimal-Quadruped**: 39 keypoints; PyTorch, about
+  1 GB; weights for academic, non-commercial use only; CPU only here;
+  slow.
+* **C. ViTPose++-s (APT-36K)**: 17 keypoints; about 100 MB; dataset licence
+  unclear.
+
+None has separate stifle, hock and fetlock points: three points per leg.
+Speeds were estimates; nothing was installed before the answer.
+
+*The researcher chose* A, `onnxruntime-directml`, and `opencv-python-headless`.
+
+*Decision.*
+* **Plugin type** `pose_tracker` (`PoseTracker`):
+  * `track(video, report, cancelled)` returns `KeypointTracks` in image
+    pixels, y up, at the video's frame rate, with a confidence per point;
+  * `TrackerCancelled` stops it;
+  * `available()` says what is missing without importing anything heavy;
+  * `keypoint_names()`;
+  * `provenance()` gives tracker, model, version and params, stored in
+    `KeypointTracks.model` and on every clip;
+  * a contract (tracks a blank AVI when self-contained and available);
+  * a `new-plugin pose_tracker` template.
+* **`csv`**: the CSV beside the video (same name), at the video's frame rate.
+* **`synthetic`**: centres of coloured marker pixels.
+* **`rtmpose_ap10k`**:
+  * YOLOX-s (COCO; a calf is accepted as cow, horse, sheep or dog) finds
+    the animal; between detections the box follows the keypoints;
+  * RTMPose-m (AP-10K, 256x256, SimCC) gives 17 keypoints, with pre- and
+    post-processing as the model's own `pipeline.json`;
+  * runs on DirectML (the AMD GPU) when present, else the CPU.
+  * Checked on the model's own sample image: the points match the published
+    output.
+* **Packages**: optional extras `video` (OpenCV) and `track` (OpenCV +
+  `onnxruntime-directml` on Windows, `onnxruntime` elsewhere). Without them
+  the lab works and the tracker says what is missing.
+* **Weights** are not packages. `calflab tracker download rtmpose_ap10k`
+  (or the panel's button) fetches them into `<repo>/models/` (not in git;
+  shared by a lab started from the Claude app and one from a terminal),
+  checks the recorded SHA-256, and writes a manifest. Nothing downloads
+  implicitly. Downloaded 2026-11-03 with the researcher's approval.
+* **Keypoint names.** The ONNX file carries none. Its `detail.json` names
+  the MMPose config `rtmpose-m_8xb64-210e_ap10k-256x256.py`, whose dataset
+  metainfo (mmpose v1.1.0 `configs/_base_/datasets/ap10k.py`) lists them:
+  `L_Eye, R_Eye, Nose, Neck, Root of tail, L/R_Shoulder, L/R_Elbow,
+  L/R_F_Paw, L/R_Hip, L/R_Knee, L/R_B_Paw`. The count is checked against the
+  model's output at load.
+* **Map `ap10k_side`.** These choices must be checked against real footage:
+  * the hind fold at the AP-10K Knee (hip-knee-hind paw) is split half and
+    half between stifle and hock;
+  * the shoulder swings with the whole leg (shoulder -> front paw);
+  * the carpus takes the fold at the AP-10K Elbow.
+
+  It was not known which anatomical joint AP-10K annotators mark as "Knee"
+  on a calf's hind leg, or as "Elbow" on its fore leg. `min_likelihood`
+  0.3: SimCC scores are not probabilities; 0.3 is RTMPose's own threshold.
+* **Default inbox settings**: tracker `rtmpose_ap10k`, map `ap10k_side`.
+
+*Not verified.* Tracking accuracy on calf footage (no real video has been
+through it). The speed on a real 10 s clip. Which joints AP-10K's knee and
+elbow are on a calf. Whether the YOLOX detector finds a young calf
+reliably.
