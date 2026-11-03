@@ -1,7 +1,7 @@
 # CALFLAB session handoff
 
 Everything a new Claude Code session (or a new collaborator) needs to pick up
-CALFLAB. Last updated 2026-11-02 on branch `robot-calf-final` (cut from
+CALFLAB. Last updated 2026-11-03 on branch `robot-calf-final` (cut from
 `chassis-mass`), after the session that built the final feral calf with belt
 drives and tension springs (section 4; run `git log --oneline -12` for the
 current state). The commits since 2026-10-10 are local: not pushed.
@@ -868,6 +868,147 @@ Journal, Rhino bridge):**
 ## 7. Recommended next sessions
 
 Prefix each with the opening message from section 1.
+
+**T. From a video in a folder to behaviors the evolved body performs safely**
+(written 2026-11-03 for the researcher's long-term goal: a body evolved to
+be expressive beyond rote gaits, and a testing ground for the affective
+nature of composed behaviors. Large: it has stop points.)
+> Goal: I drop a video of a calf into a folder; CALFLAB turns it into behavior
+> clips, tests them on the feral calf in the simulator, and can evolve the body
+> (belts fixed, ADR-070) to perform a repertoire consistently and safely. It is
+> also my testing ground for how behaviors read affectively when composed, to
+> inform programming the real calf. Build on what exists: calflab.behave
+> (keypoint CSV -> retarget map -> clip -> clip_report, preview), the behaviors
+> controller, imitation term, Behave workspace (ADR-073..075). Read those ADRs
+> first.
+>
+> Ask me before you install any package or download any model weights: give
+> name, source, size, licence (and whether it allows my research use), and
+> wait for my yes. Everything else: decide, log as ADRs, never invent hardware
+> values.
+>
+> 1. VIDEO INBOX
+>    - Folder: projects/<project>/footage/videos/ (create it). A lab watcher
+>      (polling, a job, never blocking the UI) picks up new files (mp4, mov,
+>      avi, mkv). Each video gets a status record (queued, tracking,
+>      retargeting, needs review, ready, failed + reason) with its SHA-256,
+>      so nothing is processed twice and a changed file is reprocessed.
+>    - Read frames and the real frame rate from the file (OpenCV or ffmpeg).
+>    - The Behave panel lists videos with status, progress, cancel, retry.
+>
+> 2. POSE TRACKING AS A PLUGIN TYPE
+>    - New plugin type `pose_tracker` (base class, contract test, new-plugin
+>      template): video path + settings -> KeypointTracks with per-point
+>      confidence, plus model id/version for provenance.
+>    - Implementations:
+>      (a) `csv` (the existing importer, for tracking done elsewhere);
+>      (b) one pretrained quadruped model that runs on this machine, which
+>      has an AMD GPU and no CUDA, e.g. DeepLabCut SuperAnimal-Quadruped, or
+>      an AP-10K/ViTPose model through ONNX Runtime with DirectML or CPU.
+>      Compare the candidates for me (keypoints offered, licence, size,
+>      CPU/DirectML speed on a 10 s clip) and recommend one before
+>      installing.
+>      (c) a `synthetic` tracker for tests.
+>    - Heavy dependencies go in an optional extra and are imported lazily;
+>      without them the lab still works and says what is missing.
+>    - Write a retarget map for the chosen model's ACTUAL keypoint names
+>      (read them from the model, do not assume). Detect which side faces
+>      the camera and pick near_side automatically. Report the camera view
+>      (side view OK / too oblique) from the trunk landmarks.
+>
+> 3. FROM A LONG VIDEO TO CLIPS
+>    - Clean (existing), then segment: find stretches of standing, walking
+>      and other movement from hip/withers motion, limb-angle activity and
+>      periodicity; cut them into candidate clips with a suggested kind
+>      (idle, gait with its period -> far_side half_cycle, other).
+>    - I review each candidate in the panel: the video frame with the
+>      tracked points drawn over it (the server serves frames and points;
+>      the UI only draws), the retargeted preview on the robot beside it,
+>      and the body report. I accept, rename, trim, or reject.
+>    - Accepted clips get my annotations: a name and AFFECT TAGS that I
+>      assign (e.g. valence and arousal on a scale, free words like wary or
+>      curious). The lab never infers affect. Store the video hash, frame
+>      range, tracker model and version, map, and cleaning settings with
+>      every clip.
+>
+> 4. COMPOSITION AS AN EXPRESSIVE INSTRUMENT
+>    - Extend the behaviors controller, all in the core:
+>      - choose clips by affect tag as well as by name;
+>      - modulation parameters with clear kinematic meaning: tempo (speed),
+>        amplitude, stillness (idle share and noise), smoothness (blend
+>        time, a low-pass on commands), phrasing (repeats, pauses);
+>      - optional affect targets that set those parameters over time (a
+>        curve, e.g. calm -> agitated).
+>      Seeded, logged per episode as now.
+>    - Compute descriptors of a rollout, all labelled as movement features,
+>      not emotions: quantity of motion, jerk/smoothness, tempo regularity,
+>      stillness ratio, postural height and openness (stance width), and
+>      approach/retreat (net travel).
+>    - A "composition study": the same body plays several compositions
+>      (seeds x parameter settings). Tabulate the descriptors, the clip
+>      tracking error and the safety numbers, so I can compare how
+>      compositions read and what they cost the hardware.
+>
+> 5. EVOLVING THE BODY TO PERFORM
+>    - A fitness preset for a repertoire:
+>      - imitation averaged over the clips I mark as required, weighted;
+>      - survival;
+>      - stability.
+>    - SAFETY AS CONSTRAINTS, from the existing load analysis, applied in
+>      each evaluation:
+>      - servo above rated_fraction of rated torque for more than
+>        sustained_fraction of a cycle;
+>      - any moment at stall;
+>      - belt tension above allowable (sustained) or above
+>        breaking_fraction of breaking;
+>      - joint speed above the servo's;
+>      - joint-limit time.
+>
+>      Report each, and choose with me whether a violation rejects the
+>      candidate or costs fitness; default: reject breaking and stall,
+>      penalise the rest.
+>    - CONSISTENCY: score each candidate over several seeds and mild domain
+>      randomisation (friction, mass), using a pessimistic aggregate (mean
+>      minus spread, or the worst seed). Record every seed.
+>    - Inner loop: instead of the walk vector, tune per-clip playback limits
+>      (speed and amplitude ranges) within what clip_report allows.
+>    - Archive axes from the movement descriptors (e.g. expressive range vs
+>      safety margin), so I see trade-offs, not just one winner.
+>    - Keep everything that exists: belts are fixed catalog genes,
+>      belt-bound ranges are narrowed, infeasible bodies are rejected and
+>      never repaired, the project's catalog is inlined for workers.
+>      Estimate the CPU cost of a run before starting it and offer a small
+>      budget first.
+>
+> 6. UI AND TESTS
+>    - Behave workspace: video inbox; review (video frame + points, robot
+>      preview, report, accept/trim/tag); clips by affect tag; composition
+>      editor (schema-driven forms, no hand-written plugin forms); the
+>      composition study table. Evolve: the repertoire preset and the safety
+>      report per candidate. No logic in the UI.
+>    - Tests:
+>      - a short synthetic video (a stick calf drawn from the robot's own
+>        forward kinematics) through the synthetic tracker to accepted
+>        clips, with angles back within tolerance;
+>      - the watcher picks up a file once and reprocesses it when it
+>        changes;
+>      - segmentation finds a known walk and pause;
+>      - the safety constraints reject a deliberately overloading clip;
+>      - a tiny repertoire evolution keeps belts fixed and records seeds;
+>      - one Playwright test of the inbox -> review -> accept flow.
+>
+>      Mark real-model tests slow and skipped when the extra is not
+>      installed.
+>
+> STOP POINTS: if time runs short, finish and commit in this order: (1)
+> inbox + video reading + csv/synthetic trackers + segmentation + review;
+> (2) the real tracker; (3) affect tags + composition controls + descriptors +
+> composition study; (4) repertoire fitness with safety constraints and
+> multi-seed evolution. Hand off what is left as next-session prompts.
+>
+> Finish as the handoff asks: what works, what is stubbed, what I must
+> verify (especially: tracker accuracy on my own footage, licences, the
+> segmentation's cuts), and update USER_GUIDE, DECISIONS and SESSION_HANDOFF.
 
 **O. The feral calf: enter what I measured and re-check the belts**
 > In projects/robot-calf-final: the STS3215 C018 output axis is <N> mm from
