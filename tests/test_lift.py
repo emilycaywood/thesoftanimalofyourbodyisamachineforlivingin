@@ -191,14 +191,19 @@ def test_new_projects_lift_in_3d_and_older_ones_stay_2d(lab, tmp_path):
 
     assert load_settings(lab.project.path).mode == "3d"
     assert load_settings(lab.project.path).smoothing.method == "auto"  # ADR-082
+    assert load_settings(lab.project.path).lift.bend_choice == "window"  # ADR-083
+    assert load_settings(lab.project.path).repeated.method == "interpolate"
     old = tmp_path / "old"
     (old / "footage").mkdir(parents=True)
     (old / "footage" / "inbox.json").write_bytes(b"{}")
     assert load_settings(old).mode == "2d"  # processed videos before the lift existed
     assert load_settings(old).smoothing.method == "none"  # clips of an older project are cut as before
-    (old / "footage" / "settings.json").write_bytes(json.dumps({"tracker": "csv", "map": "feral_calf_side"}).encode())
+    assert load_settings(old).lift.bend_choice == "frame" and load_settings(old).repeated.method == "keep"
+    (old / "footage" / "settings.json").write_bytes(json.dumps({"tracker": "csv", "map": "feral_calf_side",
+                                                                "lift": {"max_view_yaw_deg": 70.0}}).encode())
     assert load_settings(old).mode == "2d"
     assert load_settings(old).smoothing.method == "none"
+    assert load_settings(old).lift.bend_choice == "frame" and load_settings(old).repeated.method == "keep"
 
 
 def test_a_video_through_the_inbox_in_3d(lab, spec):
@@ -248,9 +253,20 @@ def test_a_video_through_the_inbox_in_3d(lab, spec):
     assert not raw.meta["smoothing"]["applied"]
     assert max(sm["peak_speed_deg_s"][j]["raw"] for j in clip.joints) == pytest.approx(
         max(float(np.max(np.abs(np.diff(raw.joints[j])))) * raw.fps for j in raw.joints), abs=0.2)
-    assert strip["maps"] == ["feral_calf_3d"]
+    assert strip["maps"] == ["feral_calf_3d.window"]  # bends chosen over the window (ADR-083)
+    assert clip.meta["repeated_frames"]["found"] and clip.meta["repeated_frames"]["repeated_in_range"] == 0
     with pytest.raises(FootageError, match="another map"):
         compare_lift_maps(lab, "turning.avi")
+    # the same video with the bends chosen frame by frame, side by side
+    lab.execute("set_footage_settings", {"tracker": "csv", "map": "feral_calf_side", "lift": {"bend_choice": "frame"}})
+    lab.jobs.wait(lab.execute("reanalyse_video", {"file": "turning.avi"})["result"]["job"], 300)
+    cmp = lab.execute("compare_lift_maps", {"file": "turning.avi", "ranges": [[c.start, c.end]]})["result"]
+    assert cmp["maps"] == ["feral_calf_3d", "feral_calf_3d.window"]
+    legs = cmp["ambiguous"]["feral_calf_3d.window"]["by_leg"]
+    assert set(legs) == {"hl", "hr", "fl", "fr"} and all("jumps" in v for v in legs.values())
+    speed = cmp["playable_speed"]["feral_calf_3d.window"]["ranges"][f"{c.start}-{c.end}"]
+    assert 0 < speed["raw"]["playable_speed"] <= 1 and "smoothed_retimed" in speed
+    json.dumps(cmp)
 
 
 def test_frames_come_from_an_open_reader_and_a_cache(tmp_path, spec):

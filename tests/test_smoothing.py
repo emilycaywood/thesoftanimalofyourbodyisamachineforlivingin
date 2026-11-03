@@ -122,8 +122,12 @@ def test_lifts_are_kept_per_map(tmp_path, spec):
     sha = "ab" * 32
     inbox.save_lift(tmp_path, sha, res)
     inbox.save_lift(tmp_path, sha, res.model_copy(update={"map": "other"}))
-    assert inbox.lift_maps(tmp_path, sha) == ["feral_calf_3d", "other"]
-    assert inbox.load_lift(tmp_path, sha).map == "other"  # the current one is the last
-    assert inbox.load_lift(tmp_path, sha, "feral_calf_3d").map == "feral_calf_3d"
+    # kept per map and bend choice (ADR-083): a lift choosing bends over the window is "<map>.window"
+    frame = res.model_copy(update={"settings": {**res.settings, "bend_choice": "frame"}})
+    inbox.save_lift(tmp_path, sha, frame)
+    assert inbox.lift_maps(tmp_path, sha) == ["feral_calf_3d", "feral_calf_3d.window", "other.window"]
+    assert inbox.load_lift(tmp_path, sha).settings["bend_choice"] == "frame"  # the current one is the last
+    assert inbox.load_lift(tmp_path, sha, "other.window").map == "other"
+    assert inbox.load_lift(tmp_path, sha, "feral_calf_3d.window").map == "feral_calf_3d"
     with pytest.raises(FileNotFoundError):
         inbox.load_lift(tmp_path, sha, "nope")

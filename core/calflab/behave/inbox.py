@@ -202,12 +202,20 @@ def map_lift_path(project_dir: Path, sha: str, map_name: str) -> Path:
     return lift_path(project_dir, sha).with_suffix(f".{map_name}.json")
 
 
+def lift_label(result: Any) -> str:
+    """The name a lift is kept under: its map, plus ``.window`` when each leg's bend was chosen over the window
+    (ADR-083), so both choices of one map can be compared. Lifts made before that choice existed chose frame by
+    frame and are kept under the map's name alone."""
+    return result.map + (".window" if result.settings.get("bend_choice") == "window" else "")
+
+
 def save_lift(project_dir: Path, sha: str, result: Any) -> Path:
-    """Store the video's current lift, and a copy under its map's name (the last lift with each map is kept)."""
+    """Store the video's current lift, and a copy under its label (the last lift with each map and bend choice is
+    kept)."""
     p = lift_path(project_dir, sha)
     body = result.model_dump_json().encode()
     p.write_bytes(body)
-    map_lift_path(project_dir, sha, result.map).write_bytes(body)
+    map_lift_path(project_dir, sha, lift_label(result)).write_bytes(body)
     return p
 
 
@@ -223,7 +231,7 @@ def load_lift(project_dir: Path, sha: str, map_name: str | None = None) -> Any:
 
 
 def lift_maps(project_dir: Path, sha: str) -> list[str]:
-    """Maps the video has been lifted with (each one's last lift is kept)."""
+    """Labels of the lifts kept for the video (:func:`lift_label`: each map's last lift, per bend choice)."""
     stem = sha[:16] + "."
     return sorted(q.name[len(stem):-len(".json")] for q in lift_path(project_dir, sha).parent.glob(f"{stem}*.json"))
 

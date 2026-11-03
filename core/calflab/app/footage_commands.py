@@ -207,8 +207,8 @@ class SetFootageSettings(Command):
     key = "set_footage_settings"
     label = "Footage settings"
     description = ("Which pose tracker the inbox uses, 2D side view or 3D lift and their maps, whether it decides the "
-                   "near side from the footage (2D), the lift's and the segmentation's thresholds, and how clips cut "
-                   "from a video are smoothed. Applies to videos processed from now on (Analyse again for older "
+                   "near side from the footage (2D), the lift's and the segmentation's thresholds (lift.bend_choice: "
+                   "window or frame), and how clips cut from a video are smoothed and re-timed. Applies to videos processed from now on (Analyse again for older "
                    "ones); smoothing applies to every candidate previewed or accepted from now on.")
     category = "Behave"
 
@@ -233,6 +233,10 @@ class SetFootageSettings(Command):
         clip_smoothing_hz: float = P(0.0, unit="Hz", ge=0.0, le=15.0, step=0.5,
                                      desc="Cutoff for lowpass (6 Hz is the walking-kinematics convention; "
                                           "PROVISIONAL). 0 = unchanged.")
+        repeated_frames: str = P("", choices=["", "interpolate", "keep"],
+                                 desc="Frames the recording repeated (a screen recording, dropped frames): interpolate "
+                                      "= clips re-timed across them, so a step is not played twice as fast; keep = "
+                                      "every frame as it is. Found when a video is analysed. Empty = unchanged.")
 
     def run(self, lab: Any, state: Any) -> Any:
         from calflab.app.footage import FootageSettings, load_settings, save_settings
@@ -251,6 +255,8 @@ class SetFootageSettings(Command):
             "smoothing": {**cur.smoothing.model_dump(),
                           **({"method": p.clip_smoothing} if p.clip_smoothing else {}),  # type: ignore[attr-defined]
                           **({"cutoff_hz": p.clip_smoothing_hz} if p.clip_smoothing_hz > 0 else {})},  # type: ignore[attr-defined]
+            "repeated": {**cur.repeated.model_dump(),
+                         **({"method": p.repeated_frames} if p.repeated_frames else {})},  # type: ignore[attr-defined]
         })
         save_settings(lab.project.path, new)
         lab.bus.emit("footage.changed")
@@ -260,19 +266,28 @@ class SetFootageSettings(Command):
 @register
 class CompareLiftMaps(Command):
     key = "compare_lift_maps"
-    label = "Compare 3D lift maps"
-    description = ("Side by side for one video, from the last lift with each map: reliable and ambiguous shares, the "
-                   "residual per landmark and the hind angles. Analyse the video again with another map first.")
+    label = "Compare 3D lifts"
+    description = ("Side by side for one video, from the last lift with each map and bend choice: reliable and "
+                   "ambiguous shares per leg, jumps per frame, the residual per landmark, the hind angles, and the "
+                   "playable speed of the candidates raw and smoothed. Analyse the video again with another map or "
+                   "bend choice first.")
     category = "Behave"
 
     class Params(BaseModel):
         file: str = P("", desc="Video file name.")
-        maps: list[str] = P(default_factory=list, ui="json", desc="Map names (empty = every map the video was lifted with).")
+        maps: list[str] = P(default_factory=list, ui="json",
+                            desc="Lifts: a map name (bends chosen frame by frame) or <map>.window (over the window). "
+                                 "Empty = every lift kept for the video.")
+        ranges: list[list[int]] = P(default_factory=list, ui="json",
+                                    desc="Frame ranges [start, end) for the playable speed (empty = the candidates).")
+        jump_deg: float = P(12.0, unit="deg", ge=1.0, le=90.0, desc="A jump: a joint moving more than this in one frame.")
 
     def run(self, lab: Any, state: Any) -> Any:
         from calflab.app.footage import compare_lift_maps
 
-        return _call(compare_lift_maps, lab, self.params.file, list(self.params.maps))  # type: ignore[attr-defined]
+        p = self.params
+        return _call(compare_lift_maps, lab, p.file, list(p.maps), [list(r) for r in p.ranges] or None,  # type: ignore[attr-defined]
+                     p.jump_deg)  # type: ignore[attr-defined]
 
 
 @register

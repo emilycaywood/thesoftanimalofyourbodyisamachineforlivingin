@@ -49,6 +49,7 @@ from calflab.behave.lift import LiftMap, LiftSettings, cut_lift, lift, lift_clip
 from calflab.behave.retarget import RetargetMap, load_map
 from calflab.behave.segment import SegmentSettings, segment
 from calflab.behave.smoothing import ClipSmoothing, provenance, smooth_clip
+from calflab.behave.timing import RepeatedFrames, repeated_frames
 from calflab.behave.video import VideoError, encode_image, open_video
 from calflab.behave.view import view_report
 from calflab.plugins import TrackerCancelled, registry
@@ -74,6 +75,8 @@ class FootageSettings(BaseModel):
     lift: LiftSettings = Field(default_factory=LiftSettings)
     #: how clips cut from a video are smoothed (ADR-082); settings saved before it existed load as "none"
     smoothing: ClipSmoothing = Field(default_factory=ClipSmoothing)
+    #: frames the recording repeated: clips re-timed across them (ADR-083); settings saved before load as "keep"
+    repeated: RepeatedFrames = Field(default_factory=RepeatedFrames)
     poll_s: float = 2.0
 
 
@@ -84,15 +87,23 @@ def settings_path(project_dir: Path) -> Path:
 def load_settings(project_dir: Path) -> FootageSettings:
     """The project's settings. 3D is the default only for a new project: settings saved before the mode existed,
     or a project that processed videos without saving settings, stay 2D (ADR-080). Clip smoothing likewise
-    (ADR-082): on for a new project, off for settings saved before it existed."""
+    (ADR-082): on for a new project, off for settings saved before it existed. And choosing each leg's bend over
+    the window and re-timing clips across repeated frames (ADR-083): on for a new project, off for settings saved
+    before they existed."""
     p = settings_path(project_dir)
     if p.is_file():
         data = json.loads(p.read_text(encoding="utf-8"))
         data.setdefault("mode", "2d")
         data.setdefault("smoothing", {"method": "none"})  # clips of an older project are cut as they were
+        if isinstance(data.get("lift"), dict):  # ... and its videos lifted as they were (ADR-083) until switched
+            data["lift"].setdefault("bend_choice", "frame")
+        data.setdefault("repeated", {"method": "keep"})
         return FootageSettings.model_validate(data)
     used = (Path(project_dir) / "footage" / "inbox.json").is_file()
-    return FootageSettings(mode="2d" if used else "3d", smoothing=ClipSmoothing(method="none") if used else ClipSmoothing())
+    if used:
+        return FootageSettings(mode="2d", smoothing=ClipSmoothing(method="none"), repeated=RepeatedFrames(method="keep"),
+                               lift=LiftSettings(bend_choice="frame"))
+    return FootageSettings()
 
 
 def save_settings(project_dir: Path, s: FootageSettings) -> None:
@@ -230,7 +241,7 @@ def _analyse_and_store(lab: Any, file: str, sha: str, tracks: Any, s: FootageSet
         def report(frac: float, msg: str) -> None:
             job.report(p0 + (0.99 - p0) * frac, msg)
 
-        out = analyse_3d(lab, tracks, s, stem, sha, report, job.cancelled)
+        out = analyse_3d(lab, tracks, s, stem, sha, report, job.cancelled, inbox.videos_dir(pdir) / file)
     else:
         out = analyse(lab, tracks, _map_for(lab, s), s.segmentation, stem)
         inbox.lift_path(pdir, sha).unlink(missing_ok=True)
@@ -277,9 +288,21 @@ def _lift_map_for(lab: Any, s: FootageSettings) -> LiftMap:
         raise FootageError(str(exc)) from exc
 
 
+def _repeats(video: Path | None, s: FootageSettings) -> Any:
+    """Frames the recording repeated (ADR-083), or None where the video cannot be read for it."""
+    if video is None or not Path(video).is_file():
+        return None
+    try:
+        return repeated_frames(Path(video), s.repeated)
+    except Exception:  # an unreadable frame must not stop the analysis: the clips are just not re-timed
+        log.warning("Could not look for repeated frames in %s", video, exc_info=True)
+        return None
+
+
 def analyse_3d(lab: Any, tracks: Any, s: FootageSettings, stem: str, sha: str, report: Any = None,
-               cancelled: Any = None) -> dict[str, Any]:
-    """3D lift, segmentation on its angles (unreliable stretches are gaps), standing reference, candidates."""
+               cancelled: Any = None, video: Path | None = None) -> dict[str, Any]:
+    """3D lift, segmentation on its angles (unreliable stretches are gaps), standing reference, candidates. With
+    the ``video`` file, the frames it repeats are found and recorded in the lift (ADR-083)."""
     import numpy as np
 
     from calflab.behave.keypoints import KeypointTracks
@@ -287,11 +310,12 @@ def analyse_3d(lab: Any, tracks: Any, s: FootageSettings, stem: str, sha: str, r
     m = _lift_map_for(lab, s)
     spec = lab.design().spec
     try:
-        res = lift(tracks, m, spec, s.lift, report, cancelled)
+        res = lift(tracks, m, spec, s.lift, report, cancelled, _repeats(video, s))
     except ValueError as exc:
         raise FootageError(f"3D lift with map {m.name}: {exc}; the tracker's names: {', '.join(tracks.names)}") from exc
     inbox.save_lift(lab.project.path, sha, res)
-    full = lift_clip(res, spec, None, stem)
+    retime = s.repeated.method == "interpolate"
+    full = lift_clip(res, spec, None, stem, retime)
     joints = {k: np.asarray(v) for k, v in full.joints.items()}
     # trunk motion: travel on the ground and turning, in robot body lengths per second
     sk_len = _robot_length(spec) * float(res.proportions.get("trunk_length", 1.0))
@@ -313,7 +337,7 @@ def analyse_3d(lab: Any, tracks: Any, s: FootageSettings, stem: str, sha: str, r
     stub = KeypointTracks(fps=fps, names=[], xy=np.zeros((tracks.frames, 0, 2)), likelihood=np.zeros((tracks.frames, 0)))
     segs = segment(stub, None, None, joints, s.segmentation, None, trunk_bl_s=trunk, gaps=gaps)
     stand = standing_frame(segs["candidates"])
-    ref_clip = lift_clip(res, spec, stand, stem) if stand is not None else full
+    ref_clip = lift_clip(res, spec, stand, stem, retime) if stand is not None else full
     reference = ref_clip.meta["reference"]
     counts: dict[str, int] = {}
     cands: list[inbox.Candidate] = []
@@ -453,7 +477,9 @@ def _candidate_clip_3d(lab: Any, rec: inbox.VideoRecord, c: inbox.Candidate, sta
         res = inbox.load_lift(lab.project.path, rec.sha256)
     except FileNotFoundError as exc:
         raise FootageError(str(exc)) from exc
-    full = lift_clip(res, lab.design().spec, rec.standing_frame, Path(rec.file).stem)
+    settings = load_settings(lab.project.path)
+    retime = settings.repeated.method == "interpolate"
+    full = lift_clip(res, lab.design().spec, rec.standing_frame, Path(rec.file).stem, retime)
     a = c.start if start is None else int(start)
     b = c.end if end is None else int(end)
     fs = far_side or c.far_side or "tracked"
@@ -461,7 +487,7 @@ def _candidate_clip_3d(lab: Any, rec: inbox.VideoRecord, c: inbox.Candidate, sta
     if fs == "half_cycle" and (a, b) != (c.start, c.end) and period:
         cycles = max(1, int((b - a) / (period * res.fps)))
         b = a + int(round(cycles * period * res.fps))
-    sm = load_settings(lab.project.path).smoothing
+    sm = settings.smoothing
     try:
         raw = cut_lift(full, a, b, name or c.name, fs, period)
         smoothed, how = smooth_clip(full, sm)
@@ -473,6 +499,12 @@ def _candidate_clip_3d(lab: Any, rec: inbox.VideoRecord, c: inbox.Candidate, sta
         "tracker": rec.tracker, "map": rec.map, "near_side_detected": rec.near_side, "view": rec.view,
         "lift": rec.lift, "standing_frame": rec.standing_frame,
         "segmentation": rec.segmentation.get("settings"), "smoothing": provenance(sm, full.fps, how, raw, clip),
+        "repeated_frames": {"method": settings.repeated.method, "found": bool(res.repeated),
+                            "repeated_in_range": int(sum(res.repeated[a:b])) if res.repeated else None,
+                            "retimed": clip.meta.get("retimed_frames", 0),
+                            "note": ("Frames the recording repeated are re-timed: their values are interpolated "
+                                     "between the frames around them (ADR-083)." if retime else
+                                     "Every frame used as it is.")},
     })
     return clip
 
@@ -712,22 +744,56 @@ def footage_lift(lab: Any, file: str) -> dict[str, Any]:
     }
 
 
-def compare_lift_maps(lab: Any, file: str, maps: list[str] | None = None) -> dict[str, Any]:
-    """The video's last lift with each map, side by side (:func:`calflab.behave.lift.compare_lifts`)."""
+def compare_lift_maps(lab: Any, file: str, maps: list[str] | None = None, ranges: list[list[int]] | None = None,
+                      jump_deg: float = 12.0) -> dict[str, Any]:
+    """The video's kept lifts side by side (:func:`calflab.behave.lift.compare_lifts`): each map's last lift, per
+    bend choice (``<map>`` frame by frame, ``<map>.window`` over the window, ADR-083). Plus, per lift, the body
+    report's playable speed of the same frame ranges (``ranges``, else the video's current candidates) cut as the
+    review cuts them: raw, with the project's clip smoothing, and (where the lift recorded the frames the
+    recording repeated) smoothed and re-timed across those frames."""
+    from calflab.behave.feasibility import clip_report
     from calflab.behave.lift import compare_lifts
+    from calflab.components import library
 
     rec = _record(lab, file)
     have = inbox.lift_maps(lab.project.path, rec.sha256)
     names = maps or have
     missing = [m for m in names if m not in have]
     if missing:
-        raise FootageError(f"{file} has no lift with {', '.join(missing)}; lifted with: {', '.join(have) or 'none'}. "
-                           "Choose the map in Settings and Analyse again.")
+        raise FootageError(f"{file} has no lift {', '.join(missing)}; kept: {', '.join(have) or 'none'}. "
+                           "Choose the map (or bend_choice) in Settings and Analyse again.")
     if len(names) < 2:
-        raise FootageError(f"{file} was lifted with {', '.join(names) or 'no map'} only: analyse it again with another "
-                           "map to compare")
-    out = compare_lifts({m: inbox.load_lift(lab.project.path, rec.sha256, m) for m in names})
-    return {"file": file, **out}
+        raise FootageError(f"{file} has the lift {', '.join(names) or 'none'} only: analyse it again with another "
+                           "map or bend choice to compare")
+    results = {m: inbox.load_lift(lab.project.path, rec.sha256, m) for m in names}
+    out = compare_lifts(results, jump_deg)
+    spans = ([(int(a), int(b), "tracked", f"{a}-{b}", None) for a, b in ranges] if ranges else
+             [(c.start, c.end, c.far_side or "tracked", f"{c.id} {c.start}-{c.end}", c.period_s) for c in rec.candidates])
+    sm = load_settings(lab.project.path).smoothing
+    spec, lib = lab.design().spec, library()
+    speeds: dict[str, dict[str, Any]] = {}
+    for m, res in results.items():
+        full = lift_clip(res, spec, rec.standing_frame, Path(file).stem)
+        smoothed, how = smooth_clip(full, sm)
+        variants = [("raw", full), ("smoothed", smoothed)]
+        if res.repeated:
+            variants.append(("smoothed_retimed", smooth_clip(lift_clip(res, spec, rec.standing_frame, Path(file).stem,
+                                                                       True), sm)[0]))
+        rows: dict[str, Any] = {}
+        for a, b, fs, label, period in spans:
+            if not 0 <= a < b <= res.frames:
+                raise FootageError(f"Frame range {a}-{b} is outside the video (0-{res.frames})")
+            row = {}
+            for kind, src in variants:
+                rep = clip_report(cut_lift(src, a, b, label, fs, period), spec, lib)
+                worst = max((j for j in rep["joints"] if j.get("in_clip")), key=lambda j: j["speed_ratio"], default=None)
+                row[kind] = {"playable_speed": rep["playable_speed"], "verdict": rep["verdict"],
+                             "limited_by": worst["joint"] if worst else None,
+                             "peak_speed_deg_s": worst["peak_speed_deg_s"] if worst else None}
+            rows[label] = row
+        speeds[m] = {"smoothing": sm.method, "cutoff_hz": how.get("cutoff_hz"), "ranges": rows,
+                     "repeated_fraction": round(sum(res.repeated) / res.frames, 3) if res.repeated else None}
+    return {"file": file, **out, "playable_speed": speeds}
 
 
 def frame_points(lab: Any, file: str, start: int = 0, end: int | None = None) -> dict[str, Any]:
@@ -786,7 +852,8 @@ def footage_view(lab: Any) -> dict[str, Any]:
         "dir": str(inbox.videos_dir(pdir)), "videos": rows,
         # the smoothing also as the settings command's flat fields, so its form shows the current values
         "settings": s.model_dump(mode="json") | {"clip_smoothing": s.smoothing.method,
-                                                 "clip_smoothing_hz": s.smoothing.cutoff_hz},
+                                                 "clip_smoothing_hz": s.smoothing.cutoff_hz,
+                                                 "repeated_frames": s.repeated.method},
         "trackers": trackers, "models": [models.status(k) for k in models.PACKAGES],
         "watching": lab.footage._thread is not None,
     }

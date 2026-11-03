@@ -36,9 +36,13 @@ assumption about calves, PROVISIONAL) and the result says so.
   are partly hidden) and charging for a jump in heading. Frames where the
   confidence cue is weak are marked ``ambiguous: depth``.
 * *Limb flips.* After the fit, every leg's joints are searched on a grid
-  inside their ranges with the trunk held; a second minimum as good as the
-  chosen one, more than 20 deg away, marks the frame ``ambiguous: <leg>``.
-  The chosen solution is the one continuous with the previous frame.
+  inside their ranges with the trunk held. With ``bend_choice: window``
+  (ADR-083) every bend nearly as good is kept per frame (refined) and a
+  Viterbi on fit and continuity chooses over the whole video; a leg is
+  ``ambiguous: <leg>`` only where no path through one bend clearly beats the
+  paths through another. With ``frame`` (ADR-080) the chosen solution is the
+  one continuous with the previous frame, and a second minimum as good, more
+  than 20 deg away, marks the frame ambiguous.
 * *Unobservable joints.* A joint whose 10 deg change would move its
   landmarks by less than 2 % of the body length in the image (hip
   ab/adduction in a pure side view) is listed per frame; it holds near its
@@ -197,6 +201,14 @@ class LiftSettings(BaseModel):
     max_gap_frames: int = 10  # unreliable stretches up to this long are bridged; longer ones are gaps
     calibration_frames: int = 120
     window_frames: int = 400
+    #: where a leg has two bends that fit (ADR-083): "window" keeps every bend per frame and chooses over the whole
+    #: video (a Viterbi on fit and continuity); "frame" keeps the one continuous with the previous frame (ADR-080)
+    bend_choice: Literal["window", "frame"] = "window"
+    bend_far_deg: float = 20.0  # another bend: some joint of the leg this far from the chosen angles
+    #: noise units (chi-square) by which the best path through a frame must beat every path through another bend;
+    #: below it the leg stays ambiguous there (the frame-by-frame test used the same 4 units)
+    bend_margin: float = 4.0
+    max_bends: int = 3  # bends kept per leg and frame (the fitted one and the best others)
 
 
 # ---------------------------------------------------------------------- the skeleton, vectorised
@@ -607,6 +619,33 @@ def _wrap(a: np.ndarray | float) -> Any:
     return (np.asarray(a) + math.pi) % (2 * math.pi) - math.pi
 
 
+def _chain(unary: list[np.ndarray], pair: list[np.ndarray]) -> tuple[np.ndarray, np.ndarray]:
+    """Viterbi over a chain whose links have different numbers of states: ``unary[t]`` [K_t] costs,
+    ``pair[t]`` [K_{t-1}, K_t] costs of the step into link t (``pair[0]`` unused). Returns the best path's state per
+    link and each link's margin: how much more the best path forced through any other state of that link costs
+    (min-marginals from a forward and a backward pass; inf where a link has one state)."""
+    T = len(unary)
+    fwd = [unary[0].astype(float)]
+    back: list[np.ndarray] = [np.zeros(len(unary[0]), dtype=int)]
+    for t in range(1, T):
+        tot = fwd[-1][:, None] + pair[t]
+        back.append(np.argmin(tot, axis=0))
+        fwd.append(tot.min(axis=0) + unary[t])
+    bwd = [np.zeros(len(unary[-1]))]
+    for t in range(T - 1, 0, -1):
+        bwd.insert(0, (pair[t] + (unary[t] + bwd[0])[None, :]).min(axis=1))
+    path = np.zeros(T, dtype=int)
+    path[-1] = int(np.argmin(fwd[-1]))
+    for t in range(T - 1, 0, -1):
+        path[t - 1] = back[t][path[t]]
+    margin = np.full(T, np.inf)
+    for t in range(T):
+        m = fwd[t] + bwd[t]
+        if m.size > 1:
+            margin[t] = float(np.min(np.delete(m, path[t])) - m[path[t]])
+    return path, margin
+
+
 def _viterbi(unary: np.ndarray, switch: np.ndarray) -> np.ndarray:
     """States (0/1) minimising sum of unary [F,2] plus switch[t] when the state changes into frame t."""
     F = unary.shape[0]
@@ -762,6 +801,13 @@ class LiftResult(BaseModel):
     hypothesis: list[int]  # +1 labels as tracked, -1 left/right exchanged (the depth flip)
     swapped: list[list[str]]  # leg pairs whose labels were exchanged in this frame
     legs_seen: dict[str, list[bool]] = Field(default_factory=dict)  # leg -> at least two of its points tracked
+    #: legs with another bend nearly as good in the frame alone (= ``ambiguous`` when bends are chosen frame by frame)
+    second_bend: list[list[str]] = Field(default_factory=list)
+    #: bends chosen over the window (ADR-083): leg -> per frame, how much (chi-square) the chosen path beats any path
+    #: through another bend (999 = no other bend; None = the leg was not seen)
+    bend_margin: dict[str, list[float | None]] = Field(default_factory=dict)
+    #: frames the recording repeated (found in the images, :mod:`calflab.behave.timing`); empty = not looked for
+    repeated: list[bool] = Field(default_factory=list)
     camera: dict[str, Any]
     proportions: dict[str, Any]
     summary: dict[str, Any]
@@ -772,8 +818,21 @@ class LiftResult(BaseModel):
 
 
 def lift(tracks: KeypointTracks, lmap: LiftMap, spec: RobotSpec, settings: LiftSettings | None = None,
-         report: Callable[[float, str], None] | None = None, cancelled: Callable[[], bool] | None = None) -> LiftResult:
-    """Fit the body's skeleton and a camera to every frame of tracked keypoints."""
+         report: Callable[[float, str], None] | None = None, cancelled: Callable[[], bool] | None = None,
+         repeated: np.ndarray | None = None) -> LiftResult:
+    """Fit the body's skeleton and a camera to every frame of tracked keypoints. ``repeated`` (frames the recording
+    repeated) is only recorded in the result, for re-timing clips; the fit does not use it."""
+    res = _lift(tracks, lmap, spec, settings, report, cancelled)
+    if repeated is not None:
+        rep = [bool(v) for v in np.asarray(repeated, dtype=bool)[:res.frames]]
+        rep += [False] * (res.frames - len(rep))
+        res.repeated = rep
+        res.summary["repeated_fraction"] = round(float(np.mean(rep)), 3)
+    return res
+
+
+def _lift(tracks: KeypointTracks, lmap: LiftMap, spec: RobotSpec, settings: LiftSettings | None,
+          report: Callable[[float, str], None] | None, cancelled: Callable[[], bool] | None) -> LiftResult:
     s = settings or LiftSettings()
     sk = Skeleton(spec, lmap)
     prior = lmap.prior
@@ -851,10 +910,16 @@ def lift(tracks: KeypointTracks, lmap: LiftMap, spec: RobotSpec, settings: LiftS
         log.info("width over the video: free %.2f px, prior %.2f px", rf, rp)
         if (rp - rf) / max(rp, 1e-9) < s.min_width_gain:
             X, g, width_source = X2, g_alt, "prior"
-    say(0.85, "Checking ambiguities")
+    bends = None
+    if s.bend_choice == "window":
+        # ---- C3: each leg's bend over the whole video (ADR-083), then smoothed over time again from there
+        X, bends = _choose_bends(sk, X, g, frames, sigma, step, prior, s, lambda f, m: say(0.85 + 0.07 * f, m))
+        if any(b["changed"].any() for b in bends.values()):
+            X = _windows(sk, X, g, frames, sigma, step, prior, s.window_frames)
+    say(0.93, "Checking ambiguities")
     # ---- D: diagnostics
     return _finish(sk, lmap, tracks, s, X, g, frames, hyp, swapped, cue, npts, sigma, body_px, width_source,
-                   width_sd, step, prior)
+                   width_sd, step, prior, bends)
 
 
 def _initial_ratios(sk: Skeleton, obs: np.ndarray, w: np.ndarray, w_rel: float, g0: np.ndarray) -> np.ndarray:
@@ -1073,10 +1138,134 @@ def _windows(sk: Skeleton, X: np.ndarray, g: np.ndarray, frames: list[_Frame], s
     return out
 
 
+def _leg_grid(sk: Skeleton, ji: list[int]) -> tuple[np.ndarray, tuple[int, ...]]:
+    """Grid over a leg's free joints inside their ranges: 5 deg steps for one or two joints, 10 for more."""
+    grids = [np.linspace(sk.free_lo[j], sk.free_hi[j], max(3, int(round(
+        u.rad_to_deg(sk.free_hi[j] - sk.free_lo[j]) / (5.0 if len(ji) <= 2 else 10.0))) + 1)) for j in ji]
+    shape = tuple(len(gr) for gr in grids)
+    return np.stack(np.meshgrid(*grids, indexing="ij"), axis=-1).reshape(-1, len(ji)), shape
+
+
+def _leg_cost(sk: Skeleton, x: np.ndarray, angles: np.ndarray, g: np.ndarray, fr: _Frame, sigma: float,
+              ji: list[int], li: list[int], prior: LiftPrior | None) -> np.ndarray:
+    """Chi-square of a leg's landmarks [B] with its joints at ``angles`` [B, len(ji)] and the rest of pose ``x`` held;
+    with ``prior``, plus that leg's joint priors (toward standing)."""
+    Xg = np.repeat(x[None], angles.shape[0], axis=0)
+    Xg[:, [N_POSE + j for j in ji]] = angles
+    wl = fr.w[li]
+    c = np.nansum(((project(sk, Xg, g)[:, li] - fr.obs[li][None]) ** 2).sum(axis=2) * wl[None], axis=1) / sigma ** 2
+    if prior is not None:
+        c = c + (_priors(sk, Xg, prior)[:, 2 + np.asarray(ji)] ** 2).sum(axis=1)
+    return c
+
+
+def _solve_leg(sk: Skeleton, x: np.ndarray, a0: np.ndarray, g: np.ndarray, fr: _Frame, sigma: float, ji: list[int],
+               li: list[int], prior: LiftPrior) -> np.ndarray:
+    """A leg's joints refined from ``a0`` with everything else in ``x`` held (least squares, its priors included)."""
+    from scipy.optimize import least_squares
+
+    lo, hi = sk.free_lo[ji], sk.free_hi[ji]
+    wl = np.sqrt(fr.w[li])
+    cols = [N_POSE + j for j in ji]
+
+    def fun(a: np.ndarray) -> np.ndarray:
+        xx = x.copy()
+        xx[cols] = a
+        r = np.nan_to_num((project(sk, xx[None], g)[0, li] - fr.obs[li]) * wl[:, None] / sigma).reshape(-1)
+        return np.concatenate([r, _priors(sk, xx[None], prior)[0, 2 + np.asarray(ji)]])
+
+    return least_squares(fun, np.clip(a0, lo + 1e-9, hi - 1e-9), bounds=(lo, hi), max_nfev=40).x
+
+
+#: bends whose frame-by-frame chi-square is this much worse than the fitted one are not kept (continuity alone
+#: rarely pays that much); keeps the work small
+_BEND_KEEP = 25.0
+
+
+def _choose_bends(sk: Skeleton, X: np.ndarray, g: np.ndarray, frames: list[_Frame], sigma: float, step: np.ndarray,
+                  prior: LiftPrior, s: LiftSettings, say: Callable[[float, str], None] | None = None
+                  ) -> tuple[np.ndarray, dict[str, dict[str, np.ndarray]]]:
+    """Each leg's bend chosen over the whole video instead of frame by frame (ADR-083).
+
+    Per frame where the leg has two confident landmarks, the fitted angles and up to ``max_bends - 1`` other bends
+    (local minima of the grid more than ``bend_far_deg`` away, refined) are kept, each scored by its fit and
+    priors (chi-square). A Viterbi over the frames adds continuity: a step between consecutive kept frames costs
+    ((change) / (joint speed sd x frames apart))^2 per joint, as the smoothing over time does. The best path is
+    applied; per frame the margin by which it beats every path through another bend is returned (inf where there
+    was no other bend), with whether the bend changed. Angles rad, chi-square units."""
+    from scipy.ndimage import minimum_filter
+
+    F = X.shape[0]
+    X = X.copy()
+    far = u.deg_to_rad(s.bend_far_deg)
+    out: dict[str, dict[str, np.ndarray]] = {}
+    legs = [(leg, ji, li) for leg, (ji, li) in sk.legs.items() if li]
+    for n_leg, (leg, ji, li) in enumerate(legs):
+        if say is not None:
+            say(n_leg / max(len(legs), 1), f"Choosing the bend of leg {leg} over the video")
+        mesh, shape = _leg_grid(sk, ji)
+        cols = [N_POSE + j for j in ji]
+        sd = step[4 + np.asarray(ji)]
+        kept: list[int] = []
+        states: list[np.ndarray] = []
+        unary: list[np.ndarray] = []
+        for f in range(F):
+            fr = frames[f]
+            if (fr.w[li] > 0).sum() < 2:
+                continue
+            a_star = X[f, cols]
+            c_star = float(_leg_cost(sk, X[f], a_star[None], g, fr, sigma, ji, li, prior)[0])
+            cg = _leg_cost(sk, X[f], mesh, g, fr, sigma, ji, li, prior)
+            local = (cg.reshape(shape) <= minimum_filter(cg.reshape(shape), size=3, mode="nearest")).reshape(-1)
+            cand = np.where(local & (np.abs(mesh - a_star[None]).max(axis=1) > far) & (cg <= c_star + _BEND_KEEP))[0]
+            alts: list[np.ndarray] = [a_star]
+            costs = [c_star]
+            for k in cand[np.argsort(cg[cand])]:
+                if len(alts) >= s.max_bends:
+                    break
+                if any(np.abs(mesh[k] - a).max() <= far for a in alts):
+                    continue
+                a = _solve_leg(sk, X[f], mesh[k], g, fr, sigma, ji, li, prior)
+                if any(np.abs(a - b).max() <= far for b in alts):
+                    continue  # refined into a bend already kept
+                alts.append(a)
+                costs.append(float(_leg_cost(sk, X[f], a[None], g, fr, sigma, ji, li, prior)[0]))
+            kept.append(f)
+            states.append(np.array(alts))
+            unary.append(np.array(costs))
+        margin = np.full(F, np.nan)
+        changed = np.zeros(F, dtype=bool)
+        second = np.zeros(F, dtype=bool)  # another bend, refined, nearly as good in the frame alone
+        for t, f in enumerate(kept):
+            second[f] = bool(np.any(unary[t][1:] <= unary[t][0] + s.bend_margin))
+        if kept:
+            pair = [np.zeros((1, len(unary[0])))]
+            for t in range(1, len(kept)):
+                gap = kept[t] - kept[t - 1]
+                d = (states[t][None, :, :] - states[t - 1][:, None, :]) / (sd * gap)[None, None, :]
+                pair.append((d ** 2).sum(axis=2))
+            path, mg = _chain(unary, pair)
+            for t, f in enumerate(kept):
+                margin[f] = mg[t]
+                if path[t] != 0:
+                    X[f, cols] = states[t][path[t]]
+                    changed[f] = True
+            # frames without the leg's points between two kept ones follow them (where either changed)
+            for t in range(1, len(kept)):
+                f0, f1 = kept[t - 1], kept[t]
+                if f1 - f0 > 1 and (changed[f0] or changed[f1]):
+                    for f in range(f0 + 1, f1):
+                        X[f, cols] = X[f0, cols] + (X[f1, cols] - X[f0, cols]) * (f - f0) / (f1 - f0)
+        out[leg] = {"margin": margin, "changed": changed, "second": second}
+        log.info("leg %s: bend changed on %d of %d frames; %d frames had another bend", leg, int(changed.sum()),
+                 len(kept), int(sum(len(st) > 1 for st in states)))
+    return X, out
+
+
 def _finish(sk: Skeleton, lmap: LiftMap, tracks: KeypointTracks, s: LiftSettings, X: np.ndarray, g: np.ndarray,
             frames: list[_Frame], hyp: np.ndarray, swapped: list[list[str]], cue: np.ndarray, npts: np.ndarray,
             sigma: float, body_px_med: float, width_source: str, width_sd: float | None, step: np.ndarray,
-            prior: LiftPrior) -> LiftResult:
+            prior: LiftPrior, bends: dict[str, dict[str, np.ndarray]] | None = None) -> LiftResult:
     F, fps = X.shape[0], tracks.fps
     obs = np.stack([f.obs for f in frames])
     w = np.stack([f.w for f in frames])
@@ -1099,32 +1288,34 @@ def _finish(sk: Skeleton, lmap: LiftMap, tracks: KeypointTracks, s: LiftSettings
         mv = np.linalg.norm(project(sk, Xp, g) - project(sk, Xm, g), axis=2).max(axis=1) / 2.0
         for f in np.where(mv / body_px < 0.02)[0]:
             unobs[f].append(sk.free_ids[i])
-    # limb flips: a second minimum within a leg's ranges, far from the chosen angles
-    amb: list[list[str]] = [[] for _ in range(F)]
+    # limb flips: a second minimum within a leg's ranges, far from the chosen angles, nearly as good in this frame
+    from scipy.ndimage import minimum_filter
+
+    second: list[list[str]] = [[] for _ in range(F)]
     for leg, (ji, li) in sk.legs.items():
         if not li:
             continue
-        grids = [np.linspace(sk.free_lo[j], sk.free_hi[j], max(3, int(round(
-            u.rad_to_deg(sk.free_hi[j] - sk.free_lo[j]) / (5.0 if len(ji) <= 2 else 10.0))) + 1)) for j in ji]
-        shape = tuple(len(gr) for gr in grids)
-        mesh = np.stack(np.meshgrid(*grids, indexing="ij"), axis=-1).reshape(-1, len(ji))
+        mesh, shape = _leg_grid(sk, ji)
         for f in range(F):
             wl = w[f][li]
             if (wl > 0).sum() < 2:
                 continue
-            Xg = np.repeat(X[f][None], mesh.shape[0], axis=0)
-            Xg[:, [N_POSE + j for j in ji]] = mesh
-            pg = project(sk, Xg, g)[:, li]
-            cg = np.nansum(((pg - obs[f][li][None]) ** 2).sum(axis=2) * wl[None], axis=1) / sigma ** 2
+            cg = _leg_cost(sk, X[f], mesh, g, frames[f], sigma, ji, li, None)
             c_star = float(np.nansum(((uv[f][li] - obs[f][li]) ** 2).sum(axis=1) * wl) / sigma ** 2)
-            # a second basin (a local minimum of the grid), far from the chosen angles and nearly as good
-            from scipy.ndimage import minimum_filter
-
             local = (cg.reshape(shape) <= minimum_filter(cg.reshape(shape), size=3, mode="nearest")).reshape(-1)
-            far = np.abs(mesh - X[f][[N_POSE + j for j in ji]][None]).max(axis=1) > u.deg_to_rad(20.0)
+            far = np.abs(mesh - X[f][[N_POSE + j for j in ji]][None]).max(axis=1) > u.deg_to_rad(s.bend_far_deg)
             alt = far & local
-            if alt.any() and float(cg[alt].min()) <= c_star + 4.0:
-                amb[f].append(leg)
+            if alt.any() and float(cg[alt].min()) <= c_star + s.bend_margin:
+                second[f].append(leg)
+    # frame by frame, such a frame is ambiguous; over the window, only where the best path does not clearly win.
+    # The window's search also refines each grid minimum, and many slide back into the fitted bend (a coarse grid
+    # in a flat valley), so its count of second bends in the frame alone is the one reported then
+    grid_second = second
+    if bends is None:
+        amb = second
+    else:
+        amb = [[leg for leg, b in bends.items() if b["margin"][f] < s.bend_margin] for f in range(F)]
+        second = [[leg for leg, b in bends.items() if b["second"][f]] for f in range(F)]
     # reliability: a frame fails where its residual stands out from the video's own (or is plainly too large)
     med_bl = float(np.nanmedian(res_bl)) if np.any(~np.isnan(res_bl)) else 0.0
     res_limit = min(s.max_residual_bl, max(0.05, s.relative_residual * med_bl))
@@ -1224,6 +1415,14 @@ def _finish(sk: Skeleton, lmap: LiftMap, tracks: KeypointTracks, s: LiftSettings
                                  if (w[:, i] > 0).any()},
         "unobservable_fraction": {j: round(float(np.mean([j in x for x in unobs])), 3) for j in sk.free_ids},
         "body_px_median": round(body_px_med, 1),
+        # per leg: ambiguous as reported, a second bend nearly as good in the frame alone, bends the window changed
+        "bend_choice": "frame" if bends is None else "window",
+        "legs": {leg: {"ambiguous_fraction": round(float(np.mean([leg in a for a in amb])), 3),
+                       "second_bend_fraction": round(float(np.mean([leg in a for a in second])), 3),
+                       **({"bend_changed_frames": int(bends[leg]["changed"].sum()),
+                           "grid_second_bend_fraction": round(float(np.mean([leg in a for a in grid_second])), 3)}
+                          if bends and leg in bends else {})}
+                 for leg, (_, li) in sk.legs.items() if li},
     }
     return LiftResult(
         map=lmap.name, fps=fps, frames=F, joint_ids=sk.joint_ids,
@@ -1235,7 +1434,10 @@ def _finish(sk: Skeleton, lmap: LiftMap, tracks: KeypointTracks, s: LiftSettings
         residual_px=[round(float(v), 2) if not np.isnan(v) else None for v in res_px],
         residual_bl=[round(float(v), 4) if not np.isnan(v) else None for v in res_bl],
         points=[int(v) for v in npts], state=state, reasons=reasons, ambiguous=ambiguous, unobservable=unobs,
-        hypothesis=[int(v) for v in hyp], swapped=swapped,
+        hypothesis=[int(v) for v in hyp], swapped=swapped, second_bend=second,
+        bend_margin={} if bends is None else {
+            leg: [None if math.isnan(v) else round(min(float(v), 999.0), 2) for v in b["margin"]]
+            for leg, b in bends.items()},
         legs_seen={leg: [bool((w[f][li] > 0).sum() >= min(2, len(li))) for f in range(F)]
                    for leg, (_, li) in sk.legs.items() if li},
         camera=camera, proportions=proportions, summary=summary,
@@ -1275,15 +1477,21 @@ def ground_heights(spec: RobotSpec, angles: dict[str, np.ndarray], pitch_deg: np
     return out
 
 
-def lift_clip(res: LiftResult, spec: RobotSpec, standing: int | None, name: str = "video") -> Any:
+def lift_clip(res: LiftResult, spec: RobotSpec, standing: int | None, name: str = "video", retime: bool = False
+              ) -> Any:
     """The whole video as a motion clip for this body: joint angles relative to the reference (the animal's
     standing frame, or, without one, the robot's own standing pose) applied to the robot's standing pose; the
-    trunk's heading, pitch and roll; and its path on the ground. Unreliable frames are interpolated over.
-    Per-frame lift data the cutting needs is kept in ``meta``."""
+    trunk's heading, pitch and roll; and its path on the ground. Unreliable frames are interpolated over, and
+    with ``retime`` the frames the recording repeated too (ADR-083). Per-frame lift data the cutting needs is kept
+    in ``meta``."""
     from calflab.project.motions import MotionClip
 
     F = res.frames
     bad = ~res.reliable()
+    rep = np.asarray(res.repeated, dtype=bool) if retime and len(res.repeated) == F else np.zeros(F, dtype=bool)
+    if standing is not None and rep[standing]:
+        rep[standing] = False  # the reference keeps its own value
+    bad = bad | rep
     rest = spec.rest_angles()
     hinge = {j.id for j in spec.joints if j.type == "hinge"}
     rel: dict[str, np.ndarray] = {}
@@ -1311,7 +1519,8 @@ def lift_clip(res: LiftResult, spec: RobotSpec, standing: int | None, name: str 
         root_quat=_quats(heading - heading[0], pitch, roll), source="footage",
         meta={"lift": {"heading_deg": [round(float(v), 3) for v in heading], "pitch_deg": [round(float(v), 3) for v in pitch],
                        "roll_deg": [round(float(v), 3) for v in roll], "legs_seen": res.legs_seen,
-                       "state": res.state, "near_side": res.summary.get("near_side", "left")},
+                       "state": res.state, "near_side": res.summary.get("near_side", "left"),
+                       "retimed": [bool(v) for v in rep]},
               "reference": reference, "standing_frame": standing, "frames": F},
     )
 
@@ -1389,15 +1598,46 @@ def cut_lift(full: Any, start: int, end: int, name: str, far_side: str = "tracke
               "heading_range_deg": [round(float(heading.min() - heading[0]), 2), round(float(heading.max() - heading[0]), 2)],
               "travel_mm": round(float(np.hypot(*(xy[-1] - xy[0]))), 1),
               "unreliable_frames": int(sum(1 for st in states if st in ("unreliable", "missing"))),
+              "retimed_frames": int(sum(lm.get("retimed", [])[start:end])),
               "reference": full.meta.get("reference"), "standing_frame": full.meta.get("standing_frame")},
     )
 
 
 # ---------------------------------------------------------------------- maps side by side
-def compare_lifts(results: dict[str, LiftResult]) -> dict[str, Any]:
-    """Lifts of one video with different maps, side by side (ADR-082): per map the reliable and ambiguous shares
-    (and what made frames ambiguous), the median residual of every landmark (same tracks, so the same points),
-    and the hind angles (stifle, hock) over the frames every map calls reliable. Degrees, px."""
+def leg_jumps(r: LiftResult, jump_deg: float = 12.0, retimed: bool = False) -> dict[str, dict[str, Any]]:
+    """Per leg: the frame-to-frame steps (both frames reliable) in which some joint of the leg moves more than
+    ``jump_deg``, how many of them touch a frame where the leg had a second bend, and the largest step. With
+    ``retimed``, on the angles re-timed across the frames the recording repeated (as clips play them). Degrees."""
+    from calflab.behave.timing import retime
+
+    rel = r.reliable()
+    rep = np.asarray(r.repeated, dtype=bool) if retimed and len(r.repeated) == r.frames else None
+    both = rel[1:] & rel[:-1]
+    second = r.second_bend or r.ambiguous  # lifts made before ADR-083 recorded only the frame-by-frame test
+    legs = sorted({j.split(".")[1] for j in r.joint_ids if len(j.split(".")) > 2 and len(j.split(".")[1]) == 2})
+    out: dict[str, dict[str, Any]] = {}
+    for leg in legs:
+        js = [j for j in r.joint_ids if j.split(".")[1] == leg and np.ptp(r.joints_deg[j]) > 0]
+        if not js:
+            continue
+        A = np.array([r.joints_deg[j] for j in js], dtype=float)
+        if rep is not None:
+            A = np.array([retime(v, rep) for v in A])
+        step = np.max(np.abs(np.diff(A, axis=1)), axis=0)
+        big = both & (step > jump_deg)
+        flag = np.array([f"leg {leg}" in a or leg in a for a in second])
+        out[leg] = {"jumps": int(big.sum()),
+                    "jumps_at_a_second_bend": int((big & (flag[1:] | flag[:-1])).sum()),
+                    "largest_step_deg": round(float(step[both].max()), 1) if both.any() else None,
+                    "steps": int(both.sum())}
+    return out
+
+
+def compare_lifts(results: dict[str, LiftResult], jump_deg: float = 12.0) -> dict[str, Any]:
+    """Lifts of one video side by side (ADR-082, ADR-083): different maps, or the same map with bends chosen frame
+    by frame or over the window. Per lift the reliable and ambiguous shares (and what made frames ambiguous, per
+    leg), the jumps over ``jump_deg`` per frame per leg, the median residual of every landmark (same tracks, so the
+    same points), and the hind angles (stifle, hock) over the frames every lift calls reliable. Degrees, px."""
     names = list(results)
     if not names:
         raise ValueError("No lifts to compare")
@@ -1421,8 +1661,19 @@ def compare_lifts(results: dict[str, LiftResult]) -> dict[str, Any]:
                       "body_px_median": r.summary.get("body_px_median"),
                       "landmark_at": r.proportions.get("landmark_at", {}),
                       "proportions": {k: r.proportions.get(k) for k in ("trunk_length", "trunk_width", "front_leg")}}
+        jumps = leg_jumps(r, jump_deg)
+        if r.repeated:
+            for leg, jr in leg_jumps(r, jump_deg, retimed=True).items():
+                jumps[leg]["jumps_retimed"] = jr["jumps"]
+                jumps[leg]["largest_step_retimed_deg"] = jr["largest_step_deg"]
+        second = r.second_bend or r.ambiguous
         ambiguous[n] = {"by_reason": {k: round(v, 3) for k, v in sorted(reasons.items())},
-                        "only_hind_legs": round(float(hind_only), 3)}
+                        "only_hind_legs": round(float(hind_only), 3),
+                        "bend_choice": r.settings.get("bend_choice", "frame"),
+                        "by_leg": {leg: {"ambiguous": round(reasons.get(f"leg {leg}", 0.0), 3),
+                                         "second_bend_in_frame": round(float(np.mean(
+                                             [f"leg {leg}" in a or leg in a for a in second])), 3),
+                                         **jumps[leg]} for leg in jumps}}
         rows = {}
         for j in r.joint_ids:
             if not j.startswith("joint.h") or j.endswith("hip_abd"):
@@ -1445,7 +1696,9 @@ def compare_lifts(results: dict[str, LiftResult]) -> dict[str, Any]:
         "landmark_residual_px": {k: {n: r.summary.get("landmark_residual_px", {}).get(k) for n, r in results.items()}
                                  for k in lms},
         "hind_angles_deg": hind,
+        "jump_deg": jump_deg,
         "note": ("Residuals: median distance (px) between each tracked point and the fitted skeleton's, over the frames "
                  "where the point is confident. Hind angles: absolute joint angles of the fitted robot skeleton "
-                 "(0 = standing) over the frames every map calls reliable."),
+                 "(0 = standing) over the frames every lift calls reliable. Jumps: steps between two reliable frames "
+                 f"in which some joint of the leg moves more than {jump_deg:g} deg."),
     }
