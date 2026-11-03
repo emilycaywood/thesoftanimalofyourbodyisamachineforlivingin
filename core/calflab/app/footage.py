@@ -48,6 +48,7 @@ from calflab.behave.keypoints import clean
 from calflab.behave.lift import LiftMap, LiftSettings, cut_lift, lift, lift_clip, load_lift_map
 from calflab.behave.retarget import RetargetMap, load_map
 from calflab.behave.segment import SegmentSettings, segment
+from calflab.behave.smoothing import ClipSmoothing, provenance, smooth_clip
 from calflab.behave.video import VideoError, encode_image, open_video
 from calflab.behave.view import view_report
 from calflab.plugins import TrackerCancelled, registry
@@ -71,6 +72,8 @@ class FootageSettings(BaseModel):
     auto_side: bool = True
     segmentation: SegmentSettings = Field(default_factory=SegmentSettings)
     lift: LiftSettings = Field(default_factory=LiftSettings)
+    #: how clips cut from a video are smoothed (ADR-082); settings saved before it existed load as "none"
+    smoothing: ClipSmoothing = Field(default_factory=ClipSmoothing)
     poll_s: float = 2.0
 
 
@@ -80,14 +83,16 @@ def settings_path(project_dir: Path) -> Path:
 
 def load_settings(project_dir: Path) -> FootageSettings:
     """The project's settings. 3D is the default only for a new project: settings saved before the mode existed,
-    or a project that processed videos without saving settings, stay 2D (ADR-080)."""
+    or a project that processed videos without saving settings, stay 2D (ADR-080). Clip smoothing likewise
+    (ADR-082): on for a new project, off for settings saved before it existed."""
     p = settings_path(project_dir)
     if p.is_file():
         data = json.loads(p.read_text(encoding="utf-8"))
         data.setdefault("mode", "2d")
+        data.setdefault("smoothing", {"method": "none"})  # clips of an older project are cut as they were
         return FootageSettings.model_validate(data)
     used = (Path(project_dir) / "footage" / "inbox.json").is_file()
-    return FootageSettings(mode="2d" if used else "3d")
+    return FootageSettings(mode="2d" if used else "3d", smoothing=ClipSmoothing(method="none") if used else ClipSmoothing())
 
 
 def save_settings(project_dir: Path, s: FootageSettings) -> None:
@@ -423,8 +428,11 @@ def candidate_clip(lab: Any, file: str, cid: str, start: int | None = None, end:
     if fs == "half_cycle" and (a, b) != (c.start, c.end) and period:
         cycles = max(1, int((b - a) / (period * tracks.fps)))  # a trimmed gait keeps whole cycles
         b = a + int(round(cycles * period * tracks.fps))
+    sm = load_settings(lab.project.path).smoothing
     try:
-        clip = cut(full, a, b, name or c.name, fs, period, m.near_side)
+        raw = cut(full, a, b, name or c.name, fs, period, m.near_side)
+        smoothed, how = smooth_clip(full, sm)
+        clip = cut(smoothed, a, b, name or c.name, fs, period, m.near_side)
     except ValueError as exc:
         raise FootageError(str(exc)) from exc
     clip.meta.update({
@@ -434,6 +442,7 @@ def candidate_clip(lab: Any, file: str, cid: str, start: int | None = None, end:
                                                           "max_gap_frames": m.max_gap_frames,
                                                           "smooth_frames": m.smooth_frames},
         "segmentation": rec.segmentation.get("settings"), "retarget": full.meta.get("retarget"),
+        "smoothing": provenance(sm, full.fps, how, raw, clip),
     })
     return clip
 
@@ -452,15 +461,18 @@ def _candidate_clip_3d(lab: Any, rec: inbox.VideoRecord, c: inbox.Candidate, sta
     if fs == "half_cycle" and (a, b) != (c.start, c.end) and period:
         cycles = max(1, int((b - a) / (period * res.fps)))
         b = a + int(round(cycles * period * res.fps))
+    sm = load_settings(lab.project.path).smoothing
     try:
-        clip = cut_lift(full, a, b, name or c.name, fs, period)
+        raw = cut_lift(full, a, b, name or c.name, fs, period)
+        smoothed, how = smooth_clip(full, sm)
+        clip = cut_lift(smoothed, a, b, name or c.name, fs, period)
     except ValueError as exc:
         raise FootageError(str(exc)) from exc
     clip.meta.update({
         "footage": rec.file, "video_sha256": rec.sha256, "video": rec.info, "candidate": c.id, "kind": c.kind,
         "tracker": rec.tracker, "map": rec.map, "near_side_detected": rec.near_side, "view": rec.view,
         "lift": rec.lift, "standing_frame": rec.standing_frame,
-        "segmentation": rec.segmentation.get("settings"),
+        "segmentation": rec.segmentation.get("settings"), "smoothing": provenance(sm, full.fps, how, raw, clip),
     })
     return clip
 
@@ -476,6 +488,7 @@ def preview_candidate(lab: Any, file: str, cid: str, start: int | None = None, e
     if clip.meta.get("mode") == "3d":
         out["motion"] = {k: clip.meta.get(k) for k in ("turn_deg", "heading_range_deg", "travel_mm", "legs",
                                                          "reference", "unreliable_frames")}
+    out["smoothing"] = clip.meta.get("smoothing")
     return out
 
 
@@ -695,7 +708,26 @@ def footage_lift(lab: Any, file: str) -> dict[str, Any]:
         "residual_px": res.residual_px, "residual_bl": res.residual_bl, "reasons": res.reasons,
         "ambiguous": res.ambiguous, "unobservable": res.unobservable, "near_side": res.near_side,
         "summary": res.summary, "camera": res.camera, "proportions": res.proportions,
+        "maps": inbox.lift_maps(lab.project.path, rec.sha256),
     }
+
+
+def compare_lift_maps(lab: Any, file: str, maps: list[str] | None = None) -> dict[str, Any]:
+    """The video's last lift with each map, side by side (:func:`calflab.behave.lift.compare_lifts`)."""
+    from calflab.behave.lift import compare_lifts
+
+    rec = _record(lab, file)
+    have = inbox.lift_maps(lab.project.path, rec.sha256)
+    names = maps or have
+    missing = [m for m in names if m not in have]
+    if missing:
+        raise FootageError(f"{file} has no lift with {', '.join(missing)}; lifted with: {', '.join(have) or 'none'}. "
+                           "Choose the map in Settings and Analyse again.")
+    if len(names) < 2:
+        raise FootageError(f"{file} was lifted with {', '.join(names) or 'no map'} only: analyse it again with another "
+                           "map to compare")
+    out = compare_lifts({m: inbox.load_lift(lab.project.path, rec.sha256, m) for m in names})
+    return {"file": file, **out}
 
 
 def frame_points(lab: Any, file: str, start: int = 0, end: int | None = None) -> dict[str, Any]:
@@ -749,8 +781,12 @@ def footage_view(lab: Any) -> dict[str, Any]:
                 "unobservable_fraction": r.lift.get("summary", {}).get("unobservable_fraction")}
         rows.append(d)
     trackers = [{"key": k, "label": c.label, **c.extra()} for k, c in sorted(registry.all("pose_tracker").items())]
+    s = load_settings(pdir)
     return {
-        "dir": str(inbox.videos_dir(pdir)), "videos": rows, "settings": load_settings(pdir).model_dump(mode="json"),
+        "dir": str(inbox.videos_dir(pdir)), "videos": rows,
+        # the smoothing also as the settings command's flat fields, so its form shows the current values
+        "settings": s.model_dump(mode="json") | {"clip_smoothing": s.smoothing.method,
+                                                 "clip_smoothing_hz": s.smoothing.cutoff_hz},
         "trackers": trackers, "models": [models.status(k) for k in models.PACKAGES],
         "watching": lab.footage._thread is not None,
     }

@@ -1391,3 +1391,61 @@ def cut_lift(full: Any, start: int, end: int, name: str, far_side: str = "tracke
               "unreliable_frames": int(sum(1 for st in states if st in ("unreliable", "missing"))),
               "reference": full.meta.get("reference"), "standing_frame": full.meta.get("standing_frame")},
     )
+
+
+# ---------------------------------------------------------------------- maps side by side
+def compare_lifts(results: dict[str, LiftResult]) -> dict[str, Any]:
+    """Lifts of one video with different maps, side by side (ADR-082): per map the reliable and ambiguous shares
+    (and what made frames ambiguous), the median residual of every landmark (same tracks, so the same points),
+    and the hind angles (stifle, hock) over the frames every map calls reliable. Degrees, px."""
+    names = list(results)
+    if not names:
+        raise ValueError("No lifts to compare")
+    frames = {r.frames for r in results.values()}
+    if len(frames) != 1:
+        raise ValueError(f"The lifts are of different lengths ({sorted(frames)} frames): not the same video")
+    F = frames.pop()
+    both = np.all(np.stack([r.reliable() for r in results.values()]), axis=0)
+    summary, ambiguous, hind = {}, {}, {}
+    for n, r in results.items():
+        st = np.asarray(r.state)
+        reasons: dict[str, float] = {}
+        for a in r.ambiguous:
+            for why in a:
+                reasons[why] = reasons.get(why, 0.0) + 1.0 / F
+        hind_only = np.mean([bool(a) and all(w in ("leg hl", "leg hr") for w in a) for a in r.ambiguous])
+        summary[n] = {"reliable_fraction": round(float(np.mean(r.reliable())), 3),
+                      "ambiguous_fraction": round(float(np.mean(st == "ambiguous")), 3),
+                      "unreliable_fraction": round(float(np.mean(np.isin(st, ["unreliable", "missing"]))), 3),
+                      "median_residual_px": r.summary.get("median_residual_px"),
+                      "body_px_median": r.summary.get("body_px_median"),
+                      "landmark_at": r.proportions.get("landmark_at", {}),
+                      "proportions": {k: r.proportions.get(k) for k in ("trunk_length", "trunk_width", "front_leg")}}
+        ambiguous[n] = {"by_reason": {k: round(v, 3) for k, v in sorted(reasons.items())},
+                        "only_hind_legs": round(float(hind_only), 3)}
+        rows = {}
+        for j in r.joint_ids:
+            if not j.startswith("joint.h") or j.endswith("hip_abd"):
+                continue
+            v = np.asarray(r.joints_deg[j], dtype=float)[both]
+            if v.size == 0:
+                continue
+            rows[j] = {"mean": round(float(v.mean()), 1), "sd": round(float(v.std()), 1),
+                       "p5": round(float(np.percentile(v, 5)), 1), "p95": round(float(np.percentile(v, 95)), 1)}
+        for side in ("l", "r"):
+            s_, h_ = f"joint.h{side}.stifle", f"joint.h{side}.hock"
+            if s_ in r.joints_deg and h_ in r.joints_deg and both.any():
+                d = (np.asarray(r.joints_deg[h_]) - np.asarray(r.joints_deg[s_]))[both]
+                rows[f"hock - stifle ({side})"] = {"rms": round(float(np.sqrt(np.mean(d ** 2))), 1)}
+        hind[n] = rows
+    lms = sorted({k for r in results.values() for k in r.summary.get("landmark_residual_px", {})})
+    return {
+        "maps": names, "frames": F, "frames_reliable_in_all": int(both.sum()),
+        "summary": summary, "ambiguous": ambiguous,
+        "landmark_residual_px": {k: {n: r.summary.get("landmark_residual_px", {}).get(k) for n, r in results.items()}
+                                 for k in lms},
+        "hind_angles_deg": hind,
+        "note": ("Residuals: median distance (px) between each tracked point and the fitted skeleton's, over the frames "
+                 "where the point is confident. Hind angles: absolute joint angles of the fitted robot skeleton "
+                 "(0 = standing) over the frames every map calls reliable."),
+    }

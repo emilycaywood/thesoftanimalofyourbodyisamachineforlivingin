@@ -207,8 +207,9 @@ class SetFootageSettings(Command):
     key = "set_footage_settings"
     label = "Footage settings"
     description = ("Which pose tracker the inbox uses, 2D side view or 3D lift and their maps, whether it decides the "
-                   "near side from the footage (2D), the lift's and the segmentation's thresholds. Applies to videos "
-                   "processed from now on (Analyse again for older ones).")
+                   "near side from the footage (2D), the lift's and the segmentation's thresholds, and how clips cut "
+                   "from a video are smoothed. Applies to videos processed from now on (Analyse again for older "
+                   "ones); smoothing applies to every candidate previewed or accepted from now on.")
     category = "Behave"
 
     class Params(BaseModel):
@@ -224,6 +225,14 @@ class SetFootageSettings(Command):
                                          desc="Segmentation thresholds (partial; see the user guide).")
         lift: dict[str, Any] = P(default_factory=dict, ui="json",
                                  desc="3D lift settings (partial: max_view_yaw_deg, max_residual_bl, camera_hfov_deg...).")
+        clip_smoothing: str = P("", choices=["", "auto", "lowpass", "none"],
+                                desc="Clips cut from a video: a zero-lag low-pass on the joint angles and the trunk's "
+                                     "path, so peak speeds are the animal's and not the tracker's jitter. auto = the "
+                                     "cutoff found from the video (Winter's residual analysis); lowpass = at the "
+                                     "cutoff below; none = as retargeted. Empty = unchanged.")
+        clip_smoothing_hz: float = P(0.0, unit="Hz", ge=0.0, le=15.0, step=0.5,
+                                     desc="Cutoff for lowpass (6 Hz is the walking-kinematics convention; "
+                                          "PROVISIONAL). 0 = unchanged.")
 
     def run(self, lab: Any, state: Any) -> Any:
         from calflab.app.footage import FootageSettings, load_settings, save_settings
@@ -239,10 +248,31 @@ class SetFootageSettings(Command):
             "map_3d": p.map_3d or cur.map_3d,  # type: ignore[attr-defined]
             "segmentation": {**cur.segmentation.model_dump(), **p.segmentation},  # type: ignore[attr-defined]
             "lift": {**cur.lift.model_dump(), **p.lift},  # type: ignore[attr-defined]
+            "smoothing": {**cur.smoothing.model_dump(),
+                          **({"method": p.clip_smoothing} if p.clip_smoothing else {}),  # type: ignore[attr-defined]
+                          **({"cutoff_hz": p.clip_smoothing_hz} if p.clip_smoothing_hz > 0 else {})},  # type: ignore[attr-defined]
         })
         save_settings(lab.project.path, new)
         lab.bus.emit("footage.changed")
         return new.model_dump(mode="json")
+
+
+@register
+class CompareLiftMaps(Command):
+    key = "compare_lift_maps"
+    label = "Compare 3D lift maps"
+    description = ("Side by side for one video, from the last lift with each map: reliable and ambiguous shares, the "
+                   "residual per landmark and the hind angles. Analyse the video again with another map first.")
+    category = "Behave"
+
+    class Params(BaseModel):
+        file: str = P("", desc="Video file name.")
+        maps: list[str] = P(default_factory=list, ui="json", desc="Map names (empty = every map the video was lifted with).")
+
+    def run(self, lab: Any, state: Any) -> Any:
+        from calflab.app.footage import compare_lift_maps
+
+        return _call(compare_lift_maps, lab, self.params.file, list(self.params.maps))  # type: ignore[attr-defined]
 
 
 @register

@@ -190,19 +190,25 @@ def test_new_projects_lift_in_3d_and_older_ones_stay_2d(lab, tmp_path):
     from calflab.app.footage import load_settings
 
     assert load_settings(lab.project.path).mode == "3d"
+    assert load_settings(lab.project.path).smoothing.method == "auto"  # ADR-082
     old = tmp_path / "old"
     (old / "footage").mkdir(parents=True)
     (old / "footage" / "inbox.json").write_bytes(b"{}")
     assert load_settings(old).mode == "2d"  # processed videos before the lift existed
+    assert load_settings(old).smoothing.method == "none"  # clips of an older project are cut as before
     (old / "footage" / "settings.json").write_bytes(json.dumps({"tracker": "csv", "map": "feral_calf_side"}).encode())
     assert load_settings(old).mode == "2d"
+    assert load_settings(old).smoothing.method == "none"
 
 
 def test_a_video_through_the_inbox_in_3d(lab, spec):
     from calflab.app.footage import (
+        FootageError,
         FootageSettings,
         candidate_clip,
+        compare_lift_maps,
         footage_lift,
+        footage_view,
         preview_candidate,
         save_settings,
     )
@@ -230,6 +236,21 @@ def test_a_video_through_the_inbox_in_3d(lab, spec):
     assert out["motion"]["turn_deg"] is not None
     rows = {r["joint"]: r for r in out["report"]["joints"]}
     assert rows["joint.hl.hip_abd"]["in_clip"] and "peak_speed_deg_s" in rows["joint.hl.hip_abd"]
+    # clip smoothing (ADR-082): on by default, chosen from the video, recorded with the clip
+    sm = clip.meta["smoothing"]
+    assert sm["method"] == "auto" and sm["applied"] and sm["cutoff_hz"] > 0
+    assert set(sm["peak_speed_deg_s"]) == set(clip.joints)
+    assert out["smoothing"]["cutoff_hz"] == sm["cutoff_hz"]
+    lab.execute("set_footage_settings", {"tracker": "csv", "map": "feral_calf_side", "clip_smoothing": "none"})
+    view = footage_view(lab)["settings"]
+    assert view["clip_smoothing"] == "none" and view["map_3d"] == "feral_calf_3d" and view["mode"] == "3d"
+    raw = candidate_clip(lab, "turning.avi", c.id)
+    assert not raw.meta["smoothing"]["applied"]
+    assert max(sm["peak_speed_deg_s"][j]["raw"] for j in clip.joints) == pytest.approx(
+        max(float(np.max(np.abs(np.diff(raw.joints[j])))) * raw.fps for j in raw.joints), abs=0.2)
+    assert strip["maps"] == ["feral_calf_3d"]
+    with pytest.raises(FootageError, match="another map"):
+        compare_lift_maps(lab, "turning.avi")
 
 
 def test_frames_come_from_an_open_reader_and_a_cache(tmp_path, spec):

@@ -197,19 +197,35 @@ def lift_path(project_dir: Path, sha: str) -> Path:
     return d / f"{sha[:16]}.json"
 
 
+def map_lift_path(project_dir: Path, sha: str, map_name: str) -> Path:
+    """The lift of a video with one map, kept beside the current one so maps can be compared (ADR-082)."""
+    return lift_path(project_dir, sha).with_suffix(f".{map_name}.json")
+
+
 def save_lift(project_dir: Path, sha: str, result: Any) -> Path:
+    """Store the video's current lift, and a copy under its map's name (the last lift with each map is kept)."""
     p = lift_path(project_dir, sha)
-    p.write_bytes(result.model_dump_json().encode())
+    body = result.model_dump_json().encode()
+    p.write_bytes(body)
+    map_lift_path(project_dir, sha, result.map).write_bytes(body)
     return p
 
 
-def load_lift(project_dir: Path, sha: str) -> Any:
+def load_lift(project_dir: Path, sha: str, map_name: str | None = None) -> Any:
+    """The video's current lift, or its last lift with ``map_name``."""
     from calflab.behave.lift import LiftResult
 
-    p = lift_path(project_dir, sha)
+    p = lift_path(project_dir, sha) if map_name is None else map_lift_path(project_dir, sha, map_name)
     if not p.is_file():
-        raise FileNotFoundError(f"No 3D lift stored for {sha[:16]}: analyse the video again")
+        raise FileNotFoundError(f"No 3D lift stored for {sha[:16]}" + (f" with map {map_name}" if map_name else "")
+                                + ": analyse the video again")
     return LiftResult.model_validate_json(p.read_bytes())
+
+
+def lift_maps(project_dir: Path, sha: str) -> list[str]:
+    """Maps the video has been lifted with (each one's last lift is kept)."""
+    stem = sha[:16] + "."
+    return sorted(q.name[len(stem):-len(".json")] for q in lift_path(project_dir, sha).parent.glob(f"{stem}*.json"))
 
 
 def save_tracks(project_dir: Path, sha: str, tracks: KeypointTracks) -> Path:
