@@ -34,6 +34,9 @@ class EvaluationSettings(BaseModel):
     safety: dict[str, Any] | None = Field(default_factory=dict)
     #: compile with this torque derating (1.0 = a servo can reach stall, as the load analysis); None = the document's
     torque_derating: float | None = 1.0
+    #: compile with this servo model; torque_speed = torque falling to zero at no-load speed, as the physics review
+    #: of clips (ADR-084); None = the document's
+    servo_model: Literal["torque", "torque_speed"] | None = "torque_speed"
     #: the behaviors controller plays every required clip once before choosing freely
     play_required_first: bool = True
 

@@ -178,7 +178,7 @@ def run_composition_study(lab: Any, settings: dict[str, Any] | None = None) -> A
         raise BehaveError(str(exc)) from exc
     params = [behaviors_params(lab, c.params) for c in cfg.compositions]
     overrides = [o.model_dump(mode="json") for o in lab.state.overrides if o.enabled]
-    compile_params = {**g.role("model").params, "torque_derating": 1.0,
+    compile_params = {**g.role("model").params, "torque_derating": 1.0, "servo_model": "torque_speed",
                       "randomization": randomization(cfg.randomize, cfg.friction, cfg.mass_scale)}
     common = {"genome": design.genome.model_dump(mode="json"), "overrides": overrides,
               "generator": g.role("design").type.split(":", 1)[1], "generator_params": lab.job_generator_params(g),

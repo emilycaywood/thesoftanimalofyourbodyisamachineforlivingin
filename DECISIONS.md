@@ -2851,3 +2851,36 @@ changes almost nothing).
 * No panel for the comparison (command line and JSON).
 * Frames where a candidate's limiting joint peaks are not marked in the
   Review.
+
+## ADR-084 — Clips judged in physics: a torque-speed servo, shared limits, feasible versions (**IN PROGRESS, VERIFY**)
+
+*Requested 2026-11-03.* Judge footage clips on the hardware's physical limits, not only joint ranges.
+
+*Done (core only, committed on `robot-calf-final`):*
+* `CompileOptions.servo_model`: `torque` (default, every earlier run unchanged) or `torque_speed`: before every
+  physics step each actuator's force range follows `calflab.sim.servo.available_torque` (stall torque falling
+  linearly to 0 at the library's no-load speed when driving; up to stall when braking). Checked: an unloaded
+  shoulder step reaches 620 deg/s without it, 258 deg/s against 270 with it.
+* `calflab.mech.limits`: envelope use per frame (|tau|/stall + |omega|/no-load when driving) and battery current
+  (known only with stall current; otherwise a lower bound = mechanical power / the servo's 12 V).
+* `SafetyPolicy`: `margin` (every limit x (1 - margin); 0 = as before), constraints `envelope` (penalise) and
+  `fall` (report). Preset `repertoire` v2 and the composition study compile with `servo_model: torque_speed`,
+  so evolution is judged on the same physics as the review.
+* `calflab.behave.physics`: plays a clip once through the behaviors controller (lead-in, clip, return, hold) and
+  reports tracking, per-joint torque/speed/envelope/belt, hooves, battery, fall, the constraint table, a time
+  strip and events with video frames.
+* `calflab.behave.adapt` (time scale, per-joint amplitude, low-pass, range margin; greedy search + give-back)
+  and `calflab.behave.stance` (support from hoof heights with the clip's pitch/roll, at least 3 hooves down, the
+  supporting hooves planted and the centre of mass over them, bounded least squares). Stance is not yet wired
+  into `adapt.apply`.
+
+*First results, scratch copy `projects/_scratch-physics` (margin 0.2, masses as entered, 1.3 kg):*
+* c1 (0-109) as retargeted falls at 2.4 s; c2 (140-225) at 1.5 s. First instantaneous limits: c1 the hind
+  left stifle (torque-speed envelope, 94 % of stall, belt 291 N against 44 N allowable); c2 the fore left
+  shoulder (stall).
+* At one third of the amplitude c1 still reaches stall at the shoulder at 6 deg/s: the clip's legs fight each
+  other through the floor, and it holds fewer than 3 hooves down in 103 of 109 frames (c2: 82 of 85).
+* Planted + 3x slower: c1 stands until 8.2 s (of about 12), c2 still falls at 2.2 s. No feasible version yet.
+
+*Not done:* Play-in-physics / adapt commands, jobs and run records; the Behave panel table and strip; saving
+adapted clips as new versions; tests; user guide.

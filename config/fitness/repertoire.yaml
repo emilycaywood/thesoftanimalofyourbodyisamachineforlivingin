@@ -2,7 +2,7 @@
 # Mark clips as required in the behaviors controller (repertoire entries: required, imitation_weight).
 # Bump `version` whenever you change terms, weights, params or evaluation.
 name: repertoire
-version: 1
+version: 2   # 2 (ADR-084): servos limited in torque and speed; envelope and fall constraints; margin
 description: >
   Play the required clips faithfully (imitation averaged over them, weighted), without falling and steadily;
   scored over three seeds with mild friction and mass randomisation (mean minus spread), with safety as
@@ -20,8 +20,10 @@ evaluation:
   spread_k: 1.0
   safety:
     actions: {servo_sustained: penalise, stall: reject, belt_sustained: penalise, belt_breaking: reject,
-              joint_speed: penalise, joint_limit: penalise}
+              joint_speed: penalise, joint_limit: penalise, envelope: penalise, fall: report}
     window_s: 2.0
+    margin: 0.0       # safety margin on every physical limit (ADR-084); the physics review of clips sets its own
     joint_limit_max: 0.05
   torque_derating: 1.0
+  servo_model: torque_speed   # the same servo model as Play in physics (ADR-084)
   play_required_first: true

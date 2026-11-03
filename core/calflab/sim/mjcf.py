@@ -41,6 +41,11 @@ class CompileOptions(BaseModel):
     slope_deg: float = P(5.0, unit="deg", ge=-20, le=20, desc="Incline for the 'slope' terrain (uphill positive).")
     floor_friction: float = P(0.9, ge=0.1, le=2.0, step=0.05, desc="Sliding friction coefficient of the ground.")
     torque_derating: float = P(0.6, ge=0.1, le=1.0, step=0.05, desc="Usable fraction of actuator stall torque.")
+    servo_model: Literal["torque", "torque_speed"] = P(
+        "torque",
+        desc="torque = a servo is limited in torque only (as before). torque_speed = its torque also falls linearly "
+             "to zero at its no-load speed, from the library's stall torque and no-load speed (ADR-084).",
+    )
     servo_saturation_deg: float = P(10.0, unit="deg", ge=1, le=45, desc="Position error at which a servo reaches its usable torque.")
     servo_kd_ratio_s: float = P(0.03, unit="s", ge=0.0, le=0.2, step=0.005, desc="Servo damping as a fraction of its stiffness.")
     include_skin: bool = P(True, desc="Apply the skin model (joint stiffness/damping and added mass).")
@@ -108,6 +113,8 @@ class CompiledModel:
     actuator_speed_limit: list[float] = field(default_factory=list)  # recorded no-load speed at the joint, rad/s
     #: tension springs (ADR-065): id, joint, site_a (upper anchor), site_b (lower anchor), k N/m, free length m
     springs: list[dict[str, Any]] = field(default_factory=list)
+    #: "torque" or "torque_speed" (ADR-084)
+    servo_model: str = "torque"
 
 
 def _f(x: float) -> str:
@@ -368,4 +375,5 @@ def compile_mjcf(
              "k_n_per_m": sp.k_n_per_mm * 1000.0, "free_length_m": u.mm_to_m(sp.free_length_mm)}
             for sp in spec.springs if sp.joint in limits
         ],
+        servo_model=opt.servo_model,
     )

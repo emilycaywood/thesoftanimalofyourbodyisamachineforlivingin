@@ -12,7 +12,16 @@ Six constraints, each reported with its value, limit and verdict:
   strength;
 * ``joint_speed``: a joint faster than its servo's no-load speed at that joint;
 * ``joint_limit``: the share of time a joint is within 1 deg of a range limit,
-  above ``joint_limit_max``.
+  above ``joint_limit_max``;
+* ``envelope`` (ADR-084): a servo at the edge of its torque-speed envelope
+  (|torque| / stall + |speed| / no-load speed when driving), from
+  :mod:`calflab.mech.limits`, the same numbers the physics review shows;
+* ``fall``: the body fell (reported; survival is in the fitness).
+
+``margin`` (0 = none, as before) is the safety margin the researcher sets
+(ADR-084): every physical limit is lowered to (1 - margin) x itself, i.e. the
+stall torque, the rated-torque fraction, the no-load speed, the envelope, the
+belt's allowable working tension and its breaking fraction.
 
 The policy decides what a violation does: ``reject`` (the candidate is not
 kept) or ``penalise`` (fitness minus ``weight`` x the relative excess, at most
@@ -45,6 +54,8 @@ CONSTRAINTS: dict[str, str] = {
     "belt_breaking": "Belt tension peak near its breaking strength",
     "joint_speed": "Joint faster than its servo",
     "joint_limit": "Time at joint limits",
+    "envelope": "Servo at the edge of its torque-speed envelope",
+    "fall": "The body fell",
 }
 Action = Literal["reject", "penalise", "report"]
 
@@ -54,7 +65,7 @@ class SafetyPolicy(BaseModel):
 
     actions: dict[str, Action] = Field(default_factory=lambda: {  # type: ignore[arg-type]
         "servo_sustained": "penalise", "stall": "reject", "belt_sustained": "penalise", "belt_breaking": "reject",
-        "joint_speed": "penalise", "joint_limit": "penalise"})
+        "joint_speed": "penalise", "joint_limit": "penalise", "envelope": "penalise", "fall": "report"})
     weights: dict[str, float] = Field(default_factory=lambda: {k: 0.5 for k in CONSTRAINTS})
     #: window over which "sustained" is judged (s); a repertoire has no single gait cycle (ADR-079)
     window_s: float = 2.0
@@ -64,6 +75,8 @@ class SafetyPolicy(BaseModel):
     rated_fraction: float = 0.6
     sustained_fraction: float = 0.25
     breaking_fraction: float = 0.25
+    #: safety margin on every physical limit (ADR-084): a limit L becomes (1 - margin) x L; 0 = as before
+    margin: float = Field(0.0, ge=0.0, lt=1.0)
 
 
 def _row(key: str, value: float | None, limit: float, policy: SafetyPolicy, detail: str = "",
@@ -101,7 +114,15 @@ def safety_report(rollout: Any, spec: Any, lib: Any, policy: SafetyPolicy | None
     feral = spec.metadata.get("feral") or {}
     checks = {"rated_fraction": policy.rated_fraction, "sustained_fraction": policy.sustained_fraction,
               "breaking_fraction": policy.breaking_fraction, **(feral.get("checks") or {})}
-    loads = analyse(rollout, spec, lib, policy.window_s, checks, feral.get("belt_drives") or {})
+    keep = 1.0 - float(policy.margin)  # every physical limit x (1 - margin), ADR-084
+    belts = {d: dict(r) for d, r in (feral.get("belt_drives") or {}).items()}
+    if keep < 1.0:
+        checks = {**checks, "rated_fraction": float(checks["rated_fraction"]) * keep,
+                  "breaking_fraction": float(checks["breaking_fraction"]) * keep}
+        for r in belts.values():
+            if r.get("allowable_working_tension_n") is not None:
+                r["allowable_working_tension_n"] = float(r["allowable_working_tension_n"]) * keep
+    loads = analyse(rollout, spec, lib, policy.window_s, checks, belts)
     rows = loads["summary"]
     sustained = float(checks["sustained_fraction"])
 
@@ -118,12 +139,12 @@ def safety_report(rollout: Any, spec: Any, lib: Any, policy: SafetyPolicy | None
                     f"{j}: above {checks['rated_fraction']:.0%} of rated for {v:.0%} of a {policy.window_s:g} s window"
                     if v is not None else "no rated torque recorded", unknown=v is None))
     v, j = worst("pct_stall_peak")
-    out.append(_row("stall", None if v is None else v / 100.0 / 0.999, 1.0, policy,
+    out.append(_row("stall", None if v is None else v / 100.0 / 0.999, keep, policy,
                     f"{j}: peak {v:.0f} % of stall" if v is not None else ""))
-    belts = [r for r in rows if "belt_tension_peak_n" in r]
-    if belts:
+    belt_rows = [r for r in rows if "belt_tension_peak_n" in r]
+    if belt_rows:
         v, j = worst("above_allowable_fraction_of_cycle")
-        unknown = any(r.get("sustained_above_allowable") == "unknown" for r in belts)
+        unknown = any(r.get("sustained_above_allowable") == "unknown" for r in belt_rows)
         out.append(_row("belt_sustained", v, sustained, policy,
                         (f"{j}: above allowable for {v:.0%} of a window" if v is not None else "")
                         + ("; some belts have no allowable tension in the catalog" if unknown else ""), unknown=v is None))
@@ -137,7 +158,7 @@ def safety_report(rollout: Any, spec: Any, lib: Any, policy: SafetyPolicy | None
     if len(lim) == rollout.dq.shape[1] and m.any():
         ratio = np.max(np.abs(rollout.dq[m]), axis=0) / np.maximum(np.asarray(lim, dtype=float), 1e-9)
         k = int(np.argmax(ratio))
-        out.append(_row("joint_speed", float(ratio[k]), 1.0, policy,
+        out.append(_row("joint_speed", float(ratio[k]), keep, policy,
                         f"{rollout.actuator_ids[k].replace('act.', '')}: {float(u.rad_to_deg(float(np.max(np.abs(rollout.dq[m][:, k]))))):.0f} "
                         f"deg/s against {float(u.rad_to_deg(float(lim[k]))):.0f}"))
     from calflab.sim import compute_metrics
@@ -147,6 +168,22 @@ def safety_report(rollout: Any, spec: Any, lib: Any, policy: SafetyPolicy | None
         jl = compute_metrics(rollout).get("joint_limit_violation")
     out.append(_row("joint_limit", float(jl or 0.0), policy.joint_limit_max, policy,
                     f"{float(jl or 0.0):.0%} of the time within 1 deg of a limit"))
+    # the torque-speed envelope, from the same numbers as the physics review (ADR-084)
+    from calflab.mech.limits import servo_columns
+
+    cols = servo_columns(rollout, spec, lib)
+    if cols and m.any():
+        peaks = [(float(np.max(c["use"])), c) for c in cols if len(c["use"])]
+        if peaks:
+            use, c = max(peaks, key=lambda x: x[0])
+            k = int(np.argmax(c["use"]))
+            out.append(_row("envelope", use / 0.999, keep, policy,
+                            f"{c['joint'].replace('joint.', '')}: {use:.0%} of its torque-speed envelope "
+                            f"({abs(float(c['torque'][k])):.2f} N*m at {abs(float(u.rad_to_deg(float(c['omega'][k])))):.0f} deg/s)"))
+    fall = _row("fall", 1.0 if full.meta.get("fell") else 0.0, 0.5, policy,
+                f"fell at t = {float(full.meta.get('fall_time') or 0.0):.2f} s" if full.meta.get("fell") else "stood")
+    fall["margin"] = None
+    out.append(fall)
     rejected = [r["key"] for r in out if r["violated"] and r["action"] == "reject"]
     margins = [r["margin"] for r in out if r["margin"] is not None]
     return {

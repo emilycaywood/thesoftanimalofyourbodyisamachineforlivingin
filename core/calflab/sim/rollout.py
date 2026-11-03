@@ -223,6 +223,19 @@ def run_rollout(
 
     pushes = [(p, model.body(p.body).id) for p in settings.pushes]
 
+    # torque-speed envelope (ADR-084): the force range follows the joint speed before every physics step
+    torque_speed = cm.servo_model == "torque_speed" and nA > 0 and len(cm.actuator_speed_limit) == nA
+    if torque_speed:
+        from calflab.sim.servo import available_torque
+
+        usable = np.array(cm.actuator_torque_limit, dtype=float)
+        no_load = np.array(cm.actuator_speed_limit, dtype=float)
+
+        def apply_envelope() -> None:
+            hi_t, lo_t = available_torque(data.qvel[a_dadr], usable, no_load)
+            model.actuator_forcerange[:nA, 0] = lo_t
+            model.actuator_forcerange[:nA, 1] = hi_t
+
     # tension springs (ADR-065): pulled between two anchor sites, never pushing; applied every physics step
     nS = len(cm.springs)
     sp_a = np.array([model.site(sp["site_a"]).id for sp in cm.springs], dtype=int)
@@ -374,6 +387,8 @@ def run_rollout(
         for _ in range(n_sub):
             if nS:
                 apply_springs()
+            if torque_speed:
+                apply_envelope()
             mujoco.mj_step(model, data)
 
     n = len(rec["t"])
@@ -424,6 +439,7 @@ def run_rollout(
             "limits": {k: list(v) for k, v in cm.limits.items()},
             "final_temp": [float(x) for x in temp],
             "scales": cm.scales,
+            "servo_model": cm.servo_model,
         },
     )
 

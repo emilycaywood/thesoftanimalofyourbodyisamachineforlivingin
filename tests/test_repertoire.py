@@ -60,7 +60,9 @@ def test_safety_constraints_reject_a_deliberately_overloading_clip(spec):
     r = run_rollout(cm, registry.get("controller", "behaviors")(params), SimSettings(duration_s=3.0), lib)
     rep = safety_report(r, spec, lib, SafetyPolicy(), compute_metrics(r))
     by = {c["key"]: c for c in rep["constraints"]}
-    assert set(by) == {"servo_sustained", "stall", "belt_sustained", "belt_breaking", "joint_speed", "joint_limit"}
+    assert set(by) == {"servo_sustained", "stall", "belt_sustained", "belt_breaking", "joint_speed", "joint_limit",
+                       "envelope", "fall"}  # envelope and fall since ADR-084
+    assert by["envelope"]["violated"] and by["fall"]["action"] == "report"
     assert by["stall"]["violated"] and by["stall"]["action"] == "reject" and rep["rejected"]
     assert any("stall" in x for x in rep["reject_reasons"]) and rep["margin"] < 0
     # the same rollout under a policy that only penalises: kept, but it costs fitness

@@ -77,6 +77,8 @@ def evaluate(design: Any, lib: Any, payload: dict[str, Any], ctrl_cls: Any, para
     copts = dict(payload.get("compile", {}))
     if ev.torque_derating is not None:
         copts["torque_derating"] = ev.torque_derating
+    if ev.servo_model is not None:
+        copts["servo_model"] = ev.servo_model
     copts["randomization"] = randomization(ev.randomize, ev.friction, ev.mass_scale)
     seeds = []
     for seed in ev.seeds:
