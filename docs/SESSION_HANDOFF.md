@@ -2,10 +2,11 @@
 
 Everything a new Claude Code session (or a new collaborator) needs to pick up
 CALFLAB. Last updated 2026-11-03 on branch `robot-calf-final` (cut from
-`chassis-mass`), after session X: the hind Knee at the hock in a project
-map, lift maps compared side by side, and clip smoothing (section 4, "Added
-at the end of 2026-11-03"; before it the 3D lift and the review player, and
-session T: video inbox, pose tracking, composition, repertoire evolution). Run `git log --oneline -12`
+`chassis-mass`), after session X2: each leg's bend chosen over the window,
+and frames a recording repeated (section 4, "Added after session X"; before
+it session X: the hind Knee at the hock, lift maps side by side, clip
+smoothing; the 3D lift and the review player; and session T: video inbox,
+pose tracking, composition, repertoire evolution). Run `git log --oneline -12`
 for the current state. The commits since 2026-10-10 are local: not pushed.
 
 ---
@@ -885,6 +886,54 @@ what the tracker adds; ADR-082). Belts not touched:**
 * Not looked at in the browser: the two new fields in the inbox Settings
   form come from the command's schema, with no web code changed.
 
+**Added after session X (session X2: settle the ambiguous legs; ADR-083).
+Belts not touched. Nothing installed:**
+
+* **Each leg's bend over the window** (`lift.bend_choice: window`, new
+  projects; `frame` = as before):
+  * per frame the fitted bend and up to two others (refined) are kept;
+  * a Viterbi on fit and continuity chooses them over the whole video;
+  * forward-backward margins say where the video cannot decide (then the
+    leg is `ambiguous`).
+
+  Lifts are kept as `<map>` (frame by frame) and `<map>.window`.
+  `compare_lift_maps` adds per leg ambiguous share, second-bend share, jumps
+  over 12 deg/frame, and the candidates' playable speed raw / smoothed /
+  smoothed and re-timed (`ranges=`, `jump_deg=`).
+* **On your video the window changed no bend.** Ambiguous 70.7 % -> 2.2 %
+  (depth only; every leg 0 %). The old figure was mostly the frame test's
+  coarse grid: 5 of 52 sampled "second bends" are real, and they lose by at
+  least 10 chi-square over the window. The jumps were not bend flips.
+* **The cause: 108 of 225 frames are repeats.** Your screen recording holds
+  the source at about 15 fps in a 30 fps file. New
+  `calflab.behave.timing` finds repeats in the images when a video is
+  analysed (`repeated_frames: interpolate`, new projects; `keep` = as
+  before), and clips are re-timed across them.
+* Before -> window -> window + re-timed:
+  * jumps hind L / R, fore L / R: 20 / 6, 20 / 15 (unchanged by the window)
+    -> 15 / 1, 14 / 4;
+  * residuals identical;
+  * playable speed with auto smoothing: 0-109 0.39 -> 0.39 -> 0.36 (Winter
+    now picks 4.0 Hz instead of 3.5: part of its "noise" was the stutter);
+    140-225 0.28 -> 0.28 -> 0.28;
+  * raw 0.16 -> 0.22 and 0.14 -> 0.14.
+
+  Still limited by the left stifle (about 350-380 deg/s) and the left carpus
+  at the ball (about 490 deg/s). Full table in ADR-083. ADR-082's diagnosis
+  is marked wrong there.
+* `projects/robot-calf-final/footage/settings.json` set to `window` and
+  `interpolate`. **The video was not analysed again in the project**: your
+  lab on port 8020 runs the old code. The numbers come from a scratch copy,
+  `projects/_scratch-x2` (not in git; same tracks, document and settings),
+  analysed through the lab's own commands. Restart the lab and press
+  *Analyse again*: the result is the same (the lift is deterministic), and
+  the frame-by-frame lift stays beside it as `ap10k_3d_hock`.
+* Tests: `tests/test_bends.py` (5, one slow): chain vs brute force;
+  known-bend footage (a test-only carpus that can bend either way, tracked
+  weakly) where injected wrong bends are put back and the end-to-end lift
+  holds the true bend; repeats in an AVI; re-timing. Additions to
+  `tests/test_lift.py` and `tests/test_smoothing.py`.
+
 **Scaffolded only (interfaces + tests, no behaviour):** PPO training, MJX
 simulator, RemoteSSH and CloudNotebook transports (job bundling is real),
 imitation reward, interactive selection, molds, skin patterns, nesting,
@@ -922,6 +971,25 @@ Journal, Rhino bridge):**
   Properties, entry in Overrides).
 * `doctor` warned "uv not found" on top of the three expected warnings:
   false alarm, fixed (see Tests above).
+
+**The researcher must verify (new in session X2, ADR-083):**
+
+* **Restart the lab on port 8020 and press *Analyse again*** on your video;
+  then `compare_lift_maps file="Recording 2026-11-03 111941.mp4"
+  ranges=[[0,109],[140,225]]` should give the table of ADR-083.
+* **The repeats**: step through frames 40-46 in Review. 41, 42, 43 and 44
+  should be one image, then the calf jumps. If your original video (not the
+  screen recording) is at hand, drop that instead: it has no repeats.
+* **The fast frames**: whether the left stifle's swing in 0-109 and the left
+  carpus folding at the ball in 140-225 are the calf or the tracker. These
+  now set the playable speed.
+* **Re-timing as the default**: with auto smoothing it lowered the first
+  candidate's playable speed (0.39 -> 0.36, because Winter's cutoff rose).
+  It is the honest timing; say if you would rather keep every frame
+  (`set_footage_settings repeated_frames=keep`).
+* The thresholds: `bend_margin` 4 chi-square, other bends more than 20 deg
+  away; repeats below 0.15 x the 90th-percentile frame difference, runs of
+  up to 3.
 
 **The researcher must verify (new in session X, ADR-082):**
 
@@ -1116,7 +1184,7 @@ Journal, Rhino bridge):**
 |---|---|
 | `CLAUDE.md` | Conventions for every session (loaded automatically) |
 | `PLAN.md` | Architecture, module boundaries, data flow, phases, risks, status |
-| `DECISIONS.md` | ADR log: every assumption (82 so far) |
+| `DECISIONS.md` | ADR log: every assumption (83 so far) |
 | `docs/proposals/anatomical-leg.md` | Proposal for a three-segment leg (set aside 2026-10-04; not built) |
 | `docs/USER_GUIDE.md` | How to use the lab |
 | `docs/CHAT_GUIDE_PROMPT.md` | Prompt that makes a chat assistant a guide to the whole lab |
@@ -1132,17 +1200,26 @@ Journal, Rhino bridge):**
 
 Prefix each with the opening message from section 1.
 
-**X2. Settle the ambiguous legs**
-(written 2026-11-03 after session X, ADR-082.)
-> In projects/robot-calf-final, with the map ap10k_3d_hock, 71 % of frames
-> are ambiguous and the remaining peak speeds are mostly the fit jumping
-> between a leg's two bends. Make the lift choose each leg's bend over a
-> window (both basins kept per frame, a Viterbi on fit and continuity, as
-> the depth flip already does) instead of frame by frame, and show me side
-> by side (before / after) on my video: the ambiguous share per leg, the
-> jumps over 12 deg per frame, the residual per landmark, and the playable
-> speed of my two candidates with auto smoothing. Check it on synthetic
-> footage with a known bend. Do not change the belts.
+**X3. The fast frames: the calf or the tracker?**
+(written 2026-11-03 after session X2, ADR-083.)
+> In projects/robot-calf-final (lab restarted, video analysed again with
+> bends over the window and repeated frames re-timed), the playable speed
+> of my candidates is set by the left stifle in 0-109 and the left carpus at
+> the ball in 140-225. Mark in the Review strip the frames where each
+> candidate's limiting joint peaks (computed in the core), show me those
+> frames with the tracked points and the fitted skeleton drawn, and tell me
+> which points move how far there. If the tracker is the cause (a point
+> jumping to another leg or the ball), add a per-landmark outlier test on
+> the 2D tracks before the lift (in the core, recorded per frame), re-run
+> the comparison side by side, and say what then limits the speed. Do not
+> change the belts.
+
+**X4. A panel for comparing lifts**
+> compare_lift_maps (maps, bend choices, ambiguity per leg, jumps, residual
+> per landmark, playable speed raw / smoothed / re-timed) is command-line
+> JSON only. Make it a panel in the Behave workspace (schema-driven, no
+> logic in the UI): pick the lifts of a video, see the tables, click a
+> range to open it in the Review. Extend the Playwright footage test.
 
 **Y. A robot that turns as the calf did**
 > Clips from the 3D lift carry the calf's heading (root_quat) and ground
@@ -1204,7 +1281,7 @@ map and segmentation tuning.)
 > penalise per constraint, the window, the joint-limit share) instead of
 > editing the preset file. Do not change the belts.
 
-*(T, from a video in a folder to behaviors an evolved body performs safely, was done on 2026-11-03: ADR-076 to ADR-079. 3D motion from one camera and the review player were done later the same day: ADR-080, ADR-081. X, the hind Knee at the hock and clip smoothing, at the end of that day: ADR-082.)*
+*(T, from a video in a folder to behaviors an evolved body performs safely, was done on 2026-11-03: ADR-076 to ADR-079. 3D motion from one camera and the review player were done later the same day: ADR-080, ADR-081. X, the hind Knee at the hock and clip smoothing, at the end of that day: ADR-082. X2, bends over the window and repeated frames, after it: ADR-083.)*
 
 **O. The feral calf: enter what I measured and re-check the belts**
 > In projects/robot-calf-final: the STS3215 C018 output axis is <N> mm from

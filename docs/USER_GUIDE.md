@@ -1173,10 +1173,26 @@ Behaviors from reference footage.
    * **none**: as retargeted. Projects whose settings were saved before this
      existed start at *none*; clips already accepted are never changed.
 
-   Smoothing cannot tell a fit that jumps between a leg's two bends (an
-   *ambiguous* frame) from a fast movement: it only spreads the jump over a
-   few frames. Peak speeds still above the servo's may be the calf, or such
-   a jump: look at the frames.
+   **Repeated frames** (*Settings* > *repeated_frames*, ADR-083). A screen
+   recording of a video playing, or a phone that drops frames, writes some
+   images twice: the file says 30 fps but the calf moves in every other
+   frame, so per frame the motion is nothing, then a double step, and peak
+   speeds double. When a video is analysed the lab finds such frames in the
+   images themselves (a frame barely different from the one before; runs of
+   more than 3 count as a still scene and are kept), and with
+   **interpolate** (new projects) every clip is re-timed across them: a
+   value at a repeated frame is interpolated between the frames around it.
+   **keep** uses every frame as it is (projects whose settings were saved
+   before this). The clip records how many of its frames were re-timed.
+   Better still, record the original file rather than a screen recording.
+
+   **Which way a leg bends** (*Settings* > *lift* > `bend_choice`,
+   ADR-083). Where a leg could be bent two ways that fit a frame nearly
+   equally, **window** (new projects) keeps both per frame and chooses the
+   bend over the whole video, on the fit of every frame and how smoothly
+   the leg moves between them; a leg is *ambiguous* only where the whole
+   video cannot decide. **frame** chooses frame by frame, as before
+   (projects whose settings were saved before this).
 6. **Clips** can be filtered by your tags (*Filter by your affect tags*)
    and renamed or re-tagged (*Name and tags*).
 
@@ -1189,14 +1205,20 @@ segmentation cuts. To change the map, copy
 `<project>\motions\maps\`, edit it, pick it in *Settings* and *Analyse
 again*.
 
-**Comparing 3D maps.** The last lift with each map is kept per video
-(`footage\lift\<hash>.<map>.json`). After *Analyse again* with a second
-map, the command `compare_lift_maps file="<video>"` (command line) gives,
-side by side: reliable and ambiguous shares and what made frames ambiguous,
-the median residual per landmark, the fitted proportions, and the hind
-angles (stifle, hock, and how far the hock differs from the stifle) over
-the frames both maps call reliable. `projects\robot-calf-final` has
-`ap10k_3d_hock`: AP-10K's hind Knee on the hock, the hock untied.
+**Comparing 3D lifts.** The last lift with each map and bend choice is kept
+per video (`footage\lift\<hash>.<map>.json` frame by frame,
+`<hash>.<map>.window.json` over the window). After *Analyse again* with a
+second map or bend choice, the command `compare_lift_maps file="<video>"`
+(command line; `maps=[...]` to pick lifts, `ranges=[[0,109],[140,225]]` for
+frame ranges, `jump_deg=12`) gives, side by side: reliable and ambiguous
+shares, per leg how often it is ambiguous, how often a second bend fits in
+the frame alone, and how many steps between reliable frames move one of its
+joints more than 12 deg (also after re-timing); the median residual per
+landmark, the fitted proportions, the hind angles over the frames all lifts
+call reliable; and the playable speed of each candidate (or range) raw,
+smoothed, and smoothed and re-timed, with the joint that limits it.
+`projects\robot-calf-final` has `ap10k_3d_hock`: AP-10K's hind Knee on the
+hock, the hock untied.
 
 **What 3D cannot recover from one camera:** a camera that pans or zooms
 looks like the calf turning or approaching (keep the camera still); how far
@@ -1206,8 +1228,8 @@ seen head-on or tail-on (unreliable); the calf's width when it never turns
 and the camera is level (the 0.35 prior is used); and hip pitch on the hind
 legs (the robot has none, so the stifle and hock carry the swing). Joint
 speeds from noisy tracks are higher than the calf's real ones; clip
-smoothing (above) removes the jitter, not a fit that jumps between a
-leg's two bends.
+smoothing and re-timing (above) remove the jitter and the recorder's
+stutter, not a fast movement the fit really sees.
 
 #### Composing behaviors (ADR-078)
 The Stochastic behaviors form has a **Composition** group:

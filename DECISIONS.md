@@ -2692,7 +2692,9 @@ Playable speed (the body report's, `clip_report`) on the same frames:
 | untied, auto (3.5 Hz, noise 1.8 deg) | **0.39** (left stifle 351 deg/s) | **0.28** (left carpus 489 deg/s) |
 
 Peak speeds that remain are mostly single-frame jumps of 15-30 deg on
-frames marked ambiguous (the fit moving between a leg's two bends) and, in
+frames marked ambiguous (the fit moving between a leg's two bends; **wrong:
+ADR-083 found them to be the screen recording's repeated frames, the
+bends unchanged over the window**) and, in
 the second candidate, the carpus folding about 80 deg in 0.2 s at the ball,
 bridged across unreliable frames. Smoothing cannot remove a jump; a median
 filter before the low-pass (3 to 7 frames) raised the playable speeds by
@@ -2717,3 +2719,135 @@ through the inbox; the settings command and view.
   frame by frame, would remove what smoothing cannot.
 * No panel for the comparison (command line and JSON).
 * `ap10k_3d_hock` is not offered as a built-in map for new projects.
+
+## ADR-083 — Each leg's bend chosen over the window; frames the recording repeated (**VERIFY**)
+
+*Requested 2026-11-03* (session X2): "with the map ap10k_3d_hock, 71 % of
+frames are ambiguous and the remaining peak speeds are mostly the fit
+jumping between a leg's two bends. Make the lift choose each leg's bend over
+a window (both basins kept per frame, a Viterbi on fit and continuity, as the
+depth flip already does) instead of frame by frame, and show me side by side
+(before / after) on my video ... Check it on synthetic footage with a known
+bend. Do not change the belts."
+
+*Decision 1: the bend over the window* (`LiftSettings.bend_choice`,
+`calflab.behave.lift._choose_bends`, `_chain`).
+* After the smoothing over time (C2), per leg and frame (two confident
+  landmarks of the leg): the fitted angles and up to `max_bends - 1` (3 - 1)
+  other bends: local minima of the leg's grid more than `bend_far_deg` (20)
+  from the fitted angles and from each other, refined by least squares on
+  that leg's joints (trunk and other legs held), kept if within 25
+  chi-square of the fitted one. Each is scored by its fit and its priors
+  (chi-square).
+* A Viterbi over the frames adds continuity: a step between two kept frames
+  costs ((change) / (joint speed sd x frames apart))^2 per joint, the same
+  300 deg/s (60 for ab/adduction) as the smoothing over time. Forward and
+  backward passes give each frame's **margin**: how much more the best path
+  forced through any other bend costs. The best path is applied, frames
+  between kept ones follow it, and C2 runs again from there.
+* A leg is `ambiguous` where its margin is under `bend_margin` (4
+  chi-square, the frame-by-frame test's own 4 units). The frame-alone test
+  is kept as `second_bend` and in the summary (`legs.<leg>`:
+  `ambiguous_fraction`, `second_bend_fraction` from the refined search,
+  `grid_second_bend_fraction` from the old grid test, `bend_changed_frames`);
+  per-frame margins are `bend_margin` in the lift (999 = no other bend).
+* `frame` is the earlier behaviour exactly: on the first video, frame by
+  frame with the new code reproduced the stored lift (70.7 % ambiguous,
+  81.8 % reliable, 19.41 px).
+* Lifts are kept as `<map>` (frame by frame, as before) and `<map>.window`.
+  `compare_lift_maps` now also gives per leg the ambiguous share, the
+  second-bend share and the **jumps** (steps between reliable frames moving
+  one of its joints more than `jump_deg`, 12), and the **playable speed** of
+  the candidates (or `ranges`) raw, smoothed, and smoothed and re-timed.
+* New projects choose over the window. Settings saved before this load as
+  `frame`; `projects/robot-calf-final` was set to `window` (the request).
+
+*What the first video shows* (`Recording 2026-11-03 111941.mp4`, map
+`ap10k_3d_hock`, lifted on a scratch copy of the project through the lab's
+own commands; the researcher's running lab has the old code):
+* **The window changed no bend on any frame**, and calls no leg ambiguous.
+  The old 71 % was mostly the frame test's coarse grid. Of 52 sampled
+  "second bends", 5 survive refinement; the rest slide back into the fitted
+  bend (within 2-13 deg). The grid had put hip ab/adduction at +-25 deg with
+  no prior on it. The few real second bends lose by at least 10 chi-square
+  once continuity counts (5th percentile of the margins: 10.6 to 16).
+* **The jumps are not bend flips.** They are 2-3 frame ramps that stay where
+  they land, with the whole trunk moving 33-54 px in that step (median 6.5).
+  **108 of the 225 frames are repeats** of the previous image (mean grey
+  difference 0.0-0.4 against a median of 15). The screen recording holds
+  the source at about 15 fps in a 30 fps file, so each movement is a single
+  step at twice its speed. ADR-082's "jumps between a leg's two bends" was
+  wrong.
+
+*Decision 2: frames the recording repeated* (not asked for; the cause found
+while doing the above). `calflab.behave.timing`, `FootageSettings.repeated`,
+`set_footage_settings repeated_frames=interpolate|keep`.
+* Found from the images when a video is analysed: a frame differing from
+  the previous by less than 0.15 x the video's 90th-percentile difference
+  (grey levels, on a 320 px copy) is a repeat. Not the median: with half the
+  steps repeated, the median is one of them. Runs longer than 3 are a still
+  scene or a frozen recording and are not counted. Recorded in the lift
+  (`repeated`, `summary.repeated_fraction`).
+* `interpolate`: clips (and the segmentation's angles) re-timed across
+  repeats, a value at a repeat interpolated between the frames around it.
+  Each new image is taken to show the animal at the time it first appears.
+  The fit itself is unchanged. Clips record `meta.repeated_frames`. `keep`:
+  every frame as it is.
+* New projects interpolate; settings saved before load as `keep`;
+  `robot-calf-final` was set to `interpolate` (my choice, reversible).
+
+*Before / after on the first video* (two candidates, unchanged at 0-109 and
+140-225; auto smoothing; playable speed is the body report's):
+
+| | before: frame by frame | after: window | after: window, re-timed |
+|---|---|---|---|
+| ambiguous, any reason | 70.7 % | 2.2 % (depth only) | 2.2 % |
+| ambiguous hind L / R | 52 / 56 % | 0 / 0 % | 0 / 0 % |
+| ambiguous fore L / R | 14 / 25 % | 0 / 0 % | 0 / 0 % |
+| second bend in one frame, hind L / R, fore L / R | 52 / 56, 14 / 25 % (grid) | 10 / 8, 7 / 7 % (refined) | the same |
+| jumps > 12 deg/frame, hind L / R, fore L / R | 20 / 6, 20 / 15 | the same | 15 / 1, 14 / 4 |
+| largest step, hind L / fore R | 31.8 / 30.8 deg | the same | 24.9 / 17.6 deg |
+| median residual; per landmark | 19.4 px | identical | identical |
+| 0-109, raw / auto | 0.16 / 0.39 (left stifle 351 deg/s) | the same | 0.22 / 0.36 (377 deg/s, cutoff 4.0 Hz) |
+| 140-225, raw / auto | 0.14 / 0.28 (left carpus 489 deg/s) | the same | 0.14 / 0.28 (487 deg/s) |
+
+* With re-timing, Winter's analysis finds less noise (1.3 vs 1.8 deg) and
+  picks 4.0 Hz instead of 3.5. Part of what it had called noise was the
+  stutter. At equal cutoffs re-timing raises the playable speed everywhere:
+  3.5 Hz 0.385 -> 0.387 and 0.276 -> 0.301; 6 Hz 0.26 -> 0.30 and
+  0.20 -> 0.22.
+* What still limits the candidates is fast motion as the fit sees it: the
+  left stifle swinging about 30 deg between two new images in the first,
+  and the left carpus folding at the ball in the second. Whether that is the
+  calf or the tracker has to be judged on the frames.
+
+*Checked.* `tests/test_bends.py`:
+* the chain's path and margins against brute force;
+* known-bend footage: the feral calf with fore carpi allowed to bend either
+  way (test only: the robot's own ranges leave no second bend in a side
+  view), the carpus point tracked weakly, so one frame cannot tell the bends
+  (frame by frame 58-100 % ambiguous):
+  * frames put in the other bend (one frame, and a stretch of four) are put
+    back, and nothing else changes;
+  * end to end, with the first half second misleading: the true bend on
+    every frame, none ambiguous, no jump (slow test). Frame by frame also
+    holds it there, from its straight-leg start; in no synthetic case tried
+    did frame by frame end in the wrong bend;
+* repeats found in an AVI (twice, once three times, a still run kept); a
+  stuttered joint re-timed to even steps;
+* in `test_lift.py` and `test_smoothing.py`: defaults old and new, lifts
+  kept per bend choice, the comparison with ranges through the inbox.
+
+*Assumptions (VERIFY):* `bend_margin` 4, `bend_far_deg` 20, 3 bends, 25
+chi-square; the continuity cost uses the smoothing's speeds; repeats below
+0.15 x the 90th percentile, runs of up to 3; a repeated image shows the
+earlier time. A very slow movement can pass for a repeat (interpolating it
+changes almost nothing).
+
+*Not done.*
+* The fit itself does not use the repeats (its smoothing over time sees the
+  stutter).
+* 2D mode is not re-timed.
+* No panel for the comparison (command line and JSON).
+* Frames where a candidate's limiting joint peaks are not marked in the
+  Review.
