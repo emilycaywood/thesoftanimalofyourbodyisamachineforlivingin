@@ -39,6 +39,9 @@ class EvaluationSettings(BaseModel):
     servo_model: Literal["torque", "torque_speed"] | None = "torque_speed"
     #: the behaviors controller plays every required clip once before choosing freely
     play_required_first: bool = True
+    #: score a body on a suite of motions, each tuned for it, instead of one controller
+    #: (calflab.evolve.vigour.SuiteSettings; ADR-090); None = not used
+    suite: dict[str, Any] | None = None
 
 
 class FitnessPreset(BaseModel):

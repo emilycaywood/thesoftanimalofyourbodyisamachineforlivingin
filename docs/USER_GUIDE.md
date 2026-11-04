@@ -945,6 +945,33 @@ To change what rejects and what costs fitness, edit
 `config\fitness\repertoire.yaml` (`evaluation: safety: actions:`) and bump
 its `version`.
 
+#### Evolving a body for vigorous movement within limits (ADR-090)
+
+Fitness preset **vigour** judges each candidate body on five motions, each
+with its parameters searched for that body:
+* the feral **walk** and **trot**: how much of their speed is kept, against
+  the gait at its defaults on the starting body;
+* the **stand**, **step** and **fast play** of the latest interpretation of
+  the footage reading: how much of the calf's features is kept (1 = every
+  feature as the calf; a feature off by 2x counts about 0.6).
+
+Each motion is searched on one seed. Its best settings within every limit
+at margin 0.2 are then checked on three seeds with friction and mass
+varied. Only a setting that stays within every limit on every seed, without
+falling, counts. A motion with none keeps nothing.
+
+Fitness is the mean kept share minus how far the worst motion goes over the
+limits. Use the archive axes **Vigour kept** x **Worst safety margin**.
+**Hoof width** is also available as an axis. A run needs an interpretation
+(Behave > Interpret footage) and measures the gaits' reference speeds when
+it starts. Every play is cached per body in the project's
+`.cache\interpret`, so a body seen before costs almost nothing.
+
+**Estimate cost** counts plays for this preset; its number is an upper
+bound. A body takes about 55-60 plays, a little over a minute of one core.
+Each candidate's metrics list every motion's setting, kept share, margin
+and seeds. *Simulate candidate* plays its walk.
+
 #### Proportions: comparing bodies instead of finding one
 
 The lab has three ways to look for a better body or gait:

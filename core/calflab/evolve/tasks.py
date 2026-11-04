@@ -69,9 +69,13 @@ def evaluate_candidate(payload: dict[str, Any]) -> dict[str, Any]:
     reasons = infeasible(design.spec)
     if reasons:  # never repaired, never simulated (ADR-070)
         return {"infeasible": reasons, "mass_g": design.spec.total_mass_g(), "evals": 0}
+    preset = FitnessPreset.model_validate(payload["fitness"])
+    if preset.evaluation is not None and preset.evaluation.suite is not None:  # a suite of motions (ADR-090)
+        from calflab.evolve.vigour import evaluate_body
+
+        return evaluate_body(design, lib, payload, preset)
     settings = SimSettings.model_validate(payload.get("sim", {}))
     cm = compile_mjcf(design.spec, lib, CompileOptions.model_validate(payload.get("compile", {})), settings.seed)
-    preset = FitnessPreset.model_validate(payload["fitness"])
     ctrl_cls = registry.get("controller", payload["controller"]["key"])
     base_params: dict[str, Any] = dict(payload["controller"].get("params", {}))
     spec = design.spec

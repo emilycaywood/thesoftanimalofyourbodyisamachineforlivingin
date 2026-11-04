@@ -292,7 +292,9 @@ def test_legs_straight_by_default():
     gdef = genome_definition("feral_calf")
     for gid in ("hind_leg_toe", "hind_leg_splay", "front_leg_toe", "front_leg_splay"):
         g = gdef.gene(gid)
-        assert g.default == 0 and not g.evolvable
+        assert g.default == 0
+        # the splays evolve since session R step 3 (ADR-090); toe-out stays fixed
+        assert g.evolvable == gid.endswith("_splay")
 
 
 # ---------------------------------------------------------------------- wider blocks, hip springs (ADR-089)

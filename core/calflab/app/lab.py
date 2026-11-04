@@ -752,6 +752,12 @@ class Lab:
             record.inputs["belts"] = {d: r["choice"] for d, r in
                                       (start_design.spec.metadata.get("feral") or {}).get("belt_drives", {}).items()}
             self.registry.save_run(record)
+            fitness_dump = preset.model_dump(mode="json")
+            if preset.evaluation is not None and preset.evaluation.suite is not None:  # ADR-090
+                job.report(0.01, "measuring the gaits' reference speeds; reading the interpretation")
+                fitness_dump = self.prepare_suite(fitness_dump, start_design)
+                record.inputs["suite"] = fitness_dump["evaluation"]["suite"]
+                self.registry.save_run(record)
             problem = EvolveProblem(
                 genome=start_design.genome.model_dump(mode="json"),
                 overrides=record.overrides,
@@ -761,7 +767,7 @@ class Lab:
                 compile=g.role("model").params,
                 sim=sim_params,
                 controller=ctrl,
-                fitness=preset.model_dump(mode="json"),
+                fitness=fitness_dump,
                 run_id=run_id,
                 cancelled=job.cancelled,
             )
@@ -818,6 +824,31 @@ class Lab:
         job.result = {"run_id": run_id}
         return job
 
+    def prepare_suite(self, fitness: dict[str, Any], design: Any) -> dict[str, Any]:
+        """A vigour preset's suite with its targets filled in (ADR-090): the gaits' reference speeds on ``design``
+        and the read behaviours of the interpretation run, plus the per-body play cache."""
+        from calflab.app.interpret_jobs import InterpretError, interpretation_view
+        from calflab.evolve.vigour import SuiteSettings, prepare_targets
+
+        ev = dict(fitness["evaluation"])
+        suite = SuiteSettings.model_validate(ev["suite"])
+        interp = None
+        if any(m.kind == "read" for m in suite.motions):
+            try:
+                interp = interpretation_view(self, suite.interpretation)
+            except InterpretError as exc:
+                raise LabError(f"The vigour preset needs an interpretation of the reading: {exc}") from exc
+            suite.interpretation = str(interp.get("run_id") or suite.interpretation)
+        cache = Path(self.project.path) / ".cache" / "interpret"
+        try:
+            suite.targets = prepare_targets(suite, design.spec, library(), dict(self.state.graph.role("model").params),
+                                            interp, cache)
+        except ValueError as exc:
+            raise LabError(str(exc)) from exc
+        suite.cache_dir = str(cache)
+        ev["suite"] = suite.model_dump(mode="json")
+        return {**fitness, "evaluation": ev}
+
     def estimate_evolve(self, optimizer: str = "map_elites_cma", params: dict[str, Any] | None = None,
                         sim: dict[str, Any] | None = None) -> dict[str, Any]:
         """CPU cost of an evolution before starting it (ADR-079): one short rollout of the working design is
@@ -856,6 +887,21 @@ class Lab:
             secs = gens * -(-batch // max(1, workers)) * (1 + iters * pop) * seeds * duration * per_sim_s
             return {"generations": gens, "batch_size": batch, "inner_iterations": iters, "inner_popsize": pop,
                     "rollouts": rollouts, "cpu_s": round(rollouts * duration * per_sim_s, 1), "wall_s": round(secs, 1)}
+
+        suite_cfg = preset.evaluation.suite if preset is not None and preset.evaluation is not None else None
+        if suite_cfg is not None:  # a suite of motions per body (ADR-090): plays, not one controller's rollouts
+            from calflab.evolve.vigour import SuiteSettings, suite_plays
+
+            suite = SuiteSettings.model_validate(suite_cfg)
+
+            def cost(gens: int, batch: int, iters: int, pop: int) -> dict[str, Any]:  # noqa: F811
+                per = suite_plays(suite, pop, iters, seeds)
+                rollouts = gens * batch * per["plays_max"]
+                cpu = gens * batch * per["simulated_s_max"] * per_sim_s
+                secs = gens * -(-batch // max(1, workers)) * per["simulated_s_max"] * per_sim_s
+                return {"generations": gens, "batch_size": batch, "inner_iterations": iters, "inner_popsize": pop,
+                        "rollouts": rollouts, "cpu_s": round(cpu, 1), "wall_s": round(secs, 1),
+                        "per_body": per, "body_wall_s": round(per["simulated_s_max"] * per_sim_s, 1)}
 
         full = cost(int(getattr(p, "generations", 1)), int(getattr(p, "batch_size", 1)),
                     int(getattr(p, "inner_iterations", 0)), int(getattr(p, "inner_popsize", 1)))

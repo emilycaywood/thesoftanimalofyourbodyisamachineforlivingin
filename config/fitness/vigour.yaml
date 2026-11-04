@@ -1,0 +1,36 @@
+# Fitness preset: vigorous movement within every limit at margin 0.2 (session R step 3, ADR-090).
+# A body is judged on a suite of motions, each with its parameters searched for that body:
+# the feral walk and trot (how much of their speed is kept) and the behaviours of the latest
+# interpretation of the footage reading (how much of the calf's features is kept).
+# Archive axes: vigour_kept x worst_margin. Bump `version` whenever you change it.
+name: vigour
+version: 1
+description: >
+  Keep as much of the walk's and trot's speed and of the calf's stand, step and fast play as the body allows
+  within every limit at margin 0.2 (sustained torque, sustained belt, joint speed, envelope, stall, belt peak,
+  joint limits, falls), over three seeds with mild friction and mass randomisation. Fitness = vigour kept minus
+  how far the worst margin is over the limits lowered by 0.2 (at most 1).
+terms:
+  - {term: survival, weight: 0.0}   # recorded only; the suite computes the fitness (ADR-090)
+evaluation:
+  seeds: [0, 1, 2]
+  randomize: true
+  friction: [0.7, 1.1]
+  mass_scale: [0.95, 1.05]
+  aggregate: worst
+  torque_derating: 1.0
+  servo_model: torque_speed
+  suite:
+    motions:
+      - {name: walk, kind: gait, primitive: walk}
+      - {name: trot, kind: gait, primitive: trot}
+      - {name: stand, kind: read}
+      - {name: step, kind: read}
+      - {name: other, kind: read}    # the fast play
+    interpretation: ""   # empty = the latest interpretation run
+    margin: 0.2
+    buffer: 0.05
+    popsize: 4
+    generations: 2
+    verify: 3
+    shortfall_weight: 1.0

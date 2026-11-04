@@ -3,7 +3,7 @@
 Everything a new Claude Code session (or a new collaborator) needs to pick up
 CALFLAB. Last updated 2026-11-04 on branch `robot-calf-final` (cut from
 `chassis-mass`), during session R (a body for vigorous movement; steps 1-2 of 6
-done, plus wider blocks and hip springs; waiting for the researcher; section 4, "Session R", ADR-086..089); before it
+done, plus wider blocks and hip springs; step 3 done (vigour preset), waiting for the researcher to choose the budget; section 4, "Session R", ADR-086..090); before it
 session Q: the calf's movement read and interpreted as
 the robot's own (section 4, "Added in session Q", ADR-085); before it session
 P: clips judged in physics and made feasible
@@ -1047,8 +1047,8 @@ Nothing installed. `adapt_clip` kept as a diagnostic:**
   `web/e2e/interpret.spec.ts`. `calflab test` passes: ruff, 502 pytest tests (7.6 min), mypy, web typecheck and eslint, 14 Vitest, 13 Playwright tests.
 * Launch entry `calflab-q`: scratch copy `projects/_scratch-q` (not in git).
 
-**Session R (a body for vigorous movement within margin 0.2; ADR-086). In progress: steps 1-2 of 6 done, plus
-wider blocks and hip springs (ADR-089); stopped for the researcher as asked.** Belts, joint ranges and the servo's
+**Session R (a body for vigorous movement within margin 0.2; ADR-086). In progress: steps 1-3 of 6 done, plus
+wider blocks and hip springs (ADR-089); stopped for the researcher to choose the evolution budget.** Belts, joint ranges and the servo's
 values not touched; nothing installed.
 
 * The request (six steps, a stop after each) commits the body to the ten STS3215 C018 servos and carbon fibre leg
@@ -1081,7 +1081,15 @@ values not touched; nothing installed.
   half widening + hip springs equally good; hip springs alone do not rescue full splay (-1.56); **the trot as it is
   gets worse on wide blocks** (-1.8: stifles x2, shoulders x3; the diagonal support line moves off the centre of
   mass) and needs re-tuning per body.
-* Next: step 3 (the fitness preset and Estimate cost), see R3 in section 7.
+* Hoof width: the researcher chose "Let it evolve" (no floor; descriptor `hoof_width` to look at it).
+* **Step 3 (vigour preset)**, ADR-090, `docs/studies/vigour_r3.md`: `config/fitness/vigour.yaml` +
+  `calflab.evolve.vigour`: a body plays walk, trot and the interpretation's stand, step and fast play, each
+  searched for it (CMA-ES 4 x 2, cached per body), the best within limits verified on 3 randomised seeds. Fitness
+  = mean kept share - shortfall of the worst margin below 0 (limits already x0.8). Archive axes `vigour_kept` x
+  `worst_margin`. Splays and block widths now evolvable. Today's body: vigour 0.315, worst -0.44, fitness -0.125;
+  wide blocks + half splay + hip springs: 0.517, -0.28, +0.237 (walk keeps 0.75 within limits, trot still over
+  torque). About 60 plays, 64-84 s per body; 6 x 8 at 2 x 4 = about 0.3 h on 7 workers.
+* Next: step 4 (evolve) once the researcher picks a budget, see R4 in section 7.
 
 **Scaffolded only (interfaces + tests, no behaviour):** PPO training, MJX
 simulator, RemoteSSH and CloudNotebook transports (job bundling is real),
@@ -1370,7 +1378,7 @@ Journal, Rhino bridge):**
 |---|---|
 | `CLAUDE.md` | Conventions for every session (loaded automatically) |
 | `PLAN.md` | Architecture, module boundaries, data flow, phases, risks, status |
-| `DECISIONS.md` | ADR log: every assumption (89 so far) |
+| `DECISIONS.md` | ADR log: every assumption (90 so far) |
 | `docs/proposals/anatomical-leg.md` | Proposal for a three-segment leg (set aside 2026-10-04; not built) |
 | `docs/USER_GUIDE.md` | How to use the lab |
 | `docs/CHAT_GUIDE_PROMPT.md` | Prompt that makes a chat assistant a guide to the whole lab |
@@ -1386,15 +1394,13 @@ Journal, Rhino bridge):**
 
 Prefix each with the opening message from section 1.
 
-**R3. Session R, step 3: a fitness for vigorous movement within limits** (recommended next; written 2026-11-04 after
-step 2, ADR-086..089.)
-> Continue session R in projects/robot-calf-final (`docs/studies/sensitivity_r1.md`, `load_r2.md`). Steps 1-2
-> are done. Step 3: a fitness preset scored on the safety margins (sustained torque, sustained belt, joint speed,
-> envelope, stall, falls; three seeds, domain randomisation as in `repertoire`) plus how much of each behaviour is
-> kept: gait speed for walk and trot, interpretation's feature distance for the read behaviours (small budget,
-> cached per body). Archive axes: vigour kept x worst margin. Run Estimate cost and let me choose the budget
-> before anything long starts. Make the splays, the block widths and the hip ab/ad springs evolvable for it, keep a
-> floor on hoof width for stability, and re-tune the trot per body (ADR-087, ADR-089).
+**R4. Session R, step 4: evolve the body** (recommended next; written 2026-11-04 after step 3, ADR-086..090.)
+> Continue session R in projects/robot-calf-final (`docs/studies/vigour_r3.md`). Step 3 is done: preset `vigour`.
+> Step 4: in the starting body turn the hip ab/ad springs on (rate free to evolve from 0), then evolve with
+> MAP-Elites + CMA-ES on archive axes vigour_kept x worst_margin with the budget I chose: <generations x batch,
+> inner iterations x popsize>. Genes: springs, leg geometry, splays, block widths; belts from the catalog only
+> (rejected, never clamped); joint ranges only narrowed. Show the archive: which bodies keep the most vigour,
+> what changed, how many candidates were infeasible and why. Stop before step 5.
 
 **Q2. Interpretation inside the repertoire evolution** (recommended next; written after session Q, ADR-085.)
 > In projects/robot-calf-final, interpretation (run `20261104-042426-interpret-ef3c`) found how this body can say the calf's stand, step and

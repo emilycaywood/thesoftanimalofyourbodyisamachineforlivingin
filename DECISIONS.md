@@ -3325,3 +3325,43 @@ spring is at the hip.
 *Consequences for steps 3-4:* evolve `hip_block_widen`, `chest_block_widen`, both splays, `spring_hip_abd` on
 with its rate and anchors, and the other springs, with the gaits tuned per candidate. Keep a floor on hoof width
 (stability).
+
+## ADR-090 — Session R step 3: the vigour preset, a body judged on a suite of motions (**VERIFY**)
+
+*Context.* Step 3 asks for a fitness scored on the safety margins (sustained torque, sustained belt, joint speed,
+envelope, stall, falls; three seeds; randomisation as in `repertoire`) plus how much of each behaviour is kept
+(gait speed for walk and trot; the interpretation's feature distance for the read behaviours, small budget,
+cached per body), with archive axes vigour kept x worst margin. The researcher let hoof width evolve freely
+(2026-11-04: "Let it evolve"): there is no floor on it, only a `hoof_width` descriptor to look at.
+
+*Decisions.*
+* **A preset can score a suite of motions** instead of one controller: `evaluation.suite`
+  (`calflab.evolve.vigour.SuiteSettings`). `evaluate_candidate` hands such a preset to `evaluate_body`. The
+  MAP-Elites inner loop (iterations x popsize) becomes the per-motion search budget. Preset `vigour@1`: walk,
+  trot, and the read behaviours stand, step and other (the fast play).
+* **Kept share.** Gait: `min(1, speed / reference)`, where the reference is the gait at its defaults on the
+  starting body (walk 32.8 mm/s, trot 186.1 mm/s on today's body). Read behaviour: the weighted mean of
+  `exp(-d_k^2)` over the features the interpretation matches, with `d_k` as in its distance. Assumption: this
+  stands for "the interpretation's feature distance" as a 0-1 share (1 = every feature as the calf, 2x off
+  about 0.62). A read behaviour starts from the primitive and setting the interpretation chose on the starting
+  body.
+* **Search, then verify.** Each motion is searched on seed 0, nothing random, with every play cached per body in
+  the project's `.cache/interpret`. Its best settings within the limits (up to `verify` = 3) are then played on
+  the preset's seeds with friction and mass randomised. The first that stays within every limit on every seed
+  without falling is kept: its kept share and margin are the worst seed's. A motion with none keeps 0. Stall
+  and a belt peak are limits like the others (the motion fails), not a rejection of the whole body.
+* **Margins** are those of session R: headroom over every limit lowered by 0.2, so 0 = at margin 0.2.
+  Fitness = mean kept share - (how far the worst motion's margin is below 0, at most 1).
+* **Simulate candidate** plays the walk as tuned for that body: the candidate's controller parameters are the
+  walk's. Every motion's setting is in its metrics (`vigour.motions`).
+* **Estimate cost** counts plays for a suite preset (upper bound: every search play uncached, every
+  verification to the end) and times them with the usual probe.
+* The splays and both block widths are evolvable. The hip ab/ad springs' switch is not (a bool): step 4 turns
+  it on in the starting body and lets the rate evolve from 0.
+
+*Results* (`docs/studies/vigour_r3.md`):
+* Today's body: vigour 0.315, worst margin -0.44 (trot), fitness -0.125. Walk and trot keep nothing; stand
+  0.87, step 0.34, fast play 0.36.
+* Wide blocks + half splay + hip springs: vigour 0.517, worst -0.28, fitness +0.237. The walk keeps 0.75 within
+  every limit on three seeds, and the step 0.59. The trot is still over sustained torque.
+* About 55-60 plays and 64-84 s per body. 6 generations x 8 at 2 x 4: about 0.3 h on 7 workers (1.1 h CPU).
