@@ -983,6 +983,11 @@ component values not touched. Nothing installed:**
 * `projects/robot-calf-final` was not touched. **Your lab on port 8020 runs older code**: restart it before
   using the new buttons.
 
+**Added after session P: four more videos.** `Recording 2026-11-03 213333.mp4`, `213625.mp4`, `213904.mp4` and
+`214239.mp4` were processed through the inbox in `projects/robot-calf-final` (3D, the project's settings; the lab
+on port 8020 was not running). All need review; `213625` has a broken fit and `214239` legs exchanged by the
+tracker in 61 % of frames. Details in next session Q (section 7).
+
 **Scaffolded only (interfaces + tests, no behaviour):** PPO training, MJX
 simulator, RemoteSSH and CloudNotebook transports (job bundling is real),
 imitation reward, interactive selection, molds, skin patterns, nesting,
@@ -1268,6 +1273,67 @@ Journal, Rhino bridge):**
 ## 7. Recommended next sessions
 
 Prefix each with the opening message from section 1.
+
+**Q. Interpreting a cow's movement into movement this robot can perform** (recommended next;
+written 2026-11-03 after the four new videos were processed.)
+> **The idea.** Between the video and the robot there has to be an act of interpretation, not a copy. Replaying
+> the calf's joint angles fails on this body (ADR-084): the adapted clips become slow sways on four planted hooves
+> that keep about a fifth of the character, at 4–8 minutes of physics per clip per body. The body itself moves
+> well when the movement is its own: its trot and walk balance by timing on two or three hooves under the
+> torque-speed servos. So read what the calf does (which behaviour, when, with what timing, weight, vigour and
+> direction), then translate it into the robot's own movements, as an animator or a puppeteer would. Every step of
+> that translation is explicit, recorded, and in the core; the UI only shows it.
+>
+> **The footage.** `projects/robot-calf-final/footage/videos` holds five screen recordings (13–48 % repeated
+> frames, re-timed), all lifted in 3D with map `ap10k_3d_hock`, bends over the window. Every candidate is
+> "other"; no regular gait was found.
+> * `111941` (7.5 s): 82 % reliable; c1 0–109 (turns 61° left), c2 140–225 (turns 52° right).
+> * `213333` (1.8 s): 89 % reliable; c1 0–54, turns 43° right; the camera may move.
+> * `213625` (6.0 s): **36 % reliable, the fit is broken** (heading spins over 600°; c1 "turns" 364° in 0.9 s).
+>   Find out why on the frames (the depth flip, a pan, the tracker), fix the cause in the core if it is general,
+>   or mark the video unusable with the reason.
+> * `213904` (3.0 s): 86 % reliable, seen at 41° yaw, residual 38 px; c1 0–91 turns 103° right; the camera may
+>   move.
+> * `214239` (10.3 s): 92 % reliable, but **the tracker exchanged left and right legs in 61 % of frames**, and it
+>   is turned away from the camera. Check on the frames whether the exchange is real or a labelling problem, and
+>   fix it before using this video, which has the longest stretch (c2 65–310, 8.1 s).
+>
+> Trunk length fits 1.46–1.55 times the robot's in the four good videos (probably one calf); width is the 0.35
+> prior throughout.
+>
+> **Build:**
+> 1. **Reading.** From all usable videos, label stretches as behaviours (stand, weight shift, step, walk, turn,
+>    other), each with its evidence (frames, features, confidence). Per behaviour, extract what can be interpreted
+>    rather than copied: tempo and phrasing, amplitude, quantity of motion, footfall order and duty factor from
+>    hoof heights, trunk sway, pitch and turn, lean direction, how abrupt starts and stops are. Fit a semi-Markov
+>    model (transitions, durations), pooled with each video's contribution kept. Store it versioned and
+>    schema-validated with provenance. Keep my affect tags attached. Say how much about 29 s of footage can
+>    support.
+> 2. **The robot's vocabulary.** Motion primitives that balance on this body by construction: the existing stand,
+>    walk, trot and lie/rise, plus a weight shift (body moved over three hooves and back; `calflab.behave.stance`
+>    can design it) and a turn in place if the body allows it. Each has a few parameters with a Pydantic schema,
+>    and declares its safe blend phases.
+> 3. **Interpretation.** For each read behaviour, choose and parameterise a primitive so the robot's movement
+>    features (from a short physics play) come closest to the calf's, within every limit with margin 0.2
+>    (torque-speed servos, belts, springs, the existing safety constraints). Use a small CMA-ES search, cached per
+>    body. Record each mapping as an interpretation: what was read, what the robot does instead, what was kept,
+>    exaggerated, reduced or dropped, and why (which limit). Report the cost per body, so we know whether this fits
+>    inside the repertoire evolution. The gaits already go over joint speed and the envelope at margin 0.2: show
+>    what interpretation does about that.
+> 4. **Performance.** The behaviors controller (or a new controller plugin) samples behaviours and durations from
+>    the model and parameters from the fitted spread, blending only at safe phases. Play 60 s with three seeds,
+>    judged with `play_in_physics`-style reports.
+> 5. **Comparison.** In the Behave panel, as a stored report, side by side with the calf: behaviour shares,
+>    transitions, durations, features per behaviour, the interpretation record, falls and margins, plus ADR-084's
+>    character scores for the adapted clips. A time strip marks behaviours and limits, and clicking a behaviour
+>    opens its source frames in the Review.
+> 6. **Gaps.** List what the calf did that the robot cannot express (head and neck, joints it lacks); never
+>    approximate those silently.
+>
+> Tests: reading on synthetic footage with a known behaviour sequence; primitive contracts; interpretation of a
+> short synthetic target; determinism with a seed; a Playwright check of the new report. Add an ADR, update the
+> user guide and the handoff, and run `.\calflab.ps1 test`. Do not change the belts, the joint ranges or any
+> component values. Keep `adapt_clip` as a diagnostic.
 
 **P2. Feasible versions that step**
 (written 2026-11-03 after session P, ADR-084.)
