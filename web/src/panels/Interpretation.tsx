@@ -32,6 +32,7 @@ interface Report {
   records: Rec[]; plays: Play[]; comparison: Cmp | null; gaps: { what: string; why: string; seen: Record<string, string>; handling: string }[];
   defaults: { primitive: string; default: { within_limits: boolean; violations: string[]; margin: number | null; constraints: Record<string, Constraint> }; interpreted: { behaviour: string; params: Record<string, unknown>; margin: number | null; constraints: Record<string, Constraint> } | null }[];
   calf: { stretches: Stretch[]; videos: VideoR[]; support: { lines: string[] } };
+  transitions_checked?: { from: string; to: string; within_limits: boolean; fell: boolean; margin: number | null; violations: string[] }[];
   adr084: { runs: { run: string; project: string; clip: string | null; character_kept: number | null; verdict: string | null }[]; note: string; source: string };
   cost: { plays: number; cache_hits: number; play_seconds: number; seconds: number; total_seconds: number; note: string };
 }
@@ -207,6 +208,15 @@ export function InterpretationSection({ onOpenFrames }: { onOpenFrames: (file: s
             <div key={p.seed} data-testid="interpret-play">seed {p.seed}: <Badge tone={p.report.fell ? "err" : p.report.safety.violations.length ? "warn" : "ok"}>{p.report.verdict}</Badge>
               {p.report.fell ? ` at ${fmt(p.report.fall_time_s ?? 0, 1)} s` : ""} · margin {val(p.report.safety.margin)}{p.report.safety.violations.length ? ` · over ${p.report.safety.violations.join(", ")}` : ""} · fewer than three hooves down {pct(p.report.hooves_down_fewer_than_3_fraction)} · {p.episodes.length} episodes{p.episodes.some((e) => e.unsafe_switch) ? ", some switched outside a safe phase" : ""}</div>
           ))}
+
+          {rep.transitions_checked && rep.transitions_checked.length > 0 && (
+            <div className="mt-0.5" data-testid="interpret-transitions-checked">
+              Transitions played in physics: {rep.transitions_checked.map((t) => (
+                <span key={`${t.from}-${t.to}`} className={`mr-2 ${t.within_limits ? "" : "text-warn"}`}>
+                  {labels[t.from] ?? t.from} → {labels[t.to] ?? t.to}: {t.within_limits ? `ok (margin ${val(t.margin)})` : `dropped (${t.fell ? "falls" : t.violations.join(", ")})`}
+                </span>))}
+            </div>
+          )}
 
           <div className="mt-1 text-[9px] uppercase text-dim">What the calf did that this body cannot express</div>
           <ul className="list-disc pl-4" data-testid="interpret-gaps">{rep.gaps.map((g) => (

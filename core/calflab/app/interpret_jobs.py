@@ -85,6 +85,55 @@ def build_states(reading: Any, records: list[dict[str, Any]], spec: Any) -> dict
     return {"states": states, "transitions": trans, "initial": init}
 
 
+def check_transitions(spec: Any, doc: dict[str, Any], ctrl: dict[str, Any], margin: float, buffer: float,
+                      seed: int = 0, cancelled: Any = None) -> list[dict[str, Any]]:
+    """Play every transition the performance may take (A for its median duration, then B once) and judge it with
+    every limit. A primitive is judged from standing; after another it may start from hooves elsewhere (a trot
+    leaves them spread, and a step's pose is solved over the standing ones), so a pair can fail although both
+    parts pass alone. Failing pairs are dropped from ``ctrl`` (renormalised) and listed with the limit."""
+    from calflab.behave import physics
+    from calflab.behave.interpret import judge
+    from calflab.plugins import registry
+    from calflab.sim import CompileOptions, SimSettings, compile_mjcf, run_rollout
+
+    lib = library()
+    cm = compile_mjcf(spec, lib, CompileOptions.model_validate(physics.compile_params(doc)), seed)
+    by = {st["name"]: st for st in ctrl["states"]}
+    out = []
+    for a, row in list(ctrl["transitions"].items()):
+        for b, p in list(row.items()):
+            if p <= 0 or a not in by or b not in by:
+                continue
+            sa, sb = dict(by[a]), dict(by[b])
+            da = dict(sa["duration"])
+            med = math.exp(float(da["log_mean"]))
+            sa["duration"] = {**da, "log_sd": 0.0, "min_s": med, "max_s": med}
+            sa["vary"], sb["vary"] = {}, {}
+            tb = float(sb["offset_s"]) + float(sb["period_s"]) * (1.0 if sb["one_shot"] else 2.0)
+            params = {"states": [sa, {**sb, "name": f"{b}*"}], "transitions": {a: {f"{b}*": 1.0}, f"{b}*": {a: 1.0}},
+                      "start": a}
+            c: Any = registry.get("controller", "interpreted")(params)
+            dur = min(30.0, med + tb + 1.0)
+            ro = run_rollout(cm, c, SimSettings(duration_s=dur, control_hz=50.0, record_hz=50.0, settle_s=0.4,
+                                                stop_on_fall=True, seed=seed), lib, cancelled=cancelled)
+            j = judge(ro, spec, lib, margin)
+            ok = j["within_limits"] and (j["margin"] is None or float(j["margin"]) >= buffer)
+            worst = min(((v["margin"], k) for k, v in j["constraints"].items() if v.get("margin") is not None),
+                        default=(None, None))
+            out.append({"from": a, "to": b, "within_limits": ok, "fell": j["fell"], "margin": j["margin"],
+                        "violations": j["violations"], "worst": worst[1], "seconds": round(dur, 2)})
+            if not ok:
+                del ctrl["transitions"][a][b]
+    for a, row in ctrl["transitions"].items():
+        tot = sum(row.values())
+        if tot > 0:
+            ctrl["transitions"][a] = {k: round(v / tot, 4) for k, v in row.items()}
+        elif "stand" in by and a != "stand" and any(t["from"] == a and t["to"] == "stand" and t["within_limits"]
+                                                    for t in out):
+            ctrl["transitions"][a] = {"stand": 1.0}
+    return out
+
+
 def commanded_clip(ro: Any, spec: Any) -> MotionClip:
     """What the controller commanded (deg, relative to standing), as a clip, so the physics report can judge a
     performance (tracking = how far the body was from its commands)."""
@@ -288,6 +337,8 @@ def run_interpretation(lab: Any, reading: Any, s: Any, ctx: dict[str, Any], seco
     interp_cost = {"plays": it.plays, "cache_hits": it.cache_hits, "play_seconds": round(it.wall_s, 1),
                    "seconds": round(time.perf_counter() - t_start, 1)}
     ctrl = build_states(reading, records, spec)
+    say(0.66, "playing every transition the performance may take")
+    transitions_checked = check_transitions(spec, ctx["doc_compile"], ctrl, s.margin, s.buffer, s.seed, cancelled)
     plays: list[dict[str, Any]] = []
     first_ro = None
     if ctrl["states"]:
@@ -306,6 +357,7 @@ def run_interpretation(lab: Any, reading: Any, s: Any, ctx: dict[str, Any], seco
     payload: dict[str, Any] = {
         "run_id": run_id, "reading_id": reading.id, "labels": LABELS, "settings": s.model_dump(mode="json"),
         "records": records, "defaults": defaults, "controller": ctrl, "seconds": seconds, "seeds": seeds,
+        "transitions_checked": transitions_checked,
         "plays": [{"seed": p["seed"], "report": {k: p["report"][k] for k in (
             "verdict", "within_limits", "fell", "fall_time_s", "first_limit", "tracking_rms_deg", "constraints",
             "safety", "hooves_down_fewer_than_3_fraction", "strip", "events", "battery", "joints", "mass_kg")},

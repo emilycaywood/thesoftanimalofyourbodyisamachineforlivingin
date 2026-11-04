@@ -157,7 +157,11 @@ class InterpretedController(Controller):
             if self._safe(t) or waited >= float(p.max_wait_s):  # type: ignore[attr-defined]
                 if not self._safe(t):
                     self.ep["unsafe_switch"] = True  # type: ignore[index]
-                nxt = self._draw(p.transitions.get(self.state.name, {}) or p.initial or {}, exclude=self.state.name)  # type: ignore[attr-defined]
+                row = p.transitions.get(self.state.name)  # type: ignore[attr-defined]
+                if row is not None and not any(v > 0 for v in row.values()):
+                    nxt = self.state.name  # every way out was dropped as over a limit: stay (logged as a new episode)
+                else:
+                    nxt = self._draw(row or p.initial or {}, exclude=self.state.name)  # type: ignore[attr-defined]
                 self._start(t, nxt, waited)
         assert self.sub is not None
         sub_obs = Observation(t=t - self.t0, q=obs.q, dq=obs.dq, trunk_quat=obs.trunk_quat, trunk_gyro=obs.trunk_gyro,
