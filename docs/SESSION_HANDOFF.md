@@ -3,7 +3,7 @@
 Everything a new Claude Code session (or a new collaborator) needs to pick up
 CALFLAB. Last updated 2026-11-04 on branch `robot-calf-final` (cut from
 `chassis-mass`), during session R (a body for vigorous movement; steps 1-2 of 6
-done, waiting for the researcher; section 4, "Session R", ADR-086, ADR-087); before it
+done, plus wider blocks and hip springs; waiting for the researcher; section 4, "Session R", ADR-086..089); before it
 session Q: the calf's movement read and interpreted as
 the robot's own (section 4, "Added in session Q", ADR-085); before it session
 P: clips judged in physics and made feasible
@@ -1047,13 +1047,17 @@ Nothing installed. `adapt_clip` kept as a diagnostic:**
   `web/e2e/interpret.spec.ts`. `calflab test` passes: ruff, 502 pytest tests (7.6 min), mypy, web typecheck and eslint, 14 Vitest, 13 Playwright tests.
 * Launch entry `calflab-q`: scratch copy `projects/_scratch-q` (not in git).
 
-**Session R (a body for vigorous movement within margin 0.2; ADR-086). In progress: steps 1-2 of 6 done, stopped
-for the researcher as asked.** Belts, joint ranges, genes and component values not touched; nothing installed.
+**Session R (a body for vigorous movement within margin 0.2; ADR-086). In progress: steps 1-2 of 6 done, plus
+wider blocks and hip springs (ADR-089); stopped for the researcher as asked.** Belts, joint ranges and the servo's
+values not touched; nothing installed.
 
 * The request (six steps, a stop after each) commits the body to the ten STS3215 C018 servos and carbon fibre leg
   tubes. **The tube's outer diameter, wall and g/m were placeholders in the message**: `carbon_fibre_leg_tube` is
-  in `config/components/materials.yaml` with nothing filled in (incomplete, unused); the tube genes stay
-  PROVISIONAL 15 x 12 mm.
+  in `config/components/materials.yaml`. **Later the researcher confirmed the tube already in use** ("The leg
+  tube is correct", ADR-088): 15 x 12 mm, 1.55 g/cm3 entered (unverified, not weighed); tube genes no longer
+  PROVISIONAL. The two 3S packs are **in parallel** (confirmed). Joint stops: the researcher did not know the term;
+  the robot is unbuilt, so evolution may only narrow today's ranges (ADR-088). Pulley pairs: anything easily
+  bought is allowed; I found GT2 10 mm pulleys listed from 20T to 120T (ADR-088), none added to the catalog yet.
 * **Step 1 (what the failures rest on)**: `docs/studies/sensitivity_r1.md` (script `sensitivity_r1.py`, scratch
   copy `projects/_scratch-r`, about 2 min of physics). Summary in ADR-086:
   * walk (-2.48) and trot (-1.2) fail on sustained hip ab/ad torque whatever mass, armature, springs or servo
@@ -1070,6 +1074,13 @@ for the researcher as asked.** Belts, joint ranges, genes and component values n
   * **both splays 0** take the walk to -0.13 and the trot to -0.16; with springs as gravity compensation the trot is
     over joint speed only (-0.04); what is left is the gaits' speed (per-candidate tuning in step 4);
   * belt ratio: the catalog has only 2:1 pulley pairs; leg angles and crouch do not help; front angle is solved.
+* **Wider blocks and hip springs (ADR-089)**, the researcher's choice to keep the hooves wide for stability:
+  genes `hip_block_widen` / `chest_block_widen` (mm per side) and `spring_hip_abd` (+ rate, free length, anchors;
+  off by default). Old genomes build as before. `docs/studies/width_r2c.md`: with hooves at today's width on
+  straight legs the walk passes every torque/belt/envelope limit (-2.48 -> -0.13, joint speed only); half splay +
+  half widening + hip springs equally good; hip springs alone do not rescue full splay (-1.56); **the trot as it is
+  gets worse on wide blocks** (-1.8: stifles x2, shoulders x3; the diagonal support line moves off the centre of
+  mass) and needs re-tuning per body.
 * Next: step 3 (the fitness preset and Estimate cost), see R3 in section 7.
 
 **Scaffolded only (interfaces + tests, no behaviour):** PPO training, MJX
@@ -1359,7 +1370,7 @@ Journal, Rhino bridge):**
 |---|---|
 | `CLAUDE.md` | Conventions for every session (loaded automatically) |
 | `PLAN.md` | Architecture, module boundaries, data flow, phases, risks, status |
-| `DECISIONS.md` | ADR log: every assumption (87 so far) |
+| `DECISIONS.md` | ADR log: every assumption (89 so far) |
 | `docs/proposals/anatomical-leg.md` | Proposal for a three-segment leg (set aside 2026-10-04; not built) |
 | `docs/USER_GUIDE.md` | How to use the lab |
 | `docs/CHAT_GUIDE_PROMPT.md` | Prompt that makes a chat assistant a guide to the whole lab |
@@ -1376,13 +1387,14 @@ Journal, Rhino bridge):**
 Prefix each with the opening message from section 1.
 
 **R3. Session R, step 3: a fitness for vigorous movement within limits** (recommended next; written 2026-11-04 after
-step 2, ADR-086, ADR-087.)
+step 2, ADR-086..089.)
 > Continue session R in projects/robot-calf-final (`docs/studies/sensitivity_r1.md`, `load_r2.md`). Steps 1-2
 > are done. Step 3: a fitness preset scored on the safety margins (sustained torque, sustained belt, joint speed,
 > envelope, stall, falls; three seeds, domain randomisation as in `repertoire`) plus how much of each behaviour is
 > kept: gait speed for walk and trot, interpretation's feature distance for the read behaviours (small budget,
 > cached per body). Archive axes: vigour kept x worst margin. Run Estimate cost and let me choose the budget
-> before anything long starts. Make the splays evolvable for it (ADR-087).
+> before anything long starts. Make the splays, the block widths and the hip ab/ad springs evolvable for it, keep a
+> floor on hoof width for stability, and re-tune the trot per body (ADR-087, ADR-089).
 
 **Q2. Interpretation inside the repertoire evolution** (recommended next; written after session Q, ADR-085.)
 > In projects/robot-calf-final, interpretation (run `20261104-042426-interpret-ef3c`) found how this body can say the calf's stand, step and

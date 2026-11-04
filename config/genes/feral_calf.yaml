@@ -45,6 +45,12 @@ genes:
   - {id: rail_type, type: enum, default: cf_rod_8mm, choices: [cf_rod_8mm, al_tube_half_inch], group: Body, provisional: true,
      evolvable: false, label: "Body rails",
      description: "Two 8 mm solid carbon fibre rods, or 1/2 in round aluminium tube with 0.049 in wall (PROVISIONAL). Aluminium density is not entered, so an aluminium rail's mass is unknown (0 g, listed)."}
+  # Wider blocks (ADR-089): the hooves stand wider with the legs straight under their hip ab/ad axes, so the
+  # weight does not twist those servos. The rails keep their spacing; a block grows outward on both sides.
+  - {id: hip_block_widen, default: 0, absent: 0, min: 0, max: 150, step: 1, unit: mm, group: Body, provisional: true, evolvable: false,
+     label: "Hip block: wider per side", description: "Extra width of the hip block on each side, beyond rail spacing + margins. The hind legs (hip ab/ad axes) move out with it."}
+  - {id: chest_block_widen, default: 0, absent: 0, min: 0, max: 150, step: 1, unit: mm, group: Body, provisional: true, evolvable: false,
+     label: "Chest block: wider per side", description: "Extra width of the chest block on each side, beyond rail spacing + margins. The front legs (shoulder axles) move out with it."}
 
   # ------------------------------------------------------------- rear legs
   - {id: femur_length, belt_bound: true, default: 200, min: 120, max: 300, unit: mm, group: Rear legs, evolvable: true,
@@ -160,6 +166,17 @@ genes:
   - {id: spring_hock_upper_normal, default: -10, min: -100, max: 100, step: 1, unit: mm, group: Springs, provisional: true, label: "Hock: tibia anchor out", description: "Across the tibia, positive toward the front (negative = behind)."}
   - {id: spring_hock_lower_along, default: -20, min: -60, max: 200, step: 1, unit: mm, group: Springs, provisional: true, label: "Hock: cannon anchor along", description: "Down the cannon from the hock axis; negative = above the axis, on a lever like the point of the hock."}
   - {id: spring_hock_lower_normal, default: -15, min: -100, max: 100, step: 1, unit: mm, group: Springs, provisional: true, label: "Hock: cannon anchor out", description: "Across the cannon, positive toward the front."}
+
+  # Hip ab/ad springs (ADR-089): like the adductor muscles. A tension spring from the hip block, inboard of the
+  # leg, to the femur below the axis: it pulls the leg in (adduction), against the weight that splays it out.
+  - {id: spring_hip_abd, type: bool, default: false, absent: false, group: Springs, provisional: true, evolvable: false,
+     label: "Hip ab/ad springs", description: "Tension springs from the underside of the hip block to the inside of each femur: they pull the hind legs in against the weight that splays them out."}
+  - {id: spring_hip_abd_k, default: 0.2, absent: 0.2, min: 0.0, max: 3.0, step: 0.01, unit: N/mm, group: Springs, provisional: true, label: "Hip ab/ad: rate", description: "Spring rate."}
+  - {id: spring_hip_abd_free_length, default: 30, absent: 30, min: 10, max: 300, step: 0.5, unit: mm, group: Springs, provisional: true, label: "Hip ab/ad: free length", description: "Length with no force. Shorter = more pretension at the same anchors."}
+  - {id: spring_hip_abd_upper_forward, default: 32, absent: 32, min: -100, max: 100, step: 1, unit: mm, group: Springs, provisional: true, label: "Hip ab/ad: block anchor forward", description: "Forward of the hip axle, on the hip block."}
+  - {id: spring_hip_abd_upper_inward, default: 40, absent: 40, min: 0, max: 250, step: 1, unit: mm, group: Springs, provisional: true, label: "Hip ab/ad: block anchor inward", description: "Inboard of the leg's hip ab/ad axis, toward the centre line."}
+  - {id: spring_hip_abd_upper_down, default: 38, absent: 38, min: -40, max: 100, step: 1, unit: mm, group: Springs, provisional: true, label: "Hip ab/ad: block anchor down", description: "Below the hip axle."}
+  - {id: spring_hip_abd_lower_along, default: 50, absent: 50, min: 10, max: 250, step: 1, unit: mm, group: Springs, provisional: true, label: "Hip ab/ad: femur anchor along", description: "Down the femur from the hip ab/ad axis."}
 
   - {id: spring_shoulder, type: bool, default: true, group: Springs, provisional: true, evolvable: false,
      label: "Shoulder springs", description: "Tension springs behind each shoulder: that side helps rising from kneeling (in simulation the shoulder servo swings the leg back while the chest rises; a spring in front works against it)."}

@@ -293,3 +293,38 @@ def test_legs_straight_by_default():
     for gid in ("hind_leg_toe", "hind_leg_splay", "front_leg_toe", "front_leg_splay"):
         g = gdef.gene(gid)
         assert g.default == 0 and not g.evolvable
+
+
+# ---------------------------------------------------------------------- wider blocks, hip springs (ADR-089)
+def test_wider_blocks_move_the_legs_out_and_keep_the_hooves_grounded(default):
+    from calflab.mech.statics import default_contacts
+
+    base = default.spec.metadata["feral"]
+    assert base["hip_block_width_mm"] == base["chest_block_width_mm"] == pytest.approx(140)  # rails 100 + 2 x 20
+    wide = design({"hip_block_widen": 60, "chest_block_widen": 45})
+    meta = wide.spec.metadata["feral"]
+    assert meta["hip_block_width_mm"] == pytest.approx(260) and meta["chest_block_width_mm"] == pytest.approx(230)
+    assert meta["leg_y_mm"] == pytest.approx(base["leg_y_mm"] + 60)
+    assert meta["front_leg_y_mm"] == pytest.approx(base["front_leg_y_mm"] + 45)
+    poses = wide.spec.world_poses()
+    assert poses["leg.hl.femur"][0][1] == pytest.approx(-poses["leg.hr.femur"][0][1]) == pytest.approx(meta["leg_y_mm"])
+    for _body, p in default_contacts(wide.spec, poses):
+        assert p[2] == pytest.approx(0.0, abs=1e-6)
+    assert meta["standing_height_mm"] == base["standing_height_mm"] and meta["belts_ok"]
+    # the blocks' masses are not entered: widening changes no mass (an entered one would be kept and flagged)
+    assert wide.spec.total_mass_g() == pytest.approx(default.spec.total_mass_g())
+
+
+def test_hip_springs_are_off_by_default_and_pull_a_splayed_leg_in(default):
+    assert not any(s.joint.endswith("hip_abd") for s in default.spec.springs)
+    from calflab.mech.loads import static_spring_report
+
+    splayed = design({"spring_hip_abd": True, "hind_leg_splay": 12.0})
+    rows = {r["spring"]: r for r in static_spring_report(splayed.spec)}
+    for k in ("hl", "hr"):
+        r = rows[f"spring.{k}.hip_abd"]
+        assert r["force_n"] > 0 and r["side"] == "resists", r  # against the weight's abduction
+        assert r["servo_with_nm"] < r["servo_without_nm"]
+    assert splayed.spec.metadata["feral"]["springs"]["hip_abd"]["enabled"]
+    gdef = genome_definition("feral_calf")
+    assert gdef.gene("spring_hip_abd_k").evolvable and gdef.gene("spring_hip_abd").absent is False

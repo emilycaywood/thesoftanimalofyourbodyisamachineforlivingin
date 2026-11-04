@@ -31,7 +31,11 @@ is fixed to the segment below. No belt crosses a joint it does not drive: the
 stifle servo is on the femur (which turns with the hip ab/ad joint), the hock
 servo on the tibia, the carpus servo on the upper leg.
 
-Springs (ADR-065): tension only, between the segment above and below a joint.
+Springs (ADR-065): tension only, between the segment above and below a joint;
+the hip ab/ad springs (ADR-089) run from the hip block to the femur.
+
+Width (ADR-089): each block is rail spacing + margins, widened per side by
+``hip_block_widen`` / ``chest_block_widen``; the legs sit just outside it.
 
 Masses (ADR-068): servos from the component library, tubes and rods from OD,
 ID, length and density, batteries and the head + neck lump as supplied; every
@@ -250,10 +254,16 @@ class FeralCalfGenerator(PartGenerator):
         rs = val("trunk", "rail_spacing")
         hx, sx = -A / 2.0, A / 2.0
         overhang = max(0.0, (_num(genes, "body_length") - A) / 2.0)
-        block_w = rs + 2.0 * float(lay.get("block_side_margin_mm", 20))
+        # each block is rail spacing + margins, widened per side by its gene (ADR-089); the legs sit outside it
+        side_margin = float(lay.get("block_side_margin_mm", 20))
+        widen = {"hip": float(genes.get("hip_block_widen", 0.0) or 0.0),  # type: ignore[arg-type]
+                 "chest": float(genes.get("chest_block_widen", 0.0) or 0.0)}  # type: ignore[arg-type]
+        block_wh = rs + 2.0 * (side_margin + widen["hip"])
+        block_wc = rs + 2.0 * (side_margin + widen["chest"])
         block_h = float(lay.get("block_height_mm", 80))
         max_od = max(_num(genes, g) for g in ("femur_od", "upper_leg_od"))
-        leg_y = block_w / 2.0 + max_od / 2.0 + 2.0
+        leg_yh = block_wh / 2.0 + max_od / 2.0 + 2.0  # hind legs: hip ab/ad axes
+        leg_yc = block_wc / 2.0 + max_od / 2.0 + 2.0  # front legs: shoulder axles
         pad = _num(genes, "hoof_pad")
         pad_r = float(lay.get("hoof_pad_radius_mm", 15))
         fit = float(lay.get("joint_fitting_mm", 25)) + float(lay.get("fitting_clearance_mm", 3))
@@ -384,10 +394,14 @@ class FeralCalfGenerator(PartGenerator):
 
         # trunk
         trunk = Body(id="trunk", name="Body (hip block, rails, chest block)", pos=(0.0, 0.0, height))
-        for bid, x, key, label in (("trunk.hip_block", hx, "hip_block_g", "Hip block"),
-                                   ("trunk.chest_block", sx, "chest_block_g", "Chest block")):
+        for bid, x, key, label, bw, wid in (("trunk.hip_block", hx, "hip_block_g", "Hip block", block_wh, widen["hip"]),
+                                            ("trunk.chest_block", sx, "chest_block_g", "Chest block", block_wc,
+                                             widen["chest"])):
             m = placeholder(key, label, "trunk")
-            trunk.geoms.append(Geom(id=bid, shape="box", size=(2 * overhang, block_w, block_h), pos=(x, 0.0, 0.0),
+            if m is not None and wid > 0:
+                warnings.append(f"{label}: the entered mass ({m:g} g) is kept as entered; widening the block by "
+                                f"{wid:g} mm per side does not change it. Weigh the wider block and enter it.")
+            trunk.geoms.append(Geom(id=bid, shape="box", size=(2 * overhang, bw, block_h), pos=(x, 0.0, 0.0),
                                     layer="Structure", role="both", mass_g=m or 0.0,
                                     mass_source="specified" if m is not None else "parametric",
                                     mass_note="" if m is not None else f"{label} mass not entered (counted as 0 g)",
@@ -500,7 +514,7 @@ class FeralCalfGenerator(PartGenerator):
             Lf_k, Lt_k, Lc_k = (val(f"leg.{k}.{p}", "length") for p in ("femur", "tibia", "cannon"))
             q_f = ry(-af)
             m_h = mount("hind", sy)
-            femur = Body(id=f"leg.{k}.femur", name=f"{name} femur", parent="trunk", pos=(hx, sy * leg_y, 0.0),
+            femur = Body(id=f"leg.{k}.femur", name=f"{name} femur", parent="trunk", pos=(hx, sy * leg_yh, 0.0),
                          quat=quat_mul(m_h, q_f))
             femur.geoms.append(tube(f"leg.{k}.femur.tube", "Femur", Lf_k, "femur_od", "femur_id"))
             plugs(femur, Lf_k)
@@ -509,10 +523,10 @@ class FeralCalfGenerator(PartGenerator):
                                 axis=quat_rotate(conj(q_f), (float(sy), 0.0, 0.0)), range_deg=lim("hip_abd", (-25, 25)),
                                 group="leg", damping=jd, friction=jf))
             actuate(k, "hip_abd", f"joint.{k}.hip_abd")
-            trunk.geoms.append(servo_geom(f"act.{k}.hip_abd.motor", (hx, sy * (block_w / 2.0 - s_wid / 2.0 - 2.0), 0.0),
+            trunk.geoms.append(servo_geom(f"act.{k}.hip_abd.motor", (hx, sy * (block_wh / 2.0 - s_wid / 2.0 - 2.0), 0.0),
                                           (s_dep, s_wid, s_len), f"{servo.name} (hip ab/ad, direct)").model_copy(
                 update={"quat": m_h}))  # the servo seat turns with the leg's mount
-            trunk.geoms += ph_geom(f"act.{k}.hip_abd.horn", "servo_horn_g", "Servo horn", (hx, sy * block_w / 2.0, 0.0), "trunk",
+            trunk.geoms += ph_geom(f"act.{k}.hip_abd.horn", "servo_horn_g", "Servo horn", (hx, sy * block_wh / 2.0, 0.0), "trunk",
                                    layer="Actuators")
             tibia = Body(id=f"leg.{k}.tibia", name=f"{name} tibia", parent=femur.id, pos=(0.0, 0.0, -Lf_k), quat=ry(af + at))
             tibia.geoms.append(tube(f"leg.{k}.tibia.tube", "Tibia", Lt_k, "tibia_od", "tibia_id"))
@@ -540,7 +554,7 @@ class FeralCalfGenerator(PartGenerator):
             name = LEG_NAMES[k]
             Lu_k, Lfc_k = val(f"leg.{k}.upper", "length"), val(f"leg.{k}.cannon", "length")
             m_f = mount("front", sy)
-            upper = Body(id=f"leg.{k}.upper", name=f"{name} upper leg", parent="trunk", pos=(sx, sy * leg_y, 0.0),
+            upper = Body(id=f"leg.{k}.upper", name=f"{name} upper leg", parent="trunk", pos=(sx, sy * leg_yc, 0.0),
                          quat=quat_mul(m_f, ry(-theta)))
             upper.geoms.append(tube(f"leg.{k}.upper.tube", "Upper leg", Lu_k, "upper_leg_od", "upper_leg_id"))
             plugs(upper, Lu_k)
@@ -548,10 +562,10 @@ class FeralCalfGenerator(PartGenerator):
             joints.append(Joint(id=f"joint.{k}.shoulder", name=f"{name} shoulder", body=upper.id, axis=(0.0, 1.0, 0.0),
                                 range_deg=lim("shoulder", (-60, 60)), group="leg", damping=jd, friction=jf))
             actuate(k, "shoulder", f"joint.{k}.shoulder")
-            trunk.geoms.append(servo_geom(f"act.{k}.shoulder.motor", (sx, sy * (block_w / 2.0 - s_dep / 2.0 - 2.0), 0.0),
+            trunk.geoms.append(servo_geom(f"act.{k}.shoulder.motor", (sx, sy * (block_wc / 2.0 - s_dep / 2.0 - 2.0), 0.0),
                                           (s_wid, s_dep, s_len), f"{servo.name} (shoulder, direct)").model_copy(
                 update={"quat": m_f}))
-            trunk.geoms += ph_geom(f"act.{k}.shoulder.horn", "servo_horn_g", "Servo horn", (sx, sy * block_w / 2.0, 0.0),
+            trunk.geoms += ph_geom(f"act.{k}.shoulder.horn", "servo_horn_g", "Servo horn", (sx, sy * block_wc / 2.0, 0.0),
                                    "trunk", layer="Actuators")
             cannon = Body(id=f"leg.{k}.cannon", name=f"{name} cannon", parent=upper.id, pos=(0.0, 0.0, -Lu_k),
                           quat=ry(2.0 * theta))
@@ -587,7 +601,7 @@ class FeralCalfGenerator(PartGenerator):
                 if up_seg is None:  # the shoulder: anchored on the chest block, relative to the shoulder axle
                     # in the plane of the leg, which its mount may have turned (ADR-072)
                     off = quat_rotate(mount("front", SIDE[k]), (g["upper_normal"], 0.0, g["upper_along"]))
-                    upper_body, upper_pos = "trunk", (sx + off[0], SIDE[k] * leg_y + off[1], off[2])
+                    upper_body, upper_pos = "trunk", (sx + off[0], SIDE[k] * leg_yc + off[1], off[2])
                     seg_len = 0.0
                 else:
                     upper_body = f"leg.{k}.{up_seg}"
@@ -603,6 +617,27 @@ class FeralCalfGenerator(PartGenerator):
                     lower.geoms.append(Geom(id=f"spring.{k}.{joint_name}.mass", shape="sphere", size=(4.0, 0.0, 0.0),
                                             pos=(g["lower_normal"], 0.0, -g["lower_along"]), role="visual",
                                             mass_g=spring_mass, mass_source="specified", label="Spring (entered)"))
+
+        # hip ab/ad springs (ADR-089): hip block (inboard, below the axle) -> femur below the axis; they adduct
+        hg = {f: float(genes.get(f"spring_hip_abd_{f}", d) or 0.0)  # type: ignore[arg-type]
+              for f, d in (("k", 0.2), ("free_length", 30.0), ("upper_forward", 32.0), ("upper_inward", 40.0),
+                           ("upper_down", 38.0), ("lower_along", 50.0))}
+        hip_on = bool(genes.get("spring_hip_abd", False))
+        spring_meta["hip_abd"] = {"enabled": hip_on, **hg}
+        if hip_on:
+            for k in REAR:
+                sy = SIDE[k]
+                springs.append(Spring(
+                    id=f"spring.{k}.hip_abd", joint=f"joint.{k}.hip_abd", upper_body="trunk",
+                    upper_pos=(hx + hg["upper_forward"], sy * (leg_yh - hg["upper_inward"]), -hg["upper_down"]),
+                    lower_body=f"leg.{k}.femur", lower_pos=(0.0, 0.0, -hg["lower_along"]),
+                    k_n_per_mm=hg["k"], free_length_mm=hg["free_length"], label=f"{LEG_NAMES[k]} hip ab/ad spring"))
+                spring_mass = placeholder("spring_g", "Spring", f"joint.{k}.hip_abd")
+                if spring_mass is not None:
+                    femur_b = next(b for b in bodies if b.id == f"leg.{k}.femur")
+                    femur_b.geoms.append(Geom(id=f"spring.{k}.hip_abd.mass", shape="sphere", size=(4.0, 0.0, 0.0),
+                                              pos=(0.0, 0.0, -hg["lower_along"]), role="visual",
+                                              mass_g=spring_mass, mass_source="specified", label="Spring (entered)"))
 
         # ------------------------------------------------------------ record
         provisional = provisional_values(genes, gp, cfg)
@@ -625,7 +660,10 @@ class FeralCalfGenerator(PartGenerator):
                     "standing_height_mm": round(height, 2),
                     "front_angle_deg": round(theta, 3),
                     "front_angle_gene_deg": theta_gene,
-                    "leg_y_mm": round(leg_y, 2),
+                    "leg_y_mm": round(leg_yh, 2),
+                    "front_leg_y_mm": round(leg_yc, 2),
+                    "hip_block_width_mm": round(block_wh, 2),
+                    "chest_block_width_mm": round(block_wc, 2),
                     "axle_spacing_mm": A,
                     "belt_catalog": {"origin": catalog.origin, "digest": catalog.digest(), "note": cat_note},
                     "belt_drives": {d: {**r.model_dump(mode="json"), "default_chosen": d in chosen_by_default,

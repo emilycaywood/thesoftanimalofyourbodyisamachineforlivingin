@@ -3283,3 +3283,45 @@ as long as it is easily available on the market; the legs should splay for stabi
 * **Pulleys.** GT2 2 mm pulleys are sold in many tooth counts, so pairs other than 2:1 are allowed in the catalog
   once each tooth count is found in stock for the belt width in use, with the listing as source. Masses stay
   null until weighed.
+
+## ADR-089 — Wide hooves from wider blocks; hip ab/ad springs (**VERIFY**)
+
+*Context.* The researcher wants the legs splayed for stability and chose "wide hips plus springs" (2026-11-04).
+Step 2 found that splay puts the hooves outside the hip ab/ad axes, so the weight twists those servos, and no
+spring is at the hip.
+
+*Decisions.*
+* **Two genes widen the blocks**: `hip_block_widen` and `chest_block_widen` (mm per side, 0-150, default and
+  `absent` 0, PROVISIONAL, not evolvable yet). Each block is rail spacing + 2 x margin + 2 x widen, and its legs
+  sit just outside it. The rails keep their spacing, and the batteries and the electronics stay where they were.
+  Old genomes build exactly as before. The blocks' masses are not entered. If one is, widening keeps the entered
+  value and the build warns that it is for the block as weighed. Assumption: a wider block is the same block
+  made wider (its height, overhang and servo seats as before), and nothing new is needed to hold a leg further
+  out.
+* **Hip ab/ad springs** (`spring_hip_abd`, off by default and `absent` false): one tension spring per hind leg,
+  from the hip block (forward of, inboard of and below the hip ab/ad axis) to the femur's axis line below the
+  joint, like the adductor muscles. The weight pushes a splayed leg out (abduction), and the spring pulls it in.
+  Rate, free length and the anchors (block: forward, inward, down; femur: along) are evolvable PROVISIONAL genes
+  like the other springs. The defaults (0.2 N/mm, 30 mm, 32 / 40 / 38 mm, 50 mm) are a starting design, not a
+  part. They make a horizontal spring about 40 mm long at standing. A spring sits on its joint like the others
+  (`Spring.joint`), so the load reports and spring relief count it. The springs-off comparison of the load runs
+  turns it off too.
+* **Hoof width is the stability measure**, not the leg angle: the distance of the hooves from the centre line,
+  standing. Step 3 will score it so evolution cannot buy margin by narrowing the base.
+
+*Results* (`docs/studies/width_r2c.md`; physics, margin 0.2):
+* Hooves at today's width with straight legs (blocks +120 / +105 mm per side) take the walk from -2.48 to -0.13.
+  Every torque, belt and envelope limit passes, and only joint speed is left (a gait parameter).
+* Half splay with half widening and hip springs is as good for the walk and both interpreted motions (walk -0.13,
+  interpreted trot +0.73, step +0.28).
+* Hip springs alone do not rescue full splay (walk -1.56).
+* The trot as it is gets worse on wide blocks (-1.2 to -1.8). Its load moves into the stifles (x2) and
+  shoulders (x3): on a diagonal pair, the wider the hooves, the farther the support line passes from the centre
+  of mass, which sits ahead of or behind the middle of the body. The trot's parameters were set on the narrow
+  body, and step 4 re-tunes them per body.
+* Springs that just hold the weight at standing matter for the read motions (interpreted step on wide blocks
+  -2.04 -> +0.28).
+
+*Consequences for steps 3-4:* evolve `hip_block_widen`, `chest_block_widen`, both splays, `spring_hip_abd` on
+with its rate and anchors, and the other springs, with the gaits tuned per candidate. Keep a floor on hoof width
+(stability).

@@ -765,6 +765,20 @@ not held by a servo. The whole leg turns with its mount, belts included, so
 the belts' C does not change. The hooves stay on the ground and the back
 stays level. 0 = straight.
 
+**Wide hooves without splay, and hip springs (ADR-089).** Splayed legs
+stand wide, but the hooves are then outside the hip ab/ad axes and the
+weight twists those servos (session R step 2). Two genes widen the base
+instead. Form > Body > *Hip block: wider per side* and *Chest block: wider
+per side* (mm, default 0) widen each block on both sides beyond the rail
+spacing plus margins, and the legs move out with them. The rails keep their
+spacing. The blocks' masses are not entered yet; once one is, widening
+keeps the entered mass and warns you to weigh the wider block. Form >
+Springs > *Hip ab/ad springs* (off by default) adds a tension spring per
+hind leg, like the adductor muscles. It runs from under the hip block,
+inboard of the leg, to the femur below the axis, and pulls the leg in
+against the weight. Its rate, free length and three anchor distances are
+sliders like the other springs, and evolution may vary them.
+
 **Evolving it (ADR-070).** The body evolves in the Evolve workspace like
 the reference calf. What it varies and what it never touches:
 * Varied: segment lengths and angles, the axle spacing and the springs.
@@ -1596,13 +1610,13 @@ Left blank it counts as 0 W and is reported as **default assumed**. Without
 0.33 W from "~100 mA"; unverified, no size or cost entered).
 
 `carbon_fibre_leg_tube` (in `materials.yaml`, added 2026-11-04, ADR-086) is
-the carbon fibre leg tube you committed the final calf to. Its outer
-diameter, wall and mass per metre were not given, so it is **incomplete**
-(no density) and nothing uses it yet; the tube genes in Form > Tubes (15 x
-12 mm, 1.55 g/cm3) stay PROVISIONAL. Enter the density from the tube's
-datasheet, or from a weighed length: density (g/cm3) = mass per metre (g/m)
-/ (pi / 4 x (OD² - ID²) in mm²) x 1000. Then set the tube genes to its
-outer and inner diameter.
+the carbon fibre leg tube you committed the final calf to. You confirmed
+it the same day (ADR-088): 15 mm outer, 12 mm inner (1.5 mm wall),
+1.55 g/cm3, the values in Form > Tubes, which no longer carry a
+PROVISIONAL badge. The density is not a weighed value, so the entry stays
+unverified. If you weigh a length: density (g/cm3) = mass per metre (g/m)
+/ (pi / 4 x (OD² - ID²) in mm²) x 1000. The robot carries two
+`lipo_3s_5000` packs in parallel (11.1 V nominal).
 
 **How much a result rests on an unverified value.** `docs/studies/` holds
 one-at-a-time sensitivity studies: `sensitivity_r1.md` (2026-11-04) plays

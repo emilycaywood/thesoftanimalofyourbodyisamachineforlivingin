@@ -51,7 +51,7 @@ def refuse_invalid_belts(design: Any) -> None:
 
 def _springs_off(genome: Genome) -> Genome:
     values = dict(genome.values)
-    for k in ("spring_stifle", "spring_hock", "spring_shoulder"):
+    for k in ("spring_stifle", "spring_hock", "spring_shoulder", "spring_hip_abd"):
         if k in values:
             values[k] = False
     return Genome(definition=genome.definition, version=genome.version, values=values)
