@@ -93,6 +93,8 @@ class ReadingSettings(BaseModel):
     turn_min_deg: float = P(30.0, unit="deg", ge=5.0, le=180.0, desc="A bout turning this much may be a turn...")
     turn_bl_per_90: float = P(1.0, ge=0.0, le=10.0, desc="... when it travels less than this many body lengths "
                                                          "per 90 deg turned.")
+    turning_deg_s: float = P(20.0, unit="deg/s", ge=1.0, le=360.0,
+                             desc="Within a bout, turning faster than this (over 1 s) starts a new part of it.")
     fast_two_up: float = P(0.4, ge=0.0, le=1.0, desc="Two or more hooves up in more than this share: fast (other).")
     fast_bl_s: float = P(1.5, unit="1/s", ge=0.0, le=10.0, desc="Trunk faster than this (body lengths/s): fast.")
     max_gap_frames: int = P(10, ge=0, le=100, desc="Unreliable runs longer than this are gaps (not read).")
@@ -245,9 +247,22 @@ def lifted(sig: MotionSignals, s: ReadingSettings) -> tuple[dict[str, np.ndarray
     return lifted_from_heights(sig, s), "hoof height above its own low"
 
 
-def lifted_from_contact(foot_force: np.ndarray, legs: list[str]) -> dict[str, np.ndarray]:
-    """Per leg, frames with the hoof carrying 1 N or less (a rollout's contact forces, [F, legs])."""
-    return {leg: foot_force[:, k] <= 1.0 for k, leg in enumerate(legs)}
+def lifted_from_contact(foot_force: np.ndarray, legs: list[str], fps: float = 50.0, min_s: float = 0.1
+                        ) -> dict[str, np.ndarray]:
+    """Per leg, frames with the hoof carrying 1 N or less (a rollout's contact forces, [F, legs]). Touches and
+    lifts shorter than ``min_s`` (a hoof chattering on the floor) are ignored, as lifts are in footage."""
+    n = max(1, int(round(min_s * fps)))
+    out = {}
+    for k, leg in enumerate(legs):
+        up = foot_force[:, k] <= 1.0
+        for a, b in _runs(~up):  # short touches inside a swing
+            if b - a < n and a > 0 and b < len(up):
+                up[a:b] = True
+        for a, b in _runs(up):  # short lifts
+            if b - a < n:
+                up[a:b] = False
+        out[leg] = up
+    return out
 
 
 # ---------------------------------------------------------------------- per-frame quantities
@@ -413,7 +428,33 @@ def label(sig: MotionSignals, up: dict[str, np.ndarray], s: ReadingSettings, cam
     fr = _frame(sig)
     blen = max(sig.body_length_mm, 1e-9)
     segs: list[tuple[int, int, str, str, dict[str, Any], float]] = []
+    # a bout may change character without a pause (a turn running into a gallop): split it where the share of two
+    # hooves up (over 1 s) crosses the fast threshold, or the turn rate (over 1 s) crosses ``turning_deg_s``
+    n_up = np.sum([up[k] for k in up], axis=0) if up else np.zeros(F)
+    w1 = max(1, int(round(fps)))
+    k1 = np.ones(w1) / w1
+    two = np.convolve((n_up >= 2).astype(float), k1, mode="same") > s.fast_two_up
+    turning = np.abs(np.convolve(fr["turn"], k1, mode="same")) > s.turning_deg_s
+    regime = two.astype(int) * 2 + turning.astype(int)
+    min_part = max(1, int(round(0.6 * fps)))
+    parts: list[tuple[int, int]] = []
     for a, b in joined:
+        r = regime[a:b].copy()
+        changed = True
+        while changed:  # parts shorter than 0.6 s join the longer neighbour
+            changed = False
+            runs = [(c, d) for v in np.unique(r) for c, d in _runs(r == v)]
+            runs.sort()
+            for i, (c, d) in enumerate(runs):
+                if d - c < min_part and len(runs) > 1:
+                    nb = [runs[m] for m in (i - 1, i + 1) if 0 <= m < len(runs)]
+                    tgt = max(nb, key=lambda q: q[1] - q[0])
+                    r[c:d] = r[tgt[0]]
+                    changed = True
+                    break
+        cuts = [a] + [a + i for i in range(1, b - a) if r[i] != r[i - 1]] + [b]
+        parts.extend(zip(cuts[:-1], cuts[1:], strict=True))
+    for a, b in parts:
         f = stretch_features(sig, up, a, b, camera_moves)
         sp = f.get("speed_mm_s")
         sp_bl = None if sp is None else sp / blen
@@ -495,7 +536,9 @@ def label(sig: MotionSignals, up: dict[str, np.ndarray], s: ReadingSettings, cam
                     why = f"all hooves down; joints {q:.1f} deg/s or trunk tilt {tl:.1f} deg/s moving"
                     margin = max(q / max(s.still_qom_deg_s, 1e-9), tl / max(s.still_tilt_deg_s, 1e-9))
             else:
-                info = bout_info.get((i, j))
+                info = bout_info.get((i, j)) or max(
+                    (v for (a2, b2), v in bout_info.items() if v[0] == beh and min(b2, j) > max(a2, i)),
+                    key=lambda v: v[2].get("duration_s", 0.0), default=None)
                 why = info[1] if info else f"stepping bout ({f['lifts']} lifts)"
                 margin = info[3] if info else 1.0
             conf = rel * float(np.clip(0.5 + 0.5 * (margin - 1.0), 0.3, 1.0))

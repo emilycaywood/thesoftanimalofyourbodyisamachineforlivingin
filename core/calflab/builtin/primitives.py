@@ -287,6 +287,9 @@ class TrotPrimitive(MotionPrimitive):
     def period_s(self) -> float:
         return float(self.params.cycle_s)  # type: ignore[attr-defined]
 
+    def warmup_s(self) -> float:
+        return 1.5  # feral_motion's ramp scales the trot in from standing
+
     def safe_phases(self) -> list[tuple[float, float]]:
         sw = 0.45  # feral_motion's trot_swing: double support after each pair's swing
         return [(sw, 0.5), (0.5 + sw, 1.0)]

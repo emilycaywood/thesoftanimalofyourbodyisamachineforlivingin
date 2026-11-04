@@ -514,6 +514,11 @@ class MotionPrimitive(Plugin):
         """Time (s) from the start of the controller to the start of its first period (a gait's ramp-in)."""
         return 0.0
 
+    def warmup_s(self) -> float:
+        """Time (s) from the start until it moves at full size (a ramp-in): played but not judged as its character
+        or its sustained load. Default: the phase offset."""
+        return self.phase_offset_s()
+
 
 BASES: dict[str, type[Plugin]] = {
     "gene_definition": GeneDefinition,

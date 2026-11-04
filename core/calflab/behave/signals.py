@@ -269,3 +269,69 @@ def from_rollout(rollout: Any, spec: RobotSpec, t0: float = 0.0, t1: float | Non
     return MotionSignals(fps=1.0 / dt, joints=joints, heading_deg=heading, pitch_deg=eul[:, 1], roll_deg=eul[:, 2],
                          root_mm=root, hoof_mm=hooves, reliable=np.ones(len(idx), dtype=bool),
                          body_length_mm=robot_length_mm(spec), source="rollout")
+
+
+# ---------------------------------------------------------------------- synthetic signals (a known sequence)
+SYNTHETIC_ORDER = {"hl": 0.0, "fl": 0.25, "hr": 0.5, "fr": 0.75}  # lateral sequence
+
+
+def synthetic_signals(spec: RobotSpec, sequence: list[tuple[str, float]], fps: float = 30.0, seed: int = 0
+                      ) -> tuple[MotionSignals, list[tuple[str, float, float]]]:
+    """Signals of a known behaviour sequence, posed on the robot's own skeleton (no video, no tracker): stand,
+    weight_shift (trunk rolled and joints swayed, hooves down), step (one hoof lifted once), walk (lateral sequence,
+    1.2 s cycle, 300 mm/s), turn (the same steps, 40 deg/s, 30 mm/s), other (diagonal pairs up 60 % of a 0.5 s
+    cycle, 1500 mm/s). Returns the signals and the truth [(behaviour, t0, t1)]. For tests and for trying the
+    reading without footage (ADR-085)."""
+    rng = np.random.default_rng(seed)
+    joints_of = [a.joint for a in spec.actuators]
+    n = int(round(sum(d for _b, d in sequence) * fps))
+    J = {j: np.zeros(n) for j in joints_of}
+    hoof = {leg: np.zeros(n) for leg in LEGS}
+    heading, roll, pitch = np.zeros(n), np.zeros(n), np.zeros(n)
+    root = np.zeros((n, 3))
+    truth = []
+    f0 = 0
+    x = y = h = 0.0
+    for beh, dur in sequence:
+        m = int(round(dur * fps))
+        truth.append((beh, f0 / fps, (f0 + m) / fps))
+        for k in range(m):
+            f = f0 + k
+            t = k / fps
+            speed, rate = 0.0, 0.0
+            if beh == "weight_shift":
+                roll[f] = 4.0 * math.sin(2 * math.pi * t / 2.0)
+                for j in joints_of:
+                    if j.endswith(("stifle", "hip_abd")):
+                        J[j][f] = 6.0 * math.sin(2 * math.pi * t / 2.0) * (1 if ".hl." in j or ".fl." in j else -1)
+            elif beh == "step":
+                c = t / dur
+                if 0.35 < c < 0.65:
+                    hoof["hr"][f] = 60.0 * math.sin(math.pi * (c - 0.35) / 0.3)
+                    for j in joints_of:
+                        if j.startswith("joint.hr.") and not j.endswith("abd"):
+                            J[j][f] = 15.0 * math.sin(math.pi * (c - 0.35) / 0.3)
+            elif beh in ("walk", "turn", "other"):
+                T, sw, offs = (1.2, 0.25, SYNTHETIC_ORDER) if beh != "other" else (
+                    0.5, 0.6, {"hl": 0.0, "fr": 0.0, "hr": 0.5, "fl": 0.5})
+                speed = {"walk": 300.0, "turn": 30.0, "other": 1500.0}[beh]
+                rate = 40.0 if beh == "turn" else 0.0
+                for leg, off in offs.items():
+                    ph = ((t / T) - off) % 1.0
+                    up = ph < sw
+                    hoof[leg][f] = 60.0 * math.sin(math.pi * ph / sw) if up else 0.0
+                    for j in joints_of:
+                        if j.startswith(f"joint.{leg}.") and not j.endswith("abd"):
+                            J[j][f] = (20.0 * math.sin(math.pi * ph / sw) if up else 0.0) + 8.0 * math.cos(2 * math.pi * ph)
+                pitch[f] = 1.5 * math.sin(4 * math.pi * t / T)
+            h += rate / fps
+            x += speed / fps * math.cos(math.radians(h))
+            y += speed / fps * math.sin(math.radians(h))
+            heading[f], root[f] = h, (x, y, spec.root.pos[2])
+            for j in joints_of:
+                J[j][f] += 0.1 * rng.standard_normal()
+        f0 += m
+    sig = MotionSignals(fps=fps, joints=J, heading_deg=heading, pitch_deg=pitch, roll_deg=roll, root_mm=root,
+                        hoof_mm=hoof, reliable=np.ones(n, dtype=bool), body_length_mm=robot_length_mm(spec),
+                        source="synthetic", video_frame=np.arange(n))
+    return sig, truth

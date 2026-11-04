@@ -232,6 +232,39 @@ def read_footage(lab: Any, settings: dict[str, Any] | None = None, exclude: dict
     return out
 
 
+def read_synthetic(lab: Any, sequence: list[tuple[str, float]], settings: dict[str, Any] | None = None,
+                   seed: int = 0) -> rd.Reading:
+    """A reading of a known behaviour sequence posed on this body's own skeleton (no footage): for trying the
+    interpretation without video, and for tests. Stored like any reading, its provenance says synthetic."""
+    from calflab.behave.signals import synthetic_signals
+
+    s = rd.ReadingSettings.model_validate(settings or {})
+    spec = lab.design().spec
+    bad = [b for b, _d in sequence if b not in rd.BEHAVIOURS]
+    if bad:
+        raise ReadingError(f"Unknown behaviours {bad}; use {', '.join(rd.BEHAVIOURS)}")
+    sig, truth = synthetic_signals(spec, [(str(b), float(d)) for b, d in sequence], seed=seed)
+    up, how = rd.lifted(sig, s)
+    sts = rd.label(sig, up, s, video="synthetic")
+    vr = rd.VideoReading(file="synthetic", usable=True, frames=sig.frames, fps=sig.fps, seconds=sig.frames / sig.fps,
+                         seconds_read=round(sum(st.t1 - st.t0 for st in sts), 3), stretches=len(sts),
+                         lift={"contact": how}, reasons=["synthetic: a known sequence on the robot's skeleton"])
+    model = rd.fit_model(sts, s)
+    beh = rd.behaviour_summary(sts)
+    rid = rd.new_id() + "-synthetic"
+    out = rd.Reading(id=rid, created=rid, settings=s,
+                     provenance={"project": Path(lab.project.path).name, "synthetic": [list(x) for x in sequence],
+                                 "truth": [list(x) for x in truth], "seed": seed},
+                     videos=[vr], stretches=sts, behaviours=beh, model=model,
+                     support=rd.support_statement([vr], sts, model, ["Synthetic: nothing here was seen in footage."]),
+                     gaps=expressive_gaps(spec, beh, True))
+    d = readings_dir(lab)
+    d.mkdir(parents=True, exist_ok=True)
+    write_json(d / f"{rid}.json", out.model_dump(mode="json"))
+    lab.bus.emit("readings.changed", reading=rid)
+    return out
+
+
 def list_readings(lab: Any) -> list[dict[str, Any]]:
     d = readings_dir(lab)
     out = []

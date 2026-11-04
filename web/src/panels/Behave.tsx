@@ -12,6 +12,7 @@ import { usePlayback } from "@/store/playback";
 import { RoleForm } from "./Design";
 import { CompositionStudy } from "./Composition";
 import { CandidateReview, FootageInbox, type InboxData } from "./Footage";
+import { InterpretationSection } from "./Interpretation";
 import { PhysicsActions } from "./Physics";
 
 interface JointRow {
@@ -66,6 +67,7 @@ export function BehavePanel() {
   const [filter, setFilter] = useState<Record<string, unknown>>({});
   const [tagging, setTagging] = useState<string | null>(null);
   const [tagForm, setTagForm] = useState<Record<string, unknown>>({});
+  const [seek, setSeek] = useState<{ frame: number; n: number } | null>(null);
   const plugins = useLab((s) => s.plugins);
   const filterSchema = plugins.analysis?.find((a) => a.key === "behave")?.schema;
   const tagCmd = commands.find((c) => c.key === "tag_clip");
@@ -103,7 +105,8 @@ export function BehavePanel() {
       {msg && <div className={`border-b border-line px-2 py-1 text-[11px] ${msg.ok ? "text-ok" : "text-err"}`} data-testid="behave-message">{msg.text}</div>}
 
       {data && <FootageInbox inbox={data.inbox} say={sayInbox} selected={video} onSelect={setVideo} />}
-      {reviewing && <CandidateReview key={reviewing.file + reviewing.sha256} video={reviewing} say={sayInbox} />}
+      {reviewing && <CandidateReview key={reviewing.file + reviewing.sha256} video={reviewing} say={sayInbox} seek={seek} />}
+      <InterpretationSection onOpenFrames={(file, frame) => { setVideo(file); setSeek((s) => ({ frame, n: (s?.n ?? 0) + 1 })); }} />
 
       <Section title="Import footage keypoints (CSV)">
         {data && data.footage.length === 0 && <div className="mb-1 text-[11px] text-warn">No CSV in the footage folder yet.</div>}

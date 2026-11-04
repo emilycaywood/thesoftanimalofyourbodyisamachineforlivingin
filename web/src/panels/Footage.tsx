@@ -309,7 +309,7 @@ function JointTable({ rows }: { rows: JointRow[] }) {
   );
 }
 
-export function CandidateReview({ video, say }: { video: VideoRow; say: Say }) {
+export function CandidateReview({ video, say, seek }: { video: VideoRow; say: Say; seek?: { frame: number; n: number } | null }) {
   const run = useLab((s) => s.run);
   const commands = useLab((s) => s.commands);
   const acceptCmd = commands.find((c) => c.key === "accept_candidate");
@@ -324,6 +324,15 @@ export function CandidateReview({ video, say }: { video: VideoRow; say: Say }) {
   const [motion, setMotion] = useState<Motion | null>(null);
   const [lift, setLift] = useState<LiftFrames | null>(null);
   const loading = useRef(false); // a frame is on its way: Play waits for it instead of piling up requests
+  const pending = useRef<number | null>(seek?.frame ?? null); // a frame asked for from elsewhere (an interpretation's stretch)
+  const seekN = seek?.n ?? 0;
+  useEffect(() => {
+    if (!seek) return;
+    const inside = video.candidates.find((c) => c.start <= seek.frame && seek.frame < c.end)
+      ?? video.candidates.reduce<typeof video.candidates[number] | undefined>((best, c) => (!best || Math.abs(c.start - seek.frame) < Math.abs(best.start - seek.frame) ? c : best), undefined);
+    if (inside && inside.id !== cid) { pending.current = seek.frame; setCid(inside.id); } else { setFrame(seek.frame); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [seekN]);
   const fps = video.info.fps ?? 25;
   const range: [number, number] = trim ?? (cand ? [cand.start, cand.end] : [0, 1]);
 
@@ -333,7 +342,8 @@ export function CandidateReview({ video, say }: { video: VideoRow; say: Say }) {
   useEffect(() => {
     if (candStart < 0) return;
     setTrim(null);
-    setFrame(candStart);
+    setFrame(pending.current ?? candStart);
+    pending.current = null;
     setReport(null);
     setMotion(null);
     setForm({});
