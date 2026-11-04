@@ -324,13 +324,19 @@ export function CandidateReview({ video, say, seek }: { video: VideoRow; say: Sa
   const [motion, setMotion] = useState<Motion | null>(null);
   const [lift, setLift] = useState<LiftFrames | null>(null);
   const loading = useRef(false); // a frame is on its way: Play waits for it instead of piling up requests
-  const pending = useRef<number | null>(seek?.frame ?? null); // a frame asked for from elsewhere (an interpretation's stretch)
+  // a frame asked for from elsewhere (an interpretation's stretch), for the candidate that holds it
+  const pending = useRef<{ cid: string; frame: number } | null>(null);
+  const firstSeek = useRef(seek?.n ?? 0); // the seek this review was opened with
   const seekN = seek?.n ?? 0;
   useEffect(() => {
     if (!seek) return;
     const inside = video.candidates.find((c) => c.start <= seek.frame && seek.frame < c.end)
       ?? video.candidates.reduce<typeof video.candidates[number] | undefined>((best, c) => (!best || Math.abs(c.start - seek.frame) < Math.abs(best.start - seek.frame) ? c : best), undefined);
-    if (inside && inside.id !== cid) { pending.current = seek.frame; setCid(inside.id); } else { setFrame(seek.frame); }
+    if (!inside) { setFrame(seek.frame); return; }
+    // on mount the candidate's own effect runs after this one and takes the frame from here
+    pending.current = { cid: inside.id, frame: seek.frame };
+    if (inside.id !== cid) setCid(inside.id);
+    else { setFrame(seek.frame); if (seek.n !== firstSeek.current) pending.current = null; }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [seekN]);
   const fps = video.info.fps ?? 25;
@@ -342,8 +348,9 @@ export function CandidateReview({ video, say, seek }: { video: VideoRow; say: Sa
   useEffect(() => {
     if (candStart < 0) return;
     setTrim(null);
-    setFrame(pending.current ?? candStart);
-    pending.current = null;
+    const want = pending.current && pending.current.cid === cid ? pending.current.frame : null;
+    setFrame(want ?? candStart);
+    if (want != null) pending.current = null;
     setReport(null);
     setMotion(null);
     setForm({});

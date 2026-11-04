@@ -78,8 +78,10 @@ TARGETS: dict[str, dict[str, float]] = {
 
 class InterpretSettings(BaseModel):
     margin: float = P(0.2, ge=0.0, le=0.9, step=0.05, desc="Safety margin on every limit (0.2 = keep 20 % in hand).")
-    popsize: int = P(6, ge=2, le=40, desc="CMA-ES candidates per generation.")
-    generations: int = P(3, ge=1, le=50, desc="CMA-ES generations per primitive (plus the primitive's defaults).")
+    popsize: int = P(8, ge=2, le=40, desc="CMA-ES candidates per generation.")
+    generations: int = P(8, ge=1, le=50,
+                         desc="CMA-ES generations per primitive (plus the primitive's defaults). 6 x 3 missed the "
+                              "only step within the limits on robot-calf-final; 8 x 8 found it (ADR-085).")
     sigma: float = P(0.3, ge=0.05, le=1.0, step=0.05, desc="CMA-ES step size (on parameters scaled to 0..1).")
     seed: int = P(0, ge=0, ui="number", desc="Seed of the search and of the plays.")
     cycles: float = P(2.0, ge=1.0, le=6.0, step=0.5, desc="Periods of a cycling primitive played per candidate.")
