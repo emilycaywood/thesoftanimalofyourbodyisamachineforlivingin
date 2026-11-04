@@ -1,8 +1,9 @@
-﻿"""Lab side of reading footage (ADR-085): every video of the inbox read into behaviours and a semi-Markov model,
+"""Lab side of reading footage (ADR-085): every video of the inbox read into behaviours and a semi-Markov model,
 stored as ``<project>/footage/readings/<id>.json`` (versioned, schema-validated, with provenance)."""
 
 from __future__ import annotations
 
+import contextlib
 import json
 import logging
 from pathlib import Path
@@ -165,10 +166,8 @@ def read_footage(lab: Any, settings: dict[str, Any] | None = None, exclude: dict
             vr.reasons.append(f"the calf is {body_px:.0f} px long in the image (need {s.min_body_px:.0f}): the "
                               "tracker's noise is a large share of every movement")
         tracks = None
-        try:
+        with contextlib.suppress(FileNotFoundError, KeyError):
             tracks = inbox.load_tracks(pdir, rec["sha256"])
-        except (FileNotFoundError, KeyError):
-            pass
         video = pdir / "footage" / "videos" / file
         moves = False
         shift = None

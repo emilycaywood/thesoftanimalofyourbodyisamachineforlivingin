@@ -410,7 +410,6 @@ def label(sig: MotionSignals, up: dict[str, np.ndarray], s: ReadingSettings, cam
         else:
             joined.append([a, b])
     lab = np.array(["stand"] * F, dtype=object)
-    rule = [""] * F
     fr = _frame(sig)
     blen = max(sig.body_length_mm, 1e-9)
     segs: list[tuple[int, int, str, str, dict[str, Any], float]] = []
