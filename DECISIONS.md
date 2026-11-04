@@ -3365,3 +3365,27 @@ cached per body), with archive axes vigour kept x worst margin. The researcher l
 * Wide blocks + half splay + hip springs: vigour 0.517, worst -0.28, fitness +0.237. The walk keeps 0.75 within
   every limit on three seeds, and the step 0.59. The trot is still over sustained torque.
 * About 55-60 plays and 64-84 s per body. 6 generations x 8 at 2 x 4: about 0.3 h on 7 workers (1.1 h CPU).
+
+## ADR-091 — Session R step 4: the first evolution with the vigour preset (**VERIFY**)
+
+*Context.* The researcher chose the budget: 6 generations x 8 bodies, per-motion search 2 x 4.
+
+*Decisions.*
+* The starting body is the project's, with the hip ab/ad springs switched on (`set_genes spring_hip_abd: true`,
+  0.2 N/mm, free to evolve to 0). The fitness node is set to `vigour` (`set_node_params`). Both are undoable
+  commands in the project's log.
+* Every evolvable gene; belts unchanged; joint ranges unchanged (nothing to narrow without measured stops).
+* Archive vigour_kept (10 cells) x worst_margin (8 cells), seed 0.
+
+*Results* (`docs/studies/evolve_r4.md`, run `20261104-162051-evolve-d1b6`, 818 s):
+* 48 candidates: 35 evaluated, 13 infeasible. Of these, 11 had front legs that cannot reach the ground with the
+  back level and 2 failed the hock belt clearance. None failed to run, none was unsafe.
+* Best: fitness +0.228, vigour 0.36, worst margin -0.13. Within limits on three seeds: trot, stand, step and
+  fast play, but not the walk. Changes: axle spacing 590, femur 183, tibia 266, hind splay 8.4, stifle springs
+  softened, shoulder and hip ab/ad springs to 0.
+* No body keeps the walk within limits. The search stayed near the start (block widening at most 18 / 39 mm per
+  side), so it never reached the wide-block bodies that do keep it (step 3's body E: vigour 0.517, walk 0.75
+  within limits).
+
+*Consequence.* A second run should start from body E, or from a spread wide enough to reach the block widths
+`width_r2c.md` found.

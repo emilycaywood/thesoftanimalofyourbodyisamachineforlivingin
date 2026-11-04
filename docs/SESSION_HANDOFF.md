@@ -3,7 +3,7 @@
 Everything a new Claude Code session (or a new collaborator) needs to pick up
 CALFLAB. Last updated 2026-11-04 on branch `robot-calf-final` (cut from
 `chassis-mass`), during session R (a body for vigorous movement; steps 1-2 of 6
-done, plus wider blocks and hip springs; step 3 done (vigour preset), waiting for the researcher to choose the budget; section 4, "Session R", ADR-086..090); before it
+done, plus wider blocks and hip springs; step 3 done (vigour preset), step 4's first run done; waiting for the researcher; section 4, "Session R", ADR-086..091); before it
 session Q: the calf's movement read and interpreted as
 the robot's own (section 4, "Added in session Q", ADR-085); before it session
 P: clips judged in physics and made feasible
@@ -1048,7 +1048,7 @@ Nothing installed. `adapt_clip` kept as a diagnostic:**
 * Launch entry `calflab-q`: scratch copy `projects/_scratch-q` (not in git).
 
 **Session R (a body for vigorous movement within margin 0.2; ADR-086). In progress: steps 1-3 of 6 done, plus
-wider blocks and hip springs (ADR-089); stopped for the researcher to choose the evolution budget.** Belts, joint ranges and the servo's
+wider blocks and hip springs (ADR-089); step 4's first run done (ADR-091); stopped for the researcher.** Belts, joint ranges and the servo's
 values not touched; nothing installed.
 
 * The request (six steps, a stop after each) commits the body to the ten STS3215 C018 servos and carbon fibre leg
@@ -1089,7 +1089,13 @@ values not touched; nothing installed.
   `worst_margin`. Splays and block widths now evolvable. Today's body: vigour 0.315, worst -0.44, fitness -0.125;
   wide blocks + half splay + hip springs: 0.517, -0.28, +0.237 (walk keeps 0.75 within limits, trot still over
   torque). About 60 plays, 64-84 s per body; 6 x 8 at 2 x 4 = about 0.3 h on 7 workers.
-* Next: step 4 (evolve) once the researcher picks a budget, see R4 in section 7.
+* **Step 4, first run** (ADR-091, `docs/studies/evolve_r4.md`, run `20261104-162051-evolve-d1b6`, 6 x 8, 2 x 4,
+  818 s). The project document now has `spring_hip_abd: true` and fitness preset `vigour` (both undoable
+  commands). 13 / 48 were infeasible (11 front legs too short for a level back, 2 hock belt clearance). Best:
+  fitness +0.228, vigour 0.36, worst -0.13; trot, stand, step and fast play within limits on 3 seeds, the walk
+  not. No body keeps the walk. The search stayed near the start (blocks widened at most 18 / 39 mm), so step 3's
+  hand-made body E (vigour 0.517) is still better.
+* Next: the researcher decides whether to run again from body E before step 5 (R4 in section 7).
 
 **Scaffolded only (interfaces + tests, no behaviour):** PPO training, MJX
 simulator, RemoteSSH and CloudNotebook transports (job bundling is real),
@@ -1378,7 +1384,7 @@ Journal, Rhino bridge):**
 |---|---|
 | `CLAUDE.md` | Conventions for every session (loaded automatically) |
 | `PLAN.md` | Architecture, module boundaries, data flow, phases, risks, status |
-| `DECISIONS.md` | ADR log: every assumption (90 so far) |
+| `DECISIONS.md` | ADR log: every assumption (91 so far) |
 | `docs/proposals/anatomical-leg.md` | Proposal for a three-segment leg (set aside 2026-10-04; not built) |
 | `docs/USER_GUIDE.md` | How to use the lab |
 | `docs/CHAT_GUIDE_PROMPT.md` | Prompt that makes a chat assistant a guide to the whole lab |
@@ -1394,13 +1400,14 @@ Journal, Rhino bridge):**
 
 Prefix each with the opening message from section 1.
 
-**R4. Session R, step 4: evolve the body** (recommended next; written 2026-11-04 after step 3, ADR-086..090.)
-> Continue session R in projects/robot-calf-final (`docs/studies/vigour_r3.md`). Step 3 is done: preset `vigour`.
-> Step 4: in the starting body turn the hip ab/ad springs on (rate free to evolve from 0), then evolve with
-> MAP-Elites + CMA-ES on archive axes vigour_kept x worst_margin with the budget I chose: <generations x batch,
-> inner iterations x popsize>. Genes: springs, leg geometry, splays, block widths; belts from the catalog only
-> (rejected, never clamped); joint ranges only narrowed. Show the archive: which bodies keep the most vigour,
-> what changed, how many candidates were infeasible and why. Stop before step 5.
+**R4. Session R, step 4 again, from the wide-block body** (recommended next; written 2026-11-04 after the
+first step 4 run, ADR-086..091.)
+> Continue session R in projects/robot-calf-final (`docs/studies/evolve_r4.md`). The first run (6 x 8) stayed
+> near the narrow starting body. Set the document's genes to body E of `docs/studies/width_r2c.md` with set_genes:
+> hind / front splay 6 / 5.25 deg, hip / chest blocks +59.6 / +52.2 mm, hip springs on, springs holding the
+> weight. Then evolve again with preset vigour, 6 x 8, inner 2 x 4, archive vigour_kept x worst_margin. Show the
+> archive as before and compare it with the first run. Then step 5: a stop that ends a trot or walk on square
+> hooves, with every transition checked in physics on the best body.
 
 **Q2. Interpretation inside the repertoire evolution** (recommended next; written after session Q, ADR-085.)
 > In projects/robot-calf-final, interpretation (run `20261104-042426-interpret-ef3c`) found how this body can say the calf's stand, step and
