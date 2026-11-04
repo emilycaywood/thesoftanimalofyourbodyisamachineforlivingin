@@ -3389,3 +3389,23 @@ cached per body), with archive axes vigour kept x worst margin. The researcher l
 
 *Consequence.* A second run should start from body E, or from a spread wide enough to reach the block widths
 `width_r2c.md` found.
+
+## ADR-092 — The wide-block body is the working body; session R turns to behaviour diversity (**VERIFY**)
+
+*Context.* After the first step 4 run (ADR-091) the researcher asked what another body run would add, and whether
+the work was losing its focus on new, unprogrammed (sampled, surprising, reconfigured) behaviours. A second run
+would mostly refine a body for five fixed motions. They chose (2026-11-04) to take the wide-block body as the
+working body and redirect to an evolution of behaviour diversity on it. Steps 5-6 of session R (the stop
+primitive, the proof on the best body) are set aside, not done.
+
+*Decision.* `projects/robot-calf-final` now has body E of `docs/studies/width_r2c.md`, set with one undoable
+`set_genes` (`docs/studies/body_r5.py`):
+* hind / front splay 6 / 5.25 deg;
+* hip / chest blocks widened 59.6 / 52.2 mm per side (blocks 259 / 244 mm wide);
+* hip ab/ad springs on at 0.178 N/mm;
+* stifle 0.197, hock 0.129 and shoulder 0.022 N/mm: rates that just hold the weight at standing.
+
+Belts pass, the body is feasible, and the mass is unchanged (1304 g). The hooves stand where they did before
+(203 / 185 mm from the centre line), and the standing height is 607 mm. Step 3 measured this body: vigour 0.517,
+worst margin -0.28 (the trot). The walk, stand, step and fast play are within every limit at margin 0.2 on
+three seeds.
