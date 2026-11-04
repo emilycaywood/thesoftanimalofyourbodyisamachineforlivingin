@@ -33,8 +33,11 @@ assumption about calves, PROVISIONAL) and the result says so.
   side near as turned away with its right side near, when the tracker's L/R
   labels are swapped. Both are kept per frame; a two-state Viterbi chooses,
   scoring the side tracked more confidently as the near one (the far legs
-  are partly hidden) and charging for a jump in heading. Frames where the
-  confidence cue is weak are marked ``ambiguous: depth``.
+  are partly hidden) and charging for a jump in heading. A map may name
+  ``face`` landmarks (a calf's eyes): where all of them are tracked
+  confidently the head faces the camera, which favours the hypothesis turned
+  toward it (ADR-085); the side-confidence cue cannot see that. Frames where
+  neither cue is clear are marked ``ambiguous: depth``.
 * *Limb flips.* After the fit, every leg's joints are searched on a grid
   inside their ranges with the trunk held. With ``bend_choice: window``
   (ADR-083) every bend nearly as good is kept per frame (refined) and a
@@ -137,6 +140,9 @@ class LiftMap(BaseModel):
     abduction: list[str] = Field(default_factory=lambda: ["hip_abd"])
     prior: LiftPrior = Field(default_factory=LiftPrior)
     min_likelihood: float = 0.3
+    #: tracked names seen only when the head faces the camera (e.g. both eyes); all confident = facing it (ADR-085).
+    #: Not fitted to the skeleton; used only to choose toward or away. Empty = not used (as before).
+    face: list[str] = Field(default_factory=list)
     _template: dict[str, str] = {}
 
     def expanded(self) -> tuple[dict[str, LandmarkDef], list[tuple[str, str]], dict[str, TieDef]]:
@@ -190,6 +196,15 @@ class LiftSettings(BaseModel):
     max_residual_bl: float = 0.12  # RMS fit residual in body lengths over which a frame has failed
     relative_residual: float = 2.0  # ... or over this many times the video's own median (and 0.05)
     min_cue: float = 0.03  # near-minus-far confidence below this: toward/away rests on continuity alone
+    #: the map's ``face`` landmarks count as seen at this tracker confidence or more (ADR-085, PROVISIONAL)
+    face_min_likelihood: float = 0.6
+    #: weight of a seen face in the toward/away choice, in units of the side-confidence cue per unit of sin(yaw).
+    #: 1.0: a face seen 30 deg from a side view outweighs a 0.5 confidence difference, so it decides wherever the
+    #: view is turned; at a side view (sin 0) it says nothing. In a quarter view both sides are seen and the side
+    #: cue is unreliable (ADR-085, 214239). PROVISIONAL.
+    face_gain: float = 1.0
+    #: a calf turns its head on its own: a face says nothing about a body this close to a side view (PROVISIONAL)
+    face_min_yaw_deg: float = 20.0
     joint_speed_sd_deg_s: float = 300.0  # temporal smoothness of the joints
     abduction_speed_sd_deg_s: float = 60.0  # ... of hip ab/adduction (seen edge-on, it follows noise otherwise)
     turn_speed_sd_deg_s: float = 150.0  # ... of heading, trunk pitch and roll
@@ -864,6 +879,7 @@ def _lift(tracks: KeypointTracks, lmap: LiftMap, spec: RobotSpec, settings: Lift
     R_idx = [sk.names.index(b) for _, b in sk.pairs]
     win = max(1, int(round(fps * 0.5)))
     cue = _smooth(lk[:, L_idx].mean(axis=1) - lk[:, R_idx].mean(axis=1), win) if L_idx else np.zeros(F)
+    face = _face_seen(tracks, lmap, s, win)
     x_prev: np.ndarray | None = None
     perm_prev: np.ndarray | None = None
     sigma_hint: float | None = None
@@ -883,6 +899,10 @@ def _lift(tracks: KeypointTracks, lmap: LiftMap, spec: RobotSpec, settings: Lift
         # ---- B: toward or away (labels as tracked vs exchanged with the mirror pose), by confidence and continuity
         near_left = np.cos(x_a[:, 0]) > 0  # under "as tracked", the robot's near side
         support = np.where(near_left, cue, -cue)  # + = the tracker's more confident side is near
+        if face is not None:  # a face seen: the head is toward the camera (+ = "as tracked" is turned toward it)
+            sy = np.sin(x_a[:, 0])
+            dead = math.sin(u.deg_to_rad(s.face_min_yaw_deg))
+            support = support + s.face_gain * face * np.sign(sy) * np.maximum(0.0, np.abs(sy) - dead)
         unary = np.stack([-support / 0.05, support / 0.05], axis=1)
         jump = np.abs(_wrap(2 * x_a[:, 0])) / u.deg_to_rad(10.0)
         hyp = np.where(_viterbi(unary, 3.0 + jump) == 0, 1, -1)
@@ -919,7 +939,20 @@ def _lift(tracks: KeypointTracks, lmap: LiftMap, spec: RobotSpec, settings: Lift
     say(0.93, "Checking ambiguities")
     # ---- D: diagnostics
     return _finish(sk, lmap, tracks, s, X, g, frames, hyp, swapped, cue, npts, sigma, body_px, width_source,
-                   width_sd, step, prior, bends)
+                   width_sd, step, prior, bends, face)
+
+
+def _face_seen(tracks: KeypointTracks, lmap: LiftMap, s: LiftSettings, win: int) -> np.ndarray | None:
+    """Per frame, 0..1: how much of the surrounding half second every ``face`` landmark is tracked confidently
+    (None when the map names none or the tracker has none of them)."""
+    if not lmap.face:
+        return None
+    idx = [tracks.names.index(n) for n in lmap.face if n in tracks.names]
+    if len(idx) < len(lmap.face):
+        return None
+    lk = np.nan_to_num(np.asarray(tracks.likelihood, dtype=float)[:, idx], nan=0.0)
+    seen = (lk >= s.face_min_likelihood).all(axis=1).astype(float)
+    return np.clip(_smooth(seen, win), 0.0, 1.0)
 
 
 def _initial_ratios(sk: Skeleton, obs: np.ndarray, w: np.ndarray, w_rel: float, g0: np.ndarray) -> np.ndarray:
@@ -1265,7 +1298,8 @@ def _choose_bends(sk: Skeleton, X: np.ndarray, g: np.ndarray, frames: list[_Fram
 def _finish(sk: Skeleton, lmap: LiftMap, tracks: KeypointTracks, s: LiftSettings, X: np.ndarray, g: np.ndarray,
             frames: list[_Frame], hyp: np.ndarray, swapped: list[list[str]], cue: np.ndarray, npts: np.ndarray,
             sigma: float, body_px_med: float, width_source: str, width_sd: float | None, step: np.ndarray,
-            prior: LiftPrior, bends: dict[str, dict[str, np.ndarray]] | None = None) -> LiftResult:
+            prior: LiftPrior, bends: dict[str, dict[str, np.ndarray]] | None = None,
+            face: np.ndarray | None = None) -> LiftResult:
     F, fps = X.shape[0], tracks.fps
     obs = np.stack([f.obs for f in frames])
     w = np.stack([f.w for f in frames])
@@ -1337,7 +1371,7 @@ def _finish(sk: Skeleton, lmap: LiftMap, tracks: KeypointTracks, s: LiftSettings
             why.append(f"{'head' if view_yaw[f] > 0 else 'tail'}-on: {abs(u.rad_to_deg(view_yaw[f])):.0f} deg "
                        f"from a side view (limit {s.max_view_yaw_deg:g})")
         a = []
-        if sk.pairs and abs(cue[f]) < s.min_cue:
+        if sk.pairs and abs(cue[f]) < s.min_cue and not (face is not None and face[f] >= 0.5):
             a.append("depth")
         a += [f"leg {leg}" for leg in amb[f]]
         state.append("unreliable" if why else ("ambiguous" if a else "ok"))
@@ -1408,6 +1442,7 @@ def _finish(sk: Skeleton, lmap: LiftMap, tracks: KeypointTracks, s: LiftSettings
         "near_side": "left" if np.mean(np.cos(X[rel if rel.any() else slice(None), 0]) > 0) >= 0.5 else "right",
         "hypothesis_switches": int(np.sum(np.diff(hyp) != 0)),
         "labels_exchanged_fraction": round(float(np.mean(hyp < 0)), 3),
+        **({"face_seen_fraction": round(float(np.mean(face >= 0.5)), 3)} if face is not None else {}),
         "legs_swapped_frames": int(sum(1 for x in swapped if x)),
         "median_residual_px": round(float(np.nanmedian(res_px)), 2),
         # where the robot's skeleton cannot follow the tracked points (a map assumption to check, or noise)

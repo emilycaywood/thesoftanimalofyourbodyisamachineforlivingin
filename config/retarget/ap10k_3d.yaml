@@ -52,6 +52,9 @@ landmarks:
 ties:
   "h{s}.hock": {to: "h{s}.stifle", ratio: 1.0}
 abduction: [hip_abd]
+# Eyes (ADR-085): both tracked confidently = the head faces the camera, which settles toward/away
+# where the side-confidence cue cannot (a calf facing the camera at a quarter view).
+face: [L_Eye, R_Eye]
 prior:
   # an assumption about calves, PROVISIONAL: used only when the footage cannot tell the width
   width_over_length: 0.35
