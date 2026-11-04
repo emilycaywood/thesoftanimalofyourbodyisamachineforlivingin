@@ -337,6 +337,38 @@ def _pose_tracker(cls: type[Plugin]) -> list[str]:
     return out
 
 
+def _motion_primitive(cls: type[Plugin]) -> list[str]:
+    """Search dims are Params fields with lo < hi inside the field's bounds; safe phases lie in [0, 1]; on the
+    feral calf (when it fits) the controller is registered, accepts the params, and the period is positive."""
+    from calflab.components import library
+    from calflab.design import build_design, genome_definition
+    from calflab.plugins import registry
+
+    out = []
+    fields = cls.Params.model_fields
+    for d in cls.vector_dims():  # type: ignore[attr-defined]
+        if d.name not in fields:
+            out.append(f"vector dim {d.name!r} is not a field of Params")
+        elif not d.lo < d.hi:
+            out.append(f"vector dim {d.name!r}: lo must be below hi")
+    if not cls.behaviours:  # type: ignore[attr-defined]
+        out.append("behaviours is empty: name the read behaviours it may interpret")
+    if not cls.balance:  # type: ignore[attr-defined]
+        out.append("balance is empty: say why it balances by construction")
+    prim = cls()
+    for a, b in prim.safe_phases():  # type: ignore[attr-defined]
+        if not 0.0 <= a <= b <= 1.0:
+            out.append(f"safe phase ({a}, {b}) is not inside [0, 1]")
+    spec = build_design(genome_definition("feral_calf").default_genome(), [], "feral_calf", {}).spec
+    if cls.fits(spec):  # type: ignore[attr-defined]
+        key, params = prim.controller(spec, library())  # type: ignore[attr-defined]
+        ctrl = registry.get("controller", key)
+        ctrl.Params.model_validate(params)
+        if not prim.period_s() > 0:  # type: ignore[attr-defined]
+            out.append("period_s() must be positive")
+    return out
+
+
 _SPECIFIC: dict[str, Callable[[type[Plugin]], list[str]]] = {
     "gene_definition": _gene_definition,
     "part_generator": _part_generator,
@@ -354,6 +386,7 @@ _SPECIFIC: dict[str, Callable[[type[Plugin]], list[str]]] = {
     "panel": _panel,
     "command": _command,
     "pose_tracker": _pose_tracker,
+    "motion_primitive": _motion_primitive,
 }
 
 

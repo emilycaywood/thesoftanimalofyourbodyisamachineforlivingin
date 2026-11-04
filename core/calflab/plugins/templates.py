@@ -399,6 +399,39 @@ class {cls}(PoseTracker):
             return KeypointTracks(fps=r.info.fps, names=names, xy=xy, likelihood=conf, source=Path(video).name,
                                   model=self.provenance(), image_size=(r.info.width, r.info.height))
 ''',
+    "motion_primitive": '''from typing import Any
+
+from pydantic import BaseModel
+
+from calflab.plugins import MotionPrimitive, VectorDim, register
+from calflab.schema import P
+
+
+@register
+class {cls}(MotionPrimitive):
+    key = "{name}"
+    label = "{label}"
+    description = "TODO: describe this movement of the robot's own."
+    behaviours = ("weight_shift",)  # read behaviours it may interpret (calflab.behave.reading.BEHAVIOURS)
+    balance = "TODO: why it balances on the body by construction (e.g. every hoof stays down)."
+
+    class Params(BaseModel):
+        cycle_s: float = P(2.0, unit="s", ge=0.5, le=10.0, step=0.1, desc="One cycle.")
+
+    @classmethod
+    def vector_dims(cls) -> list[VectorDim]:
+        return [VectorDim("cycle_s", 0.5, 10.0)]
+
+    def controller(self, spec: Any, lib: Any) -> tuple[str, dict[str, Any]]:
+        # a registered controller and its parameters; design anything body-specific here and inline it
+        return "feral_motion", {{"mode": "stand"}}
+
+    def period_s(self) -> float:
+        return float(self.params.cycle_s)
+
+    def safe_phases(self) -> list[tuple[float, float]]:
+        return [(0.0, 1.0)]  # fractions of the period where every hoof is down
+''',
 }
 
 _TEST = '''"""Contract test for the {ptype} plugin `{name}` (generated)."""

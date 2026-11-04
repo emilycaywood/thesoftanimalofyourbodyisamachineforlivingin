@@ -105,6 +105,14 @@ class FeralMotionController(Controller):
                  "the servos turn. 0 = no limit.",
         )
         ramp: float = P(1.5, unit="s", ge=0.0, le=3.0, step=0.1, desc="Walk: time to ramp in from standing (the body shifts over before the first step).")
+        stride: float = P(
+            1.0, ge=-1.0, le=2.0, step=0.05,
+            desc="Walk and trot: every leg's fore-aft sweep times this (1 = as set; 0 = stepping in place; negative "
+                 "= backward). ADR-085.")
+        turn: float = P(
+            0.0, ge=-1.5, le=1.5, step=0.05,
+            desc="Walk and trot: the right legs sweep (stride + turn) and the left legs (stride - turn) times as far: "
+                 "+ turns left, - right. With stride 0 the body turns in place. ADR-085.")
 
     @classmethod
     def fits(cls, spec: Any) -> bool:
@@ -153,6 +161,12 @@ class FeralMotionController(Controller):
             return self._trot(t)
         return self._walk(t)
 
+    def _side(self, leg: str) -> float:
+        """The sweep factor of this leg: stride, minus turn on the left, plus turn on the right (ADR-085). With the
+        defaults (1, 0) it is exactly 1.0, so every earlier rollout is unchanged."""
+        p = self.params
+        return float(p.stride) - SIDE[leg] * float(p.turn)  # type: ignore[attr-defined]
+
     def _legs(self, ph: float, sw: float, leg: str, sweep_k: float, lift_k: float, ramp: float) -> dict[str, float]:
         """One leg's joint offsets (deg) at phase ``ph`` of its own cycle: swing first (lift and bring forward),
         then stance (sweep back)."""
@@ -162,6 +176,7 @@ class FeralMotionController(Controller):
             sweep, lift = -math.cos(math.pi * s), math.sin(math.pi * s)
         else:
             sweep, lift = 1.0 - 2.0 * (ph - sw) / (1.0 - sw), 0.0
+        sweep = sweep * self._side(leg)
         sweep, lift = sweep * sweep_k * ramp, lift * lift_k * ramp
         if leg in HIND:
             return {f"{leg}.stifle": sweep * p.hind_sweep_stifle + lift * p.hind_lift_stifle,  # type: ignore[attr-defined]
@@ -196,6 +211,7 @@ class FeralMotionController(Controller):
                 s = (ph - sw) / (1.0 - sw)
                 sweep = 1.0 - 2.0 * s
                 lift = 0.0
+            sweep = sweep * self._side(leg)
             if leg in HIND:
                 out[f"{leg}.stifle"] = ramp * (sweep * p.hind_sweep_stifle + lift * p.hind_lift_stifle)  # type: ignore[attr-defined]
                 out[f"{leg}.hock"] = ramp * (sweep * p.hind_sweep_hock + lift * p.hind_lift_hock)  # type: ignore[attr-defined]

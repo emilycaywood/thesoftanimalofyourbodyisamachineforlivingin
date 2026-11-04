@@ -40,6 +40,7 @@ PLUGIN_TYPES: list[str] = [
     "panel",
     "command",
     "pose_tracker",
+    "motion_primitive",
 ]
 
 
@@ -465,6 +466,55 @@ class TrackerCancelled(Exception):
     """Raised by a tracker when ``cancelled()`` became true."""
 
 
+# ============================================================ interpretation
+class MotionPrimitive(Plugin):
+    """A movement of the robot's own that balances on its body by construction (ADR-085).
+
+    The robot's vocabulary for interpreting footage: a few parameters
+    (``Params``, the search space is ``vector_dims``), a controller that plays
+    it (:meth:`controller`: a registered controller key and its parameters,
+    with anything the body must design, such as a pose solved over planted
+    hooves, inlined), its natural ``period_s`` (one cycle, or the whole motion
+    for a one-shot) and the ``safe_phases``: fractions of that period where
+    every hoof is down and the body may be left for another primitive or blend
+    in from one. ``behaviours`` names the read behaviours it can stand for;
+    ``balance`` says why it balances.
+    """
+
+    plugin_type = "motion_primitive"
+    #: read behaviours (calflab.behave.reading) this primitive may interpret
+    behaviours: ClassVar[tuple[str, ...]] = ()
+    #: one-shot: plays once (its period is its length); otherwise it cycles
+    one_shot: ClassVar[bool] = False
+    #: why it balances on the body by construction
+    balance: ClassVar[str] = ""
+
+    @classmethod
+    def fits(cls, spec: Any) -> bool:
+        """Whether this body can play it (joints it needs)."""
+        return True
+
+    @classmethod
+    def vector_dims(cls) -> list[VectorDim]:
+        """The parameters an interpretation search may set, with their ranges (each a field of ``Params``)."""
+        return []
+
+    def controller(self, spec: Any, lib: Any) -> tuple[str, dict[str, Any]]:
+        """(controller key, controller params) that play this primitive on ``spec``."""
+        raise NotImplementedError
+
+    def period_s(self) -> float:
+        raise NotImplementedError
+
+    def safe_phases(self) -> list[tuple[float, float]]:
+        """Fractions [a, b] of the period (0..1) where it may be left or entered."""
+        return [(0.0, 1.0)]
+
+    def phase_offset_s(self) -> float:
+        """Time (s) from the start of the controller to the start of its first period (a gait's ramp-in)."""
+        return 0.0
+
+
 BASES: dict[str, type[Plugin]] = {
     "gene_definition": GeneDefinition,
     "part_generator": PartGenerator,
@@ -482,4 +532,5 @@ BASES: dict[str, type[Plugin]] = {
     "panel": Panel,
     "command": Command,
     "pose_tracker": PoseTracker,
+    "motion_primitive": MotionPrimitive,
 }
