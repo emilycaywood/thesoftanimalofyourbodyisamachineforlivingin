@@ -98,6 +98,24 @@ def test_torque_model_default_is_unchanged(spec):
     assert "servo_model" not in out[0].meta or out[0].meta["servo_model"] == "torque"
 
 
+@pytest.mark.slow
+@pytest.mark.parametrize("mode", ["trot", "walk"])
+def test_own_gaits_stand_under_both_servo_models(spec, mode):
+    """The body's own gaits balance by timing on two or three hooves, under the torque and the torque-speed servo:
+    falling slowed clips (ADR-084) are not a limit of the body."""
+    from calflab.plugins import load_plugins, registry
+    from calflab.sim import CompileOptions, SimSettings, compile_mjcf, compute_metrics, run_rollout
+
+    load_plugins()
+    for model in ("torque", "torque_speed"):
+        cm = compile_mjcf(spec, library(), CompileOptions(torque_derating=1.0, servo_model=model), 0)
+        ctrl = registry.get("controller", "feral_motion")({"mode": mode})
+        r = run_rollout(cm, ctrl, SimSettings(duration_s=10.0, seed=0), library())
+        assert not compute_metrics(r)["fell"], (mode, model)
+        down = (r.foot_force[r.t >= 0] > 1.0).sum(axis=1)
+        assert float(np.mean(down < 3)) > 0.3, (mode, model)  # it really is on fewer than three hooves often
+
+
 # ---------------------------------------------------------------------- the margin
 def test_safety_margin_scales_every_limit(spec):
     from calflab.behave import physics

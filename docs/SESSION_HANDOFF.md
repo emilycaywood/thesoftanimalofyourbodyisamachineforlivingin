@@ -966,8 +966,12 @@ component values not touched. Nothing installed:**
   | search | 7.7 min | 4.3 min |
 
   Full table in ADR-084.
-* **Why three hooves were not enough:** under a three-legged pose the position servos sag 2-13 deg, more than
-  the tripod's balance margin. A larger margin did not help; four hooves down did.
+* **Why three hooves were not enough for slowed clips:** slowed 3-4x, a clip must balance statically, and under a
+  three-legged pose the position servos sag 2-13 deg, more than the tripod's balance margin. A larger margin did
+  not help; four hooves down did. **This is not a limit of the body:** the robot's own trot and walk balance by
+  timing and still run under the torque-speed servos, on fewer than three hooves 57-74 % of the time, without
+  falling. Judged with margin 0.2 (for the first time), both gaits go over joint speed and the envelope, and the
+  walk also over sustained torque. Table in ADR-084.
 * **Armature x0.2:** the falls barely move. c1's version still holds; **c2's goes over sustained belt tension**
   (margin 0.08 -> -0.12).
 * **Tests:**
@@ -1268,12 +1272,17 @@ Prefix each with the opening message from section 1.
 **P2. Feasible versions that step**
 (written 2026-11-03 after session P, ADR-084.)
 > In projects/robot-calf-final (lab restarted), Make feasible turns my candidates c1 and c2 into quasi-static
-> sways on four planted hooves that keep little character (0.19 and 0.24), because three hooves down falls: the
-> servos sag more than a tripod's balance margin. Let a slowed clip step:
+> sways on four planted hooves that keep little character (0.19 and 0.24): slowed 3-4x, a clip must balance
+> statically, and three hooves down falls because the servos sag more than a tripod's balance margin. The body
+> itself is not the problem: its own trot and walk balance by timing on two or three hooves. Try two routes and
+> compare them. First, let a slowed clip step:
 > * keep the clip's footfalls as contact phases, moved in time if needed;
 > * shift the body over the three supporting hooves before each lift (as a slow walk does), and re-place each
 >   hoof where the clip puts it;
 > * solve it with the stance solver in the core and judge it in physics with the same limits and margin 0.2.
+>
+> Second, keep more of the clip's own timing so the body balances dynamically, as the gaits do, and adjust the
+> poses (not the rhythm) until it stands within the limits.
 >
 > Compare character kept, duration and margins with the four-hooves-down versions side by side in the Behave
 > report. If the servo's compliance is the limit, say how much a stiffer servo_saturation_deg would change (as a

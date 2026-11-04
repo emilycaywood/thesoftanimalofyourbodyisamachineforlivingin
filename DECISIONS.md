@@ -2913,6 +2913,23 @@ contacts, the centre of mass against the contact polygon, hoof slip and tracking
   balance margin of a calf-width tripod.
 * A larger stability margin did not help (c1 still falls at 4.5-5.2 s whatever the margin). Four hooves down did:
   no fall at 2x, 3x or 4x slower, for either candidate.
+* **Correction (later the same day): this is about slowed clips, not the body.** An earlier wording said three
+  hooves down cannot hold on this robot. That is wrong. The robot's own gaits balance dynamically, by timing, and
+  spend most of their time on two or three hooves without falling (10 s, seed 0, scratch copy;
+  `tests/test_physics.py::test_own_gaits_stand_under_both_servo_models`):
+
+  | motion | servo model | falls? | speed | time on fewer than 3 hooves | over a limit at margin 0.2 |
+  |---|---|---|---|---|---|
+  | trot | torque | no | 0.30 m/s | 71 % | sustained torque, sustained belt, joint speed, envelope |
+  | trot | torque-speed | no | 0.30 m/s | 74 % | joint speed, envelope |
+  | walk | torque | no | 0.026 m/s | 58 % | sustained torque, joint speed, envelope |
+  | walk | torque-speed | no | 0.025 m/s | 57 % | sustained torque, joint speed, envelope |
+
+  What fails is a calf clip slowed 3-4x until it must balance statically: each three-legged moment then lasts long
+  enough for the sag to tip a narrow tripod. "Four hooves down" is the remedy this search found for slowed clips,
+  not a limit of the body. Keeping a clip's timing so the body balances dynamically, as the gaits do, is an
+  alternative not yet tried. Also new: judged with margin 0.2 for the first time, both gaits go over joint speed
+  and the envelope, and the walk also over sustained torque; they still do not fall.
 * What then limited them was sustained hip ab/ad torque (above 48 % of rated in 85 % of a window) and sustained
   belt tension. Shrinking the hip ab/ad alone did not lower it, because planted angles follow the hooves more
   than the clip, so the search shrank everything.
