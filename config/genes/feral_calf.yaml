@@ -84,18 +84,18 @@ genes:
      label: "Hoof pad depth", description: "Ground contact this far below the end of every cannon (front and rear)."}
 
   # ------------------------------------------------------------- tubes (round carbon fibre)
-  - {id: tube_density, default: 1.55, min: 1.0, max: 2.0, step: 0.01, unit: g/cm3, group: Tubes, provisional: true, evolvable: false,
-     description: "Density of the carbon fibre tubes (and rods) (PROVISIONAL)."}
-  - {id: femur_od, default: 15, min: 8, max: 25, step: 0.5, unit: mm, group: Tubes, provisional: true, evolvable: false, description: "Femur tube outer diameter. Alternatives under consideration: 14x10, 16x12."}
-  - {id: femur_id, default: 12, min: 0, max: 22, step: 0.5, unit: mm, group: Tubes, provisional: true, evolvable: false, description: "Femur tube inner diameter."}
-  - {id: tibia_od, default: 15, min: 8, max: 25, step: 0.5, unit: mm, group: Tubes, provisional: true, evolvable: false, description: "Tibia tube outer diameter."}
-  - {id: tibia_id, default: 12, min: 0, max: 22, step: 0.5, unit: mm, group: Tubes, provisional: true, evolvable: false, description: "Tibia tube inner diameter."}
-  - {id: rear_cannon_od, default: 15, min: 8, max: 25, step: 0.5, unit: mm, group: Tubes, provisional: true, evolvable: false, description: "Rear cannon tube outer diameter."}
-  - {id: rear_cannon_id, default: 12, min: 0, max: 22, step: 0.5, unit: mm, group: Tubes, provisional: true, evolvable: false, description: "Rear cannon tube inner diameter."}
-  - {id: upper_leg_od, default: 15, min: 8, max: 25, step: 0.5, unit: mm, group: Tubes, provisional: true, evolvable: false, description: "Front upper leg tube outer diameter."}
-  - {id: upper_leg_id, default: 12, min: 0, max: 22, step: 0.5, unit: mm, group: Tubes, provisional: true, evolvable: false, description: "Front upper leg tube inner diameter."}
-  - {id: front_cannon_od, default: 15, min: 8, max: 25, step: 0.5, unit: mm, group: Tubes, provisional: true, evolvable: false, description: "Front cannon tube outer diameter."}
-  - {id: front_cannon_id, default: 12, min: 0, max: 22, step: 0.5, unit: mm, group: Tubes, provisional: true, evolvable: false, description: "Front cannon tube inner diameter."}
+  - {id: tube_density, default: 1.55, min: 1.0, max: 2.0, step: 0.01, unit: g/cm3, group: Tubes, evolvable: false,
+     description: "Density of the carbon fibre tubes (and rods) (confirmed by the researcher 2026-11-04, ADR-088; not weighed)."}
+  - {id: femur_od, default: 15, min: 8, max: 25, step: 0.5, unit: mm, group: Tubes, evolvable: false, description: "Femur tube outer diameter. Alternatives under consideration: 14x10, 16x12."}
+  - {id: femur_id, default: 12, min: 0, max: 22, step: 0.5, unit: mm, group: Tubes, evolvable: false, description: "Femur tube inner diameter."}
+  - {id: tibia_od, default: 15, min: 8, max: 25, step: 0.5, unit: mm, group: Tubes, evolvable: false, description: "Tibia tube outer diameter."}
+  - {id: tibia_id, default: 12, min: 0, max: 22, step: 0.5, unit: mm, group: Tubes, evolvable: false, description: "Tibia tube inner diameter."}
+  - {id: rear_cannon_od, default: 15, min: 8, max: 25, step: 0.5, unit: mm, group: Tubes, evolvable: false, description: "Rear cannon tube outer diameter."}
+  - {id: rear_cannon_id, default: 12, min: 0, max: 22, step: 0.5, unit: mm, group: Tubes, evolvable: false, description: "Rear cannon tube inner diameter."}
+  - {id: upper_leg_od, default: 15, min: 8, max: 25, step: 0.5, unit: mm, group: Tubes, evolvable: false, description: "Front upper leg tube outer diameter."}
+  - {id: upper_leg_id, default: 12, min: 0, max: 22, step: 0.5, unit: mm, group: Tubes, evolvable: false, description: "Front upper leg tube inner diameter."}
+  - {id: front_cannon_od, default: 15, min: 8, max: 25, step: 0.5, unit: mm, group: Tubes, evolvable: false, description: "Front cannon tube outer diameter."}
+  - {id: front_cannon_id, default: 12, min: 0, max: 22, step: 0.5, unit: mm, group: Tubes, evolvable: false, description: "Front cannon tube inner diameter."}
 
   # ------------------------------------------------------------- head, neck, battery
   - {id: head_mass, default: 150, min: 0, max: 1000, unit: g, group: Head and battery, provisional: true, evolvable: false,

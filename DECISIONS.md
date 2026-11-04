@@ -3262,3 +3262,24 @@ only; a spring can not be right in every pose of a gait.
 *Consequences for steps 3-4:* the splays are genes but `evolvable: false`; step 4 needs them evolvable (together
 or with a bound on their difference), with the spring rates and free lengths, and the gait parameters tuned per
 candidate.
+
+## ADR-088 — Session R: the leg tube confirmed, the packs in parallel, joint stops, commercial pulleys (**VERIFY**)
+
+*Context.* Before step 3 the researcher answered four questions (2026-11-04): "The leg tube is correct"; "The two
+3s packs are wired in parallel"; they do not know what "real joint stops" means; the belt reduction may change
+as long as it is easily available on the market; the legs should splay for stability.
+
+*Decisions.*
+* **Tube.** "Correct" is read as confirming the tube the lab already used: 15 mm OD, 12 mm ID (1.5 mm wall),
+  1.55 g/cm3. `carbon_fibre_leg_tube` now has `density_g_cm3: 1.55` (still `verified: false`; not a weighed
+  value, no g/m given), and the tube genes and `tube_density` lose their PROVISIONAL badge. If the reading is
+  wrong, restore `density_g_cm3: null` and the badges.
+* **Battery.** Two `lipo_3s_5000` packs in parallel: 11.1 V nominal, 12.6 V full. This is what step 1 assumed;
+  the entry's values (one pack) are unchanged. The servo's figures at 11.1 V are still not entered, so the
+  servo is judged at its 12 V figures (step 1: at 11.1 V scaled the interpreted step fails, -0.20).
+* **Joint stops.** The robot is not built, so there are no measured stops. Step 4 keeps today's joint ranges as
+  the outer bounds: evolution may narrow a range, never widen it. The STS3215 turns a full circle, so the stops
+  of a built leg come from the printed parts, tubes and belts; they are to be measured on the first leg.
+* **Pulleys.** GT2 2 mm pulleys are sold in many tooth counts, so pairs other than 2:1 are allowed in the catalog
+  once each tooth count is found in stock for the belt width in use, with the listing as source. Masses stay
+  null until weighed.

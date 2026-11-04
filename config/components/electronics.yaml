@@ -123,6 +123,8 @@
 
 # ---------------------------------------------------------------- batteries
 - key: lipo_3s_5000
+  # The robot carries two of these packs wired in parallel (researcher, 2026-11-04, ADR-088):
+  # 11.1 V nominal, 12.6 V full, 10000 mAh together. The values below are for one pack.
   kind: battery
   name: 3S LiPo 5000 mAh
   manufacturer: generic

@@ -99,17 +99,16 @@
   manufacturer: ""
   # The researcher's request of 2026-11-04 commits the body to these tubes:
   # "<outer diameter> mm, <wall> mm wall, <g/m or \"not weighed\">". The three
-  # values were placeholders in the message, so none is entered (ADR-086):
-  #   outer diameter: not given (mm)
-  #   wall:           not given (mm)
-  #   mass per metre: not given (g/m); if weighed, density = g/m / (pi/4 x (OD^2 - ID^2)) x 1000
-  # Until they are, the tube genes (femur_od/_id ... front_cannon_od/_id, 15 x 12 mm)
-  # and tube_density 1.55 g/cm3 stay PROVISIONAL as before.
+  # values were placeholders in the message (ADR-086). Later the same day the
+  # researcher confirmed the tube the lab was already using: "The leg tube is
+  # correct" (ADR-088):
+  #   outer diameter: 15 mm, inner 12 mm (1.5 mm wall), the tube genes femur_od/_id ... front_cannon_od/_id
+  #   density:        1.55 g/cm3, the gene tube_density (not weighed: no g/m given)
   role: structure  # structure | skin
   color: "#c9c4b9"
-  density_g_cm3: null             # g/cm^3 (for a printed part: mass of a sample / its outer volume); REQUIRED
+  density_g_cm3: 1.55             # g/cm^3; confirmed by the researcher 2026-11-04 (not a weighed value)
   cost_usd_per_kg: null           # USD per kg; optional (blank = default assumed, and reported)
   url: ""                         # datasheet or product page
-  source: "Researcher's request, 2026-11-04 (session R): carbon fibre leg tubes are a commitment; dimensions and mass per metre not given yet"
+  source: "Researcher's request, 2026-11-04 (session R): carbon fibre leg tubes are a commitment; 15 x 12 mm at 1.55 g/cm3 confirmed by the researcher the same day (\"The leg tube is correct\")"
   guessed: []                     # names of fields whose value is your guess, not a datasheet value
   verified: false                 # set to true yourself once every value is checked
