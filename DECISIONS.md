@@ -3104,28 +3104,42 @@ drawn from the reading's log-normals (clipped to 0.5-2x what was seen); paramete
 late, logged); cross-fade 0.6 s. A behaviour with no interpretation within limits is not performed. 60 s x three
 seeds, judged with the physics report (tracking against the commands).
 
-*Results on `projects/robot-calf-final`* (run `20261104-040941-interpret-3533`; 1.304 kg as entered; margin 0.2):
+*Results on `projects/robot-calf-final`* (runs `20261104-042001-interpret-4d7f` (the search) and
+`20261104-042426-interpret-ef3c` (the same, cached, with transitions played and stays continued); 1.304 kg as
+entered; margin 0.2):
 
-| read | as | within limits | margin | kept / changed |
-|---|---|---|---|---|
-| stand (2, 6.6 s) | weight shift (hind left freed, shift 0.35, 0.4 s over, 1 s back) | yes | 0.52 | motion, roll and pitch kept; amplitude exaggerated (3.6 vs 1.8 deg); heave reduced |
-| step (1, 2.9 s) | step (closest: shift 0.69, lift 7 deg, 2 s over) | **no**: sustained servo torque | -0.44 | step rate, amplitude, motion and roll reduced; every closer candidate went over sustained servo torque (15 of 15) |
-| other (5, 11.6 s) | trot (closest: 0.61 s cycle, stride 0.92, lift 0.65) | **no**: sustained servo torque, joint speed | -0.36 | tempo and two hooves up kept; motion, amplitude, pitch and speed reduced, heave dropped; closer candidates over sustained torque, belts, speed, envelope |
+| read | as | margin | kept / changed, and why |
+|---|---|---|---|
+| stand (2, 6.6 s) | weight shift: hind left freed, shift 0.31, 1.5 s over, 1.4 s held | 0.84 | roll and pitch kept; motion (1.9 vs 3.0 deg/s) and heave reduced; amplitude exaggerated (3.7 vs 1.8 deg) |
+| step (1, 2.9 s) | step: hind left freed, shift 0.54, 1.5 s over, 0.9 s held, lift 7.7 deg | 0.28 | step rate (0.5 vs 1.4 Hz), amplitude (7.6 vs 15.6 deg), motion and roll reduced: every closer candidate went over sustained servo torque (and most over joint speed and the envelope); 22 % of step candidates within limits, no walk |
+| other / fast (5, 11.6 s) | trot: 0.92 s cycle, stride 0.58, lift 0.11 | 0.71 | turn kept; tempo slower (0.92 vs 0.66 s), two hooves up 68 vs 98 %, speed 46 vs 264 mm/s reduced; motion (6 vs 77 deg/s), amplitude (2.4 vs 31 deg), pitch (0.15 vs 19 deg) and heave (1 vs 78 mm) dropped: closer candidates over sustained torque, joint speed, the envelope, belts. 1 of 65 trot candidates within limits; lie/rise none |
 
+* **Search budget matters**: with 6 x 3 the step and the trot had no candidate within limits; 8 x 8 found one each.
+  The default is now 8 x 8.
 * The gaits as they are, at margin 0.2: walk over sustained torque, sustained belt, joint speed and the envelope
   (margin -2.48); trot over sustained torque, sustained belt and the envelope (-1.2). **What interpretation does
-  about that:** it slows and shrinks them toward the calf's features until a limit binds; on this body at this
-  margin it finds no trot or step that stays within, so they are left out rather than played over a limit.
-* Performance: three seeds, 60 s each, **within every limit (margins 0.53-0.58), no fall**, but only standing
-  weight shifts (15-17 episodes per seed; calf: 31 % stand, 14 % step, 55 % fast). The interpretation is honest
-  and thin: the footage is mostly fast play this body cannot do within the margin.
-* Cost per body: 114 plays, 211 s of physics, 4.1 min in all (three minutes of performance included); a second
-  run on the same body is nearly free (cache). That fits inside a repertoire evolution only as a once-per-body
-  step on a small budget, not per candidate of a large run (next session).
+  about that:** it slows the trot (0.92 s cycle), shortens and lowers its stride until it holds with 0.71 in hand,
+  and says what that costs (the calf's vigour, pitch and heave dropped). No walk variant held at all.
+* **Transitions** (new, decision 6): each primitive is judged from standing, but in a performance it starts from
+  wherever the last left the hooves. Played in physics: stand -> fast 0.72, step -> stand 0.28, step -> fast 0.28
+  pass; **stand -> step (-0.12), fast -> stand (-0.28) and fast -> step (-3.0) go over sustained shoulder torque**
+  (the weight shift and the step are poses solved over the standing hooves; a trot leaves them spread). Those are
+  dropped from the performance; a state with no way out carries on (not restarted).
+* **Performance**: three seeds, 60 s, **within every limit (margins 0.74, 0.73, 0.32), no fall**, but once
+  trotting nothing passes as a way out: the robot trots 95 % of the minute (calf: 55 % fast, 31 % stand, 14 %
+  step). Read back by the same reader: 95 % fast. Before the transitions were checked it went 42 / 22 / 36 %
+  stand / step / fast and over sustained torque in every seed (-3.0). **The vocabulary lacks a stop: a trot that
+  ends on square hooves** (next sessions).
+* Cost per body at 8 x 8: 392 evaluations, about 10 minutes of physics uncached (236 new plays took 351 s), 44 s
+  when cached (transitions and three minutes of performance included). Inside a repertoire evolution that is a
+  once-per-body step on a small budget, not per candidate of a large run.
 * For comparison (ADR-084): Make feasible kept character 0.19 and 0.24 of the 111941 clips (scratch project).
 * Gaps, never approximated: head and neck (the nose moves 2.0 body lengths/s against the shoulders in the fast
   stretches), tail, hind hip swing (femur fixed), front ab/adduction, spine, fetlock and pastern, airborne
   movement.
+
+*Decision 6: transitions in physics* (`check_transitions`): every pair the performance may take is played (A for
+its median duration, then B) and judged with the same limits and buffer; failing pairs are dropped and listed.
 
 *Assumptions (VERIFY):* every threshold of `ReadingSettings`; paw speed as the stance cue; the face cue's gain
 and dead zone; feature weights and scales (`MATCH`, `TARGETS`); kept = 0.8-1.25x; the 0.05 buffer; the variation

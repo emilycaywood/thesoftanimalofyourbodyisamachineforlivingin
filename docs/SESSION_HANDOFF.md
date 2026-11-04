@@ -2,7 +2,9 @@
 
 Everything a new Claude Code session (or a new collaborator) needs to pick up
 CALFLAB. Last updated 2026-11-03 on branch `robot-calf-final` (cut from
-`chassis-mass`), after session P: clips judged in physics and made feasible
+`chassis-mass`), after session Q: the calf's movement read and interpreted as
+the robot's own (section 4, "Added in session Q", ADR-085); before it session
+P: clips judged in physics and made feasible
 (section 4, "Added after session X2"; before it session X2: each leg's bend
 over the window, repeated frames; session X: the hind Knee at the hock, clip
 smoothing; the 3D lift and the review player; and session T: video inbox,
@@ -988,6 +990,61 @@ component values not touched. Nothing installed:**
 on port 8020 was not running). All need review; `213625` has a broken fit and `214239` legs exchanged by the
 tracker in 61 % of frames. Details in next session Q (section 7).
 
+**Added in session Q (interpretation, not copy; ADR-085). Belts, joint ranges and component values not touched.
+Nothing installed. `adapt_clip` kept as a diagnostic:**
+
+* **The footage, looked at on the frames:**
+  * **214239**: the calf faces the camera in a front quarter view; the lift had chosen the turned-away mirror (the
+    side-confidence cue fails when both sides are visible). Lift maps may now name `face` landmarks (the eyes; in
+    `ap10k_3d` and your `ap10k_3d_hock`): a seen face favours "toward" beyond 20 deg of yaw. Now yaw +30, frames
+    0-~100 read as the tracker's leg labels exchanged (they are: opposite to its eye labels). 111941, 213333 and
+    213904 lift **bit for bit as before**. Re-analysed in the project (`reanalyse_video`, 214239 and 213625).
+  * **213625: unusable**, with the reason recorded: a ~93 px calf bucking at a panning hand-held camera, 64 %
+    unreliable. Its 364 deg "turn" was a heading unwrapped through unreliable frames: turns are now summed only
+    between reliable frames (reading and inbox candidates).
+  * **At least four different calves** (Jersey with a ball; dark red calf; Hereford cross; tan calf).
+  * **The camera moves** in 111941, 213333, 213904 (2-5 body lengths/s of ground shift, measured): travel is not
+    read there, turns are.
+* **Reading** (`read_footage`, `reading_report`; `footage/readings/<id>.json`, schema version 1): stand, weight
+  shift, step, walk, turn, other (fast), each stretch with rule, features, confidence; contact from the paws'
+  speed over the ground (lifted hoof heights drift 70-90 mm while the paws stand still); character per behaviour;
+  a semi-Markov model with per-video counts; a support statement; the gaps. `read_footage synthetic=[...]` reads a
+  known sequence (no footage needed).
+* **What your 28.5 s carry:** 21.1 s read; 8 stretches: other/fast 5 (55 %), stand 2 (31 %), step 1 (14 %); 2
+  transitions. Enough for which behaviours and their rough character; not for transition probabilities or
+  duration distributions.
+* **Vocabulary**: new plugin type `motion_primitive` (contract, template): `stand`, `weight_shift`, `step` (poses
+  solved with every hoof planted, centre of mass inside the tripod; controller `weight_shift`), `walk`, `turn`
+  (feral_motion `stride`/`turn`, defaults unchanged bit for bit), `trot`, `lie_rise`. **Turning in place hardly
+  works on this body** (0.6 deg/s, over several limits).
+* **Interpretation** (`interpret_footage`, `interpretation_report`, run kind `interpret`): per behaviour a CMA-ES
+  (8 x 8) over each candidate primitive, played in physics with torque-speed servos and read back by the same
+  reader; the closest within every limit with margin 0.2 + 0.05. Record per feature: kept / exaggerated / reduced /
+  reversed / dropped, with the limit that stopped it. Cached per body (`.cache/interpret`).
+* **Performance**: controller `interpreted` draws behaviours, durations and parameters (only slower and smaller)
+  from the model; switches only at safe phases.
+* **Results on robot-calf-final** (runs `20261104-042001-interpret-4d7f` and `-042426-interpret-ef3c`, margin 0.2;
+  table in ADR-085):
+  * stand -> a small weight shift (margin 0.84): roll and pitch kept;
+  * step -> a slow step on three hooves (0.28): rate, amplitude and sway reduced, held back by sustained servo torque;
+  * fast play -> a slow trot (0.71): turn kept, tempo slower; vigour, pitch and heave dropped (closer candidates over
+    sustained torque, joint speed, envelope, belts). With the first, smaller budget (6 x 3) neither step nor trot had a
+    candidate within limits: the default is now 8 x 8;
+  * the gaits as they are: walk margin -2.48, trot -1.2; no walk variant held;
+  * **transitions played in physics**: stand -> step, trot -> stand and trot -> step go over sustained shoulder torque
+    (the shift and step poses are solved over standing hooves; a trot leaves them spread): dropped;
+  * **performance**: 3 x 60 s within every limit, no fall, but once trotting there is no way out: 95 % trot (calf 55 %
+    fast, 31 % stand, 14 % step). Before transitions were checked: 42 / 22 / 36 % and over sustained torque in every
+    seed. **The vocabulary lacks a trot that stops on square hooves** (Q4).
+  * Cost per body at 8 x 8: about 10 min of physics uncached, 44 s cached.
+* **Behave panel**: section *Interpretation* (Read footage, Interpret) shows the stored report: support, a time strip
+  (calf stretches per video, click opens the frames in the Review; robot episodes and limits per seed, click seeks
+  the replay), shares, durations, transitions, features, the records, the gaits as they are and interpreted, the
+  performances, the gaps, ADR-084's character scores.
+* Tests: `tests/test_reading.py` (7), `tests/test_primitives.py` (12), `tests/test_interpret.py` (4),
+  `web/e2e/interpret.spec.ts`. `calflab test` passes: ruff, 502 pytest tests (7.6 min), mypy, web typecheck and eslint, 14 Vitest, 13 Playwright tests.
+* Launch entry `calflab-q`: scratch copy `projects/_scratch-q` (not in git).
+
 **Scaffolded only (interfaces + tests, no behaviour):** PPO training, MJX
 simulator, RemoteSSH and CloudNotebook transports (job bundling is real),
 imitation reward, interactive selection, molds, skin patterns, nesting,
@@ -1025,6 +1082,23 @@ Journal, Rhino bridge):**
   Properties, entry in Overrides).
 * `doctor` warned "uv not found" on top of the three expected warnings:
   false alarm, fixed (see Tests above).
+
+**The researcher must verify (new in session Q, ADR-085):**
+
+* **Restart the lab on port 8020**, open Behave > *Interpretation*: the stored report of run `20261104-042426-interpret-ef3c` is there. Click a
+  calf stretch: the Review should open at its first frame.
+* **The reading against what you see**: the 8 stretches (time strip). Are 111941, 213333, 213904 really fast play
+  (other), 214239 a stand, a hop, a step and a stand? Tell me where a stretch really starts and ends: the thresholds
+  are first guesses (`ReadingSettings`).
+* **214239 frames 0-100**: the tracker labels the legs opposite to the eyes there (the lift now reads them as
+  exchanged). Look at frames 0 and 112 with points drawn.
+* **213625 left out**: say if you would rather keep its few reliable frames.
+* **The four calves**: is any pair the same animal?
+* **The interpretation's choices**: feature weights, kept = 0.8-1.25x, the 0.05 buffer, parameters varied only
+  slower and smaller, tempo 1:1 (no scaling for size), the freed leg from the calf's lean.
+* **Watch the performance** (replay of the run, seed 0): a slow trot for the whole minute, within every limit.
+  With these servos (unverified, 1.3 kg as entered) and margin 0.2 the calf's vigour, pitch and heave are out of
+  reach and the trot cannot yet stop (Q4). P3 (sensitivity) tells which missing value would change that most.
 
 **The researcher must verify (new in session P, ADR-084):**
 
@@ -1258,7 +1332,7 @@ Journal, Rhino bridge):**
 |---|---|
 | `CLAUDE.md` | Conventions for every session (loaded automatically) |
 | `PLAN.md` | Architecture, module boundaries, data flow, phases, risks, status |
-| `DECISIONS.md` | ADR log: every assumption (84 so far) |
+| `DECISIONS.md` | ADR log: every assumption (85 so far) |
 | `docs/proposals/anatomical-leg.md` | Proposal for a three-segment leg (set aside 2026-10-04; not built) |
 | `docs/USER_GUIDE.md` | How to use the lab |
 | `docs/CHAT_GUIDE_PROMPT.md` | Prompt that makes a chat assistant a guide to the whole lab |
@@ -1274,66 +1348,32 @@ Journal, Rhino bridge):**
 
 Prefix each with the opening message from section 1.
 
-**Q. Interpreting a cow's movement into movement this robot can perform** (recommended next;
-written 2026-11-03 after the four new videos were processed.)
-> **The idea.** Between the video and the robot there has to be an act of interpretation, not a copy. Replaying
-> the calf's joint angles fails on this body (ADR-084): the adapted clips become slow sways on four planted hooves
-> that keep about a fifth of the character, at 4–8 minutes of physics per clip per body. The body itself moves
-> well when the movement is its own: its trot and walk balance by timing on two or three hooves under the
-> torque-speed servos. So read what the calf does (which behaviour, when, with what timing, weight, vigour and
-> direction), then translate it into the robot's own movements, as an animator or a puppeteer would. Every step of
-> that translation is explicit, recorded, and in the core; the UI only shows it.
->
-> **The footage.** `projects/robot-calf-final/footage/videos` holds five screen recordings (13–48 % repeated
-> frames, re-timed), all lifted in 3D with map `ap10k_3d_hock`, bends over the window. Every candidate is
-> "other"; no regular gait was found.
-> * `111941` (7.5 s): 82 % reliable; c1 0–109 (turns 61° left), c2 140–225 (turns 52° right).
-> * `213333` (1.8 s): 89 % reliable; c1 0–54, turns 43° right; the camera may move.
-> * `213625` (6.0 s): **36 % reliable, the fit is broken** (heading spins over 600°; c1 "turns" 364° in 0.9 s).
->   Find out why on the frames (the depth flip, a pan, the tracker), fix the cause in the core if it is general,
->   or mark the video unusable with the reason.
-> * `213904` (3.0 s): 86 % reliable, seen at 41° yaw, residual 38 px; c1 0–91 turns 103° right; the camera may
->   move.
-> * `214239` (10.3 s): 92 % reliable, but **the tracker exchanged left and right legs in 61 % of frames**, and it
->   is turned away from the camera. Check on the frames whether the exchange is real or a labelling problem, and
->   fix it before using this video, which has the longest stretch (c2 65–310, 8.1 s).
->
-> Trunk length fits 1.46–1.55 times the robot's in the four good videos (probably one calf); width is the 0.35
-> prior throughout.
->
-> **Build:**
-> 1. **Reading.** From all usable videos, label stretches as behaviours (stand, weight shift, step, walk, turn,
->    other), each with its evidence (frames, features, confidence). Per behaviour, extract what can be interpreted
->    rather than copied: tempo and phrasing, amplitude, quantity of motion, footfall order and duty factor from
->    hoof heights, trunk sway, pitch and turn, lean direction, how abrupt starts and stops are. Fit a semi-Markov
->    model (transitions, durations), pooled with each video's contribution kept. Store it versioned and
->    schema-validated with provenance. Keep my affect tags attached. Say how much about 29 s of footage can
->    support.
-> 2. **The robot's vocabulary.** Motion primitives that balance on this body by construction: the existing stand,
->    walk, trot and lie/rise, plus a weight shift (body moved over three hooves and back; `calflab.behave.stance`
->    can design it) and a turn in place if the body allows it. Each has a few parameters with a Pydantic schema,
->    and declares its safe blend phases.
-> 3. **Interpretation.** For each read behaviour, choose and parameterise a primitive so the robot's movement
->    features (from a short physics play) come closest to the calf's, within every limit with margin 0.2
->    (torque-speed servos, belts, springs, the existing safety constraints). Use a small CMA-ES search, cached per
->    body. Record each mapping as an interpretation: what was read, what the robot does instead, what was kept,
->    exaggerated, reduced or dropped, and why (which limit). Report the cost per body, so we know whether this fits
->    inside the repertoire evolution. The gaits already go over joint speed and the envelope at margin 0.2: show
->    what interpretation does about that.
-> 4. **Performance.** The behaviors controller (or a new controller plugin) samples behaviours and durations from
->    the model and parameters from the fitted spread, blending only at safe phases. Play 60 s with three seeds,
->    judged with `play_in_physics`-style reports.
-> 5. **Comparison.** In the Behave panel, as a stored report, side by side with the calf: behaviour shares,
->    transitions, durations, features per behaviour, the interpretation record, falls and margins, plus ADR-084's
->    character scores for the adapted clips. A time strip marks behaviours and limits, and clicking a behaviour
->    opens its source frames in the Review.
-> 6. **Gaps.** List what the calf did that the robot cannot express (head and neck, joints it lacks); never
->    approximate those silently.
->
-> Tests: reading on synthetic footage with a known behaviour sequence; primitive contracts; interpretation of a
-> short synthetic target; determinism with a seed; a Playwright check of the new report. Add an ADR, update the
-> user guide and the handoff, and run `.\calflab.ps1 test`. Do not change the belts, the joint ranges or any
-> component values. Keep `adapt_clip` as a diagnostic.
+**Q2. Interpretation inside the repertoire evolution** (recommended next; written after session Q, ADR-085.)
+> In projects/robot-calf-final, interpretation (run `20261104-042426-interpret-ef3c`) found how this body can say the calf's stand, step and
+> fast play within every limit at margin 0.2, at about 10 minutes per body uncached. Make that a fitness: per candidate
+> body, interpret the reading on a small budget (reuse the cache when the body is unchanged), score how many
+> features are kept and how close (the distance), and require the performance to stay within limits over three
+> seeds. Run Estimate cost first and show me the budget. Then a small evolution (proportions within the belts,
+> springs) on archive axes "features kept" x "safety margin": does another body keep more of the fast play? Do not
+> change the belts, joint ranges or component values.
+
+**Q3. The reading against my own labels**
+> The reading's thresholds (paw swing speed, stillness, step/walk/turn/fast rules) are first guesses. Let me mark
+> stretches by hand in the Review (start, end, behaviour; stored beside the reading, never mixed with it), then
+> compare the reader's stretches with mine per video (agreement, boundary error), and tune the thresholds on the
+> videos I marked, keeping one video out to check. Show which threshold mattered. If I drop calmer videos (walking,
+> grazing, weight shifting) read them too, and say how the model and the interpretation change.
+
+**Q4. A trot that stops, steps that go somewhere**
+> In projects/robot-calf-final the interpreted performance (ADR-085) gets stuck trotting: played in physics, trot ->
+> stand and trot -> step go over sustained shoulder torque, because the weight shift and step poses are solved over
+> the standing hooves and a trot leaves them spread. Add the missing primitives: a stop that ends a trot (or walk)
+> with the hooves back under the body (the last cycles shortened onto square hooves, judged in physics), and a step
+> that places a hoof somewhere (forward, back or sideways by a few cm, solved over the tripod). Re-run the
+> interpretation of my reading with transitions checked: what share of the minute is then stand / step / fast, and
+> are the margins still 0.2? Do not change the belts, joint ranges or component values.
+
+*(Q, interpreting the calf's movement as the robot's own, was done in session Q: ADR-085.)*
 
 **P2. Feasible versions that step**
 (written 2026-11-03 after session P, ADR-084.)

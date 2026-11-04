@@ -159,10 +159,14 @@ class InterpretedController(Controller):
                     self.ep["unsafe_switch"] = True  # type: ignore[index]
                 row = p.transitions.get(self.state.name)  # type: ignore[attr-defined]
                 if row is not None and not any(v > 0 for v in row.values()):
-                    nxt = self.state.name  # every way out was dropped as over a limit: stay (logged as a new episode)
+                    # every way out was dropped as over a limit: carry on with the same primitive (not restarted)
+                    d = self.state.duration
+                    self.end = t + float(np.clip(math.exp(self.rng.normal(d.log_mean, d.log_sd)), d.min_s, d.max_s))
+                    assert self.ep is not None
+                    self.ep["extended"] = int(self.ep.get("extended", 0)) + 1
                 else:
                     nxt = self._draw(row or p.initial or {}, exclude=self.state.name)  # type: ignore[attr-defined]
-                self._start(t, nxt, waited)
+                    self._start(t, nxt, waited)
         assert self.sub is not None
         sub_obs = Observation(t=t - self.t0, q=obs.q, dq=obs.dq, trunk_quat=obs.trunk_quat, trunk_gyro=obs.trunk_gyro,
                               foot_contact=obs.foot_contact)
