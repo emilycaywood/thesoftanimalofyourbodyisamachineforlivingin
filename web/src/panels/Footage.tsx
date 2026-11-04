@@ -11,6 +11,7 @@ import { replayRun } from "@/commands/registry";
 import { SchemaForm } from "@/components/SchemaForm";
 import { Badge, Button, Section, fmt } from "@/components/ui";
 import { useLab } from "@/store/lab";
+import { PhysicsActions } from "./Physics";
 
 export interface Candidate {
   id: string;
@@ -435,6 +436,8 @@ export function CandidateReview({ video, say }: { video: VideoRow; say: Say }) {
             </Button>
             {report && <span className="text-[11px] text-dim" data-testid="candidate-report">{report.verdict}: {report.note}</span>}
           </div>
+          <PhysicsActions source={{ file: video.file, candidate: cand.id, start: range[0], end: range[1], far_side: String(form.far_side ?? "") }}
+            onSeekVideo={(f) => { setPlaying(false); setFrame(f); }} />
           {motion && (
             <div className="mt-0.5 text-[10px] text-dim" data-testid="candidate-motion">
               turns {fmt(motion.turn_deg ?? 0, 0)}° (heading {fmt(motion.heading_range_deg?.[0] ?? 0, 0)}…{fmt(motion.heading_range_deg?.[1] ?? 0, 0)}°) · travels {fmt((motion.travel_mm ?? 0) / 1000, 2)} m

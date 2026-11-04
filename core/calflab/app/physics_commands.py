@@ -113,11 +113,15 @@ class PhysicsReport(Command):
     category = "Behave"
 
     class Params(BaseModel):
-        run: str = P("", desc="Run id; empty = list the latest physics and adapt runs.")
+        run: str = P("", desc="Run id; empty = list the latest physics and adapt runs (of one clip or candidate if given).")
+        clip: str = P("", desc="List only this clip's runs.")
+        file: str = P("", desc="List only the runs of this video's candidate...")
+        candidate: str = P("", desc="...this candidate.")
 
     def run(self, lab: Any, state: Any) -> Any:
         from calflab.app.physics_jobs import physics_run_view, physics_runs
 
-        if not self.params.run:  # type: ignore[attr-defined]
-            return {"runs": physics_runs(lab)}
+        p = self.params
+        if not p.run:  # type: ignore[attr-defined]
+            return {"runs": physics_runs(lab, 30, p.clip, p.file, p.candidate)}  # type: ignore[attr-defined]
         return _call(physics_run_view, lab, self.params.run)  # type: ignore[attr-defined]

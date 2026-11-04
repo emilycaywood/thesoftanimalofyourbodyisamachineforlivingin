@@ -12,6 +12,7 @@ import { usePlayback } from "@/store/playback";
 import { RoleForm } from "./Design";
 import { CompositionStudy } from "./Composition";
 import { CandidateReview, FootageInbox, type InboxData } from "./Footage";
+import { PhysicsActions } from "./Physics";
 
 interface JointRow {
   joint: string;
@@ -147,6 +148,7 @@ export function BehavePanel() {
                   </span>
                 </div>
                 {c.report && <div className="text-[10px] text-dim">{c.report.note}</div>}
+                <PhysicsActions source={{ clip: c.id }} />
                 <div className="flex flex-wrap items-center gap-1 text-[10px]" data-testid={`clip-tags-${c.id}`}>
                   {c.affect ? (
                     <>

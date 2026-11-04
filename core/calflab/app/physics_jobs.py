@@ -361,15 +361,24 @@ def physics_run_view(lab: Any, run_id: str) -> dict[str, Any]:
             **read_json(lab.project.resolve(rec.artifacts["report"]))}
 
 
-def physics_runs(lab: Any, limit: int = 30) -> list[dict[str, Any]]:
-    """The latest physics and adapt runs with their source, for listing beside the clips and candidates."""
+def physics_runs(lab: Any, limit: int = 30, clip: str = "", file: str = "", candidate: str = "") -> list[dict[str, Any]]:
+    """The latest physics and adapt runs, newest first, with their source and metrics; only those of one clip or
+    one candidate if given. The as-retargeted plays inside an adapt run are left out (their adapt run lists them)."""
     out: list[dict[str, Any]] = []
     for kind in ("adapt", "physics"):
-        for r in lab.registry.list_runs(kind, limit):
+        for r in lab.registry.list_runs(kind, 500):
             try:
                 rec = lab.registry.get_run(r["id"])
             except Exception:
                 continue
-            out.append({**r, "source": rec.inputs.get("source"), "metrics": rec.metrics})
+            src = rec.inputs.get("source") or {}
+            if src.get("as") == "retargeted":
+                continue
+            if clip and not (src.get("kind") == "clip" and src.get("clip") == clip):
+                continue
+            if (file or candidate) and not (src.get("kind") == "candidate" and src.get("file") == file
+                                            and src.get("candidate") == candidate):
+                continue
+            out.append({**r, "source": src, "metrics": rec.metrics})
     out.sort(key=lambda r: (r["created"], r["id"]), reverse=True)
     return out[:limit]
