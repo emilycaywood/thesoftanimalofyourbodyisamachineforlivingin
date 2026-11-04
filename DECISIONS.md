@@ -3409,3 +3409,51 @@ Belts pass, the body is feasible, and the mass is unchanged (1304 g). The hooves
 (203 / 185 mm from the centre line), and the standing height is 607 mm. Step 3 measured this body: vigour 0.517,
 worst margin -0.28 (the trot). The walk, stand, step and fast play are within every limit at margin 0.2 on
 three seeds.
+
+## ADR-093 — Behaviour diversity on a fixed body: MAP-Elites over a behaviour generator (**VERIFY**)
+
+*Context.* The researcher redirected session R from refining a body for five fixed motions to new, unprogrammed
+behaviour: sampled, surprising and reconfigured (ADR-092). They accepted this proposal: the body stays fixed, a
+behaviour generator evolves, the archive axes are movement features, every limit at margin 0.2 on three seeds
+is required, and within a cell headroom and unpredictability are preferred. Calf-likeness is not scored.
+
+*Decisions* (`calflab.evolve.diversity`, optimizer `map_elites_behaviour`, preset `diversity`):
+* **Generator.** One vector in [0, 1]^53 decodes into an `interpreted` controller, a semi-Markov chain that
+  switches only where every hoof is down.
+  * **Palette:** stand, a weight shift and a step onto either hind leg, walk, trot, turn. A state is kept only
+    if its primitive fits the body. Each primitive's parameters are free over its own vector range: the
+    interpretation's one-primitive-per-behaviour assignment is gone.
+  * **Sequence:** per state a weight, a place and a typical duration (0.8-8 s, log-sd 0.4).
+    P(i -> j) ~ w_j exp(-s |p_i - p_j|), with one sharpness gene s (0-8): high s wanders between neighbouring
+    states, low s jumps anywhere. One more gene sets the cross-fade (0.2-1.5 s). Assumption: this low-rank form,
+    rather than a full transition matrix (56 genes), is enough to reach both wandering and jumping sequences.
+* **Evaluation.** 24 s per seed on the preset's three seeds, friction 0.7-1.1, mass x0.95-1.05, torque-speed
+  servos, derating 1. Judged with every limit lowered by the margin. A seed over a limit ends the evaluation.
+* **Unpredictability** = the chain's entropy rate (stationary distribution) over log2(n - 1).
+* **Fitness** = (+1 if safe else -1) + min(1, worst margin) + 0.5 x unpredictability.
+  * A safe candidate always displaces an unsafe one.
+  * Unsafe candidates may hold a cell until then. Without that, generation 0 is empty and there is nothing to
+    vary: 0 of 14 uniformly random generators, and 0 of 14 around the primitives' defaults, were safe.
+  * Only safe cells are results, and the archive view marks each cell.
+* **Start.** Before generation 0, each state is searched alone (seed 0, 1 + 4 x 2 plays) for a setting within
+  the limits as close to its defaults as found. On the working body:
+  * stand, both weight shifts, walk and turn have such a setting;
+  * the steps and the trot do not. Their weight starts low (0-0.1), and evolution may raise it.
+  * Generation 0 is then the sequence genes uniform, and each primitive's parameters around its setting
+    (spread 0.1).
+* **Commanded joint speed** is capped at 0.95 x (1 - margin) = 0.76 of each servo's speed. The interpreted
+  controller's own 0.9 is above the margin-lowered limit (0.8), and joint speed was the limit nearly every
+  sampled sequence went over.
+* **Axes.** Default quantity of motion (0-15 deg/s; about 1-10 on this body) x tempo regularity (0-1). New
+  descriptors: `tempo_regularity`, `stillness_ratio`, `unpredictability`.
+* The body's own evolve defaults (ADR-070: body axes, 9.5 s rollouts) are not applied to an optimizer with
+  `body_defaults = False`. Estimate cost uses the optimizer's own `duration_s`.
+
+*Trials* (runs `20261104-175905-evolve-8d26`, before the speed cap and the axis fix; and
+`20261104-180218-evolve-ce75`, 3 x 14, 180 s):
+* After 3 generations, 3 safe cells:
+  * a calm stand + weight shift (margin +0.88);
+  * shift / stand / turn / walk (+0.03, unpredictability 0.68);
+  * shift / stand / step / walk (+0.00, 0.58).
+* Several unsafe cells were within 0.01 of the margin.
+* Estimate: 10 x 28 is about 9 min on 7 workers (1.0 h CPU), plus about 70 s finding the start settings.

@@ -3,7 +3,7 @@
 Everything a new Claude Code session (or a new collaborator) needs to pick up
 CALFLAB. Last updated 2026-11-04 on branch `robot-calf-final` (cut from
 `chassis-mass`), during session R (a body for vigorous movement; steps 1-2 of 6
-done, plus wider blocks and hip springs; step 3 done (vigour preset), step 4's first run done; waiting for the researcher; section 4, "Session R", ADR-086..091); before it
+done, plus wider blocks and hip springs; steps 3-4 done; then redirected to behaviour diversity on the wide-block body, built and tried, waiting for the researcher to choose the budget; section 4, "Session R", ADR-086..093); before it
 session Q: the calf's movement read and interpreted as
 the robot's own (section 4, "Added in session Q", ADR-085); before it session
 P: clips judged in physics and made feasible
@@ -1095,7 +1095,20 @@ values not touched; nothing installed.
   fitness +0.228, vigour 0.36, worst -0.13; trot, stand, step and fast play within limits on 3 seeds, the walk
   not. No body keeps the walk. The search stayed near the start (blocks widened at most 18 / 39 mm), so step 3's
   hand-made body E (vigour 0.517) is still better.
-* Next: the researcher decides whether to run again from body E before step 5 (R4 in section 7).
+* **Redirected (ADR-092)**: the researcher asked whether the work was losing its focus on new, unprogrammed
+  behaviour. The wide-block body (E) is now the project's working body (one `set_genes`), and steps 5-6 are set
+  aside.
+* **Behaviour diversity (ADR-093)**: `calflab.evolve.diversity`, optimizer `map_elites_behaviour`, preset
+  `diversity`.
+  * Body fixed. A 53-gene generator decodes into an `interpreted` chain over a palette: stand, weight shifts,
+    steps, walk, trot, turn, parameters free.
+  * 24 s on 3 randomised seeds at margin 0.2. Axes: quantity of motion (0-15 deg/s) x tempo regularity.
+  * Safe always beats unsafe; within that, headroom + 0.5 x unpredictability.
+  * Each state is first searched alone for a setting within the limits. The steps and the trot have none on
+    this body.
+  * Joint speed commanded at 0.76 of the servo's.
+  * Trial 3 x 14 (180 s): 3 safe cells. The project's fitness node is now `diversity` (`set_node_params`).
+* Next: the researcher chooses the budget (R5 in section 7).
 
 **Scaffolded only (interfaces + tests, no behaviour):** PPO training, MJX
 simulator, RemoteSSH and CloudNotebook transports (job bundling is real),
@@ -1384,7 +1397,7 @@ Journal, Rhino bridge):**
 |---|---|
 | `CLAUDE.md` | Conventions for every session (loaded automatically) |
 | `PLAN.md` | Architecture, module boundaries, data flow, phases, risks, status |
-| `DECISIONS.md` | ADR log: every assumption (91 so far) |
+| `DECISIONS.md` | ADR log: every assumption (93 so far) |
 | `docs/proposals/anatomical-leg.md` | Proposal for a three-segment leg (set aside 2026-10-04; not built) |
 | `docs/USER_GUIDE.md` | How to use the lab |
 | `docs/CHAT_GUIDE_PROMPT.md` | Prompt that makes a chat assistant a guide to the whole lab |
@@ -1400,14 +1413,17 @@ Journal, Rhino bridge):**
 
 Prefix each with the opening message from section 1.
 
-**R4. Session R, step 4 again, from the wide-block body** (recommended next; written 2026-11-04 after the
-first step 4 run, ADR-086..091.)
-> Continue session R in projects/robot-calf-final (`docs/studies/evolve_r4.md`). The first run (6 x 8) stayed
-> near the narrow starting body. Set the document's genes to body E of `docs/studies/width_r2c.md` with set_genes:
-> hind / front splay 6 / 5.25 deg, hip / chest blocks +59.6 / +52.2 mm, hip springs on, springs holding the
-> weight. Then evolve again with preset vigour, 6 x 8, inner 2 x 4, archive vigour_kept x worst_margin. Show the
-> archive as before and compare it with the first run. Then step 5: a stop that ends a trot or walk on square
-> hooves, with every transition checked in physics on the best body.
+**R5. Behaviour diversity on the working body** (recommended next; written 2026-11-04, ADR-092, ADR-093.)
+> In projects/robot-calf-final (working body = the wide-block body, ADR-092), run MAP-Elites over behaviour
+> (optimizer map_elites_behaviour, preset diversity) with the budget I chose: <generations x batch>. Then show
+> the archive:
+> * which kinds of movement are within every limit at margin 0.2 on three seeds;
+> * what each safe cell's generator does (states played, sequence, durations, unpredictability);
+> * which movements never become safe, and which limit stops them;
+> * how far the safe region spreads on quantity of motion x tempo regularity.
+>
+> Play the three most different safe cells as 60 s performances with a full physics report. Do not change the
+> body, the belts or the component values.
 
 **Q2. Interpretation inside the repertoire evolution** (recommended next; written after session Q, ADR-085.)
 > In projects/robot-calf-final, interpretation (run `20261104-042426-interpret-ef3c`) found how this body can say the calf's stand, step and

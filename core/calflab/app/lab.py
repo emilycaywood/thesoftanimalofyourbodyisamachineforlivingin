@@ -674,6 +674,9 @@ class Lab:
             evo = dict(genome_definition(g.role("genome").type.split(":", 1)[1]).evolve)
         except (KeyError, ValueError):
             evo = {}
+        if registry.has("optimizer", optimizer) and not getattr(registry.get("optimizer", optimizer),
+                                                                "body_defaults", True):
+            evo = {}  # an optimizer that keeps the body (ADR-093) has its own axes and length
         evo_sim = dict(evo.pop("sim", {}) or {})
         params = {**{k: v for k, v in evo.items() if k in (registry.get("optimizer", optimizer).Params.model_fields
                                                             if registry.has("optimizer", optimizer) else {})},
@@ -862,6 +865,9 @@ class Lab:
             evo = dict(genome_definition(g.role("genome").type.split(":", 1)[1]).evolve)
         except (KeyError, ValueError):
             evo = {}
+        if registry.has("optimizer", optimizer) and not getattr(registry.get("optimizer", optimizer),
+                                                                "body_defaults", True):
+            evo = {}  # an optimizer that keeps the body (ADR-093) has its own axes and length
         evo_sim = dict(evo.pop("sim", {}) or {})
         cls = registry.get("optimizer", optimizer)
         p = cls.Params.model_validate({**{k: v for k, v in evo.items() if k in cls.Params.model_fields}, **(params or {})})
@@ -879,7 +885,8 @@ class Lab:
         per_sim_s = (time.perf_counter() - t0) / (probe_s + float(sim_p.get("settle_s", 0.4)))
         backend = registry.get("compute_backend", self.backend_key)()
         workers = int(getattr(backend, "n_workers", lambda: 1)())
-        duration = float(sim_p.get("duration_s", 6.0)) + float(sim_p.get("settle_s", 0.4))
+        # an optimizer with its own performance length (map_elites_behaviour, ADR-093) plays that long
+        duration = float(getattr(p, "duration_s", None) or sim_p.get("duration_s", 6.0)) + float(sim_p.get("settle_s", 0.4))
 
         def cost(gens: int, batch: int, iters: int, pop: int) -> dict[str, Any]:
             rollouts = gens * batch * (1 + iters * pop) * seeds

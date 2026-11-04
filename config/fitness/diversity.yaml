@@ -1,0 +1,19 @@
+# Fitness preset: behaviour diversity on a fixed body (ADR-093), with the optimizer map_elites_behaviour.
+# The optimizer scores each behaviour generator itself (worst margin + unpredictability); this preset gives the
+# seeds and the randomisation every candidate is judged over. Bump `version` whenever you change it.
+name: diversity
+version: 1
+description: >
+  Behaviours the body can perform within every limit at margin 0.2 on three seeds (friction 0.7-1.1, mass
+  x0.95-1.05), archived by movement features; within a cell, the one with the most headroom and the least
+  predictable sequence is kept. Use with the optimizer "MAP-Elites over behaviour".
+terms:
+  - {term: survival, weight: 0.0}   # recorded only; the optimizer computes the fitness (ADR-093)
+evaluation:
+  seeds: [0, 1, 2]
+  randomize: true
+  friction: [0.7, 1.1]
+  mass_scale: [0.95, 1.05]
+  aggregate: worst
+  torque_derating: 1.0
+  servo_model: torque_speed

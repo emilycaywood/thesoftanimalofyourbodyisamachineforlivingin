@@ -972,6 +972,33 @@ bound. A body takes about 55-60 plays, a little over a minute of one core.
 Each candidate's metrics list every motion's setting, kept share, margin
 and seeds. *Simulate candidate* plays its walk.
 
+#### Behaviour diversity: what this body can do (ADR-093)
+
+Optimizer **MAP-Elites over behaviour** with fitness preset **diversity**
+keeps the body as it is. What evolves is a *behaviour generator*:
+* **which movements:** stand, weight shifts, steps, walk, trot and turn,
+  each with its own parameters free;
+* **how they follow one another:** a chain that either wanders between
+  related movements or jumps anywhere;
+* **how long each lasts, and the cross-fade.**
+
+Each generator plays 24 s on three seeds with friction and mass varied, and
+is judged against every limit at margin 0.2. The archive spreads them by
+what the robot actually did: by default *Quantity of motion* x *Tempo
+regularity* (rhythmic versus irregular). Also available are *Stillness
+ratio*, *Expressive range* and *Unpredictability*.
+
+Within a cell, a generator that stays within every limit always beats one
+that does not. Among those within the limits, more headroom and a less
+predictable sequence win. The heatmap marks which cells are within the
+limits; only those are results. *Simulate candidate* plays a cell's
+generator.
+
+Before the first generation, the run spends about a minute finding, for
+each movement on its own, a setting within the limits; the first generation
+starts around those. **Estimate cost** shows the run's length.
+How much the robot resembles the calf is not scored.
+
 #### Proportions: comparing bodies instead of finding one
 
 The lab has three ways to look for a better body or gait:

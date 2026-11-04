@@ -15,6 +15,7 @@ from calflab.builtin import joint_types, outputs, primitives, simulators, stubs 
 from calflab.compute import local, remote  # noqa: F401
 from calflab.control import behaviors, cpg, feral_motion, interpreted, weight_shift  # noqa: F401
 from calflab.evolve import (
+    diversity,  # noqa: F401
     map_elites,  # noqa: F401
     vigour,  # noqa: F401
 )
