@@ -1113,7 +1113,18 @@ values not touched; nothing installed.
   * Safe region: QoM 1.3-6.9 deg/s, regularity 0.21-0.80, unpredictability up to 0.78.
   * Bounded by sustained servo torque. Trot and steps almost never safe.
   * Three cells picked to play at 60 s: (0,5) calm, (2,2) irregular, (4,6) active.
-* Next: play those three as 60 s performances with full physics reports (the second half of R5).
+* **Assessment (2026-11-04, with the researcher): how organic is it?** Partly successful.
+  * Works: unscripted sequences, judged in full physics, within the limits, varied from still to ambling.
+  * Falls short:
+    1. Vigour: the most active safe behaviour is 6.9 deg/s; the calf stands at 3.0, steps at 18.3 and plays at
+       76.8. The ceiling is the servos' sustained torque.
+    2. The primitives themselves are hand-written: nothing within a movement evolves.
+    3. Switches come only at all-hooves-down moments, with a fixed cross-fade.
+    4. "Organic" is so far only kinematic proxies. Nothing has been watched yet.
+    5. The body was fixed during the run.
+  * Next, in order: R6 (watch three performances); then R7 (movement quality, software) or R8 (vigour,
+    hardware), depending on what the researcher sees.
+* Next: R6 in section 7.
 
 **Scaffolded only (interfaces + tests, no behaviour):** PPO training, MJX
 simulator, RemoteSSH and CloudNotebook transports (job bundling is real),
@@ -1418,17 +1429,30 @@ Journal, Rhino bridge):**
 
 Prefix each with the opening message from section 1.
 
-**R5. Behaviour diversity on the working body** (recommended next; written 2026-11-04, ADR-092, ADR-093.)
-> In projects/robot-calf-final (working body = the wide-block body, ADR-092), run MAP-Elites over behaviour
-> (optimizer map_elites_behaviour, preset diversity) with the budget I chose: <generations x batch>. Then show
-> the archive:
-> * which kinds of movement are within every limit at margin 0.2 on three seeds;
-> * what each safe cell's generator does (states played, sequence, durations, unpredictability);
-> * which movements never become safe, and which limit stops them;
-> * how far the safe region spreads on quantity of motion x tempo regularity.
+**R6. Watch three evolved behaviours** (recommended next; written 2026-11-04, ADR-093, ADR-094.)
+> In projects/robot-calf-final, from run `20261104-181642-evolve-2650` (`docs/studies/diversity_r5.md`), play the
+> three picked safe cells as 60 s performances on three seeds, each with a full physics report (every limit at
+> margin 0.2, falls):
+> * (0,5) calm, `g011-020`;
+> * (2,2) irregular, `g014-007`;
+> * (4,6) active, `g015-016`.
 >
-> Play the three most different safe cells as 60 s performances with a full physics report. Do not change the
-> body, the belts or the component values.
+> Show me each one in the viewport so I can judge whether it looks organic. Report which limit each comes closest
+> to and whether 60 s stays within what 24 s did. Do not change the body, belts or component values.
+
+**R7. Organic movement within a primitive** (after R6, if movement quality is the gap.)
+> On the working body, let movement vary below the primitive level in the behaviour-diversity evolution
+> (`calflab.evolve.diversity`): evolvable posture drift and noise within a movement, cycle-to-cycle variation in
+> timing and amplitude, and switches not only at all-hooves-down. Optionally add clips retargeted from my footage
+> to the palette. Keep every limit at margin 0.2 on three seeds. Estimate cost and let me choose the budget. Then
+> compare the archive with run `20261104-181642-evolve-2650`.
+
+**R8. Lifting the vigour ceiling** (after R6, if vigour is the gap.)
+> The behaviour-diversity run is bounded by the servos' sustained torque: nothing safe above 6.9 deg/s against
+> the calf's 18-77. Find which joints bind (per-joint sustained torque in the unsafe candidates) and what would
+> lift them. Candidates: commercially available GT2 pulley pairs with a stronger reduction (search listings for
+> 10 mm belts, add them to the catalog with sources, masses null, unverified), belting the hip ab/ad, lighter
+> parts. Show what each buys in physics before changing the body, and ask before adding anything to the catalog.
 
 **Q2. Interpretation inside the repertoire evolution** (recommended next; written after session Q, ADR-085.)
 > In projects/robot-calf-final, interpretation (run `20261104-042426-interpret-ef3c`) found how this body can say the calf's stand, step and
