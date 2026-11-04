@@ -1609,6 +1609,10 @@ one-at-a-time sensitivity studies: `sensitivity_r1.md` (2026-11-04) plays
 the walk, the trot and the interpreted trot and step with the mass, the
 armature, the spring rates and the servo's torque at the battery's voltage
 varied one at a time, and lists which missing value changes a verdict.
+`load_r2.md` splits each joint's load in the walk and the trot into the
+part that holds the weight and the part that is dynamics, shows how much
+the springs carry against what the weight needs at standing, and plays the
+levers (springs, splay, leg angles, roll feedback, sway) one at a time.
 
 **The audit.** `calflab components audit` prints these tables:
 

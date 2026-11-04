@@ -3207,3 +3207,58 @@ What this says:
 no-load speed at 11.1 V (or the curve against voltage); the two packs' connection; the masses of
 `config/feral_calf.yaml` `placeholders` (electronics, skin, hip and chest blocks first: the largest); the tubes'
 outer diameter, wall and g/m; the springs to be bought (rate, free length) once step 2 says what they should be.
+
+## ADR-087 — Session R step 2: where the load goes, and which levers work (**VERIFY**)
+
+*Requested 2026-11-04 (session R, step 2 of ADR-086).* Per joint, for the walk, the trot and the interpreted fast
+play: where sustained torque and belt tension come from (static weight in stance against dynamics), what the
+springs carry, and which levers can fix each failure. Scripts and full tables: `docs/studies/load_r2.py`,
+`docs/studies/levers_r2.py`, `docs/studies/load_r2.md`. Nothing in the project, genes or library was changed.
+
+*Decision 1: how load is split.* Each recorded frame is rebuilt in MuJoCo; the 3D hoof forces of that instant are
+recorded during the play (a study-only hook on `mujoco.mj_kinematics` inside `run_rollout`) and **scaled to sum to
+the body's weight**, keeping their directions and their share between hooves. Static = the joint torque that holds
+the pose under gravity on those forces; the servo's static share = static minus the springs' torque; dynamics =
+what the servo gave minus that share. Checked on quiet standing: within 0.02 N*m on every joint. Vertical-only
+reactions (as `calflab.mech.statics` uses for standing) were tried first and **doubled the hip ab/ad's load**:
+sideways friction at the hooves matters on splayed legs. Assumptions: the hooves' force directions are those of
+the physics play; scaling keeps the static share's pattern but not what an impact would add.
+
+*Decision 2: "springs as gravity compensation" = each spring's rate scaled so that at quiet standing it gives the
+torque the weight needs* (stifle x0.55, hock x0.52, shoulder x0.27, free lengths and anchors unchanged). One pose
+only; a spring can not be right in every pose of a gait.
+
+*Results* (servo side; limits 0.47 N*m sustained torque, 0.34 N*m = 35.2 N sustained belt):
+* **The walk and the trot fail on the weight, not on their dynamics.** The hip ab/ad's sustained torque is static:
+  the weight alone would be above the limit for 92 % (walk) and 53-58 % (trot) of the worst window, against 87 % and
+  54-55 % measured. The legs are splayed (hind 12, front 10.5 deg in this project): the hooves stand outside the
+  ab/ad axes, so the weight twists those servos, and no spring is at the hip.
+* **The walk does not walk as planned**: three hooves down at a time is the plan; physics stands on two for 73 % of
+  it. Its sway (3 deg hind ab/ad) and the servos' compliance drop a second hoof.
+* **The springs over-compensate**: at standing they give 181 % (stifle), 192 % (hock) and 365 % (shoulder) of what
+  the weight needs, so the servos pull against them. In the walk's and the step's poses the shoulder needs the
+  other sign and its spring adds to the load. The trot's stifle belt is weight + spring excess (+0.1) + dynamics
+  (+0.1, RMS 0.35-0.37 N*m).
+* The interpreted trot stays clear because it stands on four hooves 35 % of the time and moves little; its binding
+  limit is the hock's envelope (dynamics).
+
+*Levers* (played; margins):
+* **Stance width (splay) is the strongest**: both splays 0 take the walk from -2.48 to -0.13 and the trot from
+  -1.2 to -0.16. Hind and front must change together (hind alone to 0 makes everything worse).
+* **Springs as gravity compensation** help the belts (walk belt -0.07 -> +0.28, trot -0.96 -> -0.70) and with
+  splay 0 leave the trot over joint speed only (-0.04) and the walk over joint speed and a little torque (-0.13).
+* **What is left is the gaits' speed** (carpus fold in the walk, hock in the trot): a gait parameter, for the
+  per-candidate gait tuning of step 4. Walk sway 1.5 deg alone: -2.48 -> -1.12.
+* **Belt reduction ratio: not available.** The pulley catalog has only 2:1 pairs (30T-60T, 36T-72T, 40T-80T), and
+  the hip ab/ad and shoulder are direct drive. A slower, stronger joint needs pulley pairs the researcher adds to
+  `catalog/pulleys.json`, and it costs joint speed, which is the next limit.
+* **Leg angles and crouch: no.** Straighter legs (femur 30, tibia 25) are worse; more flexed ones (femur 50, tibia
+  45) fail the hock belt check (rejected). The walk and trot have no crouch parameter. The front angle is solved
+  by the lab for a level back, so it is not a lever.
+* Trot roll feedback (0.5 -> 0.25 / 0) changes little.
+* The interpreted parameters were found on today's body and break on most other bodies (e.g. both splays 0:
+  -0.47): step 4 must re-interpret per body, as planned.
+
+*Consequences for steps 3-4:* the splays are genes but `evolvable: false`; step 4 needs them evolvable (together
+or with a bound on their difference), with the spring rates and free lengths, and the gait parameters tuned per
+candidate.
