@@ -115,7 +115,7 @@ class InterpretedController(Controller):
             v = params.get(k)
             if isinstance(v, dict):
                 params[k] = {j: x * f for j, x in v.items()}
-            elif isinstance(v, int | float) and not isinstance(v, bool):
+            elif isinstance(v, int | float) and not isinstance(v, bool) and v > 0:  # (a negative is a sentinel)
                 params[k] = v * f
         params["speed_fraction"] = 0.0  # one cap, ours
         cls = registry.get("controller", str(st.controller.get("key", "feral_motion")))

@@ -63,7 +63,7 @@ def build_states(reading: Any, records: list[dict[str, Any]], spec: Any) -> dict
         # timing only slower than interpreted, sizes only smaller: the spread never leaves what was found within
         # the limits (PROVISIONAL rule, ADR-085)
         for p in ("cycle_s", "trot_cycle_s", "shift_s", "hold_s", "back_s", "phase_s"):
-            if p in params:
+            if isinstance(params.get(p), int | float) and params[p] > 0:
                 vary[p] = (1.0, round(math.exp(cv("tempo_s")), 4))
         for p in ("stride", "trot_sweep_scale", "offsets", "lift"):
             if p in params and params[p]:
