@@ -65,6 +65,7 @@ from typing import Any, Literal
 import numpy as np
 from pydantic import BaseModel, Field
 
+from calflab import units as u
 from calflab.behave.signals import LEGS, MotionSignals
 from calflab.schema import P
 
@@ -390,7 +391,7 @@ def stretch_features(sig: MotionSignals, up: dict[str, np.ndarray], a: int, b: i
         xy = sig.root_mm[a:b, :2]
         out["travel_mm"] = round(float(np.linalg.norm(xy[-1] - xy[0])), 1)
         out["speed_mm_s"] = round(out["travel_mm"] / dur, 1) if dur > 0 else 0.0
-        hd = math.radians(float(np.mean(sig.heading_deg[a:b])))
+        hd = u.deg_to_rad(float(np.mean(sig.heading_deg[a:b])))
         lat = (xy - xy.mean(axis=0)) @ np.array([-math.sin(hd), math.cos(hd)])
         out["lateral_sway_mm"] = round(float(np.percentile(lat, 95) - np.percentile(lat, 5)), 1)
     q = fr["qom"]

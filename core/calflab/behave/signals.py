@@ -259,7 +259,7 @@ def from_rollout(rollout: Any, spec: RobotSpec, t0: float = 0.0, t1: float | Non
     joints = {j: u.rad_to_deg(rollout.q[idx, rollout.joint_ids.index(j)].astype(float)) - rest.get(j, 0.0) for j in aj}
     trunk = rollout.body_ids.index(spec.root.id) if spec.root.id in rollout.body_ids else 0
     eul = np.array([_euler(rollout.body_quat[i, trunk]) for i in idx])
-    heading = np.rad2deg(np.unwrap(np.deg2rad(eul[:, 0])))
+    heading = u.rad_to_deg(np.unwrap(u.deg_to_rad(eul[:, 0])))
     root = rollout.body_pos[idx, trunk].astype(float) * 1000.0
     bidx = {b: i for i, b in enumerate(rollout.body_ids)}
     hooves: dict[str, np.ndarray] = {}
@@ -329,8 +329,8 @@ def synthetic_signals(spec: RobotSpec, sequence: list[tuple[str, float]], fps: f
                             J[j][f] = (20.0 * math.sin(math.pi * ph / sw) if up else 0.0) + 8.0 * math.cos(2 * math.pi * ph)
                 pitch[f] = 1.5 * math.sin(4 * math.pi * t / T)
             h += rate / fps
-            x += speed / fps * math.cos(math.radians(h))
-            y += speed / fps * math.sin(math.radians(h))
+            x += speed / fps * math.cos(u.deg_to_rad(h))
+            y += speed / fps * math.sin(u.deg_to_rad(h))
             heading[f], root[f] = h, (x, y, spec.root.pos[2])
             for j in joints_of:
                 J[j][f] += 0.1 * rng.standard_normal()
