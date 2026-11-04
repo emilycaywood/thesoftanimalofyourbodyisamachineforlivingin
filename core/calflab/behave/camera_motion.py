@@ -46,11 +46,11 @@ def background_shift(video: Path, tracks: Any, width: int = 320, pad: float = 0.
         small = cv2.resize(g, (width, int(round(g.shape[0] * scale))))
         if band is None:  # the ground band: from the hooves' median height, a body height above and below it
             rows = -xy[:, :, 1]
-            ok = np.isfinite(rows)
-            if ok.any():
-                low = float(np.nanmedian(np.nanmax(np.where(ok, rows, np.nan), axis=1)))
-                tall = float(np.nanmedian(np.nanmax(np.where(ok, rows, np.nan), axis=1)
-                                          - np.nanmin(np.where(ok, rows, np.nan), axis=1)))
+            fin = np.isfinite(rows)
+            if fin.any():
+                low = float(np.nanmedian(np.nanmax(np.where(fin, rows, np.nan), axis=1)))
+                tall = float(np.nanmedian(np.nanmax(np.where(fin, rows, np.nan), axis=1)
+                                          - np.nanmin(np.where(fin, rows, np.nan), axis=1)))
                 band = (int(max(0, (low - 0.6 * tall) * scale)), int(min(small.shape[0], (low + 0.8 * tall) * scale)))
                 if band[1] - band[0] < 32:
                     band = (0, small.shape[0])

@@ -43,7 +43,7 @@ def build_states(reading: Any, records: list[dict[str, Any]], spec: Any) -> dict
         b = rec["behaviour"]
         if not rec["within_limits"]:
             continue
-        prim = registry.get("motion_primitive", rec["primitive"])(rec["params"])
+        prim: Any = registry.get("motion_primitive", rec["primitive"])(rec["params"])
         key, params = prim.controller(spec, library())
         dur = reading.model.durations.get(b)
         values = dur.values_s if dur else []
@@ -136,7 +136,8 @@ def perform(lab: Any, spec: Any, doc: dict[str, Any], ctrl_params: dict[str, Any
     cm = compile_mjcf(spec, lib, CompileOptions.model_validate(physics.compile_params(doc)), seed)
     st = SimSettings(duration_s=seconds, control_hz=50.0, record_hz=50.0, settle_s=0.4, start_pose="stand",
                      stop_on_fall=True, seed=seed)
-    ro = run_rollout(cm, registry.get("controller", "interpreted")(ctrl_params), st, lib, cancelled=cancelled)
+    ctrl: Any = registry.get("controller", "interpreted")(ctrl_params)
+    ro = run_rollout(cm, ctrl, st, lib, cancelled=cancelled)
     clip = commanded_clip(ro, spec)
     end = float(ro.t[-1])
     rep = physics.report(ro, clip, spec, lib, {"clip_t0": 0.0, "clip_t1": end + 1e-6, "end_t": end}, margin)
@@ -287,7 +288,7 @@ def run_interpretation(lab: Any, reading: Any, s: Any, ctx: dict[str, Any], seco
     interp_cost = {"plays": it.plays, "cache_hits": it.cache_hits, "play_seconds": round(it.wall_s, 1),
                    "seconds": round(time.perf_counter() - t_start, 1)}
     ctrl = build_states(reading, records, spec)
-    plays = []
+    plays: list[dict[str, Any]] = []
     first_ro = None
     if ctrl["states"]:
         for k, seed in enumerate(seeds):
@@ -302,7 +303,7 @@ def run_interpretation(lab: Any, reading: Any, s: Any, ctx: dict[str, Any], seco
     run_id = lab.registry.new_run_id("interpret")
     run_dir = lab.registry.run_dir(run_id)
     b = basis(lab, design, ctx["compile"])
-    payload = {
+    payload: dict[str, Any] = {
         "run_id": run_id, "reading_id": reading.id, "labels": LABELS, "settings": s.model_dump(mode="json"),
         "records": records, "defaults": defaults, "controller": ctrl, "seconds": seconds, "seeds": seeds,
         "plays": [{"seed": p["seed"], "report": {k: p["report"][k] for k in (

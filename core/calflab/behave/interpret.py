@@ -247,7 +247,7 @@ class Interpreter:
                  ) -> Evaluation:
         from calflab.plugins import registry
 
-        cls = registry.get("motion_primitive", prim_key)
+        cls: Any = registry.get("motion_primitive", prim_key)
         prim = cls(params)
         full = prim.params.model_dump(mode="json")
         key = _cache_key(self.spec_key, prim_key, full, self.s, self.compile)
@@ -293,7 +293,7 @@ class Interpreter:
 
         from calflab.plugins import registry
 
-        cls = registry.get("motion_primitive", prim_key)
+        cls: Any = registry.get("motion_primitive", prim_key)
         dims = cls.vector_dims()
         start = cls(base).params.model_dump(mode="json")
         evals = [self.evaluate(prim_key, start, calf, weights)]

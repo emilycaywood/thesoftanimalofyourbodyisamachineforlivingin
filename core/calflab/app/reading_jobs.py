@@ -202,7 +202,7 @@ def read_footage(lab: Any, settings: dict[str, Any] | None = None, exclude: dict
     model = rd.fit_model(stretches, s)
     beh = rd.behaviour_summary(stretches)
     notes = []
-    ratios = [v.proportions.get("trunk_length") for v in videos if v.usable and v.proportions.get("trunk_length")]
+    ratios = [float(v.proportions["trunk_length"]) for v in videos if v.usable and v.proportions.get("trunk_length")]
     if ratios:
         notes.append(f"Trunk length fits {min(ratios):.2f}-{max(ratios):.2f} times the robot's in the usable videos; "
                      "the footage itself does not say whether it is one calf.")

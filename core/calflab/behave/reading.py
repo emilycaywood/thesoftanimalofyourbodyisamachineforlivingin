@@ -390,8 +390,8 @@ def stretch_features(sig: MotionSignals, up: dict[str, np.ndarray], a: int, b: i
         xy = sig.root_mm[a:b, :2]
         out["travel_mm"] = round(float(np.linalg.norm(xy[-1] - xy[0])), 1)
         out["speed_mm_s"] = round(out["travel_mm"] / dur, 1) if dur > 0 else 0.0
-        h = math.radians(float(np.mean(sig.heading_deg[a:b])))
-        lat = (xy - xy.mean(axis=0)) @ np.array([-math.sin(h), math.cos(h)])
+        hd = math.radians(float(np.mean(sig.heading_deg[a:b])))
+        lat = (xy - xy.mean(axis=0)) @ np.array([-math.sin(hd), math.cos(hd)])
         out["lateral_sway_mm"] = round(float(np.percentile(lat, 95) - np.percentile(lat, 5)), 1)
     q = fr["qom"]
     top = float(np.percentile(q, 75)) if len(q) else 0.0
@@ -443,11 +443,11 @@ def label(sig: MotionSignals, up: dict[str, np.ndarray], s: ReadingSettings, cam
         changed = True
         while changed:  # parts shorter than 0.6 s join the longer neighbour
             changed = False
-            runs = [(c, d) for v in np.unique(r) for c, d in _runs(r == v)]
-            runs.sort()
-            for i, (c, d) in enumerate(runs):
-                if d - c < min_part and len(runs) > 1:
-                    nb = [runs[m] for m in (i - 1, i + 1) if 0 <= m < len(runs)]
+            rr = [(c, d) for v in np.unique(r) for c, d in _runs(r == v)]
+            rr.sort()
+            for i, (c, d) in enumerate(rr):
+                if d - c < min_part and len(rr) > 1:
+                    nb = [rr[m] for m in (i - 1, i + 1) if 0 <= m < len(rr)]
                     tgt = max(nb, key=lambda q: q[1] - q[0])
                     r[c:d] = r[tgt[0]]
                     changed = True
@@ -508,11 +508,11 @@ def label(sig: MotionSignals, up: dict[str, np.ndarray], s: ReadingSettings, cam
         for k, (a, b, beh) in enumerate(runs):
             if beh == "gap" or b - a >= min_n or beh in ("step", "walk", "turn", "other"):
                 continue
-            nb = [runs[m] for m in (k - 1, k + 1) if 0 <= m < len(runs) and runs[m][2] != "gap"]
-            if not nb:
+            near = [runs[m] for m in (k - 1, k + 1) if 0 <= m < len(runs) and runs[m][2] != "gap"]
+            if not near:
                 continue
-            tgt = max(nb, key=lambda r: r[1] - r[0])
-            lab[a:b] = tgt[2]
+            into = max(near, key=lambda r: r[1] - r[0])
+            lab[a:b] = into[2]
             changed = True
             break
     bout_info = {(a, b): (beh, why, f, m) for a, b, beh, why, f, m in segs}

@@ -86,7 +86,7 @@ def robot_length_mm(spec: RobotSpec) -> float:
     return abs(sum(front) / len(front) - sum(hind) / len(hind)) if hind and front else 500.0
 
 
-def _feet(spec: RobotSpec) -> list[tuple[str, str, tuple[float, float, float], float]]:
+def _feet(spec: RobotSpec) -> list[tuple[str, str, tuple[float, ...], float]]:
     """(leg, body id, foot geom position in the body, radius) per hoof."""
     out = []
     for b in spec.bodies:
@@ -231,6 +231,10 @@ def _head_motion(tracks: Any, fps: float, cutoff_hz: float, body_px: float) -> n
     return np.linalg.norm(np.gradient(rel, axis=0), axis=1) * fps / body_px
 
 
+def _q4(q: Any) -> tuple[float, float, float, float]:
+    return (float(q[0]), float(q[1]), float(q[2]), float(q[3]))
+
+
 def _euler(q: Any) -> tuple[float, float, float]:
     """Heading (yaw), pitch (nose down +) and roll (deg) of a (w, x, y, z) quaternion, Z-Y-X."""
     w, x, y, z = (float(v) for v in q)
@@ -263,7 +267,7 @@ def from_rollout(rollout: Any, spec: RobotSpec, t0: float = 0.0, t1: float | Non
         if bid not in bidx:
             continue
         k = bidx[bid]
-        z = [rollout.body_pos[i, k][2] * 1000.0 + quat_rotate(tuple(float(v) for v in rollout.body_quat[i, k]), gp)[2] - r
+        z = [rollout.body_pos[i, k][2] * 1000.0 + quat_rotate(_q4(rollout.body_quat[i, k]), gp)[2] - r  # type: ignore[arg-type]
              for i in idx]
         hooves[leg] = np.maximum(0.0, np.asarray(z, dtype=float))
     return MotionSignals(fps=1.0 / dt, joints=joints, heading_deg=heading, pitch_deg=eul[:, 1], roll_deg=eul[:, 2],
