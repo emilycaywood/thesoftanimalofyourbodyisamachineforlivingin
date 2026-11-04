@@ -353,7 +353,7 @@ def analyse_3d(lab: Any, tracks: Any, s: FootageSettings, stem: str, sha: str, r
         row.update(far_side="tracked", reliable_fraction=round(frac, 3),
                    ambiguous_fraction=round(float(np.mean([st == "ambiguous" for st in res.state[a:b]])), 3),
                    view_yaw_range_deg=(round(float(vy[a:b].min()), 1), round(float(vy[a:b].max()), 1)),
-                   turn_deg=round(float(hd[b - 1] - hd[a]), 1), reference=reference, legs_seen=seen,
+                   turn_deg=round(_reliable_turn(hd, rel, a, b), 1), reference=reference, legs_seen=seen,
                    view_ok=frac >= 0.8)
         cands.append(inbox.Candidate(id=f"c{len(cands) + 1}", name=f"{stem} {c['kind']} {counts[c['kind']]}", **row))
     summary = res.summary
@@ -372,6 +372,16 @@ def analyse_3d(lab: Any, tracks: Any, s: FootageSettings, stem: str, sha: str, r
         "lift": {"map": m.name, "summary": summary, "camera": res.camera, "proportions": res.proportions,
                  "settings": res.settings},
     }
+
+
+def _reliable_turn(heading: Any, reliable: Any, a: int, b: int) -> float:
+    """Heading change over frames [a, b) summed only across steps between reliable frames (ADR-085): unwrapped
+    through frames the lift could not read, a heading can spin (213625's c1 "turned" 364 deg in 0.9 s)."""
+    import numpy as np
+
+    d = np.diff(np.asarray(heading[a:b], dtype=float))
+    r = np.asarray(reliable[a:b], dtype=bool)
+    return float(np.sum(d[r[1:] & r[:-1]]))
 
 
 def _robot_length(spec: Any) -> float:

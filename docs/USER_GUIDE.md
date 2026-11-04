@@ -1321,6 +1321,62 @@ What it does not do yet: move contact phases in time, let the robot step
 to new places while slowed (four hooves down means the hooves stay where
 they stood), or optimise a trajectory.
 
+#### Interpreting footage as the robot's own movement (ADR-085)
+Replaying a calf's joint angles makes slow sways on this body (above).
+Interpretation reads **what the calf does** and says it in movements the
+robot balances by itself. The **Interpretation** section of the Behave panel
+has two buttons:
+
+* **Read footage** labels every lifted video in stretches: *stand*, *weight
+  shift* (all hooves down, the body moving), *step* (one or two lifts),
+  *walk*, *turn* (turning more than it travels) and *other* (fast: two or
+  more hooves up most of the time, as in trotting, cantering or bucking).
+  Each stretch keeps its rule, its features and a confidence. A hoof counts
+  as lifted while its tracked paw moves over the ground (paw speed minus the
+  ground's shift in the image, so a following camera does not count).
+  Videos that cannot be read are listed with the reason (too few reliable
+  frames, a calf too small in the image). Per behaviour it measures tempo,
+  phrasing, amplitude, quantity of motion, footfall order, duty factor,
+  trunk sway, pitch, turn, lean and how abruptly it starts, and fits a
+  semi-Markov model (which behaviour follows which, how long each lasts),
+  with each video's counts kept. It says in words how much the footage can
+  support. Stored in `footage/readings/<id>.json`; the command
+  `reading_report` shows it. To try it without footage:
+  `read_footage synthetic=[["stand",2],["walk",4]]` reads a known sequence
+  posed on the robot.
+* **Interpret** takes the latest reading. For each behaviour it tries every
+  *motion primitive* that may stand for it (stand, weight shift, step, walk,
+  turn, trot, lie/rise), with a small search over its few parameters. Every
+  candidate is played in physics (torque-speed servos, belts, springs) and
+  read back by the same reader as the calf; the closest one within every
+  limit with your margin wins. Then it plays a minute with three seeds,
+  drawing behaviours, durations and parameters from the model and switching
+  only where every hoof is down. A job of a few minutes (plays are cached
+  per body, so a second run costs little); a run of kind `interpret`.
+
+The report shows, side by side with the calf:
+
+* shares of each behaviour (calf; robot as played; robot read back by the
+  same reader), median durations, transitions;
+* per behaviour, the primitive and parameters chosen, and per feature
+  *kept*, *exaggerated*, *reduced*, *reversed* or *dropped* with the reason:
+  the limits that stopped closer candidates, a limit it is close to, or the
+  primitive's own range;
+* the walk and trot as they are and as interpreted, at margin 0.2;
+* each performance's verdict, margin and falls;
+* what the calf did that this body cannot express (head and neck, tail,
+  hind hip swing, front ab/adduction, spine, fetlocks, airborne movement):
+  listed, never approximated;
+* the character kept by Make feasible (ADR-084) for comparison;
+* a time strip: the calf's stretches per video (click one to open its
+  frames in the Review) and each performance's behaviours and limits (click
+  to seek the replay of the first seed).
+
+Commands: `read_footage`, `reading_report`, `interpret_footage`
+(`seconds`, `seeds`, `margin`, `settings` such as `popsize`, `generations`,
+`primitives`), `interpretation_report`. A new primitive is a plugin:
+`.\calflab.ps1 new-plugin motion_primitive <name>`.
+
 #### Composing behaviors (ADR-078)
 The Stochastic behaviors form has a **Composition** group:
 

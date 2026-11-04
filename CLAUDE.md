@@ -64,8 +64,8 @@ core/calflab/
   morphology/         part generators (reference calf; final feral calf)
   mech/               belt drives from catalogs (derived C, checks), tension springs, statics, load analysis
   sim/                MJCF/URDF compile, MuJoCo rollouts, metrics, skin
-  behave/             footage: video reading, pose trackers, inbox, retarget maps, segmentation, clips, movement features, composition study
-  control/            controllers (CPG)
+  behave/             footage: video reading, pose trackers, inbox, retarget maps, segmentation, clips, movement features, composition study, reading behaviours (semi-Markov), interpretation as motion primitives
+  control/            controllers (CPG, feral motions, behaviors, weight shift, interpreted)
   fitness/            terms, presets, behavior descriptors
   graph/              typed DAG, cache, node types
   compute/            LocalProcessPool, RemoteSSH (stub), CloudNotebook (stub)
@@ -116,6 +116,7 @@ Types and what to implement:
 | `panel` | `Panel` | declarative layout (`widgets`) — no code runs in the browser |
 | `command` | `Command` | `Params`, `run(lab, params)`; set `mutates=True` for document edits |
 | `pose_tracker` | `PoseTracker` | `available()`, `keypoint_names()`, `track(video, report, cancelled)` → `KeypointTracks` (pixels, y up, confidence per point, `model` = `provenance()`) |
+| `motion_primitive` | `MotionPrimitive` | `Params`, `behaviours`, `balance`, `vector_dims()`, `controller(spec, lib)` → (controller key, params), `period_s()`, `safe_phases()`; `warmup_s()` for a ramp-in (ADR-085) |
 
 Rules for all plugins:
 
