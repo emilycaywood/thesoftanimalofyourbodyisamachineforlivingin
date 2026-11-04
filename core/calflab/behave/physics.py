@@ -95,9 +95,24 @@ def playback_clip(clip: MotionClip, spec: RobotSpec, s: PhysicsSettings) -> tupl
     n_in = max(1, int(round(s.lead_in_s * clip.fps)))
     n_out = max(1, int(round(s.return_s * clip.fps)))
     n_hold = int(round(s.hold_s * clip.fps))
-    lead = np.vstack([zero[None, :], _ramp(zero, v[0], n_in)[:-1]])
-    back = _ramp(v[-1], zero, n_out)
-    full = np.vstack([lead, v, back, np.zeros((n_hold, len(ids)))])
+    paths = clip.meta.get("stance_paths") or {}
+    if paths.get("lead_in") and paths.get("return") and all(j in paths["lead_in"] for j in ids):
+        # planted by calflab.behave.stance: follow its solved way in and back (cosine-timed samples), and hold
+        # where the way back ends, so supporting hooves are not dragged by a blend of angles
+        def along(start: np.ndarray, path: dict[str, list[float]], frac: np.ndarray) -> np.ndarray:
+            rows = np.array([path[j] for j in ids], dtype=float).T
+            grid = np.concatenate([[0.0], np.arange(1, len(rows) + 1) / len(rows)])
+            vals = np.vstack([start[None, :], rows])
+            return np.stack([np.interp(frac, grid, vals[:, k]) for k in range(len(ids))], axis=1)
+
+        lead = along(zero, paths["lead_in"], np.arange(n_in) / n_in)
+        back = along(v[-1], paths["return"], np.arange(1, n_out + 1) / n_out)
+        hold = np.repeat(back[-1:], n_hold, axis=0)
+    else:
+        lead = np.vstack([zero[None, :], _ramp(zero, v[0], n_in)[:-1]])
+        back = _ramp(v[-1], zero, n_out)
+        hold = np.zeros((n_hold, len(ids)))
+    full = np.vstack([lead, v, back, hold])
     out = MotionClip(id=f"{clip.id or 'clip'}.physics", name=clip.name, fps=clip.fps,
                      joints={j: [float(x) for x in full[:, k]] for k, j in enumerate(ids)}, source="physics")
     t0 = len(lead) / clip.fps
@@ -188,7 +203,7 @@ def _spans(flags: np.ndarray, t: np.ndarray) -> list[tuple[int, int]]:
 def report(rollout: Any, clip: MotionClip, spec: RobotSpec, lib: Any, timing: dict[str, Any],
            margin: float, frame_map: dict[str, Any] | None = None) -> dict[str, Any]:
     """Everything the physics review shows, computed here (no logic in the UI)."""
-    from calflab.evolve.safety import SafetyPolicy, safety_report
+    from calflab.evolve.safety import SafetyPolicy, safety_report, until_fall
     from calflab.mech.limits import battery_current, servo_columns
     from calflab.mech.loads import analyse
     from calflab.sim import compute_metrics
@@ -203,6 +218,12 @@ def report(rollout: Any, clip: MotionClip, spec: RobotSpec, lib: Any, timing: di
     phase = np.where(t < timing["clip_t0"], 0, np.where(in_clip, 1, 2))  # lead-in, clip, return/hold
     loads = analyse(rollout, spec, lib, 2.0, checks, feral.get("belt_drives") or {})
     cols = loads["columns"]
+    # the per-joint table, like the constraints, stops at a fall: what a body does while falling is not the clip's
+    fall_at = rollout.meta.get("fall_time") if rollout.meta.get("fell") else None
+    pre = t <= float(fall_at) if fall_at is not None else np.ones(n, dtype=bool)
+    if not pre.any():
+        pre = np.ones(n, dtype=bool)
+    loads_pre = analyse(until_fall(rollout), spec, lib, 2.0, checks, feral.get("belt_drives") or {}) if fall_at is not None else loads
     servos = servo_columns(rollout, spec, lib)
     ref = _clip_reference(clip, spec, t, timing["clip_t0"])
     aj = list(rollout.meta.get("actuator_joint") or [])
@@ -221,7 +242,8 @@ def report(rollout: Any, clip: MotionClip, spec: RobotSpec, lib: Any, timing: di
         cur["joint"] = np.where(better, joint, cur["joint"])
 
     rows = []
-    summary = {r["joint"]: r for r in loads["summary"]}
+    summary = {r["joint"]: r for r in loads_pre["summary"]}
+    judged = in_clip & pre
     for c in servos:
         jid = c["joint"]
         short = jid.replace("joint.", "")
@@ -251,17 +273,17 @@ def report(rollout: Any, clip: MotionClip, spec: RobotSpec, lib: Any, timing: di
         row: dict[str, Any] = {
             "joint": jid, "drive": srow.get("drive"), "in_clip": jid in clip.joints,
             "range_deg": [lo, hi],
-            "tracking_rms_deg": float(np.sqrt(np.mean(err[in_clip] ** 2))) if err is not None and in_clip.any() else None,
-            "tracking_peak_deg": float(np.max(np.abs(err[in_clip]))) if err is not None and in_clip.any() else None,
-            "command_rms_deg": float(np.sqrt(np.mean(cmd_err[in_clip] ** 2))) if cmd_err is not None and in_clip.any() else None,
-            "servo_torque_peak_nm": float(np.max(tau_s)) if n else 0.0,
+            "tracking_rms_deg": float(np.sqrt(np.mean(err[judged] ** 2))) if err is not None and judged.any() else None,
+            "tracking_peak_deg": float(np.max(np.abs(err[judged]))) if err is not None and judged.any() else None,
+            "command_rms_deg": float(np.sqrt(np.mean(cmd_err[judged] ** 2))) if cmd_err is not None and judged.any() else None,
+            "servo_torque_peak_nm": float(np.max(tau_s[pre])) if n else 0.0,
             "rated_nm": rated_s, "stall_nm": stall_s,
             "pct_rated_peak": srow.get("pct_rated_peak"), "pct_stall_peak": srow.get("pct_stall_peak"),
             "above_rated_fraction": srow.get("above_rated_fraction_of_cycle"),
-            "speed_peak_deg_s": float(u.rad_to_deg(float(np.max(np.abs(c["omega"]))))) if n else 0.0,
+            "speed_peak_deg_s": float(u.rad_to_deg(float(np.max(np.abs(c["omega"][pre]))))) if n else 0.0,
             "speed_limit_deg_s": float(u.rad_to_deg(c["no_load_joint_rad_s"])),
-            "envelope_peak": float(np.max(c["use"])) if n else 0.0,
-            "envelope_saturated_fraction": float(np.mean(c["use"] >= 0.98)) if n else 0.0,
+            "envelope_peak": float(np.max(c["use"][pre])) if n else 0.0,
+            "envelope_saturated_fraction": float(np.mean(c["use"][pre] >= 0.98)) if n else 0.0,
             "belt_tension_peak_n": srow.get("belt_tension_peak_n"),
             "belt_allowable_n": srow.get("allowable_n"), "belt_breaking_n": srow.get("breaking_n"),
             "rest_deg": rest.get(jid, 0.0),
@@ -270,6 +292,8 @@ def report(rollout: Any, clip: MotionClip, spec: RobotSpec, lib: Any, timing: di
 
     # hooves: contact and impacts, against body weight (no hoof limit in the library)
     weight_n = float(rollout.meta.get("total_mass_kg") or 0.0) * 9.81
+    stance = clip.meta.get("stance") or {}
+    planned = stance.get("support_fraction") or {}
     ff = rollout.foot_force[m].astype(float) if rollout.foot_force.size else np.zeros((n, 0))
     hooves = []
     for k, g in enumerate(rollout.foot_geoms):
@@ -280,7 +304,9 @@ def report(rollout: Any, clip: MotionClip, spec: RobotSpec, lib: Any, timing: di
             w = (t >= ti) & (t <= ti + 0.05)
             forces.append(float(np.max(f[w])) if w.any() else 0.0)
         hooves.append({
-            "foot": g, "peak_force_n": float(np.max(f)) if n else 0.0,
+            "foot": g, "peak_force_n": float(np.max(f[pre])) if n else 0.0,
+            "contact_fraction": float(np.mean(f[judged] > 1.0)) if judged.any() else None,
+            "planned_support_fraction": planned.get(g),
             "peak_over_weight": float(np.max(f)) / weight_n if n and weight_n else None,
             "impacts": len(imp), "peak_impact_speed_m_s": max((sp for _ti, sp in imp), default=0.0),
             "peak_impact_force_n": max(forces, default=0.0),
@@ -331,15 +357,17 @@ def report(rollout: Any, clip: MotionClip, spec: RobotSpec, lib: Any, timing: di
             k = a + int(np.argmax(r[a:b]))
             events.append({"key": key, "label": lim["label"], "joint": str(lim["joint"][k]), "t0": float(t[a]),
                            "t1": float(t[b - 1]), "peak": float(r[k]), "t_peak": float(t[k]),
-                           "phase": ["lead-in", "clip", "return"][int(phase[k])],
+                           "phase": ["lead-in", "clip", "return"][int(phase[k])], "rollout_frame": int(np.flatnonzero(m)[k]),
                            "video_frame": video_frame(float(t[k]))})
     events.sort(key=lambda e: e["t0"])
     # what limits the clip first: the earliest moment over an instantaneous limit. Rated torque and the belt's
     # allowable tension are judged as sustained (the constraints table); one frame over them is not a violation.
     first = next((e for e in events if e["key"] not in SUSTAINED), None)
     bucket_t = [float(t[min(n - 1, a)]) for a in edges[:-1]] if n else []
+    index = np.flatnonzero(m)  # rows of the recorded rollout, as the viewport's playback counts them
     strip = {
         "t": bucket_t, "t_end": float(t[-1]) if n else 0.0,
+        "rollout_frame": [int(index[min(n - 1, a)]) for a in edges[:-1]] if n else [],
         "phase": [int(phase[min(n - 1, a)]) for a in edges[:-1]] if n else [],
         "video_frame": [video_frame(x) for x in bucket_t],
         "rows": strip_rows,
@@ -349,7 +377,7 @@ def report(rollout: Any, clip: MotionClip, spec: RobotSpec, lib: Any, timing: di
         },
     }
     clip_rows = [r for r in rows if r["in_clip"] and r["tracking_rms_deg"] is not None]
-    err_all = [qa[j][in_clip] - ref[j][in_clip] for j in aj if j in qa and j in ref and j in clip.joints]
+    err_all = [qa[j][judged] - ref[j][judged] for j in aj if j in qa and j in ref and j in clip.joints]
     within = not safety["violations"]
     first_limit = None
     if first is not None:
@@ -357,6 +385,7 @@ def report(rollout: Any, clip: MotionClip, spec: RobotSpec, lib: Any, timing: di
     out = {
         "clip": clip.id, "name": clip.name, "fps": clip.fps, "frames": clip.frames, "duration_s": clip.duration_s,
         "timing": timing, "margin": margin,
+        "judged_until_s": float(fall_at) if fall_at is not None else None,
         "within_limits": within and not fell,
         "verdict": ("falls" if fell else "within limits" if within else "over a limit"),
         "fell": fell, "fall_time_s": fall_t,
@@ -367,6 +396,13 @@ def report(rollout: Any, clip: MotionClip, spec: RobotSpec, lib: Any, timing: di
         "constraints": safety["constraints"],
         "safety": {k: safety[k] for k in ("rejected", "reject_reasons", "penalty", "margin", "violations")},
         "hooves": hooves, "body_weight_n": weight_n,
+        "hooves_down_fewer_than_3_fraction": (float(np.mean((ff[judged] > 1.0).sum(axis=1) < 3))
+                                              if judged.any() and ff.size else None),
+        "stance": ({"min_support": (stance.get("settings") or {}).get("min_support"),
+                    "stability_margin_mm": (stance.get("settings") or {}).get("stability_margin_mm"),
+                    **{k: stance.get(k) for k in ("fewer_than_min_support_frames", "com_outside_before_fraction",
+                                                  "com_outside_after_fraction", "slip_after_mm", "return_end")}}
+                   if stance else None),
         "peak_contact_total_n": float(np.max(total_contact)) if n else 0.0,
         "battery": {
             "known": battery["known"], "voltage_v": battery["voltage_v"], "note": battery["note"],

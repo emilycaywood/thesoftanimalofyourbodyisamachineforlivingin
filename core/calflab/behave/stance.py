@@ -58,10 +58,14 @@ class StanceSettings(BaseModel):
     min_support: int = P(3, ge=0, le=4, desc="Hooves kept on the ground at every moment (0 = as the clip has them).")
     stability_margin_mm: float = P(15.0, unit="mm", ge=0.0, le=100.0,
                                    desc="Keep the centre of mass this far inside the support polygon (PROVISIONAL).")
+    range_margin_deg: float = P(0.0, unit="deg", ge=0.0, le=20.0,
+                                desc="Keep the solved angles this far inside each joint's range.")
+    transition_frames: int = P(20, ge=2, le=200, advanced=True,
+                               desc="Poses solved for the way in from standing and the way back (planted the same way).")
     iterations: int = P(20, ge=1, le=200, advanced=True, desc="Solver iterations per frame (each costs one Jacobian).")
-    angle_sd_deg: float = P(1.0, unit="deg", ge=0.1, le=30.0, advanced=True,
+    angle_sd_deg: float = P(5.0, unit="deg", ge=0.1, le=30.0, advanced=True,
                             desc="How strongly joints stay near the clip's angles (smaller = stronger).")
-    hoof_sd_mm: float = P(1.0, unit="mm", ge=0.1, le=30.0, advanced=True,
+    hoof_sd_mm: float = P(0.2, unit="mm", ge=0.1, le=30.0, advanced=True,
                           desc="How strongly supporting hooves stay put and the centre of mass over them.")
 
 
@@ -187,8 +191,10 @@ def plant(clip: MotionClip, spec: RobotSpec, lib: Any, s: StanceSettings | None 
     if not ids:
         return clip, {"applied": False, "reason": "the clip moves no servo joint"}
     rest = spec.rest_angles()
-    lo = np.array([u.deg_to_rad(spec.joint(j).range_deg[0]) for j in ids])
-    hi = np.array([u.deg_to_rad(spec.joint(j).range_deg[1]) for j in ids])
+    rm = s.range_margin_deg
+    lo = np.array([u.deg_to_rad(min(spec.joint(j).range_deg[0] + rm, sum(spec.joint(j).range_deg) / 2)) for j in ids])
+    hi = np.array([u.deg_to_rad(max(spec.joint(j).range_deg[1] - rm, sum(spec.joint(j).range_deg) / 2 + 1e-6))
+                   for j in ids])
     target = np.array([[u.deg_to_rad(rest[j] + v) for j, v in zip(ids, row, strict=True)]
                        for row in zip(*[clip.joints[j] for j in ids], strict=True)])
     target = np.clip(target, lo, hi)
@@ -216,65 +222,74 @@ def plant(clip: MotionClip, spec: RobotSpec, lib: Any, s: StanceSettings | None 
     for k in range(nf):
         support[:, k] = _runs(support[:, k], s.min_run_frames)
     # 3. least squares per frame
-    pos = np.array([0.0, 0.0, kin.root_h])
-    quat = ident.copy()
-    q = target[0].copy()
-    anchors: dict[int, np.ndarray] = {}
-    out = np.zeros_like(target)
-    travel = np.zeros(nf)
-    slip_after = np.zeros(nf)
-    com_out_before = 0
-    com_out_after = 0
     w_f = 1.0 / (s.hoof_sd_mm / 1000.0)
     w_a = 1.0 / u.deg_to_rad(s.angle_sd_deg)
     w_t = 10.0  # trunk: weak, 1e-2 per mm of change from the last frame
     margin = s.stability_margin_mm / 1000.0
     big = np.full(6, np.inf)
     bounds_lo, bounds_hi = np.concatenate([-big, lo]), np.concatenate([big, hi])
-    p0, _ = kin.pose(pos, quat, q)
-    for k in range(nf):
-        if support[0, k]:
-            anchors[k] = np.array([p0[k, 0], p0[k, 1], 0.0])
-    for f in range(n):
-        stance = [k for k in range(nf) if support[f, k] and k in anchors]
-        poly = _hull(np.array([anchors[k][:2] for k in stance])) if stance else np.zeros((0, 2))
-        p_last, q_last = pos.copy(), quat.copy()
-        x = np.concatenate([np.zeros(6), q])
 
-        def resid(xv: np.ndarray, p_last: np.ndarray = p_last, q_last: np.ndarray = q_last,
-                  stance: list[int] = stance, poly: np.ndarray = poly, f: int = f) -> np.ndarray:
-            pp = p_last + xv[0:3]
-            qq = _qmul(_quat_from_rotvec(xv[3:6]), q_last)
-            h, com = kin.pose(pp, qq, np.clip(xv[6:], lo, hi))
-            r = [w_a * (xv[6:] - target[f]), w_t * xv[0:3], w_t * 0.1 * xv[3:6],
+    def solve(tgt: np.ndarray, p_last: np.ndarray, q_last: np.ndarray, q_init: np.ndarray, anchors: dict[int, np.ndarray],
+              down: float = 0.0) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+        """One pose: trunk and angles near ``tgt`` with the anchored hooves on their anchors, the other hooves not
+        below the floor (pulled onto it with weight ``down`` x the hoof weight) and the centre of mass over the
+        anchored hooves. Returns trunk position and quaternion, angles, hoof bottoms, centre of mass, polygon."""
+        stance = sorted(anchors)
+        poly = _hull(np.array([anchors[k][:2] for k in stance])) if stance else np.zeros((0, 2))
+
+        def resid(xv: np.ndarray) -> np.ndarray:
+            h, com = kin.pose(p_last + xv[0:3], _qmul(_quat_from_rotvec(xv[3:6]), q_last), np.clip(xv[6:], lo, hi))
+            r = [w_a * (xv[6:] - tgt), w_t * xv[0:3], w_t * 0.1 * xv[3:6],
                  np.array([w_f * outside(com[:2], poly, margin)])]
             for k in range(nf):
-                if k in stance:
+                if k in anchors:
                     r.append(w_f * (h[k] - anchors[k]))
                 else:
-                    r.append(np.array([w_f * min(0.0, h[k, 2])]))
+                    r.append(np.array([w_f * min(0.0, h[k, 2]) + w_f * down * max(0.0, h[k, 2])]))
             return np.concatenate(r)
 
+        x0 = np.concatenate([np.zeros(6), np.clip(q_init, lo + 1e-9, hi - 1e-9)])
+        sol = least_squares(resid, x0, bounds=(bounds_lo, bounds_hi), method="trf", diff_step=1e-6,
+                            max_nfev=s.iterations * (len(x0) + 1), x_scale="jac")
+        x = sol.x
+        p = p_last + x[0:3]
+        qt = _qmul(_quat_from_rotvec(x[3:6]), q_last)
+        qt = qt / np.linalg.norm(qt)
+        h, com = kin.pose(p, qt, x[6:])
+        return p, qt, x[6:].copy(), h, com, poly
+
+    # the first frame's supporting hooves stay where they stand, so the lead-in from standing moves the trunk
+    # over planted hooves rather than dragging them to new places (ADR-084)
+    q_stand = np.clip(np.array([u.deg_to_rad(rest[j]) for j in ids]), lo, hi)
+    p_stand = np.array([0.0, 0.0, kin.root_h])
+    h_stand, _ = kin.pose(p_stand, ident, q_stand)
+    p_stand[2] -= float(h_stand[:, 2].min())
+    h_stand[:, 2] -= float(h_stand[:, 2].min())
+    anchors: dict[int, np.ndarray] = {k: np.array([h_stand[k, 0], h_stand[k, 1], 0.0]) for k in range(nf) if support[0, k]}
+    first_anchors = {k: v.copy() for k, v in anchors.items()}
+    pos, quat, q = p_stand.copy(), ident.copy(), target[0].copy()
+    out = np.zeros_like(target)
+    trunk = np.zeros((n, 7))
+    travel = np.zeros(nf)
+    slip_after = np.zeros(nf)
+    com_out_before = 0
+    com_out_after = 0
+    for f in range(n):
         if f > 0:
             # before: the clip's own angles with the trunk held, for the centre-of-mass count and hoof travel
-            h_raw, com_raw = kin.pose(p_last, q_last, target[f])
-            h_prev, _ = kin.pose(p_last, q_last, target[f - 1])
-            com_out_before += int(outside(com_raw[:2], poly, margin) > 0)
+            stance_now = [k for k in range(nf) if k in anchors]
+            poly_now = _hull(np.array([anchors[k][:2] for k in stance_now])) if stance_now else np.zeros((0, 2))
+            h_raw, com_raw = kin.pose(pos, quat, target[f])
+            h_prev, _ = kin.pose(pos, quat, target[f - 1])
+            com_out_before += int(outside(com_raw[:2], poly_now, margin) > 0)
             for k in range(nf):
                 if as_clip[f, k] and as_clip[f - 1, k]:
                     travel[k] += float(np.linalg.norm(h_raw[k, :2] - h_prev[k, :2]))
-        x = np.concatenate([x[:6], np.clip(x[6:], lo + 1e-9, hi - 1e-9)])
-        sol = least_squares(resid, x, bounds=(bounds_lo, bounds_hi), method="trf", diff_step=1e-6,
-                            max_nfev=s.iterations * (len(x) + 1), x_scale="jac")
-        x = sol.x
-        pos = p_last + x[0:3]
-        quat = _qmul(_quat_from_rotvec(x[3:6]), q_last)
-        quat = quat / np.linalg.norm(quat)
-        q = x[6:].copy()
+        pos, quat, q, h, com, poly = solve(target[f], pos, quat, q, anchors)
         out[f] = q
-        h, com = kin.pose(pos, quat, q)
+        trunk[f] = np.concatenate([pos, quat])
         com_out_after += int(outside(com[:2], poly, margin) > 1e-3)
-        for k in stance:
+        for k in anchors:
             slip_after[k] = max(slip_after[k], float(np.linalg.norm(h[k, :2] - anchors[k][:2])))
         # a hoof that starts supporting next frame is anchored where it is now, on the ground
         if f + 1 < n:
@@ -283,16 +298,39 @@ def plant(clip: MotionClip, spec: RobotSpec, lib: Any, s: StanceSettings | None 
                     anchors[k] = np.array([h[k, 0], h[k, 1], 0.0])
                 elif not support[f + 1, k]:
                     anchors.pop(k, None)
+    # 4. the way in from standing and the way back, planted the same way (the physics playback uses them in place
+    # of a blend of angles, which would drag the hooves)
+    m = max(2, s.transition_frames)
+    w = 0.5 - 0.5 * np.cos(np.pi * np.arange(1, m + 1) / m)
+    lead = np.zeros((m, len(ids)))
+    p, qt, qq = p_stand.copy(), ident.copy(), q_stand.copy()
+    for i in range(m):
+        p, qt, qq, h, _com, _ = solve(q_stand + w[i] * (out[0] - q_stand), p, qt, qq, first_anchors)
+        lead[i] = qq
+    lead[-1] = out[0]
+    back = np.zeros((m, len(ids)))
+    p, qt, qq = pos, quat, out[-1].copy()
+    for i in range(m):
+        p, qt, qq, h, _com, _ = solve(out[-1] + w[i] * (q_stand - out[-1]), p, qt, qq, anchors, down=float(w[i]))
+        back[i] = qq
+    end_slip = max((float(np.linalg.norm(h[k, :2] - anchors[k][:2])) for k in anchors), default=0.0)
+    end_lift = float(max(0.0, h[:, 2].max()))
     joints = dict(clip.joints)
     change = {}
     for i, j in enumerate(ids):
         deg = u.rad_to_deg(out[:, i]) - rest[j]
         joints[j] = [round(float(v), 4) for v in deg]
         change[j] = float(np.sqrt(np.mean((u.rad_to_deg(out[:, i] - target[:, i])) ** 2)))
-    new = clip.model_copy(update={"joints": joints, "meta": {**clip.meta}})
+
+    def rel(rows: np.ndarray) -> dict[str, list[float]]:
+        return {j: [round(float(u.rad_to_deg(rows[r, i]) - rest[j]), 4) for r in range(len(rows))] for i, j in enumerate(ids)}
+
+    paths = {"lead_in": rel(lead), "return": rel(back)}
+    new = clip.model_copy(update={"joints": joints, "meta": {**clip.meta, "stance_paths": paths}})
     names = kin.foot_names
     info = {
         "applied": True, "settings": s.model_dump(mode="json"), "feet": names,
+        "support": ["".join("X" if support[f, k] else "." for k in range(nf)) for f in range(n)],
         "support_fraction_clip": {names[k]: round(float(np.mean(as_clip[:, k])), 3) for k in range(nf)},
         "support_fraction": {names[k]: round(float(np.mean(support[:, k])), 3) for k in range(nf)},
         "fewer_than_min_support_frames": int(np.sum(as_clip.sum(axis=1) < need)),
@@ -302,5 +340,9 @@ def plant(clip: MotionClip, spec: RobotSpec, lib: Any, s: StanceSettings | None 
         "com_outside_before_fraction": round(com_out_before / max(1, n - 1), 3),
         "com_outside_after_fraction": round(com_out_after / max(1, n), 3),
         "angle_change_rms_deg": {j: round(v, 2) for j, v in change.items()},
+        "transition_frames": m,
+        "trunk_pose": [[round(float(v), 6) for v in row] for row in trunk],  # solved trunk (m, quaternion w-first)
+        "return_end": {"standing_change_rms_deg": round(float(u.rad_to_deg(np.sqrt(np.mean((back[-1] - q_stand) ** 2)))), 2),
+                       "hoof_slip_mm": round(1000.0 * end_slip, 2), "highest_hoof_mm": round(1000.0 * end_lift, 2)},
     }
     return new, info

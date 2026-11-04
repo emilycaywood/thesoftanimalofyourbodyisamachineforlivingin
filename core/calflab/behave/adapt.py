@@ -76,17 +76,27 @@ class AdaptSettings(BaseModel):
     first_cutoff_hz: float = P(3.0, unit="Hz", ge=0.5, le=10.0, advanced=True, desc="First low-pass cutoff tried.")
     range_margin_deg: float = P(2.0, unit="deg", ge=0.0, le=20.0, desc="Keep the clip this far inside each joint's range.")
     give_back_rounds: int = P(4, ge=0, le=20, advanced=True, desc="Rounds trying to give speed and amplitude back.")
+    plant: bool = P(True, desc="Start from the clip planted: supporting hooves kept still, at least min_support "
+                                       "hooves down, the centre of mass over them (calflab.behave.stance).")
+    min_support: int = P(3, ge=0, le=4, desc="Hooves kept on the ground when planting (a fall may raise it to 4).")
+    stability_margin_mm: float = P(15.0, unit="mm", ge=0.0, le=80.0, step=5.0,
+                                   desc="Centre of mass this far inside the support polygon when planting (a fall may "
+                                        "raise it; PROVISIONAL).")
     shape_scale_deg: float = P(15.0, unit="deg", ge=1.0, le=90.0, advanced=True,
                                desc="Shape kept = exp(-(RMS difference / this)^2).")
 
 
 class Operations(BaseModel):
-    """What turns the raw clip into the adapted one."""
+    """What turns the raw clip into the adapted one, applied in this order: amplitude, low-pass, range margin,
+    planting (:func:`calflab.behave.stance.plant`), then time scale."""
 
     time_scale: float = 1.0
     amplitude: dict[str, float] = Field(default_factory=dict)  # per joint id; missing = 1
     cutoff_hz: float | None = None
     range_margin_deg: float = 0.0
+    plant: bool = False
+    min_support: int = 3  # hooves kept down when planting
+    stability_margin_mm: float = 15.0  # centre of mass this far inside the support polygon when planting
 
     def describe(self) -> str:
         amp = {k.replace("joint.", ""): round(v, 2) for k, v in sorted(self.amplitude.items()) if abs(v - 1.0) > 1e-3}
@@ -97,7 +107,13 @@ class Operations(BaseModel):
             parts.append(f"low-pass {self.cutoff_hz:.1f} Hz")
         if self.range_margin_deg:
             parts.append(f"{self.range_margin_deg:g} deg inside the ranges")
+        if self.plant:
+            parts.append(f"planted ({self.min_support} hooves down, centre of mass {self.stability_margin_mm:g} mm inside)")
         return "; ".join(parts)
+
+    def joint_key(self) -> str:
+        """Everything but the time scale: the operations that change the angles (planting is costly; cache on this)."""
+        return self.model_copy(update={"time_scale": 1.0}).model_dump_json()
 
 
 def twin(jid: str) -> str:
@@ -108,12 +124,36 @@ def twin(jid: str) -> str:
     return ".".join(parts)
 
 
-def apply(clip: MotionClip, ops: Operations, spec: RobotSpec) -> MotionClip:
-    """The adapted clip (a new object; ``clip`` is not touched)."""
+def apply(clip: MotionClip, ops: Operations, spec: RobotSpec, lib: Any = None,
+          cache: dict[str, tuple[MotionClip, dict[str, Any]]] | None = None) -> MotionClip:
+    """The adapted clip (a new object; ``clip`` is not touched). ``lib`` is needed to plant; ``cache`` keeps the
+    angles per :meth:`Operations.joint_key`, so trying another time scale does not plant again."""
+    key = ops.joint_key()
+    if cache is not None and key in cache:
+        shaped, info = cache[key]
+    else:
+        shaped, info = _shape(clip, ops, spec, lib)
+        if cache is not None:
+            cache[key] = (shaped, info)
+    meta: dict[str, Any] = {"adapted_operations": ops.model_dump(mode="json")}
+    if info:
+        meta["stance"] = {k: v for k, v in info.items() if k not in ("support", "trunk_pose")}
+        meta["stance"]["support"] = info.get("support")
+    if shaped.meta.get("stance_paths"):
+        meta["stance_paths"] = shaped.meta["stance_paths"]
+    return MotionClip(id="", name=f"{clip.name} (feasible)", fps=clip.fps / max(ops.time_scale, 1e-6),
+                      joints={j: list(v) for j, v in shaped.joints.items()}, source="adapted",
+                      root_pos=list(clip.root_pos), root_quat=list(clip.root_quat), meta=meta)
+
+
+def _shape(clip: MotionClip, ops: Operations, spec: RobotSpec, lib: Any) -> tuple[MotionClip, dict[str, Any]]:
+    """Amplitude, low-pass and range margin at the clip's own fps, then planting. Returns the clip and the stance
+    information (empty without planting)."""
     from calflab.behave.smoothing import lowpass, max_cutoff_hz
+    from calflab.behave.stance import StanceSettings, plant
 
     rest = spec.rest_angles()
-    fps = clip.fps / max(ops.time_scale, 1e-6)
+    fps = clip.fps
     joints: dict[str, list[float]] = {}
     for jid, vals in clip.joints.items():
         v = np.asarray(vals, dtype=float) * float(ops.amplitude.get(jid, 1.0))
@@ -126,9 +166,14 @@ def apply(clip: MotionClip, ops: Operations, spec: RobotSpec) -> MotionClip:
         except KeyError:
             pass
         joints[jid] = [round(float(x), 4) for x in v]
-    return MotionClip(id="", name=f"{clip.name} (feasible)", fps=fps, joints=joints, source="adapted",
-                      root_pos=list(clip.root_pos), root_quat=list(clip.root_quat),
-                      meta={"adapted_operations": ops.model_dump(mode="json")})
+    shaped = clip.model_copy(update={"joints": joints, "meta": {}})
+    if not ops.plant:
+        return shaped, {}
+    if lib is None:
+        raise ValueError("Planting needs the component library")
+    st = StanceSettings(min_support=ops.min_support, stability_margin_mm=ops.stability_margin_mm,
+                        range_margin_deg=ops.range_margin_deg)
+    return plant(shaped, spec, lib, st)
 
 
 def initial(clip: MotionClip, spec: RobotSpec, lib: Any, s: AdaptSettings) -> Operations:
@@ -137,7 +182,8 @@ def initial(clip: MotionClip, spec: RobotSpec, lib: Any, s: AdaptSettings) -> Op
 
     rep = clip_report(clip, spec, lib)
     k = max(1.0, float(rep["max_speed_ratio"]) / max(1e-6, 1.0 - s.margin))
-    return Operations(time_scale=min(s.max_slowdown, round(k, 3)), range_margin_deg=s.range_margin_deg)
+    return Operations(time_scale=min(s.max_slowdown, round(k, 3)), range_margin_deg=s.range_margin_deg,
+                      plant=s.plant, min_support=s.min_support, stability_margin_mm=s.stability_margin_mm)
 
 
 def character(raw_features: dict[str, Any], physics_features: dict[str, Any], shape_rms_deg: float | None,
@@ -211,9 +257,20 @@ def remedies(key: str, joint: str | None, ops: Operations, clip: MotionClip, s: 
         if c >= 0.5:
             out.append((f"low-pass {c:.1f} Hz", ops.model_copy(update={"cutoff_hz": round(c, 3)})))
 
+    def steadier() -> None:
+        if ops.plant and ops.min_support < 4:
+            out.append(("keep more hooves down (4)", ops.model_copy(update={"min_support": 4})))
+        if ops.plant and ops.stability_margin_mm + 10.0 <= 80.0:
+            out.append((f"larger stability margin ({ops.stability_margin_mm + 10:g} mm)",
+                        ops.model_copy(update={"stability_margin_mm": ops.stability_margin_mm + 10.0})))
+        if not ops.plant:
+            out.append(("plant the hooves", ops.model_copy(update={"plant": True})))
+
     every = list(clip.joints)
     pair = [joint, twin(joint)] if joint else []
+    jname = (joint or "").replace("joint.", "")
     if key == "fall":
+        steadier()
         smaller(every, "overall")
         slower()
         smoother()
@@ -221,16 +278,20 @@ def remedies(key: str, joint: str | None, ops: Operations, clip: MotionClip, s: 
         slower()
         smoother()
         if pair:
-            smaller([j for j in pair if j in clip.joints], f"at {joint.replace('joint.', '')} (both sides)")
+            smaller([j for j in pair if j in clip.joints], f"at {jname} (both sides)")
     elif key == "joint_limit":
         if pair:
-            smaller([j for j in pair if j in clip.joints], f"at {joint.replace('joint.', '')} (both sides)")
+            smaller([j for j in pair if j in clip.joints], f"at {jname} (both sides)")
         if ops.range_margin_deg + 3.0 <= 20.0:
             out.append((f"{ops.range_margin_deg + 3:g} deg inside the ranges",
                         ops.model_copy(update={"range_margin_deg": ops.range_margin_deg + 3.0})))
+    elif key == "":  # the broad remedies, when nothing aimed at the limit helped
+        slower()
+        smoother()
+        smaller(every, "overall")
     else:  # torque and belt limits
         if pair:
-            smaller([j for j in pair if j in clip.joints], f"at {joint.replace('joint.', '')} (both sides)")
+            smaller([j for j in pair if j in clip.joints], f"at {jname} (both sides)")
         slower()
         smaller(every, "overall")
     return out
@@ -247,12 +308,13 @@ def adapt(clip: MotionClip, spec: RobotSpec, lib: Any, play: Callable[[MotionCli
 
     raw_features = movement_features(preview_rollout(clip, spec), spec)
     tried: dict[str, dict[str, Any]] = {}
+    shaped: dict[str, Any] = {}
 
     def evaluate(ops: Operations) -> dict[str, Any]:
         key = ops.model_dump_json()
         if key in tried:
             return tried[key]
-        c = apply(clip, ops, spec)
+        c = apply(clip, ops, spec, lib, shaped)
         c.id = (clip.id or "clip") + ".adapted"
         rollout, rep = play(c)
         part = clip_part(rollout, rep["timing"])
@@ -280,10 +342,17 @@ def adapt(clip: MotionClip, spec: RobotSpec, lib: Any, play: Callable[[MotionCli
         key, joint = worst(cur["report"])
         options = remedies(key, joint, cur["ops"], clip, s)
         if not options:
-            steps.append({"round": rnd, "action": f"no remedy left for {key}", "limit": key, "joint": joint})
+            steps.append({**_step(rnd, f"no remedy left for {key}", cur), "limit": key, "joint": joint})
             break
         note(f"round {rnd}: {key}{' at ' + joint.replace('joint.', '') if joint else ''}; trying {len(options)} versions")
         results = [(label, evaluate(o)) for label, o in options]
+        if min(r["badness"] for _lb, r in results) >= cur["badness"]:
+            # nothing aimed at this limit helps: try the broad remedies too before taking a step back
+            seen = {o.model_dump_json() for _lb, o in options}
+            extra = [(lb, o) for lb, o in remedies("", None, cur["ops"], clip, s) if o.model_dump_json() not in seen]
+            if extra:
+                note(f"round {rnd}: no improvement; trying {len(extra)} broader versions")
+                results += [(label, evaluate(o)) for label, o in extra]
         label, best = min(results, key=lambda x: (x[1]["badness"], -x[1]["character"]["score"]))
         steps.append({**_step(rnd, label, best), "limit": key, "joint": joint,
                       "tried": [{"action": lb, "badness": r["badness"], "character": round(r["character"]["score"], 3)}
@@ -301,6 +370,11 @@ def adapt(clip: MotionClip, spec: RobotSpec, lib: Any, play: Callable[[MotionCli
             if any(v < 1.0 for v in ops.amplitude.values()):
                 options.append(("larger", ops.model_copy(update={"amplitude": {k: round(min(1.0, v / 0.9), 4)
                                                                                for k, v in ops.amplitude.items()}})))
+                pairs = sorted({min(j, twin(j)) for j, v in ops.amplitude.items() if v < 1.0 - 1e-6})
+                for j in pairs:
+                    amp = {k: (round(min(1.0, v / 0.8), 4) if k in (j, twin(j)) else v) for k, v in ops.amplitude.items()}
+                    options.append((f"larger at {j.replace('joint.', '')} (both sides)",
+                                    ops.model_copy(update={"amplitude": amp})))
             if not options:
                 break
             note(f"giving back {g}: {', '.join(lb for lb, _ in options)}")
