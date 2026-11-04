@@ -564,6 +564,7 @@ def test_c_a_blank_entry_is_incomplete_until_its_values_are_entered(own_config):
     from calflab.components.template import add_component
     from calflab.wiring import component_audit
 
+    before = set(library().incomplete)  # entries the shipped library leaves incomplete (ADR-086: the leg tube)
     path, required = add_component("actuator", "test_servo", "Test servo")
     assert path.name == "actuators.yaml"
     # stall current is optional since ADR-066: without it the servo is usable and its current is "unknown"
@@ -578,7 +579,7 @@ def test_c_a_blank_entry_is_incomplete_until_its_values_are_entered(own_config):
     assert "test_servo" not in genome_definition("calf").gene("act_knee").choices
     spec = build_design(genome_definition("calf").default_genome()).spec
     rep = component_audit(spec, lib, None)
-    assert [c["key"] for c in rep["incomplete"]] == ["test_servo"]
+    assert sorted(c["key"] for c in rep["incomplete"]) == sorted(before | {"test_servo"})
     with pytest.raises(ValueError, match="already exists"):
         add_component("actuator", "test_servo")
     with pytest.raises(ValueError, match="not a valid key"):

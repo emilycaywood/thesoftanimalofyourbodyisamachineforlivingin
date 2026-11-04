@@ -1595,6 +1595,21 @@ Left blank it counts as 0 W and is reported as **default assumed**. Without
 `esp_wroom_32` (ESP-WROOM-32, 7 g weighed by the researcher, 3.3 V,
 0.33 W from "~100 mA"; unverified, no size or cost entered).
 
+`carbon_fibre_leg_tube` (in `materials.yaml`, added 2026-11-04, ADR-086) is
+the carbon fibre leg tube you committed the final calf to. Its outer
+diameter, wall and mass per metre were not given, so it is **incomplete**
+(no density) and nothing uses it yet; the tube genes in Form > Tubes (15 x
+12 mm, 1.55 g/cm3) stay PROVISIONAL. Enter the density from the tube's
+datasheet, or from a weighed length: density (g/cm3) = mass per metre (g/m)
+/ (pi / 4 x (OD² - ID²) in mm²) x 1000. Then set the tube genes to its
+outer and inner diameter.
+
+**How much a result rests on an unverified value.** `docs/studies/` holds
+one-at-a-time sensitivity studies: `sensitivity_r1.md` (2026-11-04) plays
+the walk, the trot and the interpreted trot and step with the mass, the
+armature, the spring rates and the servo's torque at the battery's voltage
+varied one at a time, and lists which missing value changes a verdict.
+
 **The audit.** `calflab components audit` prints these tables:
 
 1. every library component, whether it is verified and how much of it the

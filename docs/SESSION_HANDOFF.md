@@ -1,8 +1,10 @@
 # CALFLAB session handoff
 
 Everything a new Claude Code session (or a new collaborator) needs to pick up
-CALFLAB. Last updated 2026-11-03 on branch `robot-calf-final` (cut from
-`chassis-mass`), after session Q: the calf's movement read and interpreted as
+CALFLAB. Last updated 2026-11-04 on branch `robot-calf-final` (cut from
+`chassis-mass`), during session R (a body for vigorous movement; step 1 of 6
+done, waiting for the researcher; section 4, "Session R", ADR-086); before it
+session Q: the calf's movement read and interpreted as
 the robot's own (section 4, "Added in session Q", ADR-085); before it session
 P: clips judged in physics and made feasible
 (section 4, "Added after session X2"; before it session X2: each leg's bend
@@ -1045,6 +1047,24 @@ Nothing installed. `adapt_clip` kept as a diagnostic:**
   `web/e2e/interpret.spec.ts`. `calflab test` passes: ruff, 502 pytest tests (7.6 min), mypy, web typecheck and eslint, 14 Vitest, 13 Playwright tests.
 * Launch entry `calflab-q`: scratch copy `projects/_scratch-q` (not in git).
 
+**Session R (a body for vigorous movement within margin 0.2; ADR-086). In progress: step 1 of 6 done, stopped
+for the researcher as asked.** Belts, joint ranges, genes and component values not touched; nothing installed.
+
+* The request (six steps, a stop after each) commits the body to the ten STS3215 C018 servos and carbon fibre leg
+  tubes. **The tube's outer diameter, wall and g/m were placeholders in the message**: `carbon_fibre_leg_tube` is
+  in `config/components/materials.yaml` with nothing filled in (incomplete, unused); the tube genes stay
+  PROVISIONAL 15 x 12 mm.
+* **Step 1 (what the failures rest on)**: `docs/studies/sensitivity_r1.md` (script `sensitivity_r1.py`, scratch
+  copy `projects/_scratch-r`, about 2 min of physics). Summary in ADR-086:
+  * walk (-2.48) and trot (-1.2) fail on sustained hip ab/ad torque whatever mass, armature, springs or servo
+    torque within the ranges: the gaits/stance, not the unknowns;
+  * the interpreted trot (+0.71) holds up to mass x1.2 and 10.5 V; fails at rated torque x0.8 or springs x1.5;
+  * **the interpreted step (+0.28) fails with 130 g more mass, or with the servo's figures scaled to 11.1 V**
+    (fr.shoulder sustained): its verdict rests on the missing masses and the servo at the battery's voltage;
+  * armature decides nothing; stiffer springs load the stifle belts (the springs are not gravity compensation).
+* Assumed (ADR-086): uniform mass scaling, servo figures linear in voltage, the two 3S packs in parallel.
+* Next: step 2 (where the load goes), see R2 in section 7.
+
 **Scaffolded only (interfaces + tests, no behaviour):** PPO training, MJX
 simulator, RemoteSSH and CloudNotebook transports (job bundling is real),
 imitation reward, interactive selection, molds, skin patterns, nesting,
@@ -1332,7 +1352,7 @@ Journal, Rhino bridge):**
 |---|---|
 | `CLAUDE.md` | Conventions for every session (loaded automatically) |
 | `PLAN.md` | Architecture, module boundaries, data flow, phases, risks, status |
-| `DECISIONS.md` | ADR log: every assumption (85 so far) |
+| `DECISIONS.md` | ADR log: every assumption (86 so far) |
 | `docs/proposals/anatomical-leg.md` | Proposal for a three-segment leg (set aside 2026-10-04; not built) |
 | `docs/USER_GUIDE.md` | How to use the lab |
 | `docs/CHAT_GUIDE_PROMPT.md` | Prompt that makes a chat assistant a guide to the whole lab |
@@ -1347,6 +1367,14 @@ Journal, Rhino bridge):**
 ## 7. Recommended next sessions
 
 Prefix each with the opening message from section 1.
+
+**R2. Session R, step 2: where the load goes** (recommended next; written 2026-11-04 after step 1, ADR-086.)
+> Continue session R (ADR-086, `docs/studies/sensitivity_r1.md`) in projects/robot-calf-final. Step 1 is done.
+> <Answer here: the two 3S packs' connection; the STS3215 C018's figures at the battery voltage if known; any
+> masses or tube values you have.> Now step 2: for the walk, the trot and the interpreted fast play, show per joint
+> where sustained torque and belt tension come from (static weight in stance against dynamics), and how much the
+> springs carry now. Say which levers can plausibly fix each failure: springs as gravity compensation, belt
+> reduction ratio, leg angles in stance, stance width, crouch. Then stop and show me.
 
 **Q2. Interpretation inside the repertoire evolution** (recommended next; written after session Q, ADR-085.)
 > In projects/robot-calf-final, interpretation (run `20261104-042426-interpret-ef3c`) found how this body can say the calf's stand, step and

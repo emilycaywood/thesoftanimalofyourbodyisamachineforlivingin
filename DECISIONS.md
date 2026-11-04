@@ -3148,3 +3148,62 @@ shift from the calf's lean.
 
 *Not done:* steering a walk along the calf's path; a step that moves a hoof to a new place; head motion of any
 kind; using the interpretation inside the repertoire evolution; a per-body cost model.
+
+## ADR-086 — Session R: a body for vigorous movement; step 1, what the failures rest on (**VERIFY**)
+
+*Requested 2026-11-04 (session R).* Commitments: the ten STS3215 C018 servos and carbon fibre leg tubes; everything
+else may change. Goal: walk, trot and the interpreted performance within every limit at margin 0.2. Six steps, with
+a stop for the researcher after each. This ADR covers what was done before the first stop.
+
+*Decision 1: the tube is entered with nothing filled in.* The request gives the tube as "`<outer diameter>` mm,
+`<wall>` mm wall, `<g/m or "not weighed">`": placeholders, not values. `config/components/materials.yaml` gets
+`carbon_fibre_leg_tube` (`calflab components new material`; `source:` says what was given; `verified: false`;
+`density_g_cm3: null`, so the library lists it as incomplete and nothing uses it). Outer diameter, wall and
+mass per metre are written as "not given" in its comment. The tube genes (15 x 12 mm everywhere) and
+`tube_density` 1.55 g/cm3 stay as they were: PROVISIONAL. The servo entry is not touched.
+
+*Decision 2: the sensitivity study is a script for now* (`docs/studies/sensitivity_r1.py`, results in
+`docs/studies/sensitivity_r1.md`). It plays each motion exactly as the interpretation plays a candidate
+(`play_primitive` + `judge`, torque-speed servos, derating 1, seed 0, margin 0.2) with one value changed in
+memory. Making it a job and a panel is left to session P3: step 1 was asked for as results.
+
+*Assumptions of the study (VERIFY):*
+* **Mass x0.9-1.3 is a uniform scale on every geom** (and on a pushed solid's inertia). The missing parts (blocks,
+  electronics, skin, horns, bearings, collars, plugs, pads, belts, neck rods) are partly on the trunk and partly
+  on the legs, where they are is not known, so they are spread like the mass already there. A trunk-heavy
+  distribution would load the hips and shoulders more than this.
+* **The servo at another voltage is linear in voltage**: stall torque, rated torque and no-load speed x V / 12 V.
+  Feetech gives the C018 only at 12 V (as entered). A DC motor's stall torque and speed scale roughly so; the
+  real curve is the datasheet's or a measurement's, not this.
+* **The battery voltage**: `config/feral_calf.yaml` has two 3S 2200 mAh packs. How they are connected is not
+  entered. Two in series (22.2 V) would be far above the servo's 12 V, so **parallel is assumed**: 11.1 V
+  nominal, 12.6 V full, about 10.5 V near empty. The servos then never see their 12 V figures except on a fresh
+  charge.
+* "Fails first" = the constraint with the lowest margin over the play (the binding one), not the earliest in time.
+
+*Results (1304 g as entered; full tables in `docs/studies/sensitivity_r1.md`):*
+
+| motion | baseline margin, binding limit | what moves it | does a value in range change the verdict? |
+|---|---|---|---|
+| walk | -2.48, sustained torque hr.hip_abd (above 48 % of rated for 87 % of a window); also stifle belt, fr.carpus speed (122 vs 108 deg/s), fl.carpus envelope (100 %) | rated torque x1.2 -2.24; armature x2 -1.72; mass hardly (-2.40..-2.52); stiffer springs make the belt worse (x1.5: belt -2.60) | **no**: over in every variant. The walk itself is the problem |
+| trot | -1.2, sustained torque hr.hip_abd (55 %); stifle belt -0.96; hock envelope -0.01 | mass x1.1 -1.73 (belt); rated x1.2 -1.10; springs x0 -1.32, x3 -2.40 | **no**: over in every variant |
+| interpreted trot (fast play) | +0.71, hock envelope (23 %) | mass x1.2 +0.24, x1.3 +0.04 (fr.shoulder sustained); rated x0.8 -0.16; 10.5 V +0.20; springs x1.5 -0.47 (stifle belt) | **yes**: rated torque 20 % lower, or springs 50 % stiffer |
+| interpreted step | +0.28, hl.hock joint speed (79 vs 108 deg/s) | **mass x1.1 -0.12; 11.1 V -0.20; rated x0.9 -0.36** (all fr.shoulder sustained); springs x1.5 -1.48, x0 0.00 (stifle belt); armature x2 +0.17 | **yes**: 130 g more, or the servo's figures at 11.1 V, take it over |
+
+What this says:
+* **Armature decides nothing** (x0.2-2 keeps every verdict). It is not the first thing to measure.
+* **The step's feasibility rests on missing numbers**: the servo's rated torque at the battery's real voltage, and
+  the 14 missing masses (130 g, 10 %, is enough). With the electronics, skin and blocks still at 0 g, the step is
+  likely out of reach once they are entered, unless the body changes.
+* **The springs as they are fight the servos.** Rates above x1 load the stifle belts sharply; at x0 the walk's
+  stifle belt is also over (-1.00) and the step's is at its limit. The rate is near a narrow sweet spot for the
+  provisional free lengths and anchors: they are not set as gravity compensation. Step 2 looks at that.
+* **The gaits as they are fail on the hip ab/ad servos' sustained torque**, which no unknown fixes: it is the
+  lateral load of the stance (step 2).
+* A lower voltage sometimes *helps* the walk (10.5 V: -2.08): slower servos follow less of the commanded motion,
+  so they carry less. A margin does not say how much of the motion was kept.
+
+*Missing numbers that decide a verdict (to measure, not filled in):* the STS3215 C018's rated and stall torque and
+no-load speed at 11.1 V (or the curve against voltage); the two packs' connection; the masses of
+`config/feral_calf.yaml` `placeholders` (electronics, skin, hip and chest blocks first: the largest); the tubes'
+outer diameter, wall and g/m; the springs to be bought (rate, free length) once step 2 says what they should be.
