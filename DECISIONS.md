@@ -3457,3 +3457,21 @@ is required, and within a cell headroom and unpredictability are preferred. Calf
   * shift / stand / step / walk (+0.00, 0.58).
 * Several unsafe cells were within 0.01 of the margin.
 * Estimate: 10 x 28 is about 9 min on 7 workers (1.0 h CPU), plus about 70 s finding the start settings.
+
+## ADR-094 — The first full behaviour-diversity run on the working body (**VERIFY**)
+
+*Context.* The researcher chose the budget: 20 generations x 28.
+
+*Results* (`docs/studies/diversity_r5.md`, run `20261104-181642-evolve-2650`, 1480 s):
+* **Overall:** 560 evaluated, 30 within every limit at margin 0.2 on three seeds. They fill 16 of 58 cells;
+  coverage was still rising at the end.
+* **The safe region:** quantity of motion 1.3-6.9 deg/s, tempo regularity 0.21-0.80, unpredictability up to
+  0.78. Nothing above about 7 deg/s is safe.
+* **What stops the rest:** sustained servo torque (472 seed failures), then joint speed (275) and sustained belt
+  tension (245). Vigorous movement on this body is bounded by the servos' rated torque. Every active safe cell
+  sits within 0.08 of the margin.
+* **Movements:** weight shifts, stand, walk and turn become safe in sequences. The steps rarely do (13 of 30 safe
+  candidates, briefly). The trot almost never does (1 of 30).
+
+*Assumption kept:* a cell's descriptors are averaged over the seeds it played. An unsafe candidate stops at its
+first failing seed, so its descriptors may rest on one seed.

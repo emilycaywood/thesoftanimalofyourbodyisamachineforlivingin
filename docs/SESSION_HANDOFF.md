@@ -1108,7 +1108,12 @@ values not touched; nothing installed.
     this body.
   * Joint speed commanded at 0.76 of the servo's.
   * Trial 3 x 14 (180 s): 3 safe cells. The project's fitness node is now `diversity` (`set_node_params`).
-* Next: the researcher chooses the budget (R5 in section 7).
+* **First full run (ADR-094, `docs/studies/diversity_r5.md`, run `20261104-181642-evolve-2650`, 20 x 28,
+  1480 s).** 30 of 560 safe, 16 safe cells of 58.
+  * Safe region: QoM 1.3-6.9 deg/s, regularity 0.21-0.80, unpredictability up to 0.78.
+  * Bounded by sustained servo torque. Trot and steps almost never safe.
+  * Three cells picked to play at 60 s: (0,5) calm, (2,2) irregular, (4,6) active.
+* Next: play those three as 60 s performances with full physics reports (the second half of R5).
 
 **Scaffolded only (interfaces + tests, no behaviour):** PPO training, MJX
 simulator, RemoteSSH and CloudNotebook transports (job bundling is real),
@@ -1397,7 +1402,7 @@ Journal, Rhino bridge):**
 |---|---|
 | `CLAUDE.md` | Conventions for every session (loaded automatically) |
 | `PLAN.md` | Architecture, module boundaries, data flow, phases, risks, status |
-| `DECISIONS.md` | ADR log: every assumption (93 so far) |
+| `DECISIONS.md` | ADR log: every assumption (94 so far) |
 | `docs/proposals/anatomical-leg.md` | Proposal for a three-segment leg (set aside 2026-10-04; not built) |
 | `docs/USER_GUIDE.md` | How to use the lab |
 | `docs/CHAT_GUIDE_PROMPT.md` | Prompt that makes a chat assistant a guide to the whole lab |
