@@ -2852,35 +2852,149 @@ changes almost nothing).
 * Frames where a candidate's limiting joint peaks are not marked in the
   Review.
 
-## ADR-084 — Clips judged in physics: a torque-speed servo, shared limits, feasible versions (**IN PROGRESS, VERIFY**)
+## ADR-084 — Clips judged in physics: a torque-speed servo, shared limits, feasible versions (**VERIFY**)
 
-*Requested 2026-11-03.* Judge footage clips on the hardware's physical limits, not only joint ranges.
+*Requested 2026-11-03.* Judge footage clips on the hardware's physical limits, not only joint ranges; get the
+researcher's two candidates (`Recording 2026-11-03 111941.mp4` c1 = frames 0-109, c2 = 140-225) feasible within
+every limit at margin 0.2; expose it as jobs, runs and a Behave panel view. Belts, joint ranges and component
+values not changed.
 
-*Done (core only, committed on `robot-calf-final`):*
-* `CompileOptions.servo_model`: `torque` (default, every earlier run unchanged) or `torque_speed`: before every
-  physics step each actuator's force range follows `calflab.sim.servo.available_torque` (stall torque falling
-  linearly to 0 at the library's no-load speed when driving; up to stall when braking). Checked: an unloaded
-  shoulder step reaches 620 deg/s without it, 258 deg/s against 270 with it.
-* `calflab.mech.limits`: envelope use per frame (|tau|/stall + |omega|/no-load when driving) and battery current
-  (known only with stall current; otherwise a lower bound = mechanical power / the servo's 12 V).
-* `SafetyPolicy`: `margin` (every limit x (1 - margin); 0 = as before), constraints `envelope` (penalise) and
-  `fall` (report). Preset `repertoire` v2 and the composition study compile with `servo_model: torque_speed`,
-  so evolution is judged on the same physics as the review.
-* `calflab.behave.physics`: plays a clip once through the behaviors controller (lead-in, clip, return, hold) and
-  reports tracking, per-joint torque/speed/envelope/belt, hooves, battery, fall, the constraint table, a time
-  strip and events with video frames.
-* `calflab.behave.adapt` (time scale, per-joint amplitude, low-pass, range margin; greedy search + give-back)
-  and `calflab.behave.stance` (support from hoof heights with the clip's pitch/roll, at least 3 hooves down, the
-  supporting hooves planted and the centre of mass over them, bounded least squares). Stance is not yet wired
-  into `adapt.apply`.
+*Decision 1: the servo and the limits* (commit 3fafd3c).
+* `CompileOptions.servo_model`: `torque` (default) or `torque_speed`: before every physics step each actuator's
+  force range follows `calflab.sim.servo.available_torque`. Stall torque falls linearly to 0 at the library's
+  no-load speed when driving; braking is allowed up to stall. Only `stall_torque_nm` and `no_load_speed_rpm` are
+  used. An unloaded shoulder step reaches 620 deg/s without it, 258 deg/s against 270 with it.
+* **The `torque` model is unchanged bit for bit**: rollouts of the reference calf (CPG) and the feral calf (its
+  own controller) hash the same as at b538a0e, before this ADR.
+* `calflab.mech.limits`: envelope use per frame (|tau|/stall + |omega|/no-load when driving). Battery current is
+  known only with a stall current; otherwise it is a lower bound = mechanical power / 12 V.
+* `SafetyPolicy.margin` (every limit x (1 - margin); 0 = as before), constraints `envelope` (penalise) and `fall`
+  (report). Preset `repertoire` v2 and the composition study compile with `torque_speed`.
 
-*First results, scratch copy `projects/_scratch-physics` (margin 0.2, masses as entered, 1.3 kg):*
-* c1 (0-109) as retargeted falls at 2.4 s; c2 (140-225) at 1.5 s. First instantaneous limits: c1 the hind
-  left stifle (torque-speed envelope, 94 % of stall, belt 291 N against 44 N allowable); c2 the fore left
-  shoulder (stall).
-* At one third of the amplitude c1 still reaches stall at the shoulder at 6 deg/s: the clip's legs fight each
-  other through the floor, and it holds fewer than 3 hooves down in 103 of 109 frames (c2: 82 of 85).
-* Planted + 3x slower: c1 stands until 8.2 s (of about 12), c2 still falls at 2.2 s. No feasible version yet.
+*Decision 2: playing a clip in physics* (`calflab.behave.physics`). The behaviors controller plays the clip once:
+1 s lead-in, the clip, 1 s return, 0.5 s standing. Derating 1, torque-speed servos, nothing random. The report
+holds:
+* per-joint tracking, torque against rated and stall, speed, envelope and belt tension, judged up to a fall
+  (the per-joint table now stops at the fall like the constraints; what a falling body does is not the clip's);
+* hooves: share on the ground, against the plan when planted;
+* battery, fall, the constraint table, a 240-column strip with replay frames and video frames, and events.
 
-*Not done:* Play-in-physics / adapt commands, jobs and run records; the Behave panel table and strip; saving
-adapted clips as new versions; tests; user guide.
+*Decision 3: planting* (`calflab.behave.stance.plant`). What changed in this session, and why:
+* **The solver did not meet its own goals.** Joints held to 1 deg against hooves to 1 mm let the clip's angles win:
+  the centre of mass stayed outside the shrunk polygon in 47 % (c1) and 39 % (c2) of frames, and supporting hooves
+  slid up to 32 mm. The weights are now 5 deg and 0.2 mm. On c1 that gives 0 % outside and hooves within 1.3 mm.
+* **The lead-in dragged the hooves.** Blending angles from standing into the first pose (whose hooves had been
+  anchored elsewhere) left c2 on one or two hooves before the clip began. Now the first frame's supporting hooves
+  are anchored where the body stands. `plant` solves a planted way in (standing to the first pose) and a planted
+  way back (`meta.stance_paths`, 20 poses each), and the physics playback follows them. The hold keeps the way
+  back's last pose. Clips without these paths play exactly as before.
+* `StanceSettings.range_margin_deg`: the solved angles stay inside the adaptation's range margin.
+* `plant` also returns the solved trunk pose per frame (`trunk_pose`, not stored in clips) and the support per
+  frame.
+
+*Decision 4: the search* (`calflab.behave.adapt`).
+* Operations are applied in the order amplitude, low-pass, range margin, **plant**, time scale. Planting is cached
+  on everything but the time scale.
+* `AdaptSettings.plant` (on), `min_support` 3 and `stability_margin_mm` 15 (PROVISIONAL) set the kinematic start.
+* Fall remedies: **keep four hooves down**, **a larger stability margin (+10 mm)**, then smaller, slower and
+  smoother.
+* When no remedy aimed at the worst limit lowers the excess, the round also tries the broad ones (slower,
+  smoother, smaller overall).
+* The give-back tries faster, larger overall, and **larger at each joint pair** (/0.8).
+* Fixed: the "no remedy" step had no `operations` key.
+
+*Why the candidates fell, once planted and slowed* (diagnosed on the scratch copy before adding remedies, from
+contacts, the centre of mass against the contact polygon, hoof slip and tracking per frame):
+* With three hooves planned down, physics stood on fewer than three in 79-81 % of the clip, mostly diagonal
+  pairs.
+* The cause is the body's compliance against a tripod's margin. The position servos reach full torque at 10 deg
+  of error (`servo_saturation_deg`); under the loads of a three-legged pose they sag 2-13 deg (fl.shoulder up to
+  34 deg peak in c1, at stall). That is 4 mm or more per degree at the hoof, more than the 15 mm (or 35 mm)
+  balance margin of a calf-width tripod.
+* A larger stability margin did not help (c1 still falls at 4.5-5.2 s whatever the margin). Four hooves down did:
+  no fall at 2x, 3x or 4x slower, for either candidate.
+* What then limited them was sustained hip ab/ad torque (above 48 % of rated in 85 % of a window) and sustained
+  belt tension. Shrinking the hip ab/ad alone did not lower it, because planted angles follow the hooves more
+  than the clip, so the search shrank everything.
+
+*Results* (scratch copy `projects/_scratch-physics`, through the lab's own commands; margin 0.2; 1.304 kg as
+entered; runs `20261104-014201-adapt-7fbe` (c1) and `20261104-014938-adapt-e9f7` (c2)):
+
+| | c1 raw | c1 feasible | c2 raw | c2 feasible |
+|---|---|---|---|---|
+| verdict | falls at 2.36 s | within limits | falls at 1.52 s | within limits |
+| first over a limit | fr.carpus at its limit, 0.74 s (lead-in); hl.stifle at 94 % of stall | nothing | fl.shoulder on its envelope, 0.30 s | nothing |
+| operations | | 3.17x slower; amplitude 0.33 (hips/stifles 0.41); low-pass 2.2 Hz; 2 deg inside; planted, 4 down | | 3.64x slower; amplitude 0.51 (fore carpi 1.0); 2 deg inside; planted, 4 down |
+| tracking RMS | 8.4 deg | 0.6 deg | 17.8 deg | 0.8 deg |
+| smallest margin | | 0.32 | | 0.08 (belt sustained 0.23 / 0.25) |
+| busiest servo | hl.stifle: envelope 100 %, 94 % stall | hl.stifle: envelope 40 %, 12 % stall | hl.stifle: envelope 100 % | fl.carpus: envelope 41 %, 11 % stall |
+| duration | 3.6 s | 11.4 s | 2.8 s | 10.2 s |
+| character kept | 1 | 0.19 | 1 | 0.24 |
+| quantity of motion / range / rhythm / shape | | 7 % / 32 % / 13 % / 47 % (13 deg RMS) | | 11 % / 35 % / 24 % / 35 % (15 deg RMS) |
+| plays, time | | 55, 7.7 min | | 39, 4.3 min |
+
+**How much character the feasible versions keep: little.** They are quasi-static sways on four planted hooves.
+The hooves never leave the ground (on the ground 96-100 % of the clip), at a third to a half of the amplitude and
+3-4x slower. What survives is the shape of the trunk's movement, at about 13-15 deg RMS from the raw angles, and
+some of its range. Steps, the swing of a leg and the tempo do not survive. Battery: at most about 1 W mechanical,
+at least 0.09 A (a lower bound).
+
+*Armature (`armature_scale` 0.2).* The servo's armature is the library default 0.005 kg*m^2 (not on its
+datasheet), x4 behind the 2:1 belts.
+* Raw: c1 falls at 2.30 s (was 2.36), c2 at 1.54 s (was 1.52); the same first limits.
+* The versions found at 1.0, judged at 0.2: c1 stays within limits (margin 0.32 -> 0.44); **c2 goes over sustained
+  belt tension (margin 0.08 -> -0.12)**.
+* A new search at 0.2 finds versions of the same kind: c1 3.17x, amplitude 0.33-0.51, character 0.22; c2 4.00x,
+  amplitude 0.51-0.64, character 0.24.
+* So the falls and the kind of remedy do not rest on the armature; c2's exact feasibility does.
+
+*What these results rest on* (each run records it under `basis`):
+* the masses as entered, with 14 parts at 0 g (blocks, electronics, skin, plugs, bearings, horns, pads,
+  pulleys, belts, springs);
+* the STS3215 C018 entry: unverified, no stall current (hence the current lower bound), default armature;
+* 62 PROVISIONAL values, among them the joint ranges (the stifle's -30 deg decides when it sits at its limit)
+  and the springs (rate, free length, anchors), which carry part of the standing load.
+
+*Exposed.*
+* Commands `play_in_physics` and `adapt_clip` (a library clip, or `file`, `candidate`, `start`, `end`,
+  `far_side`, `margin`, partial settings), `keep_adapted_clip run=` and `physics_report run=` (or `clip=` /
+  `file= candidate=` to list runs). Module `calflab.app.physics_jobs`; commands in
+  `calflab.app.physics_commands`, registered like `footage_commands`.
+* Runs `physics` (`physics.json`, rollout, scene) and `adapt` (`adapt.json` with both reports, the steps, the
+  operations, the comparison and the stance; `adapted_clip.json`; the adapted rollout). The as-retargeted play is
+  a child `physics` run, so both replay.
+* Provenance: the clip's footage provenance, settings, compile settings, the controller, genome, overrides and
+  `basis`; the registry adds the git hash and versions.
+* An adapted library clip is saved as `<id>-feasible` (`meta.adapted_from`, operations, margin, stance). The
+  original is never changed. A candidate's version stays in the run until `keep_adapted_clip`.
+* Behave panel: *Play in physics* and *Make feasible* beside *Preview on robot* and on each clip row. The panel
+  renders the stored report only.
+
+*Checked.*
+* `tests/test_physics.py`:
+  * the envelope at rest and at no-load;
+  * the shoulder held to its no-load speed by `torque_speed` and not by `torque`;
+  * default = explicit `torque`, bit for bit;
+  * the margin scaling every limit in `safety_report`;
+  * `plant` on synthetic poses: supporting hooves within 3 mm, the centre of mass inside the polygon, checked
+    with the body's kinematics from the solved trunk;
+  * a one-round and (slow) a full adaptation;
+  * the order of operations;
+  * (slow) the jobs, runs, new clip and untouched original.
+* `web/e2e/physics.spec.ts`.
+
+*Assumptions (VERIFY):*
+* stance weights 5 deg / 0.2 mm, 20 transition poses, lift 15 mm (PROVISIONAL), stability margin 15 mm
+  (PROVISIONAL), 3 hooves first;
+* braking up to stall;
+* "character kept" as defined in `adapt` (not a measure of feeling);
+* the greedy search, which is not an optimum: c1's version with the broad fallback kept 0.19, the run without it
+  0.20.
+
+*Not done.*
+* Moving contact phases in time, or letting a slowed clip step to new places (four hooves down means no steps);
+* a trajectory optimisation;
+* hoof limits (none in the library);
+* sensitivity sweeps as a command (armature, mass, springs were run by script);
+* using the feasible clips in the behaviors or the repertoire evolution (they are ordinary clips, so they can be
+  added by hand).

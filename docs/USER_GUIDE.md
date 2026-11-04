@@ -1231,6 +1231,96 @@ speeds from noisy tracks are higher than the calf's real ones; clip
 smoothing and re-timing (above) remove the jitter and the recorder's
 stutter, not a fast movement the fit really sees.
 
+#### Judging a clip in physics, and a feasible version (ADR-084)
+*Preview on robot* poses the body frame by frame: it knows the joint ranges
+and the servos' no-load speed, but not mass, contact, belts or springs. Two
+buttons beside it (in the candidate review, and on every clip row) judge
+the clip on the hardware's limits instead. Both are jobs with progress and
+*Cancel*, and both leave runs that replay in the viewport.
+
+**Play in physics** plays the clip once in MuJoCo through the behaviors
+controller: a 1 s ease from standing into the clip's first pose, the clip
+at its own speed, a 1 s return and half a second of standing. Servos are
+limited by their **torque-speed envelope**: stall torque falling to zero at
+the no-load speed, from the library's two numbers only. Belts and springs
+are as the design has them. Every limit is lowered by your **margin**
+(0.2 = keep 20 % in hand). The report shows:
+
+* a verdict (*within limits*, *over a limit*, *falls*) and the limit that
+  is crossed first: which joint, which force, when, and the video frame;
+* per joint: tracking against the clip (RMS, peak), peak torque against
+  rated and stall, peak speed against the servo's speed at the joint,
+  envelope use, and belt tension against the allowable working tension.
+  After a fall the table stops at the fall, like the constraints;
+* the constraints with the margin: the same ones the repertoire evolution
+  judges by;
+* hooves: share of the clip on the ground (and the planned share, if the
+  clip was planted), peak force against body weight, impacts. The library
+  has no hoof limit, so these are reported, not judged;
+* the battery: mechanical power, and the current only as a **lower bound**
+  while the servo has no stall current in the library;
+* a **time strip**: one row per limit, green within, amber over 90 %, red
+  over. The top band marks lead-in, clip and return. Click a cell to move
+  the replay there, and the review frame to the matching video frame.
+  Under it, every span over a limit is listed and clickable too;
+* what the numbers rest on: mass as entered and the parts with no mass, the
+  servo entry (unverified, missing values, default armature), the
+  PROVISIONAL values.
+
+**Make feasible** searches for a version that stays within every limit with
+the margin. It never changes the clip itself. What it may do, in this order:
+
+1. scale the amplitude per joint (left and right together);
+2. low-pass the angles;
+3. keep them a few degrees inside the ranges;
+4. **plant** the clip: decide from the clip which hooves support in each
+   frame, keep at least three down (four if three falls), hold supporting
+   hooves still on the floor and the centre of mass over them, and solve
+   the ease in and out the same way;
+5. slow the clip.
+
+It starts from the clip planted, 2 deg inside the ranges and slowed until
+every joint is within its servo's speed with the margin. Then it plays a
+version, takes the worst limit (a fall first) and tries what helps that
+limit. For a fall: keep four hooves down, a larger stability margin,
+smaller, slower, smoother. For torque or a belt: smaller at that joint,
+slower, smaller overall. If nothing aimed at the limit helps, it tries the
+broad remedies too. Once every limit holds, it **gives back**: faster, and
+larger at each joint pair, as long as everything still holds.
+
+The report then shows raw and adapted side by side. For each: what limits
+it first, what is still over, tracking, the smallest margin, the busiest
+servo, the duration and the **character kept**. Character is quantity of
+motion, expressive range, tempo, and shape (the angles reached against the
+clip's at the same point of the clip, so slowing alone costs nothing
+there), each against the raw clip and capped at 1, plus their geometric
+mean. It is a measure of movement, not of feeling. Then the constraints
+with values against limits, the search's steps, and buttons to see the
+details (and the replay) of either version.
+
+* For a **library clip** the version is saved as a new clip
+  `<id>-feasible`, with `meta.adapted_from`, the operations, the margin,
+  the stance numbers and the run. The clip itself is never changed.
+* For a **candidate** it stays in the run: press *Keep adapted clip* to add
+  it to the library.
+
+Each row lists its last physics play and feasible version with *Show*.
+The search plays the clip 15-60 times; on the first video it took 4-6
+minutes per candidate.
+
+Command line: `play_in_physics clip=<id>` or
+`play_in_physics file="<video>" candidate=c1 margin=0.2`,
+`adapt_clip ... settings={"max_rounds": 12, "min_support": 3}`,
+`keep_adapted_clip run=<adapt run>`, `physics_report run=<id>` (or with
+`clip=` / `file= candidate=` to list runs). Runs: kind `physics`
+(`physics.json`) and `adapt` (`adapt.json`, `adapted_clip.json`). The
+as-retargeted play of an adapt run is a `physics` run whose parent is the
+adapt run.
+
+What it does not do yet: move contact phases in time, let the robot step
+to new places while slowed (four hooves down means the hooves stay where
+they stood), or optimise a trajectory.
+
 #### Composing behaviors (ADR-078)
 The Stochastic behaviors form has a **Composition** group:
 

@@ -2,9 +2,9 @@
 
 Everything a new Claude Code session (or a new collaborator) needs to pick up
 CALFLAB. Last updated 2026-11-03 on branch `robot-calf-final` (cut from
-`chassis-mass`), after session X2: each leg's bend chosen over the window,
-and frames a recording repeated (section 4, "Added after session X"; before
-it session X: the hind Knee at the hock, lift maps side by side, clip
+`chassis-mass`), after session P: clips judged in physics and made feasible
+(section 4, "Added after session X2"; before it session X2: each leg's bend
+over the window, repeated frames; session X: the hind Knee at the hock, clip
 smoothing; the 3D lift and the review player; and session T: video inbox,
 pose tracking, composition, repertoire evolution). Run `git log --oneline -12`
 for the current state. The commits since 2026-10-10 are local: not pushed.
@@ -934,6 +934,51 @@ Belts not touched. Nothing installed:**
   holds the true bend; repeats in an AVI; re-timing. Additions to
   `tests/test_lift.py` and `tests/test_smoothing.py`.
 
+**Added after session X2 (session P: clips judged in physics; ADR-084, finished). Belts, joint ranges and
+component values not touched. Nothing installed:**
+
+* **Play in physics** and **Make feasible**: buttons beside *Preview on robot* in the candidate review and on
+  every clip row of the Behave panel. Commands `play_in_physics`, `adapt_clip`, `keep_adapted_clip`,
+  `physics_report`. Runs: kind `physics` and kind `adapt`, both replayable.
+* **Servo model:** the servos are limited by a torque-speed envelope taken from the library's stall torque and
+  no-load speed. `torque` stays the default everywhere else, unchanged bit for bit.
+* **The report:**
+  * per joint: tracking, torque against rated and stall, speed, envelope, belt tension;
+  * the constraints with your margin;
+  * hooves on the ground against the plan;
+  * the battery (a lower bound: no stall current);
+  * a clickable time strip (it seeks the replay and the review frame);
+  * what the numbers rest on.
+* **Make feasible** plants the clip: supporting hooves still, at least three down (four if three falls), the
+  centre of mass over them, planted ways in and out. It then slows, shrinks and smooths until every limit
+  holds, and gives back what still holds.
+* **Saved versions:** a library clip's version is saved as `<id>-feasible`; the original is never changed. A
+  candidate's version stays in the run (*Keep adapted clip*).
+* **Your two candidates are feasible at margin 0.2** (scratch copy `projects/_scratch-physics`, through the
+  lab's commands). They are quasi-static sways that keep little character:
+
+  | | c1 | c2 |
+  |---|---|---|
+  | as retargeted | falls at 2.4 s | falls at 1.5 s |
+  | feasible version | 3.2x slower, a third of the amplitude | 3.6x slower, half the amplitude |
+  | hooves | all four always down | all four always down |
+  | character kept | 0.19 | 0.24 |
+  | search | 7.7 min | 4.3 min |
+
+  Full table in ADR-084.
+* **Why three hooves were not enough:** under a three-legged pose the position servos sag 2-13 deg, more than
+  the tripod's balance margin. A larger margin did not help; four hooves down did.
+* **Armature x0.2:** the falls barely move. c1's version still holds; **c2's goes over sustained belt tension**
+  (margin 0.08 -> -0.12).
+* **Tests:**
+  * `tests/test_physics.py` (9, two slow);
+  * `web/e2e/physics.spec.ts`;
+  * the torque model checked bit for bit against b538a0e.
+
+  `calflab test` passes: ruff, 463 pytest tests (slow ones included, 8 min), mypy, web typecheck and eslint, 14 Vitest, 12 Playwright tests.
+* `projects/robot-calf-final` was not touched. **Your lab on port 8020 runs older code**: restart it before
+  using the new buttons.
+
 **Scaffolded only (interfaces + tests, no behaviour):** PPO training, MJX
 simulator, RemoteSSH and CloudNotebook transports (job bundling is real),
 imitation reward, interactive selection, molds, skin patterns, nesting,
@@ -971,6 +1016,26 @@ Journal, Rhino bridge):**
   Properties, entry in Overrides).
 * `doctor` warned "uv not found" on top of the three expected warnings:
   false alarm, fixed (see Tests above).
+
+**The researcher must verify (new in session P, ADR-084):**
+
+* **Restart the lab on port 8020**, open Behave, and on c1 and c2 press *Play in physics* and *Make feasible*.
+  The results should match ADR-084: the search is deterministic; each takes 4-8 minutes.
+* **Watch the feasible versions in the viewport** and judge the character yourself. The lab's "character kept"
+  (0.19 / 0.24) is a movement measure, not a reading of the calf's mood. Say whether a quasi-static sway on four
+  planted hooves is worth keeping, or whether stepping (next session P2) should come first.
+* **The values the results rest on:**
+  * the missing masses (14 parts at 0 g; 1.30 kg as entered);
+  * the STS3215 C018's stall current (none: battery current is a lower bound);
+  * its armature (the library default 0.005 kg*m^2, x4 behind a 2:1 belt). c2's version fails at x0.2;
+  * the PROVISIONAL joint ranges and springs.
+* **The search's choices:**
+  * stance weights 5 deg / 0.2 mm;
+  * the 15 mm stability margin and 15 mm lift threshold (PROVISIONAL);
+  * braking allowed up to stall;
+  * the definition of character kept;
+  * greedy steps (not an optimum).
+* The Behave panel by hand: a Playwright test and nobody else has clicked it.
 
 **The researcher must verify (new in session X2, ADR-083):**
 
@@ -1184,7 +1249,7 @@ Journal, Rhino bridge):**
 |---|---|
 | `CLAUDE.md` | Conventions for every session (loaded automatically) |
 | `PLAN.md` | Architecture, module boundaries, data flow, phases, risks, status |
-| `DECISIONS.md` | ADR log: every assumption (83 so far) |
+| `DECISIONS.md` | ADR log: every assumption (84 so far) |
 | `docs/proposals/anatomical-leg.md` | Proposal for a three-segment leg (set aside 2026-10-04; not built) |
 | `docs/USER_GUIDE.md` | How to use the lab |
 | `docs/CHAT_GUIDE_PROMPT.md` | Prompt that makes a chat assistant a guide to the whole lab |
@@ -1199,6 +1264,34 @@ Journal, Rhino bridge):**
 ## 7. Recommended next sessions
 
 Prefix each with the opening message from section 1.
+
+**P2. Feasible versions that step**
+(written 2026-11-03 after session P, ADR-084.)
+> In projects/robot-calf-final (lab restarted), Make feasible turns my candidates c1 and c2 into quasi-static
+> sways on four planted hooves that keep little character (0.19 and 0.24), because three hooves down falls: the
+> servos sag more than a tripod's balance margin. Let a slowed clip step:
+> * keep the clip's footfalls as contact phases, moved in time if needed;
+> * shift the body over the three supporting hooves before each lift (as a slow walk does), and re-place each
+>   hoof where the clip puts it;
+> * solve it with the stance solver in the core and judge it in physics with the same limits and margin 0.2.
+>
+> Compare character kept, duration and margins with the four-hooves-down versions side by side in the Behave
+> report. If the servo's compliance is the limit, say how much a stiffer servo_saturation_deg would change (as a
+> what-if only, not a new default). Do not change the belts, the joint ranges or component values.
+
+**P3. How much the physics rests on what is unverified**
+> Make a sensitivity study a job and a panel: for a physics or adapt run, re-judge the stored clip with the
+> armature scale, the total mass (x0.9-1.2, for the parts with no mass), floor friction and spring rates varied
+> one at a time. Show which limit moves and whether the verdict changes. Run it on my two feasible versions (c2
+> fails sustained belt tension at armature x0.2). List which missing value would most change each result, so I
+> know what to measure first. Do not change any component values.
+
+**P4. Feasible clips in the repertoire**
+> Use the feasible versions of my clips in the stochastic behaviors and in the repertoire evolution (preset
+> repertoire, torque-speed servos, margin 0.2): add them by tag, check that every episode stays within limits in
+> the composition study, and run a small evolution to see whether a body with other proportions keeps more of
+> the raw clips' character within the same limits (adapt each clip per candidate body, or judge the raw clips
+> with the search's operations). Report the cost first (estimate_evolve).
 
 **X3. The fast frames: the calf or the tracker?**
 (written 2026-11-03 after session X2, ADR-083.)
