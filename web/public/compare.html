@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>CALFLAB: two replays side by side</title>
+    <style>
+      html, body { margin: 0; height: 100%; background: #1d1f22; color: #ddd; font: 13px system-ui, sans-serif; }
+      .bar { display: flex; height: 28px; }
+      .bar div { flex: 1; padding: 6px 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .views { display: flex; height: calc(100% - 28px); }
+      iframe { flex: 1; border: 0; border-left: 1px solid #333; }
+      .empty { padding: 24px; line-height: 1.6; }
+    </style>
+  </head>
+  <body>
+    <!-- Layout only: each side is the lab itself, opened with ?replay=<run id>. Usage:
+         compare.html?a=<run id>&b=<run id>&la=<left label>&lb=<right label> -->
+    <div id="root"></div>
+    <script>
+      const q = new URLSearchParams(location.search);
+      const a = q.get("a"), b = q.get("b");
+      const root = document.getElementById("root");
+      if (!a || !b) {
+        root.innerHTML = '<div class="empty">Shows two recorded runs side by side, each in its own lab view.<br>' +
+          "Open <code>compare.html?a=&lt;run id&gt;&amp;b=&lt;run id&gt;</code> (optional <code>la</code>, " +
+          "<code>lb</code>: labels). Run ids are in Journal &gt; Runs.</div>";
+      } else {
+        const bar = document.createElement("div");
+        bar.className = "bar";
+        const views = document.createElement("div");
+        views.className = "views";
+        for (const [id, label] of [[a, q.get("la")], [b, q.get("lb")]]) {
+          const t = document.createElement("div");
+          t.textContent = (label ? label + ": " : "") + id;
+          bar.appendChild(t);
+          const f = document.createElement("iframe");
+          f.src = "/?replay=" + encodeURIComponent(id);
+          views.appendChild(f);
+        }
+        root.append(bar, views);
+      }
+    </script>
+  </body>
+</html>

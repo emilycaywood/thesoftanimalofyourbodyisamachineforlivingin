@@ -3,7 +3,7 @@ import clsx from "clsx";
 import { Moon, Redo2, Sun, Undo2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { chord, isTypingTarget, loadKeys } from "@/commands/keys";
-import { execute, hooks, repeatLast } from "@/commands/registry";
+import { execute, hooks, repeatLast, replayRun } from "@/commands/registry";
 import { Badge, Button, Empty, IconButton } from "@/components/ui";
 import { connectEvolve } from "@/panels/Evolve";
 import { usePlaybackClock } from "@/panels/Timeline";
@@ -119,6 +119,13 @@ export function App() {
       offEvolve();
     };
   }, []);
+
+  // `?replay=<run id>` opens the lab replaying that run (compare.html shows two side by side)
+  useEffect(() => {
+    if (!ready) return;
+    const run = new URLSearchParams(window.location.search).get("replay");
+    if (run) void replayRun(run);
+  }, [ready]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
