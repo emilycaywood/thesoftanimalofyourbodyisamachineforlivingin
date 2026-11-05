@@ -1152,7 +1152,7 @@ values not touched; nothing installed.
     over in turns entered from a walk or trot, where coverage checked the turn from a stand or shift, or in a turn
     too rare for a one-minute check. Next: cover transitions (R6d).
   * Runs `R6c <label> ...`: 12 of 60 s, 4 of 300 s.
-* Next: R6d, R7 or R8 in section 7.
+* Next: R7, then R8 (the researcher's order, 2026-11-05), in section 7; R6d later.
 
 **Scaffolded only (interfaces + tests, no behaviour):** PPO training, MJX
 simulator, RemoteSSH and CloudNotebook transports (job bundling is real),
@@ -1477,8 +1477,40 @@ Journal, Rhino bridge):**
 
 Prefix each with the opening message from section 1.
 
-**R6d. Transitions checked, for the real performance length** (recommended next; written 2026-11-05 after R6c,
-ADR-097.)
+**R7. Organic movement within a movement** (recommended next, chosen by the researcher 2026-11-05; then R8.)
+> In projects/robot-calf-final, behaviour diversity (`calflab.evolve.diversity`) with coverage and capped durations
+> (ADR-096, ADR-097) gives behaviours that hold every limit for a minute: run `20261105-053201-evolve-e4c8`, studied
+> in `docs/studies/coverage_r6c.md`. I watched them: the sequences are starting to look good, but each movement
+> inside them is the same hand-written primitive every time. Let movement vary below the primitive level, as
+> evolvable genes of the generator:
+> * posture drift and small noise within a movement (head, trunk height, weight over the hooves);
+> * cycle-to-cycle variation in timing and amplitude;
+> * switches not only where every hoof is down, and a cross-fade that varies.
+>
+> Every variation must stay inside what coverage checks: the forced plays must play the variation's extremes, and
+> durations stay capped. Keep every limit at margin 0.2 on three seeds; leave R6d's transition gap (5-minute
+> performances) as it is, but say whether the variation makes it better or worse. Optionally add clips retargeted
+> from my footage to the palette, as their own states. Estimate the cost and let me choose the budget. Then run it,
+> play every safe cell for 60 s on three seeds with `docs/studies/perform_r6.py`, compare the archive and the
+> movement features with run `20261105-053201-evolve-e4c8`, and set up the replays so I can watch them side by
+> side with the R6c ones. Do not change the body, belts or component values.
+
+**R8. Faster joints: lifting the vigour ceiling** (after R7.)
+> In projects/robot-calf-final the trot is within the limits only at a 1.2 s cycle (77 mm/s, against the default
+> 0.6 s): joint speed is the wall, the STS3215 C018's 270 deg/s halved by the 2:1 belts. Even at margin 0.1, or
+> with the sustained check at full rated torque, no 0.6-0.8 s cycle passes; relaxing torque only moves long strides
+> onto belt tension (`docs/studies/coverage_r6c.md`, `trot_whatif_r6c.py`). Find, per joint, whether speed or
+> torque binds in the trot, walk and turn (the front carpi bind on speed first). Then show in physics, before
+> changing the body, what each of these buys:
+> * less reduction where a joint has torque to spare (for example 1.5:1 or 1:1 at the carpi): search commercial
+>   GT2 10 mm pulley listings, but ask me before adding any to the catalog (sources, masses null, unverified);
+> * belting the hip ab/ad, or springs that carry its static load;
+> * lighter parts where the missing masses allow it.
+>
+> Re-run the trot grid with `docs/studies/trot_r6c.py` for each, and say which combination gives a 0.6-0.8 s trot
+> within every limit at margin 0.2. Do not change component values or `verified` flags.
+
+**R6d. Transitions checked, for the real performance length** (later; written 2026-11-05 after R6c, ADR-097.)
 > In projects/robot-calf-final, with coverage and capped durations (ADR-097) every safe cell holds for a minute,
 > but over 5 minutes 3 of 4 go over, in turns entered from a walk or a trot (coverage had checked the turn from a
 > stand or shift) or in a turn too rare for a one-minute check. Extend coverage in `calflab.evolve.diversity` to
@@ -1493,22 +1525,7 @@ ADR-097.)
 
 *(R6, watching three evolved behaviours for a minute, was done 2026-11-04: ADR-095, `docs/studies/perform_r6.md`.)*
 
-**R7. Organic movement within a primitive** (after R6, if movement quality is the gap.)
-> On the working body, let movement vary below the primitive level in the behaviour-diversity evolution
-> (`calflab.evolve.diversity`): evolvable posture drift and noise within a movement, cycle-to-cycle variation in
-> timing and amplitude, and switches not only at all-hooves-down. Optionally add clips retargeted from my footage
-> to the palette. Keep every limit at margin 0.2 on three seeds. Estimate cost and let me choose the budget. Then
-> compare the archive with run `20261104-181642-evolve-2650`.
-
-**R8. Lifting the vigour ceiling** (after R6, if vigour is the gap.)
-> The behaviour-diversity runs are bounded by the servos: the trot is within the limits only at a 1.2 s cycle
-> (77 mm/s), held by joint speed (270 deg/s halved by the 2:1 belts; even at margin 0.1 no 0.6-0.8 s cycle passes),
-> with sustained torque and then belt tension behind it (`docs/studies/coverage_r6c.md`). The calf moves at 18-77 deg/s. Find which joints bind (per-joint sustained torque in the unsafe candidates) and what would
-> lift them. Candidates: commercially available GT2 pulley pairs with a stronger reduction (search listings for
-> 10 mm belts, add them to the catalog with sources, masses null, unverified), belting the hip ab/ad, lighter
-> parts. Show what each buys in physics before changing the body, and ask before adding anything to the catalog.
-
-**Q2. Interpretation inside the repertoire evolution** (recommended next; written after session Q, ADR-085.)
+**Q2. Interpretation inside the repertoire evolution** (written after session Q, ADR-085.)
 > In projects/robot-calf-final, interpretation (run `20261104-042426-interpret-ef3c`) found how this body can say the calf's stand, step and
 > fast play within every limit at margin 0.2, at about 10 minutes per body uncached. Make that a fitness: per candidate
 > body, interpret the reading on a small budget (reuse the cache when the body is unchanged), score how many
