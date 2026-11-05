@@ -73,3 +73,26 @@ None of these is a long hold: the cap works. What remains is the reach of the ch
 Next (R6d): cover the likely *transitions* (pairs), with `performance_s` at the performance's real length.
 
 The plays are runs titled `R6c <label> ...` (Journal or Simulate > Runs): 12 of 60 s, 4 of 300 s.
+
+## Why the evolved trots are slow (`trot_r6c.py`)
+
+The researcher found the trotting behaviours less lively than the gaits tried on their own. The evolved trots
+use a cycle of 1.22-1.38 s and a stride of 0.43-0.99 x the walk's, against the primitive's default 0.6 s and 2.0.
+The trot played alone on the working body (seed 0, lift 0.6, margin 0.2; the margin column is headroom over
+the limits lowered by 0.2):
+
+| cycle | stride 0.5 | stride 1.0 | stride 1.5 | stride 2.0 |
+|---|---|---|---|---|
+| 0.6 s | -0.36 torque | -0.20 torque / speed | -0.24 joint speed | -1.24 torque (default, lift 0.3) |
+| 0.8 s | -0.13 joint speed | -0.18 joint speed | -0.88 torque | -0.84 torque |
+| 1.0 s | -0.11 joint speed | -0.13 joint speed | -0.62 torque | -1.02 torque |
+| 1.2 s | **+0.06** | **+0.05** | -0.08 torque | -1.53 torque |
+
+* A quicker cadence runs into **joint speed** at any stride: the servos cannot swing the legs faster.
+* A longer stride runs into **sustained servo torque**, then belt tension.
+* Only the slowest, shortest corner is within the limits, and that is where evolution went. The default trot
+  is 2.2x over sustained torque.
+* The cadence-limited settings (0.8-1.0 s, stride up to 1.0) are 0.11-0.18 over the margin-lowered limits:
+  within the servos' own figures at margin 0.2, out at margin about 0.05.
+* Speed: the default trot covers 148 mm/s; 0.6 s at stride 1.5, 184 mm/s; the safe ones 41-77 mm/s.
+* In a performance a trot bout also ramps in over 1.5 s from standing.
