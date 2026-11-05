@@ -12,6 +12,9 @@ Per what-if a copy of the working body's spec is changed in memory:
   no such belt in the catalog);
 * ``hip springs x2``: the hip ab/ad springs at twice their rate (``spring_hip_abd_k``);
 * ``mass x0.9``: every mass 10 % lighter (optimistic: 14 parts are still missing and would add mass);
+* ``45T``: today's pulleys are 30T/60T; ``carpus 1:1`` alone keeps the 30T driver (30T/30T), ``carpus 1:1 45T``
+  uses 45T/45T: belt tension per servo torque / 1.5 (pulley masses, belt length and fit not modelled);
+* ``hock 1.5:1``: 30T/45T;
 * combinations of the above.
 
 For each, the trot grid of ``trot_r6c.py`` (cycle 0.6-1.2 s x stride 0.5-1.5, lift 0.6) plus the walk and the
@@ -19,7 +22,7 @@ turn at the primitives' defaults, seed 0, margin 0.2, judged as everywhere else.
 peak speed over the margin-lowered limit, the sustained torque share over its 0.25, the belt's, and which of
 these is nearest its limit (the binding one).
 
-Run:  python docs/studies/joints_r8.py <project dir> <out.json> [--cases=now,carpus 1:1,...] [--grid=small]
+Run:  python docs/studies/joints_r8.py <project dir> <out.json> [--cases=now,carpus 1:1,...] [--grid=small] [--seed=0] [--randomize]
 """
 from __future__ import annotations
 
@@ -43,6 +46,10 @@ CASES: dict[str, dict[str, Any]] = {
     "all 1.5:1 + hip 2:1": {"ratio": {"*": 1.5}, "hip_belt": 2.0},
     "all 1.5:1 + hip 2:1 + springs x2 + mass x0.9": {"ratio": {"*": 1.5}, "hip_belt": 2.0,
                                                      "genes": {"spring_hip_abd_k": 2.0}, "mass": 0.9},
+    "carpus 1:1 45T + hip 2:1": {"ratio": {"carpus": 1.0}, "d1": {"carpus": 1.5}, "hip_belt": 2.0},
+    "carpus 1:1 45T + hock 1.5:1": {"ratio": {"carpus": 1.0, "hock": 1.5}, "d1": {"carpus": 1.5}},
+    "carpus 1:1 45T + hock 1.5:1 + hip 2:1": {"ratio": {"carpus": 1.0, "hock": 1.5}, "d1": {"carpus": 1.5},
+                                              "hip_belt": 2.0},
 }
 
 
@@ -62,6 +69,17 @@ def body(design: Any, overrides: list[Any], generator: str, gen_params: dict[str
         r = case.get("ratio", {})
         if tr.type == "belt" and (drive in r or "*" in r):
             tr.ratio = float(r.get(drive, r.get("*")))
+    for drive, f in (case.get("d1") or {}).items():  # a larger driver pulley: less belt tension per servo torque
+        bd_ = ((spec.metadata.get("feral") or {}).get("belt_drives") or {}).get(drive)
+        if bd_ is not None:
+            bd_["d1_mm"] = float(bd_["d1_mm"]) * float(f)
+    if case.get("mass"):  # every mass (and inertia) scaled; actuator component masses are geoms too
+        f = float(case["mass"])
+        for bd in spec.bodies:
+            for gm in bd.geoms:
+                gm.mass_g *= f
+                if gm.inertia is not None:
+                    gm.inertia = tuple(v * f for v in gm.inertia)  # type: ignore[assignment]
     if case.get("hip_belt"):
         eff = next((tr.efficiency for tr in spec.transmissions if tr.type == "belt"), 1.0)
         for a in spec.actuators:
@@ -116,7 +134,7 @@ def main() -> None:
 
     load_plugins()
     proj, outp = Path(sys.argv[1]), Path(sys.argv[2])
-    opts = dict(a[2:].split("=", 1) for a in sys.argv[3:] if a.startswith("--"))
+    opts = dict((a[2:].split("=", 1) + [""])[:2] for a in sys.argv[3:] if a.startswith("--"))
     names = opts["cases"].split(",") if "cases" in opts else list(CASES)
     lab = Lab.open(proj, create=False)
     g = lab.state.graph
@@ -128,7 +146,14 @@ def main() -> None:
     lab.close()
     lib = library()
     margin = 0.2
-    s = InterpretSettings(margin=margin, seed=0)
+    if "randomize" in opts:  # judged as the diversity preset does: friction 0.7-1.1, mass x0.95-1.05 per seed
+        import calflab.behave.physics as phys
+        from calflab.behave.study import randomization
+
+        strip = phys.compile_params
+        rand = randomization(True, (0.7, 1.1), (0.95, 1.05))
+        phys.compile_params = lambda doc: {**strip(doc), "randomization": rand}  # type: ignore[assignment]
+    s = InterpretSettings(margin=margin, seed=int(opts.get("seed", 0)))
     small = opts.get("grid") == "small"
     trots = [(c, st) for c in ((0.6, 0.8, 1.2) if small else (0.6, 0.8, 1.0, 1.2))
              for st in ((0.5, 1.0) if small else (0.5, 1.0, 1.5))]
@@ -139,11 +164,6 @@ def main() -> None:
         case = CASES[name]
         spec = body(design, overrides, generator, gen_params, case)
         doc = dict(compile_doc)
-        if case.get("mass"):
-            from calflab.behave.study import randomization
-
-            m = float(case["mass"])
-            doc["randomization"] = randomization(True, (1.0, 1.0), (m, m))
         rows = []
         t = time.perf_counter()
         for key, prm in plays:
