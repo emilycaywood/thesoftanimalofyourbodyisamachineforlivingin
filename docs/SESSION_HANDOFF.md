@@ -11,7 +11,7 @@ P: clips judged in physics and made feasible
 over the window, repeated frames; session X: the hind Knee at the hock, clip
 smoothing; the 3D lift and the review player; and session T: video inbox,
 pose tracking, composition, repertoire evolution). Run `git log --oneline -12`
-for the current state. The commits since 2026-10-10 are local: not pushed.
+for the current state. `robot-calf-final` is pushed to GitHub as a backup (2026-11-05); `projects/*/runs` is not in git and exists only on this machine.
 
 ---
 
