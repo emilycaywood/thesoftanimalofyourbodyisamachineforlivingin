@@ -107,6 +107,11 @@ class InterpretedController(Controller):
             self.seed = int(seed)
             self.signals = Signals(seed, float(var.get("drift_hz", 0.25)))
             self.extremes = var.get("mode") == "extremes"
+            #: with a name, only that state plays its extremes (the one a coverage play checks); others draw
+            self.ext_state = str(var.get("extremes_state") or "")
+            self.ext_from, self._ext_to = 0.0, 0.0
+            self.rates: np.ndarray = np.ones(256)
+            self.amps: np.ndarray = np.ones(256)
             idx = {j: i for i, j in enumerate(self.info.joint_ids)}
             self.basis = {a: {idx[j]: float(v) for j, v in d.items() if j in idx}
                           for a, d in (var.get("basis") or {}).items()}
@@ -180,29 +185,52 @@ class InterpretedController(Controller):
         if self.var is not None and not st.one_shot:
             slack = float(self.var.get("switch_slack", 0.0))
             if slack > 0:
-                if self.extremes:  # the earliest phase allowed, and no later
+                if self._is_ext(st.name) or self._leads_to_ext(st.name):  # the earliest phase allowed, no later
                     return any(0.0 <= (ph - (a - slack)) % 1.0 <= 0.04 for a, _b in st.safe)
                 return any(0.0 <= (ph - (a - slack)) % 1.0 <= (b - a + slack) + 1e-9 for a, b in st.safe)
         return any(a - 1e-9 <= ph <= b + 1e-9 for a, b in st.safe)
 
     # ------------------------------------------------------------------ variation within a movement (ADR-098)
+    def _is_ext(self, name: str) -> bool:
+        """Does this state play its extremes (every state, or only ``extremes_state`` when one is named)?"""
+        return self.extremes and (not self.ext_state or name == self.ext_state)
+
+    def _leads_to_ext(self, name: str) -> bool:
+        """Is this state the forced way into ``extremes_state`` (its only next state)?"""
+        row = self.params.transitions.get(name) or {}  # type: ignore[attr-defined]
+        return bool(self.ext_state) and self.extremes and {k for k, v in row.items() if v > 0} == {self.ext_state}
+
+    def _ext_now(self, t: float) -> float:
+        """How far the posture plays its extremes at ``t`` (0-1), cross-faded like the amplitudes."""
+        if self.blend > 0 and t - self.t0 < self.blend:
+            k = 0.5 - 0.5 * math.cos(math.pi * (t - self.t0) / self.blend)
+            return (1 - k) * self.ext_from + k * self._ext_to
+        return self._ext_to
+
     def _vary_start(self, t: float, st: InterpretedState) -> None:
         """Per episode: each cycle's tempo and amplitude, the cross-fade into it; the posture amplitudes in effect
         are cross-faded from the last state's. Draws come from their own stream (seed, episode)."""
         assert self.var is not None
         n = 256
         tempo, amp = float(st.within.get("tempo", 0.0)), float(st.within.get("amp", 0.0))
-        if self.extremes:
+        rng = np.random.default_rng([self.seed, 9173, len(self.episodes)])
+        u_t, v_a, wb = rng.uniform(-1, 1, n), rng.uniform(-1, 1, n), float(rng.uniform(-1, 1))
+        first = self.ep is None
+        ext = self._is_ext(st.name)
+        if ext:
             u_t = np.where(np.arange(n) % 2 == 0, 1.0, -1.0)  # fastest, slowest, ...
             v_a = np.ones(n)  # the largest
+        if self.extremes and not self.ext_state:
             wb = -1.0 if self.switches % 2 == 0 else 1.0  # shortest, longest, ...
-        else:
-            rng = np.random.default_rng([self.seed, 9173, len(self.episodes)])
-            u_t, v_a, wb = rng.uniform(-1, 1, n), rng.uniform(-1, 1, n), float(rng.uniform(-1, 1))
-        first = self.ep is None
+        elif ext:
+            wb = -1.0  # the shortest cross-fade into the checked state
+        elif not first and self._is_ext(self.state.name):
+            wb = 1.0  # the longest out of it
         if not first:
             self.amp_from = self._amp_now(t)
+            self.ext_from = self._ext_now(t)
             self.switches += 1
+        self._ext_to = 1.0 if ext else 0.0
         self.rates = np.exp(tempo * u_t)
         self.amps = 1.0 + amp * v_a
         blend = float(self.params.blend_s) * math.exp(float(self.var.get("blend_var", 0.0)) * wb)  # type: ignore[attr-defined]
@@ -232,14 +260,16 @@ class InterpretedController(Controller):
         assert self.var is not None
         out = np.zeros(len(self.info.joint_ids))
         amp = self._amp_now(t)
+        e = self._ext_now(t)
         ramp = min(1.0, max(0.0, t / 1.0))  # in from the standing start
         step = float(self.var.get("step_s", 2.0))
         for axis, basis in self.basis.items():
             k = self.axes.get(axis, 0.0)
             if k <= 0 or not basis:
                 continue
-            v = (extremes_value(axis, t, step, amp["drift"], amp["noise"]) if self.extremes
-                 else self.signals.value(axis, t, amp["drift"], amp["noise"]))
+            v = e * extremes_value(axis, t, step, amp["drift"], amp["noise"]) if e > 0 else 0.0
+            if e < 1:
+                v += (1 - e) * self.signals.value(axis, t, amp["drift"], amp["noise"])
             for i, deg in basis.items():
                 out[i] += math.radians(deg) * k * v * ramp
         return out

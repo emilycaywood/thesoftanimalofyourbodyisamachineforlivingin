@@ -228,6 +228,28 @@ def unpredictability(gen: dict[str, Any]) -> float:
     return float(min(1.0, max(0.0, h / math.log2(n - 1))))
 
 
+def variation_amount(gen: dict[str, Any]) -> float:
+    """How much a generator varies within its movements (ADR-098), 0-1: per state the mean of its posture drift
+    (times the mean posture-axis weight), noise, tempo and amplitude, each over its largest value, weighted by how
+    often the state is entered (stationary share), averaged with the switch slack and cross-fade variation of the
+    whole generator. 0 = every movement is the same primitive every time (or no variation genes)."""
+    w = gen.get("within")
+    if not w:
+        return 0.0
+    hi = {g: h for g, _lo, h in WITHIN_STATE + WITHIN_GLOBAL}
+    names, m = transition_matrix(gen)
+    pi = stationary(m)
+    axes = (float(w["w_height"]) + float(w["w_weight"])) / 2.0  # the head has no motors on every body
+    per = []
+    for n in names:
+        v = gen["states"][n]["within"]
+        per.append((float(v["drift"]) * axes / hi["v_drift"] + float(v["noise"]) / hi["v_noise"]
+                    + float(v["tempo"]) / hi["v_tempo"] + float(v["amp"]) / hi["v_amp"]) / 4.0)
+    states = float(np.dot(pi, per))
+    whole = (float(w["switch_slack"]) / hi["switch_slack"] + float(w["blend_var"]) / hi["blend_var"]) / 2.0
+    return float(min(1.0, max(0.0, 0.75 * states + 0.25 * whole)))
+
+
 #: a state's duration is checked, and with ``cap`` held at most, at this quantile of its log-normal (ADR-096/097)
 CHECKED_Z = 1.2816  # 90th percentile
 LOG_SD = 0.4
@@ -341,9 +363,10 @@ def coverage_plan(gen: dict[str, Any], ctrl: dict[str, Any], completed: dict[str
         else:
             c["start"] = pred
             c["transitions"][pred] = {x: 1.0}
-        if c.get("variation"):  # play the variation's bounds (ADR-098): every corner of the posture within x
+        if c.get("variation"):  # x plays the variation's bounds (ADR-098), every posture corner within it; the
+            # states around it draw, as in a performance
             v = c["variation"]
-            c["variation"] = {**v, "mode": "extremes",
+            c["variation"] = {**v, "mode": "extremes", "extremes_state": x,
                               "step_s": round(min(0.5 / max(0.05, float(v.get("drift_hz", 0.25))), held / 4.0), 4)}
         plays.append({"state": x, "from": pred or "start", "reach": round(reach[x], 3), "controller": c,
                       "duration_s": round(dur[pred or ""] + dur[x] + after_s + 2.0, 2)})
@@ -449,10 +472,13 @@ def evaluate_behaviour(payload: dict[str, Any]) -> dict[str, Any]:
     worst = float(min(margins)) if margins else -3.0
     unp = unpredictability(gen)
     weight = float(payload.get("unpredictability_weight", 0.5))
+    var_w = float(payload.get("variation_weight", 0.0))
+    var = variation_amount(gen)
     safe = not unsafe
-    fitness = (1.0 if safe else -1.0) + min(1.0, worst) + weight * unp
+    fitness = (1.0 if safe else -1.0) + min(1.0, worst) + weight * unp + var_w * var
     used = sorted({e for s in seeds for e in s["episodes"] if e})
     metrics = {"movement": movement, "safety_margin": round(worst, 4), "within_limits": safe, "unpredictability": round(unp, 4),
+               "variation": round(var, 4),
                "seeds": seeds, "states_played": used, "fell": fell_any,
                "generator": {"sharpness": round(gen["sharpness"], 3), "blend_s": round(gen["blend_s"], 3),
                              "states": {n: {"primitive": s["primitive"], "weight": round(s["weight"], 3),
@@ -467,6 +493,8 @@ def evaluate_behaviour(payload: dict[str, Any]) -> dict[str, Any]:
     terms = {"safe": {"value": 1.0 if safe else 0.0, "weight": 2.0, "weighted": 1.0 if safe else -1.0},
              "worst_margin": {"value": round(worst, 4), "weight": 1.0, "weighted": round(min(1.0, worst), 4)},
              "unpredictability": {"value": round(unp, 4), "weight": weight, "weighted": round(weight * unp, 4)}}
+    if var_w:
+        terms["variation"] = {"value": round(var, 4), "weight": var_w, "weighted": round(var_w * var, 4)}
     out: dict[str, Any] = {"fitness": fitness, "fitness_terms": terms, "controller_params": ctrl,
                            "controller_x": [float(v) for v in np.clip(payload["x"], 0, 1)], "metrics": metrics,
                            "mass_g": spec.total_mass_g(), "evals": rollouts}
@@ -533,6 +561,15 @@ class MapElitesBehaviour(Optimizer):
                               desc="Movement varies within each state (ADR-098): posture drift and noise, each "
                                    "cycle's tempo and amplitude, earlier switches, varying cross-fades, as genes; "
                                    "coverage plays their extremes.")
+        variation_weight: float = P(0.0, ge=0.0, le=5.0, group="Fitness",
+                                    desc="Weight of variation within the movements in a cell (ADR-098; 0 = not "
+                                         "scored).")
+        start_vectors: list[list[float]] = P(default_factory=list, ui="json", advanced=True, group="Variation",
+                                             desc="First generation from these generator vectors (e.g. safe cells of "
+                                                  "an earlier run); one shorter than the layout is padded with "
+                                                  "start_within for its variation genes.")
+        start_within: float = P(0.1, ge=0.0, le=1.0, advanced=True, group="Variation",
+                                desc="Variation genes of a padded start vector (share of each range).")
         seed: int = P(0, ge=0, le=2**31 - 1, ui="number", desc="Random seed.", group="Budget")
         #: read by Estimate cost: no inner loop
         inner_iterations: int = P(0, ge=0, le=0, advanced=True, desc="No inner loop (one play per seed).")
@@ -563,6 +600,8 @@ class MapElitesBehaviour(Optimizer):
         if len(palette) < 2:
             raise ValueError("Fewer than two palette states fit this body: nothing to sequence")
         dim = len(layout(palette, p.vary_within))
+        starts = [np.clip(np.asarray(list(v) + [p.start_within] * (dim - len(v)), dtype=float), 0.0, 1.0)
+                  for v in p.start_vectors if len(v) <= dim]
         report(kind="progress", generation=0, fraction=0.0)
         centres = safe_centres(spec, library(), problem.compile, palette, p.margin, cancelled=problem.cancelled)
         dkeys = [p.descriptor_x, p.descriptor_y]
@@ -578,7 +617,7 @@ class MapElitesBehaviour(Optimizer):
                 "unpredictability_weight": p.unpredictability_weight, "descriptors": dkeys,
                 "coverage": p.coverage, "performance_s": p.performance_s, "coverage_p": p.coverage_p,
                 "coverage_after_s": p.coverage_after_s, "cap_durations": p.cap_durations,
-                "vary_within": p.vary_within}
+                "vary_within": p.vary_within, "variation_weight": p.variation_weight}
 
         def cancelled() -> bool:
             return bool(problem.cancelled and problem.cancelled())
@@ -590,6 +629,12 @@ class MapElitesBehaviour(Optimizer):
             xs: list[np.ndarray] = []
             parents: list[list[str]] = []
             for _ in range(p.batch_size):
+                if not elites and starts:  # the given vectors, then mutations of them
+                    k = len(xs)
+                    x0 = starts[k % len(starts)]
+                    xs.append(x0 if k < len(starts) else np.clip(x0 + rng.normal(0, p.sigma_iso, dim), 0.0, 1.0))
+                    parents.append([])
+                    continue
                 if not elites:  # any sequence, the primitives near their defaults
                     xs.append(start_vector(palette, rng, p.start_spread, centres, p.vary_within))
                     parents.append([])

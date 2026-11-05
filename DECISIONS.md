@@ -3558,3 +3558,76 @@ coverage had checked it (its 90th-percentile length).
 * **Over 5 minutes (seed 0), 1 of 4 holds.** The others go over in turns: after a walk or a trot, where coverage
   had checked the turn after a stand or a shift; and a turn 3 % likely per minute, under the threshold. None is a
   long hold. Coverage checks states, not transitions, and only for the performance length it is given.
+
+## ADR-098 — Movement that varies within a state (**VERIFY**)
+
+*Context.* Session R7. The researcher watched the R6c behaviours (ADR-097): the sequences start to look good, but
+each movement inside them is the same hand-written primitive every time. Asked: let movement vary below the
+primitive level, as evolvable genes of the generator, every variation inside what coverage checks.
+
+*Decisions* (`calflab.control.variation`, the `interpreted` controller's `variation` block, optimizer option
+`vary_within`, off by default so every earlier run, layout and controller is unchanged; checked bit for bit):
+* **Posture drift and noise.** Fixed joint-offset bases solved on the body with every hoof planted:
+  * trunk height: the planted crouch of 15 mm (a drift only lowers the trunk; the standing legs are straight);
+  * weight over the hooves: the linear part of the four planted weight shifts of 0.3 (one off each hoof), as a
+    lateral and a fore-aft axis (a linear model of a solved pose; the physics judges what it does);
+  * head: 8 deg on neck/head pitch and yaw joints. **The feral calf has no neck or head motors**, so on the
+    working body the head does not move; the gene is there for bodies that have them.
+  * Each axis is a sum of three slow sines (the generator's `drift_hz` x 0.6 / 1.0 / 1.7, seeded phases) plus a
+    small noise (three sines at 1.2-2.7 Hz), bounded by construction to +-(drift + noise), at most 1 x the basis.
+    One signal per performance, scaled by the current state's `drift` and `noise` (cross-faded at a switch),
+    ramped in over the first second. Axis weights (`w_height`, `w_weight`, `w_head`) are generator genes.
+* **Cycle to cycle.** Each cycle of a primitive is played at its own tempo, rate exp(tempo x u), and amplitude
+  about standing, 1 + amp x v, u and v uniform in [-1, 1]; `tempo`, `amp` 0-0.25 per state. The primitive runs
+  on its own clock, so phases stay continuous and switches follow the warped phase.
+* **Switches.** A gait may be left up to `switch_slack` (0-0.15) of a cycle before an all-hooves-down window
+  opens. One-shot states (shifts, steps) still end on whole cycles. Each cross-fade lasts
+  blend_s x exp(blend_var x w), w in [-1, 1], within 0.1-3 s.
+* **Durations stay capped.** A gait's planned length is drawn and capped as before (ADR-097). A one-shot plays
+  whole cycles at their own tempo, never longer than its cycles at tempo 1 would be (or one cycle).
+* **Draws** come from their own random stream (seed, episode), so the chain's own draws are as without variation.
+* **Coverage plays the extremes** (`mode = "extremes"` in every forced play): the weight carried to all four
+  corners of its square at full drift with the trunk at full crouch (each corner reached in 60 % of a step, the
+  step at most a quarter of the forced state's length, so all four fall inside it), the noise at full amplitude
+  and its fastest frequency on top; cycles alternating fastest and slowest at the largest amplitude; every switch
+  at the earliest phase allowed; cross-fades alternating shortest and longest, the shortest into the forced
+  state. The seeds draw. Assumption: these corners and alternations bound what the drawn variation can do; the
+  physics only judges what was played.
+* **Genes:** 6 for the generator (switch slack, blend variation, drift rate, three axis weights) and 4 per state
+  (drift, noise, tempo, amp): 87 genes on the eight-state palette (ADR-093's layout: 53). Generation 0 draws them
+  in the lower half of their ranges.
+* **Clips from footage were not added** to the palette (optional in the request): the interpretation's feasible
+  versions are quasi-static sways (ADR-084) that the weight drift now covers in kind.
+* **Replays side by side:** `compare.html?a=<run>&b=<run>` (two lab views) and `?replay=<run>` (view state only).
+
+*Cost:* trial `20261105-221316-evolve-c71d` (2 x 14, 210 s, of which about 70 s finding start settings). The
+researcher chose 40 x 28.
+
+## ADR-099 — Faster joints: what binds per joint, and which levers buy a 0.6 s trot (**VERIFY**)
+
+*Context.* Session R8. The trot is within the limits only at a 1.2 s cycle (77 mm/s); joint speed is the wall
+(ADR-097, `trot_whatif_r6c.py`). Asked: per joint, whether speed or torque binds in the trot, walk and turn; then
+in physics, before changing the body, what less reduction, a belted or sprung hip ab/ad and lighter parts buy.
+
+*Decisions / assumptions* (`docs/studies/joints_r8.py`, `joints_r8.md`):
+* What-ifs change an in-memory copy of the spec only. No body, belt, catalog, component or `verified` change.
+* A changed belt ratio keeps the driver pulley unless stated: joint speed x 2 / ratio, servo torque for the same
+  joint torque x 2 / ratio, belt tension per servo torque unchanged. A larger driver (45T/45T against today's
+  30T/60T) divides belt tension per servo torque by 1.5. Pulley masses, belt lengths, derived C and fit are not
+  re-derived (a real change goes through the catalog and `set_belt_drive`, ADR-063).
+* A belted hip ab/ad (2:1) gets the other belts' efficiency and no belt check (no such belt in the catalog).
+* Lighter = every geom mass and inertia x 0.9 (optimistic: 14 parts have no mass yet).
+* Three seeds with the diversity preset's randomisation (friction 0.7-1.1, mass x 0.95-1.05); without it the
+  primitive plays are identical on every seed.
+
+*Results:*
+* The front carpi bind on joint speed in every motion (1.1-1.2 x the margin-lowered limit); in a quick trot also
+  the hocks (speed, 1.14) and the hip ab/ad (sustained torque, 1.2). The stifles have room in speed and torque.
+* Carpi at 1:1 with today's 30T driver move the limit onto the carpus belt (sustained tension).
+* **Carpi at 1:1 on 45T/45T and hocks at 1.5:1 (30T/45T): a 0.6 s trot (stride 1.0) within every limit at margin
+  0.2 on three seeds, +0.16, 130-137 mm/s**; the walk (+0.12 to +0.18) and the turn (+0.04 to +0.06) pass too.
+  The 0.6 s trot at stride 0.5 stays over (hip ab/ad sustained torque, -0.08).
+* A 2:1 hip ab/ad belt passes that short-stride trot but makes the walk fail on 2 of 3 seeds. Stiffer hip springs
+  make the quick trot worse; 10 % lighter changes little.
+* Not added to the catalog: 30T and 45T GT2 pulleys for 10 mm belts are listed commercially; they need the
+  researcher's go-ahead (sources, masses null, unverified).

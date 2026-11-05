@@ -134,6 +134,18 @@ def test_coverage_plays_the_extremes(body):
     for pl in plays:
         v = pl["controller"]["variation"]
         st = {s["name"]: s for s in pl["controller"]["states"]}[pl["state"]]
-        assert v["mode"] == "extremes"
+        assert v["mode"] == "extremes" and v["extremes_state"] == pl["state"]
         assert 4 * v["step_s"] <= math.exp(st["duration"]["log_mean"]) + 1e-3  # all four corners within the state
     assert ctrl["variation"]["mode"] == "draw"  # the seeds draw
+
+
+def test_variation_amount_is_zero_without_genes_and_grows_with_them(body):
+    from calflab.evolve.diversity import variation_amount
+
+    _g, spec = body
+    pal = palette_for(spec)
+    n0, n1 = len(layout(pal)), len(layout(pal, True))
+    assert variation_amount(decode(np.full(n0, 0.5), pal)) == 0.0
+    low = variation_amount(decode(np.concatenate([np.full(n0, 0.5), np.full(n1 - n0, 0.1)]), pal, True))
+    high = variation_amount(decode(np.concatenate([np.full(n0, 0.5), np.full(n1 - n0, 0.6)]), pal, True))
+    assert 0.0 < low < high <= 1.0
