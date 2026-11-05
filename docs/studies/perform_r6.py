@@ -127,8 +127,11 @@ def main() -> None:
         for seed in only_seeds if only_seeds is not None else ev.seeds:
             t = time.perf_counter()
             cm = compile_mjcf(spec, lib, CompileOptions.model_validate(copts), seed)
-            settings = SimSettings(duration_s=seconds, control_hz=50.0, record_hz=50.0, settle_s=0.4, start_pose="stand",
-                                   stop_on_fall=True, seed=seed)
+            settings = SimSettings(duration_s=min(seconds, 60.0), control_hz=50.0, record_hz=50.0, settle_s=0.4,
+                                   start_pose="stand", stop_on_fall=True, seed=seed)
+            # the 60 s bound is the Simulate panel's slider range, not a physics limit: a longer study play sets
+            # the length after validation (ADR-097)
+            settings = settings.model_copy(update={"duration_s": seconds})
             ro = run_rollout(cm, registry.get("controller", "interpreted")(ctrl), settings, lib)  # type: ignore[arg-type]
             whole = report(ro, spec, lib, margin)
             first = report(cut(ro, 0.0, 24.0), spec, lib, margin)

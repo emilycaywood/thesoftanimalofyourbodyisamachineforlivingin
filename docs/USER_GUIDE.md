@@ -1011,6 +1011,12 @@ threshold*) that its seeds did not finish, on every seed. Fewer cells are
 safe, but they hold far better: 15 of 18 minutes against 2 of 9. It costs
 about 1.6 times as long, which Estimate cost does not yet show.
 
+Tick **cap durations** as well (ADR-097) so no movement is held longer than
+coverage checked it (1.67 times its typical length). Then every safe cell
+held for a minute (12 of 12). Over five minutes most did not: coverage
+checks each movement along one path, not every movement that can lead into
+it. Set *performance length* to the length you will really play.
+
 #### Proportions: comparing bodies instead of finding one
 
 The lab has three ways to look for a better body or gait:

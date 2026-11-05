@@ -3533,3 +3533,28 @@ researcher chose (b) with every state kept.**
 * The 3 that go over are all episodes drawn longer than the 90th-percentile length that was checked (z 1.8-2.8):
   rare lengths, not rare states. Not fixed here: the next step caps each state's duration in the controller at
   the checked length.
+
+## ADR-097 — Durations capped at the checked length (**VERIFY**)
+
+*Context.* R6b (ADR-096): the 3 of 18 one-minute performances that went over a limit held a state longer than
+coverage had checked it (its 90th-percentile length).
+
+*Decisions / assumptions:*
+* Optimizer option `cap_durations` (off by default): every state's `max_s` in the `interpreted` controller is
+  its checked length, `checked_duration` = exp(log_mean + 1.2816 x 0.4), within 0.5-15 s. A longer draw is held
+  at the cap. One-shot states still round to whole cycles; rounding is monotone, so a capped draw never rounds
+  past the checked length.
+* With the cap, coverage forces every likely state at exactly the cap, also states the seeds played: a
+  typical-length episode does not show the cap is safe.
+* What the cap removes: 1 draw in 10 is held at the cap; the longest hold drops from about 2.5x typical
+  (99th percentile) to 1.67x; the 99th/1st percentile ratio from 6.5 to 4.2; the mean by 3.5 %. The 90th
+  percentile stays PROVISIONAL: a higher quantile keeps more spread and costs more torque headroom.
+* `perform_r6.py` plays longer than the 60 s of `SimSettings` (the Simulate panel's slider range) by setting
+  the length after validation: a study-only bypass, no core change.
+
+*Results* (`docs/studies/coverage_r6c.md`, run `20261105-053201-evolve-e4c8`, 20 x 28, 1715 s):
+* 4 safe cells, quantity of motion 2.1-10.0 deg/s (R5's ceiling 6.9); three of them trot.
+* **12 of 12 one-minute performances stay within every limit** (R6 2 of 9, R6b 15 of 18).
+* **Over 5 minutes (seed 0), 1 of 4 holds.** The others go over in turns: after a walk or a trot, where coverage
+  had checked the turn after a stand or a shift; and a turn 3 % likely per minute, under the threshold. None is a
+  long hold. Coverage checks states, not transitions, and only for the performance length it is given.
