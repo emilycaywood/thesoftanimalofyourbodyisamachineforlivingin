@@ -56,7 +56,9 @@
   encoder_steps_per_rev: 4096    # 12-bit absolute, 4096 steps per 360 deg
   stall_current_a: null          # REQUIRED for current/power/thermal estimates: not supplied
   protocol: ttl-serial-bus
-  source: Researcher-supplied specification, 2026-11-02 (Feetech STS3215 C018, 12 V)
+  # 2026-11-05 the researcher restated no-load speed 0.222 s/60 deg (45-46 rpm) and peak stall 30 kg.cm at the
+  # rated 12 V, and added "measured up to ~35 kg.cm in tests" (a remark, not a spec: stall_torque_nm stays 30).
+  source: Researcher-supplied specification, 2026-11-02, restated 2026-11-05 (Feetech STS3215 C018, 12 V)
   guessed: []
   verified: false
 

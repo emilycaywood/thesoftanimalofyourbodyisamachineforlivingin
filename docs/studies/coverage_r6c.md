@@ -96,3 +96,24 @@ the limits lowered by 0.2):
   about 0.89-0.94 of the servos' recorded joint speed: they would pass at a margin of about 0.05, not at 0.2.
 * Speed: the default trot covers 148 mm/s; 0.6 s at stride 1.5, 184 mm/s; the safe ones 41-77 mm/s.
 * In a performance a trot bout also ramps in over 1.5 s from standing.
+
+### What would let it be quicker (`trot_whatif_r6c.py`, simulation only)
+
+The researcher restated the servo's figures (2026-11-05): 0.222 s / 60 deg no-load (270 deg/s) and 30 kg.cm stall
+at 12 V, the values the library already had. At the joint, through the 2:1 belts, that is 135 deg/s, lowered to
+108 by the margin. The sustained-torque check is a project setting: above `rated_fraction` 0.6 x the rated
+10 kg.cm, x 0.8 margin = 4.8 kg.cm (about 16 % of stall), for more than a quarter of a 2 s window.
+
+The same trot grid (lift 0.6) judged four ways; within = OK, with the fastest speed within:
+
+| what-if | quickest cycle within | fastest within | what stops the rest |
+|---|---|---|---|
+| now: margin 0.2, rated_fraction 0.6 | 1.2 s | 77 mm/s | joint speed (quick), servo torque (long) |
+| sustained check at full rated torque (1.0) | 1.2 s | 77 mm/s | joint speed (quick), belt tension (long) |
+| margin 0.1 | 1.0 s (stride 0.5) | 100 mm/s (1.2 s, stride 1.5) | joint speed, servo torque |
+| both | 1.0 s | 100 mm/s | joint speed, belt tension |
+
+No setting with a cycle of 0.6-0.8 s is within the limits in any case: **joint speed is the wall**, the servo's
+270 deg/s halved by the 2:1 belts. Relaxing the torque check only moves the long strides onto the belts.
+A quicker trot needs faster joints: less reduction where torque allows it, or a faster servo (R8).
+At the 3S battery's 11.1 V (ADR-086, figures linear in voltage) the joints would be about 7 % slower still.

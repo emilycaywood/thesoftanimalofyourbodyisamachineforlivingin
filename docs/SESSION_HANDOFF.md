@@ -1501,8 +1501,9 @@ ADR-097.)
 > compare the archive with run `20261104-181642-evolve-2650`.
 
 **R8. Lifting the vigour ceiling** (after R6, if vigour is the gap.)
-> The behaviour-diversity run is bounded by the servos' sustained torque: nothing safe above 6.9 deg/s against
-> the calf's 18-77. Find which joints bind (per-joint sustained torque in the unsafe candidates) and what would
+> The behaviour-diversity runs are bounded by the servos: the trot is within the limits only at a 1.2 s cycle
+> (77 mm/s), held by joint speed (270 deg/s halved by the 2:1 belts; even at margin 0.1 no 0.6-0.8 s cycle passes),
+> with sustained torque and then belt tension behind it (`docs/studies/coverage_r6c.md`). The calf moves at 18-77 deg/s. Find which joints bind (per-joint sustained torque in the unsafe candidates) and what would
 > lift them. Candidates: commercially available GT2 pulley pairs with a stronger reduction (search listings for
 > 10 mm belts, add them to the catalog with sources, masses null, unverified), belting the hip ab/ad, lighter
 > parts. Show what each buys in physics before changing the body, and ask before adding anything to the catalog.
