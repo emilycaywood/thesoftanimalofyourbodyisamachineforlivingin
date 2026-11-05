@@ -92,7 +92,7 @@ the limits lowered by 0.2):
 * A longer stride runs into **sustained servo torque**, then belt tension.
 * Only the slowest, shortest corner is within the limits, and that is where evolution went. The default trot
   is 2.2x over sustained torque.
-* The cadence-limited settings (0.8-1.0 s, stride up to 1.0) are 0.11-0.18 over the margin-lowered limits:
-  within the servos' own figures at margin 0.2, out at margin about 0.05.
+* The cadence-limited settings (0.8-1.0 s, stride up to 1.0) go 11-18 % over the margin-lowered limit, i.e. to
+  about 0.89-0.94 of the servos' recorded joint speed: they would pass at a margin of about 0.05, not at 0.2.
 * Speed: the default trot covers 148 mm/s; 0.6 s at stride 1.5, 184 mm/s; the safe ones 41-77 mm/s.
 * In a performance a trot bout also ramps in over 1.5 s from standing.
