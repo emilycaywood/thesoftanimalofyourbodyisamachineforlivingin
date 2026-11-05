@@ -31,7 +31,7 @@ def archive(proj: Path, run_id: str) -> dict[str, Any]:
     arch = json.loads((d / "archive.json").read_text(encoding="utf-8"))
     run = json.loads((d / "run.json").read_text(encoding="utf-8"))
     passed = [c for c in cands if all(s["within"] for s in (c.get("metrics") or {}).get("seeds", [{"within": False}]))]
-    safe_cells = [c for c in arch.get("cells", []) if c.get("within_limits")]
+    safe_cells = [c for c in (arch.get("archive") or arch).get("cells", []) if c.get("within_limits")]
     stops: Counter[str] = Counter()
     for c in cands:
         for r in (c.get("error") or "").split("; "):
@@ -42,7 +42,7 @@ def archive(proj: Path, run_id: str) -> dict[str, Any]:
     cells = []
     for c in safe_cells:
         m = by_id[c["candidate"]]["metrics"]
-        cells.append({"cell": c.get("index") or c.get("cell"), "candidate": c["candidate"],
+        cells.append({"cell": by_id[c["candidate"]].get("cell"), "candidate": c["candidate"],
                       "qom": round(m["movement"].get("quantity_of_motion_deg_s", 0.0), 2),
                       "regularity": round(m["movement"].get("tempo_regularity", 0.0), 2),
                       "unpredictability": m.get("unpredictability"), "margin": m.get("safety_margin"),

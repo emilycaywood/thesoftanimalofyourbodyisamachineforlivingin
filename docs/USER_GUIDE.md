@@ -1017,6 +1017,27 @@ held for a minute (12 of 12). Over five minutes most did not: coverage
 checks each movement along one path, not every movement that can lead into
 it. Set *performance length* to the length you will really play.
 
+Tick **vary within** (Variation group, ADR-098) so a movement is no longer
+the same primitive every time. The generator gets more genes:
+
+* per movement: *drift* and *noise* of the posture (trunk lowered up to
+  15 mm, the weight moved over the hooves, the head where the body has neck
+  motors; the feral calf has none), and *tempo* and *amplitude* that change
+  from one cycle to the next (up to about 28 % faster or slower, 25 % larger
+  or smaller);
+* for the whole behaviour: how slow the drift is, which posture axes drift,
+  how early a movement may be left before every hoof is down (up to 15 % of
+  a cycle), and how much the cross-fade length varies.
+
+With coverage, the forced plays then play each variation at its limits: the
+weight carried to all four corners at full crouch, the fastest and slowest
+cycles at the largest amplitude, the earliest switch, the shortest and
+longest cross-fade. Old runs replay exactly as before.
+
+**Two replays side by side.** Open `http://localhost:<port>/compare.html?a=<run id>&b=<run id>`
+(optional `la`, `lb`: labels). Each side is the lab replaying one run.
+`http://localhost:<port>/?replay=<run id>` opens the lab replaying a run.
+
 #### Proportions: comparing bodies instead of finding one
 
 The lab has three ways to look for a better body or gait:
