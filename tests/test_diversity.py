@@ -4,13 +4,16 @@ from __future__ import annotations
 
 import numpy as np
 import pytest
+from calflab.components import library
 from calflab.design import build_design, genome_definition
 from calflab.evolve.diversity import (
     controller_params,
+    coverage_plan,
     decode,
     evaluate_behaviour,
     layout,
     palette_for,
+    reach_probability,
     transition_matrix,
     unpredictability,
 )
@@ -85,10 +88,46 @@ def test_one_generator_played_and_judged(body):
     assert out["controller_params"]["states"]
 
 
+def test_reach_grows_with_the_performance_and_rare_states_are_unlikely(body):
+    _g, spec = body
+    pal = palette_for(spec)
+    gen = decode(np.full(len(layout(pal)), 0.5), pal)
+    gen["states"]["step_hr"]["weight"] = 0.0  # floored at 1e-3: reachable, but rarely
+    short, long = reach_probability(gen, 10.0), reach_probability(gen, 600.0)
+    assert all(0.0 <= v <= 1.0 for v in short.values())
+    assert all(long[n] >= short[n] for n in short)
+    assert short["step_hr"] < 0.05 < short["stand"]
+
+
+def test_coverage_forces_each_likely_unplayed_state_along_a_real_path(body):
+    _g, spec = body
+    pal = palette_for(spec)
+    gen = decode(np.full(len(layout(pal)), 0.5), pal)
+    gen["states"]["trot"]["weight"] = 0.0  # unlikely in a minute: not checked
+    ctrl = controller_params(gen, spec, library(), 0.2)
+    reach = reach_probability(gen, 60.0)
+    plays = coverage_plan(gen, ctrl, {"stand": 3}, 3, 60.0, 0.05, 6.0)
+    forced = {pl["state"] for pl in plays}
+    assert forced == {n for n in gen["states"] if reach[n] >= 0.05} - {"stand"}  # stand was played on every seed
+    assert "trot" not in forced
+    assert [pl["reach"] for pl in plays] == sorted((pl["reach"] for pl in plays), reverse=True)  # likeliest first
+    for pl in plays:
+        c = pl["controller"]
+        states = {st["name"]: st for st in c["states"]}
+        assert states[pl["state"]]["duration"]["log_sd"] == 0.0 and pl["duration_s"] > 6.0
+        if pl["from"] == "start":
+            assert c["start"] == pl["state"]
+        else:
+            assert c["start"] == pl["from"] and c["transitions"][pl["from"]] == {pl["state"]: 1.0}
+            assert reach[pl["from"]] >= 0.05  # the path goes through a state the chain really plays
+    assert all(st["duration"]["log_sd"] == 0.4 for st in ctrl["states"])
+
+
 def test_the_optimizer_is_registered_with_movement_axes():
     load_plugins()
     cls = registry.get("optimizer", "map_elites_behaviour")
     p = cls.Params()
     assert p.descriptor_x == "quantity_of_motion" and p.descriptor_y == "tempo_regularity" and p.margin == 0.2
+    assert p.coverage is False and p.performance_s == 60.0  # off by default: old runs replay as they were
     for key in ("tempo_regularity", "stillness_ratio", "unpredictability"):
         assert registry.get("behavior_descriptor", key)().describe_candidate(None, {}, {}) == 0.0

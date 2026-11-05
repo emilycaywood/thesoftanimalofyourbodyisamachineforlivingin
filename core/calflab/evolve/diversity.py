@@ -185,15 +185,20 @@ def transition_matrix(gen: dict[str, Any]) -> tuple[list[str], np.ndarray]:
     return names, m
 
 
+def stationary(m: np.ndarray) -> np.ndarray:
+    """Stationary distribution of a transition matrix (share of switches into each state)."""
+    vals, vecs = np.linalg.eig(m.T)
+    pi = np.real(vecs[:, int(np.argmin(np.abs(vals - 1.0)))])
+    return np.abs(pi) / np.abs(pi).sum()
+
+
 def unpredictability(gen: dict[str, Any]) -> float:
     """Entropy rate of the chain over log2(n - 1): 0 = fixed sequence, 1 = every other state equally likely."""
     names, m = transition_matrix(gen)
     n = len(names)
     if n < 3:
         return 0.0
-    vals, vecs = np.linalg.eig(m.T)
-    pi = np.real(vecs[:, int(np.argmin(np.abs(vals - 1.0)))])
-    pi = np.abs(pi) / np.abs(pi).sum()
+    pi = stationary(m)
     with np.errstate(divide="ignore", invalid="ignore"):
         h = -np.nansum(pi[:, None] * np.where(m > 0, m * np.log2(m), 0.0))
     return float(min(1.0, max(0.0, h / math.log2(n - 1))))
@@ -222,12 +227,80 @@ def controller_params(gen: dict[str, Any], spec: Any, lib: Any, margin: float = 
             "blend_s": round(float(gen["blend_s"]), 3), "speed_fraction": round(0.95 * (1.0 - margin), 4)}
 
 
+def reach_probability(gen: dict[str, Any], performance_s: float, log_sd: float = 0.4) -> dict[str, float]:
+    """Per state, the chance it is played at least once in a performance of ``performance_s`` (s) (ADR-096).
+
+    Approximation: switches arrive at the chain's mean rate (one per mean episode, episodes log-normal with
+    ``log_sd``, clipped to 0.5-15 s as the controller does); visits to a state are Poisson with its stationary
+    share of switches; the first episode adds the state's initial probability."""
+    names, m = transition_matrix(gen)
+    pi = stationary(m)
+    mean_d = np.array([float(np.clip(math.exp(gen["states"][n]["duration"] + 0.5 * log_sd**2), 0.5, 15.0))
+                       for n in names])
+    rate = 1.0 / float((pi * mean_d).sum())
+    w = np.array([max(1e-3, gen["states"][n]["weight"]) for n in names])
+    init = w / w.sum()
+    return {n: float(1.0 - (1.0 - init[i]) * math.exp(-performance_s * rate * pi[i])) for i, n in enumerate(names)}
+
+
+def coverage_plan(gen: dict[str, Any], ctrl: dict[str, Any], completed: dict[str, int], n_seeds: int,
+                  performance_s: float, p_min: float, after_s: float) -> list[dict[str, Any]]:
+    """Forced plays for every state likely in a performance (reach probability >= ``p_min``) that was not played to
+    its end, and 2 s beyond (the sustained window), on every seed (ADR-096); the likeliest first.
+
+    The path into the state is one the chain really takes: if most of its chance is being the first episode, it
+    is played from the start; otherwise it comes after the predecessor with the largest flow pi_i m_ij among
+    states that are themselves likely (preferring ones already played to the end). The predecessor plays its
+    typical duration (1.5-4 s), the state its 90th-percentile duration (long holds are what load a servo), both
+    without draws, then the chain runs ``after_s`` s more. Returns the plays with their controller and length (s)."""
+    names, m = transition_matrix(gen)
+    pi = stationary(m)
+    reach = reach_probability(gen, performance_s)
+    w = np.array([max(1e-3, gen["states"][n]["weight"]) for n in names])
+    init = w / w.sum()
+    plays = []
+    for x in sorted(names, key=lambda n: -reach[n]):
+        j = names.index(x)
+        if reach[x] < p_min or completed.get(x, 0) >= n_seeds:
+            continue
+        likely = [i for i in range(len(names)) if i != j and reach[names[i]] >= p_min]
+        proven = [i for i in likely if completed.get(names[i], 0) > 0]
+        pool = proven or likely
+        pred = max((pi[i] * m[i, j], names[i]) for i in pool)[1] if pool else None
+        if pred is None or init[j] >= 0.5 * reach[x]:
+            pred = None
+        c = {**ctrl, "states": [dict(st) for st in ctrl["states"]], "transitions": dict(ctrl["transitions"])}
+        dur: dict[str, float] = {"": 0.0}
+        for st in c["states"]:
+            d = dict(st["duration"])
+            if st["name"] == pred:
+                v = float(np.clip(math.exp(d["log_mean"]), 1.5, 4.0))
+            elif st["name"] == x:
+                v = float(np.clip(math.exp(d["log_mean"] + 1.2816 * d["log_sd"]), d["min_s"], d["max_s"]))
+            else:
+                continue
+            st["duration"] = {**d, "log_mean": round(math.log(v), 4), "log_sd": 0.0}
+            dur[st["name"]] = v
+            if st.get("one_shot"):  # a one-shot plays whole cycles
+                dur[st["name"]] = max(v, st["offset_s"] + st["period_s"]) + st["period_s"]
+        if pred is None:
+            c["start"] = x
+        else:
+            c["start"] = pred
+            c["transitions"][pred] = {x: 1.0}
+        plays.append({"state": x, "from": pred or "start", "reach": round(reach[x], 3), "controller": c,
+                      "duration_s": round(dur[pred or ""] + dur[x] + after_s + 2.0, 2)})
+    return plays
+
+
 # ---------------------------------------------------------------------- the task
 def evaluate_behaviour(payload: dict[str, Any]) -> dict[str, Any]:
     """Play one behaviour generator on the fixed body over the preset's seeds. JSON in, JSON out.
 
     Payload: genome, overrides, generator, generator_params, compile, fitness (preset dump), x, palette (names),
-    duration_s, margin, unpredictability_weight, descriptors."""
+    duration_s, margin, unpredictability_weight, descriptors; optionally coverage (bool), performance_s,
+    coverage_p, coverage_after_s (ADR-096): a candidate safe on every seed then plays, forced, every state likely
+    in a performance of ``performance_s`` that its seeds did not play to the end, on every seed."""
     from calflab.behave.descriptors import movement_features
     from calflab.behave.interpret import judge
     from calflab.behave.physics import compile_params
@@ -260,15 +333,22 @@ def evaluate_behaviour(payload: dict[str, Any]) -> dict[str, Any]:
              "randomization": randomization(ev.randomize, ev.friction, ev.mass_scale)}
     dur = float(payload.get("duration_s", 24.0))
     seeds, feats, fell_any, unsafe = [], [], False, []
-    for seed in ev.seeds:
+    completed: dict[str, int] = {}
+
+    def play(c: dict[str, Any], seed: int, seconds: float) -> Any:
         cm = compile_mjcf(spec, lib, CompileOptions.model_validate(copts), seed)
-        settings = SimSettings(duration_s=dur, control_hz=50.0, record_hz=50.0, settle_s=0.4, start_pose="stand",
+        settings = SimSettings(duration_s=seconds, control_hz=50.0, record_hz=50.0, settle_s=0.4, start_pose="stand",
                                stop_on_fall=True, seed=seed)
-        ro = run_rollout(cm, registry.get("controller", "interpreted")(ctrl), settings, lib)  # type: ignore[arg-type]
+        return run_rollout(cm, registry.get("controller", "interpreted")(c), settings, lib)  # type: ignore[arg-type]
+
+    for seed in ev.seeds:
+        ro = play(ctrl, seed, dur)
         j = judge(ro, spec, lib, margin)
         mv = movement_features(ro, spec)
-        log = [e.get("name") for e in ((ro.meta.get("controller_log") or {}).get("episodes") or [])
-               if isinstance(e, dict)]
+        eps = [e for e in ((ro.meta.get("controller_log") or {}).get("episodes") or []) if isinstance(e, dict)]
+        log = [e.get("name") for e in eps]
+        for name in {str(e.get("name")) for e in eps if e.get("t1") is not None and float(e["t1"]) + 2.0 <= dur}:
+            completed[name] = completed.get(name, 0) + 1
         seeds.append({"seed": seed, "margin": j["margin"], "fell": j["fell"], "violations": j["violations"],
                       "within": bool(j["within_limits"]), "episodes": log,
                       "constraints": {k: v["margin"] for k, v in j["constraints"].items()}})
@@ -277,9 +357,37 @@ def evaluate_behaviour(payload: dict[str, Any]) -> dict[str, Any]:
         if not j["within_limits"]:
             unsafe += [f"seed {seed}: " + ("fell" if j["fell"] else ", ".join(j["violations"]))]
             break  # one seed over a limit is enough to keep it out of the archive
+    coverage: dict[str, Any] | None = None
+    if payload.get("coverage") and not unsafe:
+        perf_s = float(payload.get("performance_s", 60.0))
+        plan = coverage_plan(gen, ctrl, completed, len(ev.seeds), perf_s, float(payload.get("coverage_p", 0.05)),
+                             float(payload.get("coverage_after_s", 6.0)))
+        coverage = {"performance_s": perf_s,
+                    "reach": {k: round(v, 3) for k, v in reach_probability(gen, perf_s).items()},
+                    "completed_on_seeds": completed, "plays": []}
+        for pl in plan:
+            rec: dict[str, Any] = {"state": pl["state"], "from": pl["from"], "reach": pl["reach"],
+                                   "duration_s": pl["duration_s"], "seeds": []}
+            coverage["plays"].append(rec)
+            for seed in ev.seeds:
+                ro = play(pl["controller"], seed, pl["duration_s"])
+                j = judge(ro, spec, lib, margin)
+                played = [str(e.get("name")) for e in ((ro.meta.get("controller_log") or {}).get("episodes") or [])
+                          if isinstance(e, dict)]
+                rec["seeds"].append({"seed": seed, "margin": j["margin"], "fell": j["fell"], "episodes": played,
+                                     "violations": j["violations"], "within": bool(j["within_limits"])})
+                fell_any = fell_any or j["fell"]
+                if not j["within_limits"]:
+                    unsafe += [f"seed {seed}, {pl['state']} forced after {pl['from']} ({' > '.join(played)}): "
+                               + ("fell" if j["fell"] else ", ".join(j["violations"]))]
+                    break
+            if unsafe:
+                break
     keys = [k for k in feats[0] if isinstance(feats[0].get(k), int | float)] if feats else []
     movement = {k: float(np.mean([f[k] for f in feats if isinstance(f.get(k), int | float)])) for k in keys}
     margins = [s["margin"] for s in seeds if s["margin"] is not None]
+    margins += [s["margin"] for pl in (coverage or {}).get("plays", []) for s in pl["seeds"]
+                if s["margin"] is not None]
     worst = float(min(margins)) if margins else -3.0
     unp = unpredictability(gen)
     weight = float(payload.get("unpredictability_weight", 0.5))
@@ -293,12 +401,15 @@ def evaluate_behaviour(payload: dict[str, Any]) -> dict[str, Any]:
                                             "place": round(s["place"], 3),
                                             "duration_s": round(math.exp(s["duration"]), 2), "params": s["params"]}
                                         for n, s in gen["states"].items()}}}
+    if coverage is not None:
+        metrics["coverage"] = coverage
+    rollouts = len(seeds) + sum(len(pl["seeds"]) for pl in (coverage or {}).get("plays", []))
     terms = {"safe": {"value": 1.0 if safe else 0.0, "weight": 2.0, "weighted": 1.0 if safe else -1.0},
              "worst_margin": {"value": round(worst, 4), "weight": 1.0, "weighted": round(min(1.0, worst), 4)},
              "unpredictability": {"value": round(unp, 4), "weight": weight, "weighted": round(weight * unp, 4)}}
     out: dict[str, Any] = {"fitness": fitness, "fitness_terms": terms, "controller_params": ctrl,
                            "controller_x": [float(v) for v in np.clip(payload["x"], 0, 1)], "metrics": metrics,
-                           "mass_g": spec.total_mass_g(), "evals": len(seeds)}
+                           "mass_g": spec.total_mass_g(), "evals": rollouts}
     if unsafe:
         out["unsafe_reasons"] = unsafe
     out["descriptors"] = {k: float(registry.get("behavior_descriptor", k)().describe_candidate(  # type: ignore[attr-defined]
@@ -345,6 +456,15 @@ class MapElitesBehaviour(Optimizer):
                              group="Variation")
         sigma_line: float = P(0.2, ge=0.0, le=1.0, desc="Mutation along the line between two elites.",
                               group="Variation")
+        coverage: bool = P(False, group="Fitness",
+                           desc="Before a candidate counts as safe, force every state likely in a performance (and "
+                                "not played to its end on every seed) into an extra play on every seed (ADR-096).")
+        performance_s: float = P(60.0, unit="s", ge=5.0, le=600.0, group="Fitness",
+                                 desc="Coverage: the performance length the states must be safe for.")
+        coverage_p: float = P(0.05, ge=0.0, le=1.0, group="Fitness",
+                              desc="Coverage: a state at least this likely to be played in the performance is checked.")
+        coverage_after_s: float = P(6.0, unit="s", ge=0.0, le=30.0, group="Fitness",
+                                    desc="Coverage: how long the chain runs on after the forced state.")
         seed: int = P(0, ge=0, le=2**31 - 1, ui="number", desc="Random seed.", group="Budget")
         #: read by Estimate cost: no inner loop
         inner_iterations: int = P(0, ge=0, le=0, advanced=True, desc="No inner loop (one play per seed).")
@@ -387,7 +507,9 @@ class MapElitesBehaviour(Optimizer):
         base = {"genome": problem.genome, "overrides": problem.overrides, "generator": problem.generator,
                 "generator_params": problem.generator_params, "compile": problem.compile, "fitness": problem.fitness,
                 "palette": [n for n, _k, _b in palette], "duration_s": p.duration_s, "margin": p.margin,
-                "unpredictability_weight": p.unpredictability_weight, "descriptors": dkeys}
+                "unpredictability_weight": p.unpredictability_weight, "descriptors": dkeys,
+                "coverage": p.coverage, "performance_s": p.performance_s, "coverage_p": p.coverage_p,
+                "coverage_after_s": p.coverage_after_s}
 
         def cancelled() -> bool:
             return bool(problem.cancelled and problem.cancelled())
