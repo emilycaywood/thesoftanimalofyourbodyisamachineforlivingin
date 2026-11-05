@@ -204,10 +204,22 @@ def unpredictability(gen: dict[str, Any]) -> float:
     return float(min(1.0, max(0.0, h / math.log2(n - 1))))
 
 
-def controller_params(gen: dict[str, Any], spec: Any, lib: Any, margin: float = 0.2) -> dict[str, Any]:
+#: a state's duration is checked, and with ``cap`` held at most, at this quantile of its log-normal (ADR-096/097)
+CHECKED_Z = 1.2816  # 90th percentile
+LOG_SD = 0.4
+
+
+def checked_duration(log_mean: float, log_sd: float = LOG_SD) -> float:
+    """The length (s) coverage holds a state for: its 90th percentile, within the controller's 0.5-15 s."""
+    return float(np.clip(math.exp(log_mean + CHECKED_Z * log_sd), 0.5, 15.0))
+
+
+def controller_params(gen: dict[str, Any], spec: Any, lib: Any, margin: float = 0.2,
+                      cap: bool = False) -> dict[str, Any]:
     """``interpreted`` controller parameters of a generator on this body. Commanded joint speed is capped at
     0.95 x (1 - margin) of each servo's speed, under the margin-lowered joint-speed limit (the controller's own
-    default, 0.9, is above it at margin 0.2)."""
+    default, 0.9, is above it at margin 0.2). With ``cap`` (ADR-097) no episode lasts longer than the length
+    coverage checks (:func:`checked_duration`): a longer draw is held at that length."""
     names, m = transition_matrix(gen)
     states = []
     for n in names:
@@ -217,7 +229,8 @@ def controller_params(gen: dict[str, Any], spec: Any, lib: Any, margin: float = 
         states.append({"name": n, "primitive": st["primitive"], "controller": {"key": key, "params": params},
                        "period_s": prim.period_s(), "offset_s": prim.phase_offset_s(),
                        "safe": [list(s) for s in prim.safe_phases()], "one_shot": prim.one_shot,
-                       "duration": {"log_mean": round(st["duration"], 4), "log_sd": 0.4, "min_s": 0.5, "max_s": 15.0},
+                       "duration": {"log_mean": round(st["duration"], 4), "log_sd": LOG_SD, "min_s": 0.5,
+                                    "max_s": round(checked_duration(st["duration"]), 4) if cap else 15.0},
                        "vary": {}})
     w = np.array([max(1e-3, gen["states"][n]["weight"]) for n in names])
     return {"states": states,
@@ -244,7 +257,7 @@ def reach_probability(gen: dict[str, Any], performance_s: float, log_sd: float =
 
 
 def coverage_plan(gen: dict[str, Any], ctrl: dict[str, Any], completed: dict[str, int], n_seeds: int,
-                  performance_s: float, p_min: float, after_s: float) -> list[dict[str, Any]]:
+                  performance_s: float, p_min: float, after_s: float, force_all: bool = False) -> list[dict[str, Any]]:
     """Forced plays for every state likely in a performance (reach probability >= ``p_min``) that was not played to
     its end, and 2 s beyond (the sustained window), on every seed (ADR-096); the likeliest first.
 
@@ -252,7 +265,9 @@ def coverage_plan(gen: dict[str, Any], ctrl: dict[str, Any], completed: dict[str
     is played from the start; otherwise it comes after the predecessor with the largest flow pi_i m_ij among
     states that are themselves likely (preferring ones already played to the end). The predecessor plays its
     typical duration (1.5-4 s), the state its 90th-percentile duration (long holds are what load a servo), both
-    without draws, then the chain runs ``after_s`` s more. Returns the plays with their controller and length (s)."""
+    without draws, then the chain runs ``after_s`` s more. With ``force_all`` (durations capped, ADR-097) every
+    likely state is forced, played or not: a seed that played a state at a typical length says nothing about
+    holding it for the full capped length. Returns the plays with their controller and length (s)."""
     names, m = transition_matrix(gen)
     pi = stationary(m)
     reach = reach_probability(gen, performance_s)
@@ -261,7 +276,7 @@ def coverage_plan(gen: dict[str, Any], ctrl: dict[str, Any], completed: dict[str
     plays = []
     for x in sorted(names, key=lambda n: -reach[n]):
         j = names.index(x)
-        if reach[x] < p_min or completed.get(x, 0) >= n_seeds:
+        if reach[x] < p_min or (completed.get(x, 0) >= n_seeds and not force_all):
             continue
         likely = [i for i in range(len(names)) if i != j and reach[names[i]] >= p_min]
         proven = [i for i in likely if completed.get(names[i], 0) > 0]
@@ -276,7 +291,7 @@ def coverage_plan(gen: dict[str, Any], ctrl: dict[str, Any], completed: dict[str
             if st["name"] == pred:
                 v = float(np.clip(math.exp(d["log_mean"]), 1.5, 4.0))
             elif st["name"] == x:
-                v = float(np.clip(math.exp(d["log_mean"] + 1.2816 * d["log_sd"]), d["min_s"], d["max_s"]))
+                v = float(np.clip(math.exp(d["log_mean"] + CHECKED_Z * d["log_sd"]), d["min_s"], d["max_s"]))
             else:
                 continue
             st["duration"] = {**d, "log_mean": round(math.log(v), 4), "log_sd": 0.0}
@@ -299,7 +314,7 @@ def evaluate_behaviour(payload: dict[str, Any]) -> dict[str, Any]:
 
     Payload: genome, overrides, generator, generator_params, compile, fitness (preset dump), x, palette (names),
     duration_s, margin, unpredictability_weight, descriptors; optionally coverage (bool), performance_s,
-    coverage_p, coverage_after_s (ADR-096): a candidate safe on every seed then plays, forced, every state likely
+    coverage_p, coverage_after_s (ADR-096), cap_durations (ADR-097): a candidate safe on every seed then plays, forced, every state likely
     in a performance of ``performance_s`` that its seeds did not play to the end, on every seed."""
     from calflab.behave.descriptors import movement_features
     from calflab.behave.interpret import judge
@@ -326,7 +341,8 @@ def evaluate_behaviour(payload: dict[str, Any]) -> dict[str, Any]:
     palette = palette_for(spec, payload.get("palette") or None)
     gen = decode(np.asarray(payload["x"], dtype=float), palette)
     margin = float(payload.get("margin", 0.2))
-    ctrl = controller_params(gen, spec, lib, margin)
+    cap = bool(payload.get("cap_durations"))
+    ctrl = controller_params(gen, spec, lib, margin, cap=cap)
     preset = FitnessPreset.model_validate(payload["fitness"])
     ev = preset.evaluation or EvaluationSettings()
     copts = {**compile_params(payload.get("compile", {})),
@@ -361,7 +377,7 @@ def evaluate_behaviour(payload: dict[str, Any]) -> dict[str, Any]:
     if payload.get("coverage") and not unsafe:
         perf_s = float(payload.get("performance_s", 60.0))
         plan = coverage_plan(gen, ctrl, completed, len(ev.seeds), perf_s, float(payload.get("coverage_p", 0.05)),
-                             float(payload.get("coverage_after_s", 6.0)))
+                             float(payload.get("coverage_after_s", 6.0)), force_all=cap)
         coverage = {"performance_s": perf_s,
                     "reach": {k: round(v, 3) for k, v in reach_probability(gen, perf_s).items()},
                     "completed_on_seeds": completed, "plays": []}
@@ -465,6 +481,10 @@ class MapElitesBehaviour(Optimizer):
                               desc="Coverage: a state at least this likely to be played in the performance is checked.")
         coverage_after_s: float = P(6.0, unit="s", ge=0.0, le=30.0, group="Fitness",
                                     desc="Coverage: how long the chain runs on after the forced state.")
+        cap_durations: bool = P(False, group="Fitness",
+                                desc="No movement is held longer than the length coverage checks (its 90th "
+                                     "percentile); with coverage, every likely movement is then checked at that "
+                                     "length (ADR-097).")
         seed: int = P(0, ge=0, le=2**31 - 1, ui="number", desc="Random seed.", group="Budget")
         #: read by Estimate cost: no inner loop
         inner_iterations: int = P(0, ge=0, le=0, advanced=True, desc="No inner loop (one play per seed).")
@@ -509,7 +529,7 @@ class MapElitesBehaviour(Optimizer):
                 "palette": [n for n, _k, _b in palette], "duration_s": p.duration_s, "margin": p.margin,
                 "unpredictability_weight": p.unpredictability_weight, "descriptors": dkeys,
                 "coverage": p.coverage, "performance_s": p.performance_s, "coverage_p": p.coverage_p,
-                "coverage_after_s": p.coverage_after_s}
+                "coverage_after_s": p.coverage_after_s, "cap_durations": p.cap_durations}
 
         def cancelled() -> bool:
             return bool(problem.cancelled and problem.cancelled())

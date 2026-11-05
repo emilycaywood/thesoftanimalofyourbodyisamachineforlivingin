@@ -10,7 +10,8 @@ For each candidate:
   windows (does the minute stay within what 24 s did, or does something build up?);
 * the episodes played, their shares of the minute, and the movement features (quantity of motion etc.).
 
-Run:  python docs/studies/perform_r6.py <project dir> <run id> <out.json> <candidate suffix>=<label> ...
+Run:  python docs/studies/perform_r6.py <project dir> <run id> <out.json> [--seconds=60] [--seeds=0,1,2]
+          <candidate suffix>=<label> ...
 e.g.  python docs/studies/perform_r6.py projects/robot-calf-final 20261104-181642-evolve-2650 out.json \
           g011-020=calm g014-007=irregular g015-016=active
 """
@@ -82,7 +83,10 @@ def main() -> None:
     from calflab.sim import CompileOptions, SimSettings, compile_mjcf, run_rollout
 
     proj, run_id, outp = Path(sys.argv[1]), sys.argv[2], Path(sys.argv[3])
-    picks = dict(a.split("=", 1) for a in sys.argv[4:])
+    opts = dict(a[2:].split("=", 1) for a in sys.argv[4:] if a.startswith("--"))
+    picks = dict(a.split("=", 1) for a in sys.argv[4:] if not a.startswith("--"))
+    seconds = float(opts.get("seconds", SECONDS))
+    only_seeds = [int(v) for v in opts["seeds"].split(",")] if "seeds" in opts else None
     load_plugins()
     lib = library()
     lab = Lab.open(proj, create=False)
@@ -100,7 +104,8 @@ def main() -> None:
     base = {"overrides": run["overrides"], "generator": generator, "generator_params": gen_params,
             "compile": run["inputs"]["compile"], "fitness": fitness, "palette": list(p["palette"]),
             "duration_s": float(p["duration_s"]), "margin": margin,
-            "unpredictability_weight": p["unpredictability_weight"], "descriptors": [p["descriptor_x"], p["descriptor_y"]]}
+            "unpredictability_weight": p["unpredictability_weight"], "descriptors": [p["descriptor_x"], p["descriptor_y"]],
+            "cap_durations": bool(p.get("cap_durations", False))}
     copts = {**compile_params(run["inputs"]["compile"]), "randomization": randomization(ev.randomize, ev.friction, ev.mass_scale)}
     results = []
     for suffix, label in picks.items():
@@ -119,16 +124,16 @@ def main() -> None:
                               generator, gen_params)
         spec = design.spec
         seeds = []
-        for seed in ev.seeds:
+        for seed in only_seeds if only_seeds is not None else ev.seeds:
             t = time.perf_counter()
             cm = compile_mjcf(spec, lib, CompileOptions.model_validate(copts), seed)
-            settings = SimSettings(duration_s=SECONDS, control_hz=50.0, record_hz=50.0, settle_s=0.4, start_pose="stand",
+            settings = SimSettings(duration_s=seconds, control_hz=50.0, record_hz=50.0, settle_s=0.4, start_pose="stand",
                                    stop_on_fall=True, seed=seed)
             ro = run_rollout(cm, registry.get("controller", "interpreted")(ctrl), settings, lib)  # type: ignore[arg-type]
             whole = report(ro, spec, lib, margin)
             first = report(cut(ro, 0.0, 24.0), spec, lib, margin)
             windows = []
-            for w0 in np.arange(0.0, SECONDS, WINDOW_S):
+            for w0 in np.arange(0.0, seconds, WINDOW_S):
                 r = report(cut(ro, float(w0), float(w0) + WINDOW_S), spec, lib, margin)
                 windows.append({"t0": float(w0), "margin": r["margin"], "closest": r["closest"], "within": r["within"]})
             eps = [e for e in ((ro.meta.get("controller_log") or {}).get("episodes") or []) if isinstance(e, dict)]
@@ -145,20 +150,20 @@ def main() -> None:
             ro.save(rdir / "rollout.npz")
             (rdir / "scene.json").write_text(json.dumps(build_scene(design, lab.state.layers, lab.state.settings)),
                                              encoding="utf-8")
-            title = f"R6 {label} {tuple(cand['cell'] or [])} {suffix}: 60 s, seed {seed}"
+            title = f"{opts.get('tag', 'R6')} {label} {tuple(cand['cell'] or [])} {suffix}: {seconds:.0f} s, seed {seed}"
             lab.registry.save_run(RunRecord(
                 id=sim_id, kind="sim", title=title, duration_s=time.perf_counter() - t, seed=seed, backend="local",
-                inputs={"source": {"run": run_id, "candidate": cid, "label": label}, "seconds": SECONDS,
+                inputs={"source": {"run": run_id, "candidate": cid, "label": label}, "seconds": seconds,
                         "compile": copts, "margin": margin, "report": whole, "first_24_s": first, "windows": windows},
                 genome=cand["genome"], overrides=run["overrides"],
                 controller={"key": "interpreted", "params": ctrl},
                 metrics={"within_limits": whole["within"], "safety_margin": whole["margin"], "closest": whole["closest"],
                          "fell": whole["fell"], "movement": mv, "descriptors": desc},
                 artifacts={"rollout": f"runs/{sim_id}/rollout.npz", "scene": f"runs/{sim_id}/scene.json"},
-                parent=run_id, tags=["R6", label]))
+                parent=run_id, tags=[opts.get("tag", "R6"), label]))
             lab.bus.emit("runs.changed", run_id=sim_id)
             seq = [e["name"] for e in eps]
-            print(f"  seed {seed}: 60 s margin {whole['margin']:+.3f} closest {whole['closest']} "
+            print(f"  seed {seed}: {seconds:.0f} s margin {whole['margin']:+.3f} closest {whole['closest']} "
                   f"({whole['closest_detail']}) within {whole['within']} fell {whole['fell']}; first 24 s "
                   f"{first['margin']:+.3f}; windows {[round(w['margin'], 3) for w in windows]}; "
                   f"{len(eps)} episodes; desc {({k: round(v, 2) for k, v in desc.items()})}; run {sim_id} "

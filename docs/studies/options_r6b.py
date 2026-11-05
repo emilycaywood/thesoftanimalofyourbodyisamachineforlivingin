@@ -6,7 +6,8 @@ behaviour-diversity run, and time each.
 * (b+c) both.
 (a), 60 s evaluations, was played in R6 (``perform_r6.py``): its result is read from there.
 
-Run:  python docs/studies/options_r6b.py <project dir> <run id> <out.json> <candidate suffix>=<label> ...
+Run:  python docs/studies/options_r6b.py <project dir> <run id> <out.json> [--tries=b_coverage,...]
+          <candidate suffix>=<label> ...
 """
 from __future__ import annotations
 
@@ -29,7 +30,8 @@ def main() -> None:
     from calflab.plugins import load_plugins
 
     proj, run_id, outp = Path(sys.argv[1]), sys.argv[2], Path(sys.argv[3])
-    picks = dict(a.split("=", 1) for a in sys.argv[4:])
+    opts = dict(a[2:].split("=", 1) for a in sys.argv[4:] if a.startswith("--"))
+    picks = dict(a.split("=", 1) for a in sys.argv[4:] if not a.startswith("--"))
     load_plugins()
     lab = Lab.open(proj, create=False)
     d = proj / "runs" / run_id
@@ -55,7 +57,10 @@ def main() -> None:
         tries = {"b_coverage": {**base, "x": x, "coverage": True},
                  "c_no_steps_60s": {**base, "x": x_ns, "palette": NO_STEPS, "duration_s": 60.0},
                  "c_no_steps_24s": {**base, "x": x_ns, "palette": NO_STEPS},
-                 "bc_no_steps_coverage": {**base, "x": x_ns, "palette": NO_STEPS, "coverage": True}}
+                 "bc_no_steps_coverage": {**base, "x": x_ns, "palette": NO_STEPS, "coverage": True},
+                 "b_coverage_capped": {**base, "x": x, "coverage": True, "cap_durations": True}}  # ADR-097
+        if "tries" in opts:
+            tries = {k: v for k, v in tries.items() if k in opts["tries"].split(",")}
         row: dict[str, Any] = {"label": label, "candidate": cand["id"]}
         for name, pay in tries.items():
             t = time.perf_counter()

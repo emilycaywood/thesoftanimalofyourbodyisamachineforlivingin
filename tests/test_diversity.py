@@ -7,6 +7,7 @@ import pytest
 from calflab.components import library
 from calflab.design import build_design, genome_definition
 from calflab.evolve.diversity import (
+    checked_duration,
     controller_params,
     coverage_plan,
     decode,
@@ -123,11 +124,33 @@ def test_coverage_forces_each_likely_unplayed_state_along_a_real_path(body):
     assert all(st["duration"]["log_sd"] == 0.4 for st in ctrl["states"])
 
 
+def test_capped_durations_never_exceed_what_coverage_checks(body):
+    _g, spec = body
+    pal = palette_for(spec)
+    gen = decode(np.full(len(layout(pal)), 0.5), pal)
+    free = controller_params(gen, spec, library(), 0.2)
+    capped = controller_params(gen, spec, library(), 0.2, cap=True)
+    for f, c in zip(free["states"], capped["states"], strict=True):
+        assert f["duration"]["max_s"] == 15.0  # off: as before (old runs replay the same)
+        assert c["duration"]["max_s"] == pytest.approx(checked_duration(c["duration"]["log_mean"]), abs=1e-3)
+        assert c["duration"]["max_s"] < 15.0 and c["duration"]["log_mean"] == f["duration"]["log_mean"]
+    # with the cap, a state played on every seed is still forced: a typical length says nothing about the cap
+    reach = reach_probability(gen, 60.0)
+    likely = {n for n in gen["states"] if reach[n] >= 0.05}
+    all_done = dict.fromkeys(gen["states"], 3)
+    assert {pl["state"] for pl in coverage_plan(gen, capped, all_done, 3, 60.0, 0.05, 6.0, force_all=True)} == likely
+    assert coverage_plan(gen, capped, all_done, 3, 60.0, 0.05, 6.0) == []
+    for pl in coverage_plan(gen, capped, {}, 3, 60.0, 0.05, 6.0, force_all=True):  # forced at exactly the cap
+        st = {x["name"]: x for x in pl["controller"]["states"]}[pl["state"]]
+        assert np.exp(st["duration"]["log_mean"]) == pytest.approx(st["duration"]["max_s"], rel=1e-3)
+
+
 def test_the_optimizer_is_registered_with_movement_axes():
     load_plugins()
     cls = registry.get("optimizer", "map_elites_behaviour")
     p = cls.Params()
     assert p.descriptor_x == "quantity_of_motion" and p.descriptor_y == "tempo_regularity" and p.margin == 0.2
     assert p.coverage is False and p.performance_s == 60.0  # off by default: old runs replay as they were
+    assert p.cap_durations is False
     for key in ("tempo_regularity", "stillness_ratio", "unpredictability"):
         assert registry.get("behavior_descriptor", key)().describe_candidate(None, {}, {}) == 0.0
