@@ -72,13 +72,24 @@ def palette_for(spec: Any, names: list[str] | None = None) -> list[tuple[str, st
     return out
 
 
-def layout(palette: list[tuple[str, str, dict[str, Any]]]) -> list[tuple[str, str, float, float]]:
-    """The vector's genes in order: (state or "", gene name, low, high)."""
+#: variation within a movement (ADR-098): per state (gene, low, high), and for the whole generator
+WITHIN_STATE = (("v_drift", 0.0, 1.0), ("v_noise", 0.0, 0.25), ("v_tempo", 0.0, 0.25), ("v_amp", 0.0, 0.25))
+WITHIN_GLOBAL = (("switch_slack", 0.0, 0.15), ("blend_var", 0.0, 0.8), ("drift_hz", 0.1, 0.6),
+                 ("w_height", 0.0, 1.0), ("w_weight", 0.0, 1.0), ("w_head", 0.0, 1.0))
+
+
+def layout(palette: list[tuple[str, str, dict[str, Any]]], within: bool = False) -> list[tuple[str, str, float, float]]:
+    """The vector's genes in order: (state or "", gene name, low, high). With ``within`` (ADR-098) the variation
+    genes follow: six for the generator, then four per state; without, the layout is exactly ADR-093's."""
     genes: list[tuple[str, str, float, float]] = [("", "sharpness", 0.0, SHARP_HI), ("", "blend_s", 0.2, 1.5)]
     for name, key, _base in palette:
         genes += [(name, "weight", 0.0, 1.0), (name, "place", 0.0, 1.0), (name, "duration", DUR_LO, DUR_HI)]
         for d in registry.get("motion_primitive", key).vector_dims():  # type: ignore[attr-defined]
             genes.append((name, d.name, float(d.lo), float(d.hi)))
+    if within:
+        genes += [("", g, lo, hi) for g, lo, hi in WITHIN_GLOBAL]
+        for name, _key, _base in palette:
+            genes += [(name, g, lo, hi) for g, lo, hi in WITHIN_STATE]
     return genes
 
 
@@ -135,7 +146,7 @@ def safe_centres(spec: Any, lib: Any, doc_compile: dict[str, Any], palette: list
 
 
 def start_vector(palette: list[tuple[str, str, dict[str, Any]]], rng: np.random.Generator, spread: float,
-                 centres: dict[str, dict[str, Any]] | None = None) -> np.ndarray:
+                 centres: dict[str, dict[str, Any]] | None = None, within: bool = False) -> np.ndarray:
     """A first-generation vector: the sequence genes anywhere (uniform), each primitive's parameters near a
     centre (normal, ``spread`` of the range): the settings ``safe_centres`` found, else the primitive's defaults.
     Uniform primitive parameters, and the defaults, almost never stay within the limits on the working body
@@ -146,8 +157,11 @@ def start_vector(palette: list[tuple[str, str, dict[str, Any]]], rng: np.random.
     for n in defaults:
         if centres and n in centres:
             defaults[n] = {**defaults[n], **centres[n]["params"]}
-    for state, gene, lo, hi in layout(palette):
-        if state and gene == "weight" and centres and state in centres and not centres[state]["within"]:
+    within_genes = {g for g, _lo, _hi in WITHIN_STATE + WITHIN_GLOBAL}
+    for state, gene, lo, hi in layout(palette, within):
+        if gene in within_genes:  # variation within a movement: anywhere in the lower half at first
+            out.append(float(rng.uniform(0.0, 0.5)))
+        elif state and gene == "weight" and centres and state in centres and not centres[state]["within"]:
             out.append(float(rng.uniform(0.0, 0.1)))  # no setting within the limits alone: rarely chosen at first
         elif not state or gene in ("weight", "place", "duration"):
             out.append(float(rng.uniform(0.0, 1.0)))
@@ -157,16 +171,26 @@ def start_vector(palette: list[tuple[str, str, dict[str, Any]]], rng: np.random.
     return np.asarray(out)
 
 
-def decode(x: np.ndarray, palette: list[tuple[str, str, dict[str, Any]]]) -> dict[str, Any]:
-    """The generator a vector stands for: per state its weight, place, duration (log s) and primitive params."""
-    genes = layout(palette)
+def decode(x: np.ndarray, palette: list[tuple[str, str, dict[str, Any]]], within: bool = False) -> dict[str, Any]:
+    """The generator a vector stands for: per state its weight, place, duration (log s) and primitive params;
+    with ``within`` also its variation (``states[n]["within"]``) and the generator's (``within``)."""
+    genes = layout(palette, within)
     if len(x) != len(genes):
         raise ValueError(f"behaviour vector has {len(x)} values; this palette needs {len(genes)}")
     x = np.clip(np.asarray(x, dtype=float), 0.0, 1.0)
     out: dict[str, Any] = {"states": {n: {"primitive": k, "params": dict(b)} for n, k, b in palette}}
+    if within:
+        out["within"] = {}
+        for n in out["states"]:
+            out["states"][n]["within"] = {}
+    gw = {g for g, _lo, _hi in WITHIN_GLOBAL}
     for (state, gene, lo, hi), v in zip(genes, x, strict=True):
         val = lo + float(v) * (hi - lo)
-        if not state:
+        if within and not state and gene in gw:
+            out["within"][gene] = round(val, 4)
+        elif within and gene.startswith("v_"):
+            out["states"][state]["within"][gene[2:]] = round(val, 4)
+        elif not state:
             out[gene] = val
         elif gene in ("weight", "place", "duration"):
             out["states"][state][gene] = val
@@ -232,8 +256,19 @@ def controller_params(gen: dict[str, Any], spec: Any, lib: Any, margin: float = 
                        "duration": {"log_mean": round(st["duration"], 4), "log_sd": LOG_SD, "min_s": 0.5,
                                     "max_s": round(checked_duration(st["duration"]), 4) if cap else 15.0},
                        "vary": {}})
+        if "within" in st:
+            states[-1]["within"] = dict(st["within"])
     w = np.array([max(1e-3, gen["states"][n]["weight"]) for n in names])
-    return {"states": states,
+    extra: dict[str, Any] = {}
+    if "within" in gen:
+        from calflab.control.variation import posture_basis
+
+        g = gen["within"]
+        extra["variation"] = {"basis": posture_basis(spec), "drift_hz": g["drift_hz"],
+                              "switch_slack": g["switch_slack"], "blend_var": g["blend_var"], "mode": "draw",
+                              "axes": {"height": g["w_height"], "lateral": g["w_weight"], "fore_aft": g["w_weight"],
+                                       "head_pitch": g["w_head"], "head_yaw": g["w_head"]}}
+    return {**extra, "states": states,
             "transitions": {a: {b: round(float(m[i, j]), 4) for j, b in enumerate(names) if m[i, j] > 0}
                             for i, a in enumerate(names)},
             "initial": {n: round(float(v), 4) for n, v in zip(names, w / w.sum(), strict=True)},
@@ -286,6 +321,7 @@ def coverage_plan(gen: dict[str, Any], ctrl: dict[str, Any], completed: dict[str
             pred = None
         c = {**ctrl, "states": [dict(st) for st in ctrl["states"]], "transitions": dict(ctrl["transitions"])}
         dur: dict[str, float] = {"": 0.0}
+        held = 0.0  # the length (s) the state itself is held for
         for st in c["states"]:
             d = dict(st["duration"])
             if st["name"] == pred:
@@ -296,6 +332,8 @@ def coverage_plan(gen: dict[str, Any], ctrl: dict[str, Any], completed: dict[str
                 continue
             st["duration"] = {**d, "log_mean": round(math.log(v), 4), "log_sd": 0.0}
             dur[st["name"]] = v
+            if st["name"] == x:
+                held = v
             if st.get("one_shot"):  # a one-shot plays whole cycles
                 dur[st["name"]] = max(v, st["offset_s"] + st["period_s"]) + st["period_s"]
         if pred is None:
@@ -303,6 +341,10 @@ def coverage_plan(gen: dict[str, Any], ctrl: dict[str, Any], completed: dict[str
         else:
             c["start"] = pred
             c["transitions"][pred] = {x: 1.0}
+        if c.get("variation"):  # play the variation's bounds (ADR-098): every corner of the posture within x
+            v = c["variation"]
+            c["variation"] = {**v, "mode": "extremes",
+                              "step_s": round(min(0.5 / max(0.05, float(v.get("drift_hz", 0.25))), held / 4.0), 4)}
         plays.append({"state": x, "from": pred or "start", "reach": round(reach[x], 3), "controller": c,
                       "duration_s": round(dur[pred or ""] + dur[x] + after_s + 2.0, 2)})
     return plays
@@ -339,7 +381,7 @@ def evaluate_behaviour(payload: dict[str, Any]) -> dict[str, Any]:
         return {"infeasible": reasons, "mass_g": design.spec.total_mass_g(), "evals": 0}
     spec = design.spec
     palette = palette_for(spec, payload.get("palette") or None)
-    gen = decode(np.asarray(payload["x"], dtype=float), palette)
+    gen = decode(np.asarray(payload["x"], dtype=float), palette, bool(payload.get("vary_within")))
     margin = float(payload.get("margin", 0.2))
     cap = bool(payload.get("cap_durations"))
     ctrl = controller_params(gen, spec, lib, margin, cap=cap)
@@ -415,8 +457,10 @@ def evaluate_behaviour(payload: dict[str, Any]) -> dict[str, Any]:
                "generator": {"sharpness": round(gen["sharpness"], 3), "blend_s": round(gen["blend_s"], 3),
                              "states": {n: {"primitive": s["primitive"], "weight": round(s["weight"], 3),
                                             "place": round(s["place"], 3),
-                                            "duration_s": round(math.exp(s["duration"]), 2), "params": s["params"]}
-                                        for n, s in gen["states"].items()}}}
+                                            "duration_s": round(math.exp(s["duration"]), 2), "params": s["params"],
+                                            **({"within": s["within"]} if "within" in s else {})}
+                                        for n, s in gen["states"].items()},
+                             **({"within": gen["within"]} if "within" in gen else {})}}
     if coverage is not None:
         metrics["coverage"] = coverage
     rollouts = len(seeds) + sum(len(pl["seeds"]) for pl in (coverage or {}).get("plays", []))
@@ -485,6 +529,10 @@ class MapElitesBehaviour(Optimizer):
                                 desc="No movement is held longer than the length coverage checks (its 90th "
                                      "percentile); with coverage, every likely movement is then checked at that "
                                      "length (ADR-097).")
+        vary_within: bool = P(False, group="Variation",
+                              desc="Movement varies within each state (ADR-098): posture drift and noise, each "
+                                   "cycle's tempo and amplitude, earlier switches, varying cross-fades, as genes; "
+                                   "coverage plays their extremes.")
         seed: int = P(0, ge=0, le=2**31 - 1, ui="number", desc="Random seed.", group="Budget")
         #: read by Estimate cost: no inner loop
         inner_iterations: int = P(0, ge=0, le=0, advanced=True, desc="No inner loop (one play per seed).")
@@ -514,7 +562,7 @@ class MapElitesBehaviour(Optimizer):
         palette = palette_for(spec, list(p.palette) or None)
         if len(palette) < 2:
             raise ValueError("Fewer than two palette states fit this body: nothing to sequence")
-        dim = len(layout(palette))
+        dim = len(layout(palette, p.vary_within))
         report(kind="progress", generation=0, fraction=0.0)
         centres = safe_centres(spec, library(), problem.compile, palette, p.margin, cancelled=problem.cancelled)
         dkeys = [p.descriptor_x, p.descriptor_y]
@@ -529,7 +577,8 @@ class MapElitesBehaviour(Optimizer):
                 "palette": [n for n, _k, _b in palette], "duration_s": p.duration_s, "margin": p.margin,
                 "unpredictability_weight": p.unpredictability_weight, "descriptors": dkeys,
                 "coverage": p.coverage, "performance_s": p.performance_s, "coverage_p": p.coverage_p,
-                "coverage_after_s": p.coverage_after_s, "cap_durations": p.cap_durations}
+                "coverage_after_s": p.coverage_after_s, "cap_durations": p.cap_durations,
+                "vary_within": p.vary_within}
 
         def cancelled() -> bool:
             return bool(problem.cancelled and problem.cancelled())
@@ -542,7 +591,7 @@ class MapElitesBehaviour(Optimizer):
             parents: list[list[str]] = []
             for _ in range(p.batch_size):
                 if not elites:  # any sequence, the primitives near their defaults
-                    xs.append(start_vector(palette, rng, p.start_spread, centres))
+                    xs.append(start_vector(palette, rng, p.start_spread, centres, p.vary_within))
                     parents.append([])
                     continue
                 a = by_id[elites[int(rng.integers(len(elites)))]]

@@ -105,7 +105,7 @@ def main() -> None:
             "compile": run["inputs"]["compile"], "fitness": fitness, "palette": list(p["palette"]),
             "duration_s": float(p["duration_s"]), "margin": margin,
             "unpredictability_weight": p["unpredictability_weight"], "descriptors": [p["descriptor_x"], p["descriptor_y"]],
-            "cap_durations": bool(p.get("cap_durations", False))}
+            "cap_durations": bool(p.get("cap_durations", False)), "vary_within": bool(p.get("vary_within", False))}
     copts = {**compile_params(run["inputs"]["compile"]), "randomization": randomization(ev.randomize, ev.friction, ev.mass_scale)}
     results = []
     for suffix, label in picks.items():

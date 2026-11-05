@@ -15,6 +15,11 @@ interpretation found within the limits). The controller:
 4. records every episode (state, primitive, parameters drawn, start, end, how
    long it waited for a safe phase) in the rollout (``meta.controller_log``).
 
+With ``variation`` (ADR-098, :mod:`calflab.control.variation`) movement also varies *within* a state: posture
+drift and noise, each cycle's tempo and amplitude, switches before an all-hooves-down window, and the length of
+each cross-fade, every one bounded; ``variation.mode = "extremes"`` plays the bounds (coverage). Without it the
+controller is exactly as before (no draws are added to its random stream).
+
 Commanded joint speed stays under ``speed_fraction`` of each servo's speed at
 its joint, as in the other controllers (the primitives' own caps are turned
 off so only one applies). Units: s, deg.
@@ -50,6 +55,8 @@ class InterpretedState(BaseModel):
     duration: StateDuration = Field(default_factory=StateDuration)
     #: controller parameter -> (low, high) factor it is multiplied by, drawn per episode; "offsets"/"lift" scale a pose
     vary: dict[str, tuple[float, float]] = Field(default_factory=dict)
+    #: variation within the movement (ADR-098): drift, noise (posture, share of the reference), tempo, amp
+    within: dict[str, float] = Field(default_factory=dict)
 
 
 @register
@@ -74,6 +81,9 @@ class InterpretedController(Controller):
                               desc="Longest wait for a safe phase before switching anyway (logged).")
         speed_fraction: float = P(0.9, ge=0.0, le=1.0, step=0.05,
                                   desc="Commanded joint speed kept under this fraction of each servo's speed.")
+        variation: dict[str, Any] = P(default_factory=dict, ui="json",
+                                      desc="Variation within a movement (ADR-098): basis, axes, drift_hz, "
+                                           "switch_slack, blend_var, mode (draw / extremes), step_s. Empty = none.")
 
     @classmethod
     def fits(cls, spec: Any) -> bool:
@@ -89,6 +99,23 @@ class InterpretedController(Controller):
         self.sub: Controller | None = None
         self.ep: dict[str, Any] | None = None
         self.episodes: list[dict[str, Any]] = []
+        var = dict(p.variation or {})  # type: ignore[attr-defined]
+        self.var: dict[str, Any] | None = var or None
+        if self.var is not None:
+            from calflab.control.variation import Signals
+
+            self.seed = int(seed)
+            self.signals = Signals(seed, float(var.get("drift_hz", 0.25)))
+            self.extremes = var.get("mode") == "extremes"
+            idx = {j: i for i, j in enumerate(self.info.joint_ids)}
+            self.basis = {a: {idx[j]: float(v) for j, v in d.items() if j in idx}
+                          for a, d in (var.get("basis") or {}).items()}
+            self.axes = {a: float(w) for a, w in (var.get("axes") or {}).items()}
+            self.switches = 0
+            self.amp_from = {"drift": 0.0, "noise": 0.0}
+            self.t_last = 0.0
+            self.tau = 0.0
+            self.blend = 0.0
 
     # ------------------------------------------------------------------ draws
     def _draw(self, probs: dict[str, float], exclude: str | None = None) -> str:
@@ -104,9 +131,16 @@ class InterpretedController(Controller):
         st = self.states[name]
         d = st.duration
         dur = float(np.clip(math.exp(self.rng.normal(d.log_mean, d.log_sd)), d.min_s, d.max_s))
+        if self.var is not None:
+            self._vary_start(t, st)
         if st.one_shot:
             dur = max(dur, st.offset_s + st.period_s)
-            dur = st.offset_s + st.period_s * max(1, round((dur - st.offset_s) / st.period_s))
+            n = max(1, round((dur - st.offset_s) / st.period_s))
+            dur = st.offset_s + st.period_s * n
+            if self.var is not None:  # whole cycles at their own tempo, no longer than the cycles at tempo 1 (or one)
+                real = [st.offset_s + float(np.sum(st.period_s / self.rates[:k])) for k in range(1, n + 1)]
+                fit = [r for r in real if r <= max(d.max_s, dur) + 1e-9]
+                dur = fit[-1] if fit else real[0]
         params = dict(st.controller.get("params") or {})
         drawn: dict[str, float] = {}
         for k, (lo, hi) in st.vary.items():
@@ -128,6 +162,8 @@ class InterpretedController(Controller):
             self.ep["waited_s"] = round(waited, 4)
         self.ep = {"name": name, "primitive": st.primitive, "t0": round(t, 4), "planned_s": round(dur, 4),
                    "factors": drawn}
+        if self.var is not None:
+            self.ep["blend_s"] = round(self.blend, 4)
         self.episodes.append(self.ep)
         self.end = t + dur
         self.state = st
@@ -135,13 +171,78 @@ class InterpretedController(Controller):
 
     def _safe(self, t: float) -> bool:
         st = self.state
-        local = t - self.t0
+        local = t - self.t0 if self.var is None else self.tau
         if local < st.offset_s or st.period_s <= 0:
             return True
         ph = ((local - st.offset_s) / st.period_s) % 1.0
         if st.one_shot and local >= st.offset_s + st.period_s * 0.999:
             return True
+        if self.var is not None and not st.one_shot:
+            slack = float(self.var.get("switch_slack", 0.0))
+            if slack > 0:
+                if self.extremes:  # the earliest phase allowed, and no later
+                    return any(0.0 <= (ph - (a - slack)) % 1.0 <= 0.04 for a, _b in st.safe)
+                return any(0.0 <= (ph - (a - slack)) % 1.0 <= (b - a + slack) + 1e-9 for a, b in st.safe)
         return any(a - 1e-9 <= ph <= b + 1e-9 for a, b in st.safe)
+
+    # ------------------------------------------------------------------ variation within a movement (ADR-098)
+    def _vary_start(self, t: float, st: InterpretedState) -> None:
+        """Per episode: each cycle's tempo and amplitude, the cross-fade into it; the posture amplitudes in effect
+        are cross-faded from the last state's. Draws come from their own stream (seed, episode)."""
+        assert self.var is not None
+        n = 256
+        tempo, amp = float(st.within.get("tempo", 0.0)), float(st.within.get("amp", 0.0))
+        if self.extremes:
+            u_t = np.where(np.arange(n) % 2 == 0, 1.0, -1.0)  # fastest, slowest, ...
+            v_a = np.ones(n)  # the largest
+            wb = -1.0 if self.switches % 2 == 0 else 1.0  # shortest, longest, ...
+        else:
+            rng = np.random.default_rng([self.seed, 9173, len(self.episodes)])
+            u_t, v_a, wb = rng.uniform(-1, 1, n), rng.uniform(-1, 1, n), float(rng.uniform(-1, 1))
+        first = self.ep is None
+        if not first:
+            self.amp_from = self._amp_now(t)
+            self.switches += 1
+        self.rates = np.exp(tempo * u_t)
+        self.amps = 1.0 + amp * v_a
+        blend = float(self.params.blend_s) * math.exp(float(self.var.get("blend_var", 0.0)) * wb)  # type: ignore[attr-defined]
+        self.blend = 0.0 if first else float(np.clip(blend, 0.1, 3.0))
+        self.tau = 0.0
+        self.t_last = t
+        self._within_to = {"drift": float(st.within.get("drift", 0.0)), "noise": float(st.within.get("noise", 0.0))}
+
+    def _amp_now(self, t: float) -> dict[str, float]:
+        """The posture amplitudes in effect at ``t``: cross-faded from the last state's to this one's."""
+        to = self._within_to
+        if self.blend > 0 and t - self.t0 < self.blend:
+            k = 0.5 - 0.5 * math.cos(math.pi * (t - self.t0) / self.blend)
+            return {a: (1 - k) * self.amp_from[a] + k * to[a] for a in to}
+        return dict(to)
+
+    def _cycle(self) -> int:
+        st = self.state
+        if self.tau < st.offset_s or st.period_s <= 0:
+            return -1
+        return min(255, int((self.tau - st.offset_s) / st.period_s))
+
+    def _posture(self, t: float) -> np.ndarray:
+        """Joint offsets (rad) of the posture drift and noise at ``t``."""
+        from calflab.control.variation import extremes_value
+
+        assert self.var is not None
+        out = np.zeros(len(self.info.joint_ids))
+        amp = self._amp_now(t)
+        ramp = min(1.0, max(0.0, t / 1.0))  # in from the standing start
+        step = float(self.var.get("step_s", 2.0))
+        for axis, basis in self.basis.items():
+            k = self.axes.get(axis, 0.0)
+            if k <= 0 or not basis:
+                continue
+            v = (extremes_value(axis, t, step, amp["drift"], amp["noise"]) if self.extremes
+                 else self.signals.value(axis, t, amp["drift"], amp["noise"]))
+            for i, deg in basis.items():
+                out[i] += math.radians(deg) * k * v * ramp
+        return out
 
     # ------------------------------------------------------------------ runtime
     def act(self, obs: Observation) -> np.ndarray:
@@ -149,6 +250,10 @@ class InterpretedController(Controller):
         t = obs.t
         if not self.states:  # nothing interpreted yet: stand
             return np.clip(self.info.rest.copy(), self.info.lo, self.info.hi)
+        if self.var is not None and self.ep is not None:  # the episode's own clock: each cycle at its own tempo
+            k = self._cycle()
+            self.tau += max(0.0, t - self.t_last) * (float(self.rates[k]) if k >= 0 else 1.0)
+            self.t_last = t
         if self.ep is None:
             first = p.start if p.start in self.states else self._draw(p.initial or {})  # type: ignore[attr-defined]
             self._start(t, first)
@@ -168,10 +273,17 @@ class InterpretedController(Controller):
                     nxt = self._draw(row or p.initial or {}, exclude=self.state.name)  # type: ignore[attr-defined]
                     self._start(t, nxt, waited)
         assert self.sub is not None
-        sub_obs = Observation(t=t - self.t0, q=obs.q, dq=obs.dq, trunk_quat=obs.trunk_quat, trunk_gyro=obs.trunk_gyro,
+        local = t - self.t0 if self.var is None else self.tau
+        sub_obs = Observation(t=local, q=obs.q, dq=obs.dq, trunk_quat=obs.trunk_quat, trunk_gyro=obs.trunk_gyro,
                               foot_contact=obs.foot_contact)
         target = np.asarray(self.sub.act(sub_obs), dtype=float)
         blend = float(p.blend_s)  # type: ignore[attr-defined]
+        if self.var is not None:
+            k = self._cycle()
+            if k >= 0:
+                target = self.info.rest + float(self.amps[k]) * (target - self.info.rest)
+            target = target + self._posture(t)
+            blend = self.blend
         if self.fade_from is not None and blend > 0 and t - self.t0 < blend:
             w = 0.5 - 0.5 * math.cos(math.pi * (t - self.t0) / blend)
             target = (1 - w) * self.fade_from + w * target
