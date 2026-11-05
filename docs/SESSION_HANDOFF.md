@@ -3,7 +3,7 @@
 Everything a new Claude Code session (or a new collaborator) needs to pick up
 CALFLAB. Last updated 2026-11-04 on branch `robot-calf-final` (cut from
 `chassis-mass`), during session R (a body for vigorous movement; steps 1-2 of 6
-done, plus wider blocks and hip springs; steps 3-4 done; then redirected to behaviour diversity on the wide-block body, built and tried, waiting for the researcher to choose the budget; section 4, "Session R", ADR-086..093); before it
+done, plus wider blocks and hip springs; steps 3-4 done; then redirected to behaviour diversity on the wide-block body: the first full run (ADR-094) and session R6, three of its behaviours played for a minute (ADR-095); section 4, "Session R", ADR-086..095); before it
 session Q: the calf's movement read and interpreted as
 the robot's own (section 4, "Added in session Q", ADR-085); before it session
 P: clips judged in physics and made feasible
@@ -1124,7 +1124,15 @@ values not touched; nothing installed.
     5. The body was fixed during the run.
   * Next, in order: R6 (watch three performances); then R7 (movement quality, software) or R8 (vigour,
     hardware), depending on what the researcher sees.
-* Next: R6 in section 7.
+* **Session R6 (ADR-095, `docs/studies/perform_r6.md`, script `perform_r6.py`): the three picked cells played
+  for 60 s on three seeds.** The run's 24 s evaluation re-runs to the fourth decimal.
+  * **2 of 9 minutes stay within every limit** (calm seed 0, closest limit joint speed at the hl.hock, +0.76;
+    irregular seed 2, sustained belt tension at the fr.carpus, +0.08). None fell.
+  * **60 s does not stay within what 24 s did.** All nine were within the limits over their first 24 s. Seven go
+    over later, each starting in a **step** (no safe setting of its own, ADR-093): sustained servo torque at the
+    opposite front shoulder, or the fr.carpus belt. A 24 s evaluation under-samples a chain's rare states.
+  * The nine minutes are runs of kind `sim` titled `R6 ...` (Journal or Simulate > Runs; click to replay).
+* Next: R6b, R7 or R8 in section 7, depending on what the researcher sees in the replays.
 
 **Scaffolded only (interfaces + tests, no behaviour):** PPO training, MJX
 simulator, RemoteSSH and CloudNotebook transports (job bundling is real),
@@ -1163,6 +1171,13 @@ Journal, Rhino bridge):**
   Properties, entry in Overrides).
 * `doctor` warned "uv not found" on top of the three expected warnings:
   false alarm, fixed (see Tests above).
+
+**The researcher must verify (new in session R6, ADR-095):**
+
+* **Watch the nine minutes** (lab on port 8020, Journal > Runs, rows `R6 ...`): do the calm, irregular and active
+  behaviours look organic? Which falls short: the movement within a primitive (R7) or vigour (R8)?
+* The finding that the steps make a minute unsafe: decide whether the archive should be judged at 60 s, require
+  every reachable state to have been played, or leave steps out until Q4 gives a safe step (R6b).
 
 **The researcher must verify (new in session Q, ADR-085):**
 
@@ -1413,7 +1428,7 @@ Journal, Rhino bridge):**
 |---|---|
 | `CLAUDE.md` | Conventions for every session (loaded automatically) |
 | `PLAN.md` | Architecture, module boundaries, data flow, phases, risks, status |
-| `DECISIONS.md` | ADR log: every assumption (94 so far) |
+| `DECISIONS.md` | ADR log: every assumption (95 so far) |
 | `docs/proposals/anatomical-leg.md` | Proposal for a three-segment leg (set aside 2026-10-04; not built) |
 | `docs/USER_GUIDE.md` | How to use the lab |
 | `docs/CHAT_GUIDE_PROMPT.md` | Prompt that makes a chat assistant a guide to the whole lab |
@@ -1429,16 +1444,16 @@ Journal, Rhino bridge):**
 
 Prefix each with the opening message from section 1.
 
-**R6. Watch three evolved behaviours** (recommended next; written 2026-11-04, ADR-093, ADR-094.)
-> In projects/robot-calf-final, from run `20261104-181642-evolve-2650` (`docs/studies/diversity_r5.md`), play the
-> three picked safe cells as 60 s performances on three seeds, each with a full physics report (every limit at
-> margin 0.2, falls):
-> * (0,5) calm, `g011-020`;
-> * (2,2) irregular, `g014-007`;
-> * (4,6) active, `g015-016`.
->
-> Show me each one in the viewport so I can judge whether it looks organic. Report which limit each comes closest
-> to and whether 60 s stays within what 24 s did. Do not change the body, belts or component values.
+**R6b. Behaviours that stay safe for a minute** (recommended next; written 2026-11-04 after R6, ADR-095.)
+> In projects/robot-calf-final, R6 found that cells judged safe over 24 s go over a limit within a minute (7 of 9
+> performances), each time starting in a weight-shift step, which has no safe setting of its own. Make the
+> behaviour-diversity evaluation (`calflab.evolve.diversity`) judge what a performance will do: compare (a) 60 s
+> evaluations, (b) requiring every state the chain can reach to have been played within the limits (forcing rare
+> states in), (c) the palette without the steps. Estimate the cost of each and let me choose. Then re-run the
+> archive at the chosen setting and play its calm, irregular and active cells for 60 s on three seeds, as in
+> `docs/studies/perform_r6.py`. Do not change the body, belts or component values.
+
+*(R6, watching three evolved behaviours for a minute, was done 2026-11-04: ADR-095, `docs/studies/perform_r6.md`.)*
 
 **R7. Organic movement within a primitive** (after R6, if movement quality is the gap.)
 > On the working body, let movement vary below the primitive level in the behaviour-diversity evolution

@@ -999,6 +999,11 @@ each movement on its own, a setting within the limits; the first generation
 starts around those. **Estimate cost** shows the run's length.
 How much the robot resembles the calf is not scored.
 
+A cell marked within the limits was judged over 24 s. Over a minute a
+sequence plays its rarer movements too, and these may not be safe (ADR-095:
+seven of nine one-minute performances of safe cells went over a limit in a
+step). Play a cell for longer before trusting it as a performance.
+
 #### Proportions: comparing bodies instead of finding one
 
 The lab has three ways to look for a better body or gait:

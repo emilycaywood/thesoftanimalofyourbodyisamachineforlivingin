@@ -3475,3 +3475,29 @@ is required, and within a cell headroom and unpredictability are preferred. Calf
 
 *Assumption kept:* a cell's descriptors are averaged over the seeds it played. An unsafe candidate stops at its
 first failing seed, so its descriptors may rest on one seed.
+
+## ADR-095 — A minute of an evolved behaviour; 24 s under-samples a sequence (**VERIFY**)
+
+*Context.* Session R6: play the three picked safe cells of run `20261104-181642-evolve-2650` (ADR-094) for 60 s on
+the run's three seeds with a full physics report, and show them in the viewport.
+
+*Decisions / assumptions:*
+* The performances are played by a study script (`docs/studies/perform_r6.py`) with the run's own settings:
+  its compile options, preset randomisation, margin and the stored candidate genome and generator vector. The
+  run's 24 s task is re-run first; the margins must match the stored ones (they did, to the fourth decimal).
+* Each performance is stored as a run of kind `sim` (parent: the evolve run, tags `R6` and the label), so the
+  existing Runs list replays it. No new command or panel: this is a study, not a lab feature.
+* "Closest limit" = the known constraint with the smallest margin over the whole minute (unknowns excluded).
+  The minute is also judged over its first 24 s and over 12 s windows, and per episode (0.5 s lead-in).
+
+*Results* (`docs/studies/perform_r6.md`):
+* 2 of 9 performances stay within every limit for 60 s (calm seed 0, irregular seed 2); none fell.
+* All 9 were within the limits over their first 24 s, as in the run. The 7 that go over do so later, each starting
+  in a weight-shift **step**, a state with no safe setting of its own (ADR-093): sustained servo torque at the
+  opposite front shoulder (calm: fl, active: fr), or the fr.carpus belt (irregular).
+* A 24 s evaluation on three seeds under-samples rare states of a chain: the calm cell never played a step in its
+  evaluation and plays one on two seeds of three in a minute.
+
+*Consequence (not acted on, for the researcher):* a cell marked safe in ADR-094 is safe for 24 s, not as a
+performance. Options: evaluate at 60 s (2.5x cost), require every state the chain can reach to have been played
+within the limits, or leave the steps out of the palette until a safe step exists (Q4).
