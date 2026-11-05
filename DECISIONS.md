@@ -3501,3 +3501,35 @@ the run's three seeds with a full physics report, and show them in the viewport.
 *Consequence (not acted on, for the researcher):* a cell marked safe in ADR-094 is safe for 24 s, not as a
 performance. Options: evaluate at 60 s (2.5x cost), require every state the chain can reach to have been played
 within the limits, or leave the steps out of the palette until a safe step exists (Q4).
+
+## ADR-096 — Coverage: every likely state checked before a behaviour counts as safe (**VERIFY**)
+
+*Context.* R6 (ADR-095): a 24 s evaluation on three seeds misses a chain's rarer states, and 7 of 9 one-minute
+performances of "safe" cells went over a limit. Session R6b compared (a) 60 s evaluations, (b) a coverage check,
+(c) leaving the steps out, on the three R6 behaviours (`docs/studies/options_r6b.py`). (a) and (b) flag all
+three, as R6 saw; (c) alone does not (the active behaviour without steps still goes over at 60 s). **The
+researcher chose (b) with every state kept.**
+
+*Decisions / assumptions:*
+* Optimizer `map_elites_behaviour` gains `coverage` (off by default, so earlier runs mean what they did),
+  `performance_s` 60, `coverage_p` 0.05, `coverage_after_s` 6.
+* **Which states:** those at least 5 % likely to be played in a 60 s performance (`reach_probability`: switches
+  at the chain's mean rate, visits Poisson with the stationary share, plus the initial probability; durations
+  log-normal sd 0.4, clipped 0.5-15 s). 5 % per minute and 60 s are PROVISIONAL choices.
+* A state counts as played on a seed when an episode of it ended at least 2 s (the sustained window) before the
+  end. A state played to its end on every seed is not forced again.
+* **The forced play:** from the start if the initial probability is at least half the state's reach; otherwise
+  after the predecessor with the largest flow pi_i m_ij among likely states, preferring ones already played to
+  the end (the first version took the largest flow over all states and forced paths the chain almost never takes,
+  e.g. trot then stand for a calm chain). Predecessor at its typical length (1.5-4 s), the state at its
+  90th-percentile length, no draws; then the chain runs 6 s more. On every seed; the first limit over makes the
+  candidate unsafe. Coverage margins count toward the worst margin; descriptors come from the seeds only.
+* Estimate cost does not count forced plays. Measured: 20 x 28 took 2330 s (R5: 1480 s).
+
+*Results* (`docs/studies/coverage_r6b.md`, run `20261105-024409-evolve-7a63`):
+* 6 safe cells (R5: 16), quantity of motion 2.2-5.8 deg/s; R5's calmest and most irregular cells are gone.
+* A step (two generators) and the trot (one) are safe in context for the first time.
+* **15 of 18 one-minute performances of the six safe cells stay within every limit** (R6: 2 of 9).
+* The 3 that go over are all episodes drawn longer than the 90th-percentile length that was checked (z 1.8-2.8):
+  rare lengths, not rare states. Not fixed here: the next step caps each state's duration in the controller at
+  the checked length.

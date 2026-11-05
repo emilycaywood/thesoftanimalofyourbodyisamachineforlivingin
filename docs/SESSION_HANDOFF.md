@@ -3,7 +3,7 @@
 Everything a new Claude Code session (or a new collaborator) needs to pick up
 CALFLAB. Last updated 2026-11-04 on branch `robot-calf-final` (cut from
 `chassis-mass`), during session R (a body for vigorous movement; steps 1-2 of 6
-done, plus wider blocks and hip springs; steps 3-4 done; then redirected to behaviour diversity on the wide-block body: the first full run (ADR-094) and session R6, three of its behaviours played for a minute (ADR-095); section 4, "Session R", ADR-086..095); before it
+done, plus wider blocks and hip springs; steps 3-4 done; then redirected to behaviour diversity on the wide-block body: the first full run (ADR-094), session R6, three of its behaviours played for a minute (ADR-095), and R6b, a coverage check that makes them hold for a minute (ADR-096); section 4, "Session R", ADR-086..096); before it
 session Q: the calf's movement read and interpreted as
 the robot's own (section 4, "Added in session Q", ADR-085); before it session
 P: clips judged in physics and made feasible
@@ -1132,7 +1132,17 @@ values not touched; nothing installed.
     over later, each starting in a **step** (no safe setting of its own, ADR-093): sustained servo torque at the
     opposite front shoulder, or the fr.carpus belt. A 24 s evaluation under-samples a chain's rare states.
   * The nine minutes are runs of kind `sim` titled `R6 ...` (Journal or Simulate > Runs; click to replay).
-* Next: R6b, R7 or R8 in section 7, depending on what the researcher sees in the replays.
+* **Session R6b (ADR-096, `docs/studies/coverage_r6b.md`): coverage.** Optimizer option `coverage`: a candidate
+  that passes its seeds also plays, forced, every state at least 5 % likely in a minute that its seeds did not
+  finish, on every seed. Tried against 60 s evaluations and dropping the steps on the R6 behaviours; the
+  researcher chose coverage with every state kept.
+  * Run `20261105-024409-evolve-7a63` (20 x 28, 2330 s): **6 safe cells** (R5: 16), QoM 2.2-5.8 deg/s. A step
+    and the trot are safe in context for the first time.
+  * **15 of 18 one-minute performances of them stay within every limit** (R6: 2 of 9). Runs `R6 <label> ...`
+    for calm, irregular, stepping, trotting, walking, active.
+  * The 3 that go over are episodes drawn longer than the length coverage checked (its 90th percentile).
+    Next: cap durations at the checked length (R6c).
+* Next: R6c, then R7 or R8 in section 7.
 
 **Scaffolded only (interfaces + tests, no behaviour):** PPO training, MJX
 simulator, RemoteSSH and CloudNotebook transports (job bundling is real),
@@ -1171,6 +1181,13 @@ Journal, Rhino bridge):**
   Properties, entry in Overrides).
 * `doctor` warned "uv not found" on top of the three expected warnings:
   false alarm, fixed (see Tests above).
+
+**The researcher must verify (new in session R6b, ADR-096):**
+
+* **Watch the six new behaviours** (Journal > Runs, `R6 calm (1, 4)`, `R6 irregular (1, 2)`, `R6 stepping`,
+  `R6 trotting`, `R6 walking`, `R6 active`): the calm one steps, the trotting one trots on seed 1.
+* The coverage choices: 5 % per minute, 60 s, the 90th-percentile hold, the path into a state.
+* The cost of strictness: R5's calmest (1.3 deg/s) and most irregular (0.21) cells are gone.
 
 **The researcher must verify (new in session R6, ADR-095):**
 
@@ -1428,7 +1445,7 @@ Journal, Rhino bridge):**
 |---|---|
 | `CLAUDE.md` | Conventions for every session (loaded automatically) |
 | `PLAN.md` | Architecture, module boundaries, data flow, phases, risks, status |
-| `DECISIONS.md` | ADR log: every assumption (95 so far) |
+| `DECISIONS.md` | ADR log: every assumption (96 so far) |
 | `docs/proposals/anatomical-leg.md` | Proposal for a three-segment leg (set aside 2026-10-04; not built) |
 | `docs/USER_GUIDE.md` | How to use the lab |
 | `docs/CHAT_GUIDE_PROMPT.md` | Prompt that makes a chat assistant a guide to the whole lab |
@@ -1444,14 +1461,15 @@ Journal, Rhino bridge):**
 
 Prefix each with the opening message from section 1.
 
-**R6b. Behaviours that stay safe for a minute** (recommended next; written 2026-11-04 after R6, ADR-095.)
-> In projects/robot-calf-final, R6 found that cells judged safe over 24 s go over a limit within a minute (7 of 9
-> performances), each time starting in a weight-shift step, which has no safe setting of its own. Make the
-> behaviour-diversity evaluation (`calflab.evolve.diversity`) judge what a performance will do: compare (a) 60 s
-> evaluations, (b) requiring every state the chain can reach to have been played within the limits (forcing rare
-> states in), (c) the palette without the steps. Estimate the cost of each and let me choose. Then re-run the
-> archive at the chosen setting and play its calm, irregular and active cells for 60 s on three seeds, as in
-> `docs/studies/perform_r6.py`. Do not change the body, belts or component values.
+**R6c. Durations no longer than what was checked** (recommended next; written 2026-11-05 after R6b, ADR-096.)
+> In projects/robot-calf-final, coverage (ADR-096) made 15 of 18 one-minute performances of the safe cells hold;
+> the 3 that go over are episodes drawn longer than the 90th-percentile length coverage checked. With coverage on,
+> cap each state's duration in the `interpreted` controller's parameters at the length that was checked (so no
+> performance holds a state longer than was judged), say what that removes from the duration spread, re-run
+> 20 x 28 with coverage, and play every safe cell for 60 s on three seeds with `docs/studies/perform_r6.py`.
+> If all hold, also play them for 5 minutes on one seed. Do not change the body, belts or component values.
+
+*(R6b, the coverage check, was done 2026-11-05: ADR-096, `docs/studies/coverage_r6b.md`.)*
 
 *(R6, watching three evolved behaviours for a minute, was done 2026-11-04: ADR-095, `docs/studies/perform_r6.md`.)*
 

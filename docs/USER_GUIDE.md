@@ -1004,6 +1004,13 @@ sequence plays its rarer movements too, and these may not be safe (ADR-095:
 seven of nine one-minute performances of safe cells went over a limit in a
 step). Play a cell for longer before trusting it as a performance.
 
+Tick **coverage** (Fitness group) to judge for a whole performance instead
+(ADR-096): a generator that passes its seeds then plays, forced, every
+movement at least 5 % likely in a minute (*performance length*, *coverage
+threshold*) that its seeds did not finish, on every seed. Fewer cells are
+safe, but they hold far better: 15 of 18 minutes against 2 of 9. It costs
+about 1.6 times as long, which Estimate cost does not yet show.
+
 #### Proportions: comparing bodies instead of finding one
 
 The lab has three ways to look for a better body or gait:
