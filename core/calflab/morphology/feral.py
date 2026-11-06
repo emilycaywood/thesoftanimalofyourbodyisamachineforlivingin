@@ -46,6 +46,7 @@ other part is a required value in ``config/feral_calf.yaml`` that counts as
 from __future__ import annotations
 
 import math
+from collections import Counter
 from typing import Any
 
 from pydantic import BaseModel
@@ -67,6 +68,7 @@ from calflab.mech.belts import (
     rejection,
 )
 from calflab.model.genome import GeneValue
+from calflab.model.migrations import SERVO_PAIRS
 from calflab.model.overrides import ElementParams, ParamValue
 from calflab.model.spec import Actuator, Body, Geom, Joint, RobotSpec, Spring, Transmission
 from calflab.model.xform import Quat, Vec3, quat_axis_angle, quat_from_z_to, quat_mul, quat_rotate
@@ -203,7 +205,11 @@ class FeralCalfGenerator(PartGenerator):
         ranges: dict[str, list[float]] = cfg.get("joint_ranges_deg", {})
         warnings: list[str] = []
         missing: dict[str, dict[str, Any]] = {}
-        servo_key = str(genes["actuator"])
+        # one servo model per joint pair (genes servo_<joint>, ADR-101); the case is the same for all of them
+        # (config servo.*_mm), and ``servo`` is the model on the most pairs, for what is not per joint
+        servo_keys = {p: str(genes[f"servo_{p}"]) for p in SERVO_PAIRS}
+        servos = {p: lib.actuator(k) for p, k in servo_keys.items()}
+        servo_key = Counter(servo_keys.values()).most_common(1)[0][0]
         servo = lib.actuator(servo_key)
         s_len = float(sc.get("length_along_segment_mm", servo.dims_mm[0]))
         s_wid = float(sc.get("width_across_segment_mm", servo.dims_mm[1]))
@@ -246,8 +252,9 @@ class FeralCalfGenerator(PartGenerator):
                         material="carbon_fibre_tube", label=f"{label} ({od:g} x {idd:g} mm CF tube)")
 
         def servo_geom(gid: str, pos: Vec3, size: Vec3, label: str) -> Geom:
+            pair = gid.split(".")[2]  # act.<leg>.<joint>.motor
             return Geom(id=gid, shape="box", size=size, pos=pos, layer="Actuators", role="visual",
-                        mass_g=servo.mass_g, mass_source="component", component=servo_key, label=label)
+                        mass_g=servos[pair].mass_g, mass_source="component", component=servo_keys[pair], label=label)
 
         # ------------------------------------------------------------ dimensions
         A = val("trunk", "axle_spacing")
@@ -388,9 +395,10 @@ class FeralCalfGenerator(PartGenerator):
                 tr = Transmission(id=f"tr.{k}.{name}", type="belt", ratio=ratio_for[name], efficiency=eff,
                                   motor_body=None)
                 transmissions.append(tr)
-                actuators.append(Actuator(id=f"act.{k}.{name}", joint=joint_id, component=servo_key, transmission=tr.id))
+                actuators.append(Actuator(id=f"act.{k}.{name}", joint=joint_id, component=servo_keys[name],
+                                          transmission=tr.id))
             else:
-                actuators.append(Actuator(id=f"act.{k}.{name}", joint=joint_id, component=servo_key))
+                actuators.append(Actuator(id=f"act.{k}.{name}", joint=joint_id, component=servo_keys[name]))
 
         # trunk
         trunk = Body(id="trunk", name="Body (hip block, rails, chest block)", pos=(0.0, 0.0, height))
@@ -451,7 +459,7 @@ class FeralCalfGenerator(PartGenerator):
             span = rep.servo_span_mm or (c - s_len / 2.0, c + s_len / 2.0)
             centre = (span[0] + span[1]) / 2.0 if offset is not None else c
             upper.geoms.append(servo_geom(f"act.{k}.{drive}.motor", (0.0, y_servo, z_joint + centre),
-                                          (s_wid, s_dep, s_len), f"{servo.name} ({drive} driver, C {c:.1f} mm)"))
+                                          (s_wid, s_dep, s_len), f"{servos[drive].name} ({drive} driver, C {c:.1f} mm)"))
             cyl_y = quat_from_z_to((0.0, 1.0, 0.0))
             for gid, body, z, d, mkey in ((f"belt.{k}.{drive}.driver", upper, z_joint + c, rep.d1_mm, "driver_mass_g"),
                                           (f"belt.{k}.{drive}.driven", lower, 0.0, rep.d2_mm, "driven_mass_g")):
@@ -524,7 +532,7 @@ class FeralCalfGenerator(PartGenerator):
                                 group="leg", damping=jd, friction=jf))
             actuate(k, "hip_abd", f"joint.{k}.hip_abd")
             trunk.geoms.append(servo_geom(f"act.{k}.hip_abd.motor", (hx, sy * (block_wh / 2.0 - s_wid / 2.0 - 2.0), 0.0),
-                                          (s_dep, s_wid, s_len), f"{servo.name} (hip ab/ad, direct)").model_copy(
+                                          (s_dep, s_wid, s_len), f"{servos['hip_abd'].name} (hip ab/ad, direct)").model_copy(
                 update={"quat": m_h}))  # the servo seat turns with the leg's mount
             trunk.geoms += ph_geom(f"act.{k}.hip_abd.horn", "servo_horn_g", "Servo horn", (hx, sy * block_wh / 2.0, 0.0), "trunk",
                                    layer="Actuators")
@@ -563,7 +571,7 @@ class FeralCalfGenerator(PartGenerator):
                                 range_deg=lim("shoulder", (-60, 60)), group="leg", damping=jd, friction=jf))
             actuate(k, "shoulder", f"joint.{k}.shoulder")
             trunk.geoms.append(servo_geom(f"act.{k}.shoulder.motor", (sx, sy * (block_wc / 2.0 - s_dep / 2.0 - 2.0), 0.0),
-                                          (s_wid, s_dep, s_len), f"{servo.name} (shoulder, direct)").model_copy(
+                                          (s_wid, s_dep, s_len), f"{servos['shoulder'].name} (shoulder, direct)").model_copy(
                 update={"quat": m_f}))
             trunk.geoms += ph_geom(f"act.{k}.shoulder.horn", "servo_horn_g", "Servo horn", (sx, sy * block_wc / 2.0, 0.0),
                                    "trunk", layer="Actuators")
@@ -581,7 +589,7 @@ class FeralCalfGenerator(PartGenerator):
             else:
                 od = _num(genes, "upper_leg_od")
                 upper.geoms.append(servo_geom(f"act.{k}.carpus.motor", (0.0, sy * (od / 2.0 + 2.0 + s_dep / 2.0), -Lu_k),
-                                              (s_wid, s_dep, s_len), f"{servo.name} (carpus, direct)"))
+                                              (s_wid, s_dep, s_len), f"{servos['carpus'].name} (carpus, direct)"))
                 upper.geoms += ph_geom(f"act.{k}.carpus.horn", "servo_horn_g", "Servo horn", (0.0, sy * od / 2.0, -Lu_k),
                                        upper.id, layer="Actuators")
             bodies += [upper, cannon]
@@ -677,7 +685,10 @@ class FeralCalfGenerator(PartGenerator):
                     "servo": {"component": servo_key, "name": servo.name, "stall_nm": servo.stall_torque_nm,
                               "rated_nm": servo.rated_torque_nm, "encoder_steps": servo.encoder_steps_per_rev,
                               "servo_resolution_deg": res, "output_axis_offset_mm": offset,
-                              "unknown": list(servo.unknown)},
+                              "unknown": list(servo.unknown),
+                              **({"mixed": True} if len(set(servo_keys.values())) > 1 else {})},
+                    # per joint pair (ADR-101): the model on both sides of it
+                    "servos": {p: servo_summary(c, servo_keys[p]) for p, c in servos.items()},
                     "joint_ranges_deg": {k: list(v) for k, v in ranges.items()},
                     # what the hock's clearance sweep needs to be re-run for another hock choice (belt_context)
                     "sweep": {"rel_stifle_deg": af + at, "stifle_range": list(stifle_range), "tibia_mm": Lt,
@@ -691,6 +702,15 @@ class FeralCalfGenerator(PartGenerator):
             },
         )
         return spec
+
+
+def servo_summary(servo: Any, key: str) -> dict[str, Any]:
+    """What the lab shows of the servo on one joint pair (ADR-101): its figures as recorded, at the servo shaft
+    (a belt's ratio is applied per joint by whoever reads them), and which of them are not given."""
+    return {"component": key, "name": servo.name, "mass_g": servo.mass_g, "stall_nm": servo.stall_torque_nm,
+            "rated_nm": servo.rated_torque_nm, "no_load_speed_rpm": servo.no_load_speed_rpm,
+            "stall_current_a": servo.stall_current_a, "voltage_v": servo.voltage_v,
+            "encoder_steps": servo.encoder_steps_per_rev, "verified": servo.verified, "unknown": list(servo.unknown)}
 
 
 def stifle_clearance_check(

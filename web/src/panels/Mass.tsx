@@ -132,6 +132,47 @@ export function MassPanel() {
           enter a weighed mass in Properties.
         </div>
       </Section>
+      {(scene.mass.servos ?? []).length > 0 && (
+        <Section title="Servos by joint">
+          <table className="w-full table-fixed" data-testid="mass-servos">
+            <thead className="text-left text-[10px] text-dim uppercase">
+              <tr>
+                <th className="w-[26%]">Joint</th>
+                <th className="w-[30%]">Servo</th>
+                <th className="text-right">g</th>
+                <th className="text-right" title="Belt ratio, or direct drive">Drive</th>
+                <th className="text-right" title="No-load speed at the joint">deg/s</th>
+                <th className="text-right" title="Stall / rated torque at the joint (? = rated torque not given)">N·m</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(scene.mass.servos ?? []).map((s) => (
+                <tr
+                  key={s.actuator}
+                  data-servo-joint={s.joint}
+                  title={`${s.component} at ${s.voltage_v} V${s.unknown.length ? `; not given: ${s.unknown.join(", ")}` : ""}`}
+                >
+                  <td className="truncate">{s.joint_name}</td>
+                  <td className="truncate text-[10px]">
+                    {s.name}
+                    {!s.verified && <span className="text-warn" title="Unverified library entry"> *</span>}
+                  </td>
+                  <td className="text-right">{fmt(s.mass_g, 1)}</td>
+                  <td className="text-right">{s.drive === "direct" ? "direct" : `${fmt(s.ratio, 2)}:1`}</td>
+                  <td className="text-right">{fmt(s.speed_joint_deg_s, 0)}</td>
+                  <td className="text-right">
+                    {fmt(s.stall_joint_nm, 2)} / {s.rated_joint_nm === null ? "?" : fmt(s.rated_joint_nm, 2)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <div className="mt-1 text-[10px] text-dim">
+            One servo model per left/right pair (Form &gt; Mechanism). Speed and torque are at the joint: the servo&apos;s figures
+            through its belt ratio and efficiency, as the simulator limits them.
+          </div>
+        </Section>
+      )}
       {b.not_counted.length > 0 && (
         <Section title="Not in the mass model">
           {b.not_counted.map((n) => (

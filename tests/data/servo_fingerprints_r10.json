@@ -1,0 +1,36 @@
+{
+ "baked_design": {
+  "mass": "645fb8efee6f3e0db3b752527021d0921deef3c171082f6b333d3f4e5d1b35e6",
+  "mjcf": "41552cdcc4513aa3611467210e4d6c32ed774897e98e94de42ccfb4821bc3ffa",
+  "spec": "a6afdb3667b980c726d2d29ce7a0ce564631fe44dc2b3a4ffd42d5d1117452c1",
+  "total_mass_g": "1304.1916309145947"
+ },
+ "candidate_run": "20261105-232649-evolve-4237",
+ "default": {
+  "mass": "645fb8efee6f3e0db3b752527021d0921deef3c171082f6b333d3f4e5d1b35e6",
+  "mjcf": "e73292dd52a3d85122a8715947a598936d9de51cab85879b54c4b5f0db10dbaa",
+  "spec": "614f7685e13ef94a8f3b19559ed69ce3a08c7ac05a23beed9b56a4265fefbc09",
+  "total_mass_g": "1304.1916309145947"
+ },
+ "design": "calf1-v001",
+ "project_document": {
+  "mass": "66c11931c63e21c1b90d2a4cc255bb45e29f4ff59584e49edd729fd790e0aabe",
+  "mjcf": "9f3d6a5f813bfa8aa09e2ca7de2713372a7d6a4f91dadbdf614c0fa3ce032704",
+  "spec": "6759d3b10ac9929ef283e7458ddde02c8c30a42581aaeb8a51b8bf49dc2db7e8",
+  "total_mass_g": "1304.1916309145947"
+ },
+ "run_candidate": {
+  "mass": "66c11931c63e21c1b90d2a4cc255bb45e29f4ff59584e49edd729fd790e0aabe",
+  "mjcf": "9f3d6a5f813bfa8aa09e2ca7de2713372a7d6a4f91dadbdf614c0fa3ce032704",
+  "spec": "6759d3b10ac9929ef283e7458ddde02c8c30a42581aaeb8a51b8bf49dc2db7e8",
+  "total_mass_g": "1304.1916309145947"
+ },
+ "run_candidate_id": "20261105-232649-evolve-4237-g000-000",
+ "v1_sts3250": {
+  "mass": "28576270480583c3a57a5e803a9149097126e3b4137099e48d70bfc0541bb746",
+  "mjcf": "dc818314ef3d8647a7006c724cf98f484c5f2c7a9a88e4330d23f22df0cb60eb",
+  "spec": "618d1ecc7ba768ffb4232f21213728a8f47331e7b7315067a72ca947a3cf3079",
+  "total_mass_g": "1499.1916309145947"
+ },
+ "written": "2026-11-05 22:01"
+}

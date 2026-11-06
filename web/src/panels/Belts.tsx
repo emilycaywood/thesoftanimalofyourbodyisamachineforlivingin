@@ -59,7 +59,9 @@ interface PanelData {
   springs: SpringRow[];
   provisional: { name: string; value: unknown; unit: string | null; where: string }[];
   missing_masses: { item: string; label: string; qty: number; where: string[]; enter_in: string }[];
-  servo: { name: string; stall_nm: number; rated_nm: number | null; encoder_steps: number | null; servo_resolution_deg: number | null; output_axis_offset_mm: number | null; unknown: string[] };
+  servo: { name: string; stall_nm: number; rated_nm: number | null; encoder_steps: number | null; servo_resolution_deg: number | null; output_axis_offset_mm: number | null; unknown: string[]; mixed?: boolean };
+  /** per joint pair (ADR-101) */
+  servos: Record<string, { component: string; name: string; stall_nm: number; rated_nm: number | null }>;
   checks: { sustained_fraction: number; breaking_fraction: number; rated_fraction: number; belt_efficiency: number };
   standing_height_mm: number;
   front_angle_deg: number;
@@ -205,9 +207,18 @@ export function BeltsPanel() {
           <span className="text-dim">CoM {data.com_mm.map((v) => fmt(v, 0)).join(", ")} mm</span>
         </div>
         <div className="text-dim">
-          Standing height {fmt(data.standing_height_mm, 1)} mm · front legs at {fmt(data.front_angle_deg, 1)}° (back level) · {data.servo.name}: stall{" "}
-          {data.servo.stall_nm} N·m, rated {data.servo.rated_nm ?? "?"} N·m
+          Standing height {fmt(data.standing_height_mm, 1)} mm · front legs at {fmt(data.front_angle_deg, 1)}° (back level) ·{" "}
+          {data.servo.mixed ? "servos per joint pair (Mass tab: limits per joint)" : <>{data.servo.name}: stall {data.servo.stall_nm} N·m, rated {data.servo.rated_nm ?? "?"} N·m</>}
         </div>
+        {data.servo.mixed && (
+          <div className="text-dim" data-testid="belts-servos">
+            {Object.entries(data.servos).map(([pair, s]) => (
+              <div key={pair}>
+                {pair}: {s.name}, stall {s.stall_nm} N·m, rated {s.rated_nm ?? "?"} N·m
+              </div>
+            ))}
+          </div>
+        )}
         {data.missing_masses.length > 0 && (
           <div className="text-warn" title={data.missing_masses.map((m) => `${m.label} x${m.qty}: enter in ${m.enter_in}`).join("\n")}>
             {data.missing_masses.length} part masses not entered (counted as 0 g)

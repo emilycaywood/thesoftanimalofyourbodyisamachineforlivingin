@@ -127,7 +127,13 @@ class GenomeDefinition(BaseModel):
     def complete(self, values: dict[str, Any]) -> dict[str, GeneValue]:
         """Complete stored values: fill in genes they do not mention (with the
         gene's ``absent`` value if it has one, else its default), drop unknown
-        genes, coerce and clamp."""
+        genes, coerce and clamp.
+
+        Values without a version that still hold a gene an older version had are upgraded first (a document's
+        genome node params, ADR-101: e.g. a v1 feral calf's single ``actuator`` fills each ``servo_<joint>``)."""
+        from calflab.model.migrations import upgrade_unversioned
+
+        values = upgrade_unversioned(self, values)
         out: dict[str, GeneValue] = {g.id: g.default if g.absent is None else g.absent for g in self.genes}
         for k, v in values.items():
             if self.has(k):

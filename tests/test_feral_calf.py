@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -172,6 +173,141 @@ def test_mass_adds_up_and_missing_parts_are_listed(default):
     # six belted joints: a 30T and a 60T pulley each; collars on the hock and carpus servos
     assert missing["servo_horn_g"] == 10 and missing["pulley_30t"] == 6 and missing["clamp_collar_g"] == 4
     assert missing["hip_block_g"] == 1
+
+
+# ---------------------------------------------------------------------- servos per joint pair (ADR-101)
+PAIRS = ("hip_abd", "stifle", "hock", "shoulder", "carpus")
+FINGERPRINTS = Path(__file__).parent / "data" / "servo_fingerprints_r10.json"
+PROJECT = Path(__file__).resolve().parents[1] / "projects" / "robot-calf-final"
+
+
+def _fp():
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("make_servo_fingerprints", FINGERPRINTS.parent / "make_servo_fingerprints.py")
+    mod = importlib.util.module_from_spec(spec)  # type: ignore[arg-type]
+    spec.loader.exec_module(mod)  # type: ignore[union-attr]
+    return mod
+
+
+def test_bodies_are_bit_identical_through_the_pair_genes():
+    """The default body and a v1 genome with a non-default ``actuator``: spec, MJCF and masses as built before the
+    pair genes (fingerprints written with that code, tests/data/make_servo_fingerprints.py)."""
+    import json
+
+    want = json.loads(FINGERPRINTS.read_text(encoding="utf-8"))
+    fp = _fp()
+    got = fp.builds(None)
+    assert set(got) == {"default", "v1_sts3250"}
+    for name, spec in got.items():
+        assert fp.fingerprint(spec) == want[name], name
+    assert {a.component for a in got["v1_sts3250"].actuators} == {"sts3250_c002"}
+    # the same body from v2 genes, all five pairs set
+    v2 = design({f"servo_{p}": "sts3250_c002" for p in PAIRS}).spec
+    assert fp.fingerprint(v2) == want["v1_sts3250"]
+
+
+@pytest.mark.skipif(not (PROJECT / "runs" / "20261105-232649-evolve-4237").is_dir(),
+                    reason="projects/robot-calf-final (not in git) is only on the researcher's machine")
+def test_the_projects_bodies_are_bit_identical_through_the_pair_genes():
+    """projects/robot-calf-final: its document (v1 params, unversioned), a baked design and a run candidate."""
+    import json
+
+    want = json.loads(FINGERPRINTS.read_text(encoding="utf-8"))
+    fp = _fp()
+    got = fp.builds(PROJECT)
+    assert got.pop("run_candidate_id") == want["run_candidate_id"]
+    for name in ("project_document", "baked_design", "run_candidate"):
+        assert fp.fingerprint(got[name]) == want[name], name
+
+
+def test_a_mixed_body_has_the_right_servo_on_each_joint(default):
+    from calflab.model.mass import mass_breakdown
+
+    lib = library()
+    new, old = lib.actuator("sts3250_c002"), lib.actuator("sts3215_c018")
+    spec = design({"servo_hip_abd": "sts3250_c002", "servo_hock": "sts3250_c002"}).spec
+    for a in spec.actuators:
+        want = "sts3250_c002" if a.joint.split(".")[-1] in ("hip_abd", "hock") else "sts3215_c018"
+        assert a.component == want, a.id
+        motor = next(g for b in spec.bodies for g in b.geoms if g.id == f"{a.id}.motor")
+        assert motor.component == want and motor.mass_source == "component"
+        assert motor.mass_g == (new if want == "sts3250_c002" else old).mass_g
+        assert lib.actuator(want).name in (motor.label or "")
+    assert spec.total_mass_g() == pytest.approx(default.spec.total_mass_g() + 4 * (new.mass_g - old.mass_g))
+    b = mass_breakdown(spec, lib)  # ADR-050: the parts add up to the total
+    assert b["total_g"] == pytest.approx(spec.total_mass_g(), abs=0.05)
+    assert b["by_source_g"]["component"] == pytest.approx(6 * old.mass_g + 4 * new.mass_g)
+    meta = spec.metadata["feral"]
+    assert meta["servo"]["component"] == "sts3215_c018" and meta["servo"]["mixed"] is True
+    assert {p: s["component"] for p, s in meta["servos"].items()} == {
+        "hip_abd": "sts3250_c002", "stifle": "sts3215_c018", "hock": "sts3250_c002", "shoulder": "sts3215_c018",
+        "carpus": "sts3215_c018"}
+    assert "mixed" not in default.spec.metadata["feral"]["servo"]
+
+
+def test_a_mixed_body_simulates_as_r9s_in_memory_swap(default):
+    """Session R9 swapped servos on an in-memory spec (component and motor mass); the genes give the same model."""
+    from calflab.sim import CompileOptions, compile_mjcf
+
+    lib = library()
+    new = lib.actuator("sts3250_c002")
+    swapped = default.spec.model_copy(deep=True)
+    for a in swapped.actuators:
+        if a.joint.split(".")[-1] in ("stifle", "carpus"):
+            a.component = new.key
+            g = next(g for b in swapped.bodies for g in b.geoms if g.id == f"{a.id}.motor")
+            g.mass_g, g.component = new.mass_g, new.key
+    genes = design({"servo_stifle": new.key, "servo_carpus": new.key}).spec
+    assert compile_mjcf(genes, lib, CompileOptions(), 0).xml == compile_mjcf(swapped, lib, CompileOptions(), 0).xml
+
+
+def test_the_lab_shows_each_joints_servo_and_its_limits():
+    from calflab.mech.limits import joint_servos
+
+    lib = library()
+    spec = design({"servo_hock": "sts3250_c002"}).spec
+    rows = {r["joint"]: r for r in joint_servos(spec, lib)}
+    assert len(rows) == 10
+    hock, stifle, hip = rows["joint.hl.hock"], rows["joint.hl.stifle"], rows["joint.hl.hip_abd"]
+    new, old = lib.actuator("sts3250_c002"), lib.actuator("sts3215_c018")
+    assert hock["component"] == new.key and hock["mass_g"] == new.mass_g and stifle["component"] == old.key
+    eff = spec.metadata["feral"]["checks"]["belt_efficiency"]
+    assert hock["drive"] == "belt" and hock["ratio"] == 2.0
+    assert hock["stall_joint_nm"] == pytest.approx(new.stall_torque_nm * 2.0 * eff, abs=1e-4)
+    assert hock["rated_joint_nm"] == pytest.approx(new.rated_torque_nm * 2.0 * eff, abs=1e-4)
+    assert hock["speed_joint_deg_s"] == pytest.approx(new.no_load_speed_rpm * 6.0 / 2.0, abs=0.01)
+    assert hip["drive"] == "direct" and hip["speed_joint_deg_s"] == pytest.approx(old.no_load_speed_rpm * 6.0, abs=0.01)
+
+
+def test_an_open_v1_document_builds_with_its_own_servo_and_is_upgraded_when_saved(tmp_path):
+    import json
+
+    from calflab.app import Lab
+    from calflab.project.templates import create_project
+
+    project = create_project(tmp_path / "feral", "feral_calf")
+    f = project.path / "project.calflab.json"
+    data = json.loads(f.read_text(encoding="utf-8"))
+    node = next(n for n in data["state"]["graph"]["nodes"] if n["type"] == "genome:feral_calf")
+    for p in PAIRS:
+        node["params"].pop(f"servo_{p}", None)
+    node["params"]["actuator"] = "sts3250_c002"  # as a v1 document stored it
+    f.write_text(json.dumps(data), encoding="utf-8")
+    lab = Lab.open(project.path, create=False)
+    try:
+        assert {a.component for a in lab.design().spec.actuators} == {"sts3250_c002"}
+        rows = lab.scene()["mass"]["servos"]
+        assert {r["component"] for r in rows} == {"sts3250_c002"} and len(rows) == 10
+        form = lab.genome_form(lab.state.graph)
+        assert form is not None and form["values"]["servo_hock"] == "sts3250_c002" and "actuator" not in form["values"]
+        lab.execute("set_mass_target", {"mass_g": 1500})  # any edit saves the document
+        saved = next(n for n in json.loads(f.read_text(encoding="utf-8"))["state"]["graph"]["nodes"]
+                     if n["type"] == "genome:feral_calf")["params"]
+        assert "actuator" not in saved and {saved[f"servo_{p}"] for p in PAIRS} == {"sts3250_c002"}
+        assert {a.component for a in lab.design().spec.actuators} == {"sts3250_c002"}
+    finally:
+        lab.close()
 
 
 def test_unknown_stall_current_is_reported_not_guessed():

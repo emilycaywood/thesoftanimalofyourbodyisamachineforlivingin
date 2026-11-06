@@ -81,6 +81,46 @@ def test_every_yaml_definition_has_a_migration_chain():
         migrate(Genome(definition=name, version=1, values={}), d)
 
 
+SERVO_GENES = [f"servo_{p}" for p in ("hip_abd", "stifle", "hock", "shoulder", "carpus")]
+
+
+def test_feral_v1_actuator_becomes_one_servo_gene_per_pair():
+    """v1 -> v2 (ADR-101): ``actuator`` fills each pair gene with setdefault, then goes."""
+    d = genome_definition("feral_calf")
+    assert d.version == 2 and not d.has("actuator")
+    for gid in SERVO_GENES:
+        g = d.gene(gid)
+        assert g.default == "sts3215_c018" and g.choices_from == "actuator" and not g.evolvable
+        assert g.group == "Mechanism" and "sts3250_c002" in (g.choices or [])
+    new = migrate(Genome(definition="feral_calf", version=1, values={"actuator": "sts3250_c002"}), d)
+    assert new.version == 2 and "actuator" not in new.values
+    assert {new.values[g] for g in SERVO_GENES} == {"sts3250_c002"}
+    # a value already set is kept
+    kept = migrate(Genome(definition="feral_calf", version=1,
+                          values={"actuator": "sts3250_c002", "servo_carpus": "sts3215_c018"}), d)
+    assert kept.values["servo_carpus"] == "sts3215_c018" and kept.values["servo_hock"] == "sts3250_c002"
+    # a v1 genome that never mentioned it had the default
+    assert {migrate(Genome(definition="feral_calf", version=1, values={}), d).values[g] for g in SERVO_GENES} == {
+        "sts3215_c018"}
+
+
+def test_unversioned_feral_params_are_upgraded_where_they_are_completed():
+    """A document's genome node params carry no version (GenomeNode stamps the current one): an open v1 document
+    must build with its own servo, not the pair genes' defaults (ADR-101)."""
+    from calflab.graph import node_types
+    from calflab.model.migrations import upgrade_unversioned
+
+    d = genome_definition("feral_calf")
+    v1 = {k: v for k, v in d.defaults().items() if k not in SERVO_GENES} | {"actuator": "sts3250_c002"}
+    done = d.complete(v1)
+    assert "actuator" not in done and {done[g] for g in SERVO_GENES} == {"sts3250_c002"}
+    v2 = d.defaults() | {"servo_hock": "sts3250_c002"}
+    assert upgrade_unversioned(d, v2) is v2  # current params come back untouched
+    assert d.complete(v2) == v2
+    nt = node_types()["genome:feral_calf"]
+    assert {nt.clean_params(v1)[g] for g in SERVO_GENES} == {"sts3250_c002"}
+
+
 def test_a_gene_added_later_says_what_its_absence_meant():
     """New projects get forward front knees; anything saved before the gene
     existed (documents, runs, candidates, designs) keeps backward ones."""

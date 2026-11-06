@@ -25,7 +25,7 @@ from calflab.components import library
 from calflab.design import EvaluatedDesign, genome_definition
 from calflab.graph import Cache, EvalContext, Evaluator, Graph, NodeResult, node_types, summarize
 from calflab.model.genome import Genome
-from calflab.model.migrations import migrate
+from calflab.model.migrations import migrate, upgrade_unversioned
 from calflab.model.overrides import Override
 from calflab.plugins import ExportContext, load_plugins, registry
 from calflab.project import (
@@ -46,6 +46,24 @@ from calflab.sim.rollout import Rollout
 log = logging.getLogger(__name__)
 
 COALESCE_WINDOW_S = 1.5
+
+
+def upgrade_genome_params(state: DocumentState) -> bool:
+    """Upgrade the document's genome node params in place if they still hold genes of an older gene definition
+    (its params carry no version; ADR-101: a v1 feral calf's ``actuator``). The body they build is unchanged: the same
+    upgrade already happens wherever params are completed. True when something was upgraded (then saved)."""
+    try:
+        node = state.graph.role("genome")
+    except KeyError:
+        return False
+    definition = getattr(node_types().get(node.type), "definition", None)
+    if definition is None:
+        return False
+    new = upgrade_unversioned(definition, node.params)
+    if new is node.params:
+        return False
+    node.params = new
+    return True
 
 
 class LabError(Exception):
@@ -129,6 +147,7 @@ class Lab:
         return {"result": result, "revision": self.revision, "changed": changed}
 
     def _commit(self, state: DocumentState, changed: list[str], client: str, cause: str) -> None:
+        upgrade_genome_params(state)
         self.project.save(state)
         self.revision += 1
         self.bus.emit(

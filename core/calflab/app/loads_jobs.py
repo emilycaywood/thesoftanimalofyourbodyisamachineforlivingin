@@ -207,6 +207,8 @@ def belt_panel(lab: Any) -> dict[str, Any]:
         "provisional": meta["provisional"],
         "missing_masses": spec.metadata.get("missing_masses", []),
         "servo": meta["servo"],
+        # per joint pair (ADR-101); a design built before the pair genes has none: then every pair has ``servo``
+        "servos": meta.get("servos") or {},
         "checks": meta["checks"],
         "standing_height_mm": meta["standing_height_mm"],
         "front_angle_deg": meta["front_angle_deg"],

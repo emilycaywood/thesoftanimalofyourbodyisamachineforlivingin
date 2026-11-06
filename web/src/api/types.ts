@@ -99,6 +99,27 @@ export interface StructureMass {
   estimate_note: string; // said beside a structure mass that is an infill estimate
 }
 
+/** one actuated joint's servo and its limits at the joint (server-computed, ADR-101) */
+export interface JointServo {
+  actuator: string;
+  joint: string;
+  joint_name: string;
+  component: string;
+  name: string;
+  verified: boolean;
+  mass_g: number;
+  drive: string;
+  ratio: number;
+  efficiency: number;
+  stall_servo_nm: number;
+  rated_servo_nm: number | null;
+  stall_joint_nm: number;
+  rated_joint_nm: number | null;
+  speed_joint_deg_s: number;
+  voltage_v: number;
+  unknown: string[];
+}
+
 export interface MassItem {
   id: string;
   label: string;
@@ -262,6 +283,8 @@ export interface Scene {
     by_layer_g: Record<string, number>;
     by_body_g: Record<string, number>;
     breakdown: MassBreakdown;
+    /** each actuated joint's servo and its limits at the joint (ADR-101) */
+    servos?: JointServo[];
   };
   /** structure materials a part can be given */
   materials: MaterialChoice[];

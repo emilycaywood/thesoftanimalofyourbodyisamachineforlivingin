@@ -15,11 +15,13 @@
 # block widths (ADR-090).
 # Fixed: the catalog choices, tubes, rails, masses and positions of parts.
 #
+# v2 (ADR-101): one servo gene per joint pair (servo_<joint>) in place of v1's single `actuator`.
+#
 # Bump `version` and add a migration in core/calflab/model/migrations.py when
 # you rename, remove or re-scale a gene.
 
 name: feral_calf
-version: 1
+version: 2
 description: >
   Final feral calf: hip block and chest block joined by two rails; rear legs
   hip ab/adduction -> femur (fixed in pitch) -> stifle -> tibia -> hock ->
@@ -117,8 +119,16 @@ genes:
      label: "Batteries below rails", description: "How far below the rails the packs hang (PROVISIONAL)."}
 
   # ------------------------------------------------------------- mechanism
-  - {id: actuator, type: enum, default: sts3215_c018, choices: [sts3215_c018], choices_from: actuator, group: Mechanism, evolvable: false,
-     label: "Servo (all ten joints)", description: "The servo on every joint. Feetech STS3215 C018 at 12 V by default."}
+  - {id: servo_hip_abd, type: enum, default: sts3215_c018, choices: [sts3215_c018], choices_from: actuator, group: Mechanism, evolvable: false,
+     label: "Servo: hip ab/adduction (hind legs)", description: "Hind hip ab/ad servos (left and right), direct drive. Feetech STS3215 C018 at 12 V by default. One model per left/right pair (ADR-101)."}
+  - {id: servo_stifle, type: enum, default: sts3215_c018, choices: [sts3215_c018], choices_from: actuator, group: Mechanism, evolvable: false,
+     label: "Servo: stifle (hind legs)", description: "Hind stifle servos (left and right), on the femur, driving the stifle belt. Feetech STS3215 C018 at 12 V by default. One model per left/right pair (ADR-101)."}
+  - {id: servo_hock, type: enum, default: sts3215_c018, choices: [sts3215_c018], choices_from: actuator, group: Mechanism, evolvable: false,
+     label: "Servo: hock (hind legs)", description: "Hind hock servos (left and right), on the tibia, driving the hock belt. Feetech STS3215 C018 at 12 V by default. One model per left/right pair (ADR-101)."}
+  - {id: servo_shoulder, type: enum, default: sts3215_c018, choices: [sts3215_c018], choices_from: actuator, group: Mechanism, evolvable: false,
+     label: "Servo: shoulder (front legs)", description: "Front shoulder servos (left and right), direct drive. Feetech STS3215 C018 at 12 V by default. One model per left/right pair (ADR-101)."}
+  - {id: servo_carpus, type: enum, default: sts3215_c018, choices: [sts3215_c018], choices_from: actuator, group: Mechanism, evolvable: false,
+     label: "Servo: carpus (front legs)", description: "Front carpus servos (left and right), on the upper leg: belted or direct. Feetech STS3215 C018 at 12 V by default. One model per left/right pair (ADR-101)."}
   # ------------------------------------------------------------- belt drives: catalog ids (ADR-070)
   # Hidden from Form; set in the Belts panel. `open`: the value is an id in the
   # project's belt catalog, checked by the build, not a list in this file.

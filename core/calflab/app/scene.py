@@ -12,6 +12,7 @@ from typing import Any
 from calflab.components import library
 from calflab.config import default
 from calflab.design import EvaluatedDesign, genome_definition
+from calflab.mech.limits import joint_servos
 from calflab.model.xform import Vec3, quat_rotate
 from calflab.project.store import LayerState
 
@@ -403,6 +404,8 @@ def build_scene(
             "by_layer_g": {k: round(v, 1) for k, v in spec.mass_by_layer().items()},
             "by_body_g": {b.id: round(b.mass_g(), 1) for b in spec.bodies},
             "breakdown": breakdown,
+            # each actuated joint's servo and its limits at the joint (ADR-101)
+            "servos": joint_servos(spec, lib),
         },
         "materials": materials,
         "extents": {

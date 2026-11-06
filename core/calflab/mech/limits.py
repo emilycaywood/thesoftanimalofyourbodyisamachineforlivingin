@@ -32,6 +32,41 @@ from calflab.model.spec import RobotSpec
 from calflab.sim.servo import envelope_use
 
 
+def joint_figures(comp: Any, tr: Any) -> dict[str, float]:
+    """A servo's figures at the joint it drives through transmission ``tr`` (None = direct): ratio, efficiency,
+    stall torque (N*m) and no-load speed (rad/s). The one place these are worked out (simulator columns and the lab's
+    per-joint servo table, ADR-101)."""
+    ratio, eff = (float(tr.ratio), float(tr.efficiency)) if tr else (1.0, 1.0)
+    return {"ratio": ratio, "efficiency": eff, "stall_joint_nm": comp.stall_torque_nm * ratio * eff,
+            "no_load_joint_rad_s": u.deg_to_rad(comp.no_load_speed_rpm * 6.0) / ratio}
+
+
+def joint_servos(spec: RobotSpec, lib: Any) -> list[dict[str, Any]]:
+    """Per actuated joint, the servo on it and its limits there (ADR-101): the component, its mass (g) and
+    ``verified`` flag, the belt ratio, stall and rated torque at the servo and at the joint (N*m; rated None = not
+    given), and the no-load speed at the joint (deg/s). For the lab's Mass tab; the simulator uses the same figures."""
+    trans = {t.id: t for t in spec.transmissions}
+    joints = {j.id: j for j in spec.joints}
+    out = []
+    for a in spec.actuators:
+        comp = lib.actuator(a.component)
+        tr = trans.get(a.transmission) if a.transmission else None
+        f = joint_figures(comp, tr)
+        rated = comp.rated_torque_nm
+        j = joints.get(a.joint)
+        out.append({
+            "actuator": a.id, "joint": a.joint, "joint_name": (j.name or j.id) if j else a.joint,
+            "component": comp.key, "name": comp.name, "verified": comp.verified, "mass_g": comp.mass_g,
+            "drive": tr.type if tr else "direct", "ratio": f["ratio"], "efficiency": f["efficiency"],
+            "stall_servo_nm": comp.stall_torque_nm, "rated_servo_nm": rated,
+            "stall_joint_nm": round(f["stall_joint_nm"], 4),
+            "rated_joint_nm": None if rated is None else round(rated * f["ratio"] * f["efficiency"], 4),
+            "speed_joint_deg_s": round(u.rad_to_deg(f["no_load_joint_rad_s"]), 2),
+            "voltage_v": comp.voltage_v, "unknown": list(comp.unknown),
+        })
+    return out
+
+
 def servo_columns(rollout: Any, spec: RobotSpec, lib: Any) -> list[dict[str, Any]]:
     """Per actuator, over the controller's part of the rollout (t >= 0): joint torque, joint speed, the stall
     torque and no-load speed at the joint, envelope use and speed ratio per frame."""
@@ -49,9 +84,8 @@ def servo_columns(rollout: Any, spec: RobotSpec, lib: Any) -> list[dict[str, Any
             continue
         comp = lib.actuator(a.component)
         tr = trans.get(a.transmission) if a.transmission else None
-        ratio, eff = (tr.ratio, tr.efficiency) if tr else (1.0, 1.0)
-        stall_j = comp.stall_torque_nm * ratio * eff
-        w0_j = u.deg_to_rad(comp.no_load_speed_rpm * 6.0) / ratio
+        f = joint_figures(comp, tr)
+        ratio, eff, stall_j, w0_j = f["ratio"], f["efficiency"], f["stall_joint_nm"], f["no_load_joint_rad_s"]
         tau = rollout.torque[m, i].astype(float)
         w = rollout.dq[m, i].astype(float)
         out.append({
