@@ -1046,6 +1046,14 @@ not at 30 % (ADR-098, `docs/studies/variation_r7.md`).
 (optional `la`, `lb`: labels). Each side is the lab replaying one run.
 `http://localhost:<port>/?replay=<run id>` opens the lab replaying a run.
 
+**What-if runs (R9).** Runs titled `R9 what-if (<case>) ...` in Journal > Runs
+are behaviours played on a body changed in memory only (some servos swapped
+for the STS3250 C002, some belts on other catalog pulleys, ADR-100). They
+replay like any run and their Mass tab shows the what-if servos, but the
+genome stored with them builds the working body: *Simulate* or *Load* from
+such a run gives today's servos and belts, not the what-if. The servo entry
+`sts3250_c002` is in the library (unverified) and is not on any body.
+
 #### Proportions: comparing bodies instead of finding one
 
 The lab has three ways to look for a better body or gait:

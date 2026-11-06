@@ -1,8 +1,9 @@
 # CALFLAB session handoff
 
 Everything a new Claude Code session (or a new collaborator) needs to pick up
-CALFLAB. Last updated 2026-11-05 on branch `robot-calf-final` (cut from
-`chassis-mass`), after sessions R7 (movement that varies within a movement, ADR-098) and R8 (faster joints, ADR-099),
+CALFLAB. Last updated 2026-11-06 on branch `robot-calf-final` (cut from
+`chassis-mass`), after session R9 (up to four STS3250 C002 servos, in simulation only, ADR-100), section 4
+"Session R9"; before it sessions R7 (movement that varies within a movement, ADR-098) and R8 (faster joints, ADR-099),
 section 4 "Sessions R7 and R8"; before them session R (a body for vigorous movement; steps 1-2 of 6
 done, plus wider blocks and hip springs; steps 3-4 done; then redirected to behaviour diversity on the wide-block body: the first full run (ADR-094), session R6, three of its behaviours played for a minute (ADR-095), R6b, a coverage check that makes them hold for a minute (ADR-096), and R6c, durations capped at the checked length (ADR-097); section 4, "Session R", ADR-086..097); before it
 session Q: the calf's movement read and interpreted as
@@ -1189,6 +1190,45 @@ nothing installed.**
   * Not added to the catalog (needs your go-ahead): 30T and 45T GT2 10 mm pulleys are listed commercially.
     Belt lengths, derived C, fit and pulley masses for those pairs are not checked; nor is `lie_rise`.
 
+**Session R9 (2026-11-06; ADR-100): up to four STS3250 C002 servos, simulation only.** The working body, belts,
+catalogs, other component values and `verified` flags were not changed; nothing installed.
+
+* **New library entry `sts3250_c002`** (`config/components/actuators.yaml`, unverified), with only the
+  researcher's 12 V values:
+  * 74.5 g; 4.9 / 1.57 N*m stall / rated; 4.2 A; 0.133 s / 60 deg; 1/345;
+  * armature, idle current, winding resistance, thermal values, encoder and cost null ("default assumed" /
+    "unknown");
+  * voltage range, spline, dual shaft and the third-party 0.129 s in `notes`.
+
+  It is on no body. `tests/test_sts3250.py` (2).
+* Tests: `calflab test` passes (ruff; 536 pytest in 457 s, slower than the usual budget, while the researcher's lab
+  was running on port 8020; mypy; web typecheck and eslint; 14 Vitest; 13 Playwright).
+* Study `docs/studies/servos_r9.md`. Scripts:
+  * `servos_r9.py`: what-if bodies, the trot grid, walk and turn on three seeds, belt peaks, current;
+  * `belts_r9.py`: which catalog belts fit each catalog pulley pair;
+  * `perform_r9.py`: R6c/R7 behaviours on a what-if body;
+  * `*_table.py`: the tables.
+* **Servos alone on today's belts: a 1.0 s trot at best** (new carpi). Then the 30T carpus belt binds on sustained
+  tension. Stifles + carpi is the only assignment whose walk and turn pass on every seed. That does not beat R8.
+* **R8's body is better than R8 reported**: re-run down to 0.4 s, it trots within every limit at 0.5 s / 1.0,
+  208 mm/s.
+* **Best body: new servos on hip ab/ad and hocks; carpi 1:1 on 45T/45T (old servo); stifles and hocks on the
+  catalog's 40T/80T** (444 mm, C 161.5; 400 mm, C 139.4; every belt check passes).
+  * 0.5 s / stride 2.0 trot at 394 mm/s, and 0.4 s at 283-286 mm/s, within every limit on three seeds; walk and
+    turn pass with more margin than R8's body.
+  * It needs one new pulley size (45T, four pulleys), not R8's hock pair.
+  * Without new pulleys the best is a 0.8 s trot at 46-70 mm/s.
+* Belt peaks within limits up to 79 N (breaking check 172 N). The new servos draw up to 2.1 A peak. The C018s'
+  current and the packs' rating are not entered: the packs' load is unknown.
+* At 11.1 V the best body keeps 0.5 s / 1.5 at 300 mm/s and the walk; its turn is -0.01 on one seed.
+* **R6c's and R7's behaviours on the best body: 20 of 33 minutes hold** (today 32 of 33). Calm ones go over on the
+  1:1 carpus's sustained torque. Where they hold, headroom rises from about +0.02 to +0.4. They need evolving again
+  on such a body.
+* 66 replayable runs `R9 what-if (...) <label> ...`: 33 on the best body, 33 on it without the hock 40T/80T. Their
+  stored genome builds the working body (USER_GUIDE, "What-if runs").
+* **Found:** the feral calf has one `actuator` gene for all ten servos, so a mixed body cannot be built yet. It
+  needs a servo choice per pair: a genome change with a migration (next session R10).
+
 **Scaffolded only (interfaces + tests, no behaviour):** PPO training, MJX
 simulator, RemoteSSH and CloudNotebook transports (job bundling is real),
 imitation reward, interactive selection, molds, skin patterns, nesting,
@@ -1226,6 +1266,23 @@ Journal, Rhino bridge):**
   Properties, entry in Overrides).
 * `doctor` warned "uv not found" on top of the three expected warnings:
   false alarm, fixed (see Tests above).
+
+**The researcher must verify (new in session R9, ADR-100):**
+
+* **The `sts3250_c002` entry** against the datasheet: every value; whether 4.9 N*m (50 kg.cm) and 1.57 N*m are
+  at the output at 12 V; idle current, armature and thermal values if you have them; stall current of the C018
+  (without it the packs' load stays unknown); the packs' discharge rating.
+* **Whether the real servo is stiffer**: the simulator sets a servo's position gain from its stall torque, so the
+  STS3250 acts 1.67x stiffer, which raises belt peaks. Its firmware P gain decides that on the robot.
+* **Watch the best body** (Journal > Runs, `R9 what-if (new: hip_abd+hock | carpus 1:1 45T | stifle 40T-80T |
+  hock 40T-80T 400) ...`): lively, ambling, trot-walk and trotting hold. Calm goes over at the carpus.
+* **Pulleys**: whether to add 45T GT2 10 mm pulleys (with sources) for a 1:1 carpus. Whether an 80T pulley
+  (50.9 mm) fits at the stifle and hock, and a 45T at the carpus, clear of the leg and the other belt. Pulley masses.
+* **The trade at the carpus**: 1:1 doubles its speed but halves its torque, and the calm behaviours and probably
+  `lie_rise` need that torque. Decide whether the carpus may change, and to what (1:1, 1.5:1, or 2:1 with new
+  carpi and different servos elsewhere).
+* **The 66 what-if runs** (about 100 MB in `projects/robot-calf-final/runs`): keep, or delete the 33 without the
+  hock pair.
 
 **The researcher must verify (new in sessions R7 and R8, ADR-098, ADR-099):**
 
@@ -1508,7 +1565,7 @@ Journal, Rhino bridge):**
 |---|---|
 | `CLAUDE.md` | Conventions for every session (loaded automatically) |
 | `PLAN.md` | Architecture, module boundaries, data flow, phases, risks, status |
-| `DECISIONS.md` | ADR log: every assumption (99 so far) |
+| `DECISIONS.md` | ADR log: every assumption (100 so far) |
 | `docs/proposals/anatomical-leg.md` | Proposal for a three-segment leg (set aside 2026-10-04; not built) |
 | `docs/USER_GUIDE.md` | How to use the lab |
 | `docs/CHAT_GUIDE_PROMPT.md` | Prompt that makes a chat assistant a guide to the whole lab |
@@ -1524,7 +1581,27 @@ Journal, Rhino bridge):**
 
 Prefix each with the opening message from section 1.
 
-**R9. Pulleys for faster joints, in the catalog and the body** (recommended next; written after R8, ADR-099.)
+**R10. A body with two servo models, in the genome** (recommended next; written after R9, ADR-100.)
+> In projects/robot-calf-final, R9 (`docs/studies/servos_r9.md`) found the best body with at most four STS3250 C002s:
+> new servos on hip ab/ad and hocks, carpi 1:1 on 45T/45T, stifles and hocks on the catalog's 40T/80T. But the
+> feral calf has one `actuator` gene for all ten servos. Add a servo choice per joint pair (`choices_from:
+> actuator`, default today's servo, not evolvable), bump the genome version, and write a migration and test so
+> every old document, run and design builds exactly as before. Show the Mass tab and the per-joint speed and torque
+> limits per servo. Do not change the working body yet. Then, still in memory, find the carpus drive that keeps the
+> calm behaviours and `lie_rise` within limits: 1:1, 1.5:1 and 2:1 with an old or new carpus servo, at most four new
+> in all. Play R6c's and R7's safe behaviours (`docs/studies/perform_r9.py`) and the trot grid (`servos_r9.py
+> --grid=quick`). Ask me before any catalog change or body change.
+
+**R11. Behaviours evolved for the faster body** (after R10, once the researcher has chosen a body.)
+> In projects/robot-calf-final, R9 showed that R6c's and R7's behaviours keep their old pace on a faster body:
+> where they hold, they have about +0.4 headroom. Once I have changed the body (servos per pair, pulleys), run
+> behaviour diversity (`calflab.evolve.diversity`) on it with coverage, capped durations and variation as in R7,
+> seeded from R7's safe generators. Compare the archive's quantity of motion, tempo and vigour with run
+> `20261105-232649-evolve-4237`, play every safe cell for 60 s on three seeds, and set up side-by-side replays with
+> R7's. Estimate the cost and let me choose the budget. Do not change component values or `verified` flags.
+
+**R9 (as first written; superseded by session R9's servo study and R10).** Pulleys for faster joints, in the catalog
+and the body (written after R8, ADR-099.)
 > In projects/robot-calf-final, R8 (`docs/studies/joints_r8.md`) found that carpi at 1:1 on a 45T/45T GT2 10 mm pair
 > and hocks at 1.5:1 (30T/45T) give a 0.6 s trot within every limit at margin 0.2 on three seeds, and the walk and
 > turn too. Add these pulleys to the catalog from these listings <links>, masses null, unverified. Then show me,
@@ -1542,7 +1619,8 @@ Prefix each with the opening message from section 1.
 > R6c's. Estimate the cost and let me choose the budget. Do not change the body, belts or component values.
 
 *(R7, movement that varies within a movement, and R8, faster joints, were done 2026-11-05: ADR-098, ADR-099,
-`docs/studies/variation_r7.md`, `docs/studies/joints_r8.md`.)*
+`docs/studies/variation_r7.md`, `docs/studies/joints_r8.md`. R9, up to four STS3250 C002s, was done 2026-11-06:
+ADR-100, `docs/studies/servos_r9.md`.)*
 
 **R7. Organic movement within a movement** (done 2026-11-05, ADR-098; kept for reference.)
 > In projects/robot-calf-final, behaviour diversity (`calflab.evolve.diversity`) with coverage and capped durations

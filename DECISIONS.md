@@ -3660,3 +3660,45 @@ in physics, before changing the body, what less reduction, a belted or sprung hi
   make the quick trot worse; 10 % lighter changes little.
 * Not added to the catalog: 30T and 45T GT2 pulleys for 10 mm belts are listed commercially; they need the
   researcher's go-ahead (sources, masses null, unverified).
+
+## ADR-100 — Up to four STS3250 C002 servos: what they buy, in simulation only (**VERIFY**)
+
+*Context.* Session R9. The researcher supplied the STS3250 C002's 12 V figures and asked, before any body change,
+which assignment of at most four of them (two left/right pairs, or one) gives the quickest trot within every limit,
+on today's 2:1 belts and combined with R8's pulley what-ifs; to watch belt tension and battery current; to judge at
+12 V and say what changes at 11.1 V; and to play R6c's and R7's safe behaviours on the best body.
+
+*Decisions / assumptions* (`docs/studies/servos_r9.py`, `servos_r9.md`):
+* `sts3250_c002` entered with only the supplied values, `verified: false`. Armature, idle current, winding
+  resistance, thermal values, encoder and cost are null: the model's defaults stand in and the audit reports them.
+  Operating range, spline and dual shaft have no field and are in `notes`; so is the third-party 0.129 s / 60 deg
+  (a remark; 0.133 s is the spec).
+* A swap changes the actuator's component and the servo case's mass on both sides; case, mount and belt unchanged
+  (same body as the STS3215). In-memory spec only; the working body is unchanged.
+* Pulley pairs already in the project catalog (36T/72T, 40T/80T, both 2:1) count as **no new pulley**. They are
+  built through the belt genes with the stocked length whose C is nearest today's, so every belt check is real.
+  R8's 45T/45T and 30T/45T what-ifs are applied only to joints that keep the old servo, as the request put it.
+* The simulated servo's position gain follows its stall torque (existing model), so the new servo is also 1.67x
+  stiffer. This, not a null, is the modelling choice that matters most for belt tension.
+* 11.1 V: ADR-086's linear scaling of stall and rated torque, speed and stall current (torque per amp kept).
+* "Quickest" is the shortest cycle within every limit on all three seeds. Once several bodies reached the
+  primitive's 0.4 s floor, they are ranked by trot speed within limits.
+
+*Results:*
+* On today's belts the servos alone reach 1.0 s at best (new carpi). The carpus belt then binds on sustained
+  tension (30T driver), and below 0.6 s the old hocks bind on speed. **Stifles + carpi** is the only assignment
+  whose walk and turn pass on all seeds.
+* **R8's grid stopped at 0.6 s; its pulley-only body actually trots within every limit at 0.5 s / 1.0 (208 mm/s).**
+* **Best: new hip ab/ad + hocks; carpi 1:1 on 45T/45T (old servo); stifles and hocks on catalog 40T/80T (444 mm,
+  C 161.5; 400 mm, C 139.4).** 12 trots within on three seeds, up to 0.5 s / 2.0 at 394 mm/s (1.9x R8's re-run),
+  and 0.4 s / 1.0 at 283-286 mm/s. Walk +0.21-0.23, turn +0.09-0.12. It needs one new pulley size (45T, four
+  pulleys), not R8's hock pair. Without any new pulley the best is a 0.8 s trot at 46-70 mm/s.
+* Belt peaks within limits 79 N (breaking judged at 172 N). The new servo at stall would put 513 N into a 30T driver
+  (today 308 N; 860 N breaking). The four new servos draw at most 2.1 A peak and about 1 A mean in plays within
+  limits. The C018s' current and the packs' rating are not entered, so the packs' load is unknown.
+* At 11.1 V the best body keeps 0.5 s / 1.5 at 300 mm/s and the walk (+0.15); its turn is -0.01 on one seed.
+  R8's body falls to 131 mm/s and fails the turn.
+* **R6c's and R7's behaviours do not transfer: 20 of 33 minutes hold** (today 32 of 33). The calm ones go over on
+  the 1:1 carpus's sustained torque (half the joint torque). Where they hold, headroom rises from about +0.02 to
+  +0.4; the movement itself is unchanged. They would need evolving again on such a body.
+* Nothing added to the pulley catalog; no body changed.
