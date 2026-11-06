@@ -1,0 +1,1334 @@
+{
+ "A": {
+  "archive": {
+   "run": "20261105-053201-evolve-e4c8",
+   "duration_s": 1712.958755,
+   "candidates": 560,
+   "passed_seeds": 20,
+   "safe_cells": 4,
+   "cells": [
+    {
+     "cell": [
+      1,
+      5
+     ],
+     "candidate": "20261105-053201-evolve-e4c8-g002-016",
+     "qom": 2.07,
+     "regularity": 0.54,
+     "unpredictability": 0.4966,
+     "margin": 0.16,
+     "states": [
+      "shift_hl",
+      "stand",
+      "step_hl",
+      "turn",
+      "walk"
+     ],
+     "within": null
+    },
+    {
+     "cell": [
+      4,
+      6
+     ],
+     "candidate": "20261105-053201-evolve-e4c8-g018-025",
+     "qom": 7.22,
+     "regularity": 0.67,
+     "unpredictability": 0.643,
+     "margin": 0.0241,
+     "states": [
+      "shift_hl",
+      "shift_hr",
+      "stand",
+      "trot",
+      "turn",
+      "walk"
+     ],
+     "within": null
+    },
+    {
+     "cell": [
+      4,
+      7
+     ],
+     "candidate": "20261105-053201-evolve-e4c8-g013-008",
+     "qom": 6.93,
+     "regularity": 0.75,
+     "unpredictability": 0.4605,
+     "margin": 0.0178,
+     "states": [
+      "shift_hl",
+      "shift_hr",
+      "stand",
+      "trot",
+      "turn",
+      "walk"
+     ],
+     "within": null
+    },
+    {
+     "cell": [
+      6,
+      8
+     ],
+     "candidate": "20261105-053201-evolve-e4c8-g012-026",
+     "qom": 9.98,
+     "regularity": 0.88,
+     "unpredictability": 0.5494,
+     "margin": 0.0485,
+     "states": [
+      "shift_hl",
+      "shift_hr",
+      "stand",
+      "trot"
+     ],
+     "within": null
+    }
+   ],
+   "stops": {
+    "servo_sustained": 510,
+    "joint_speed": 353,
+    "belt_sustained": 294,
+    "envelope": 114,
+    "stall": 49,
+    "belt_breaking": 11
+   }
+  },
+  "performances": [
+   {
+    "sim": "20261105-060126-sim-92ff",
+    "title": "R6c calm (1, 5) g002-016: 60 s, seed 0",
+    "label": "calm",
+    "seed": 0,
+    "within": true,
+    "margin": 0.3799,
+    "closest": "envelope",
+    "features": {
+     "quantity_of_motion_deg_s": 2.228,
+     "trunk_speed_mm_s": 22.015,
+     "jerk_rms_deg_s3": 769.644,
+     "smoothness": -2.886,
+     "tempo_s": 0.3,
+     "tempo_regularity": 0.516,
+     "stillness_ratio": 0.82,
+     "expressive_range_deg_s": 5.684,
+     "postural_height": 1.0,
+     "openness": 0.992,
+     "approach_mm": 32.031
+    },
+    "repeat_dissimilarity": {
+     "shift_hl": 0.122,
+     "step_hl": 0.044
+    },
+    "repeat_dissimilarity_mean": 0.083,
+    "height_sd_mm": 0.89,
+    "roll_sd_deg": 1.23,
+    "pitch_sd_deg": 0.767,
+    "still_share": 0.895
+   },
+   {
+    "sim": "20261105-060139-sim-d170",
+    "title": "R6c calm (1, 5) g002-016: 60 s, seed 1",
+    "label": "calm",
+    "seed": 1,
+    "within": true,
+    "margin": 0.1715,
+    "closest": "joint_speed",
+    "features": {
+     "quantity_of_motion_deg_s": 2.229,
+     "trunk_speed_mm_s": 22.544,
+     "jerk_rms_deg_s3": 1802.268,
+     "smoothness": -3.256,
+     "tempo_s": 0.3,
+     "tempo_regularity": 0.575,
+     "stillness_ratio": 0.82,
+     "expressive_range_deg_s": 6.407,
+     "postural_height": 0.999,
+     "openness": 0.999,
+     "approach_mm": 318.219
+    },
+    "repeat_dissimilarity": {
+     "shift_hl": 0.106,
+     "walk": 0.007
+    },
+    "repeat_dissimilarity_mean": 0.057,
+    "height_sd_mm": 0.82,
+    "roll_sd_deg": 1.129,
+    "pitch_sd_deg": 0.702,
+    "still_share": 0.783
+   },
+   {
+    "sim": "20261105-060152-sim-4681",
+    "title": "R6c calm (1, 5) g002-016: 60 s, seed 2",
+    "label": "calm",
+    "seed": 2,
+    "within": true,
+    "margin": 0.1737,
+    "closest": "joint_speed",
+    "features": {
+     "quantity_of_motion_deg_s": 2.575,
+     "trunk_speed_mm_s": 25.392,
+     "jerk_rms_deg_s3": 1861.945,
+     "smoothness": -3.27,
+     "tempo_s": 0.3,
+     "tempo_regularity": 0.524,
+     "stillness_ratio": 0.781,
+     "expressive_range_deg_s": 6.562,
+     "postural_height": 1.0,
+     "openness": 0.993,
+     "approach_mm": 241.784
+    },
+    "repeat_dissimilarity": {
+     "shift_hl": 0.185,
+     "step_hl": 0.003
+    },
+    "repeat_dissimilarity_mean": 0.094,
+    "height_sd_mm": 0.9,
+    "roll_sd_deg": 1.229,
+    "pitch_sd_deg": 0.772,
+    "still_share": 0.814
+   },
+   {
+    "sim": "20261105-060222-sim-f788",
+    "title": "R6c lively (4, 6) g018-025: 60 s, seed 0",
+    "label": "lively",
+    "seed": 0,
+    "within": true,
+    "margin": 0.0262,
+    "closest": "joint_speed",
+    "features": {
+     "quantity_of_motion_deg_s": 7.387,
+     "trunk_speed_mm_s": 42.896,
+     "jerk_rms_deg_s3": 4818.457,
+     "smoothness": -3.683,
+     "tempo_s": 0.62,
+     "tempo_regularity": 0.621,
+     "stillness_ratio": 0.459,
+     "expressive_range_deg_s": 12.276,
+     "postural_height": 0.999,
+     "openness": 0.987,
+     "approach_mm": 826.864
+    },
+    "repeat_dissimilarity": {
+     "walk": 0.028,
+     "trot": 0.011
+    },
+    "repeat_dissimilarity_mean": 0.019,
+    "height_sd_mm": 0.6,
+    "roll_sd_deg": 0.936,
+    "pitch_sd_deg": 0.501,
+    "still_share": 0.26
+   },
+   {
+    "sim": "20261105-060235-sim-e99f",
+    "title": "R6c lively (4, 6) g018-025: 60 s, seed 1",
+    "label": "lively",
+    "seed": 1,
+    "within": true,
+    "margin": 0.0241,
+    "closest": "joint_speed",
+    "features": {
+     "quantity_of_motion_deg_s": 6.152,
+     "trunk_speed_mm_s": 39.056,
+     "jerk_rms_deg_s3": 4289.086,
+     "smoothness": -3.632,
+     "tempo_s": 0.62,
+     "tempo_regularity": 0.602,
+     "stillness_ratio": 0.532,
+     "expressive_range_deg_s": 12.956,
+     "postural_height": 0.999,
+     "openness": 0.984,
+     "approach_mm": 600.982
+    },
+    "repeat_dissimilarity": {
+     "shift_hr": 0.528,
+     "trot": 0.007,
+     "walk": 0.027
+    },
+    "repeat_dissimilarity_mean": 0.187,
+    "height_sd_mm": 0.63,
+    "roll_sd_deg": 1.02,
+    "pitch_sd_deg": 0.467,
+    "still_share": 0.341
+   },
+   {
+    "sim": "20261105-060248-sim-9ee5",
+    "title": "R6c lively (4, 6) g018-025: 60 s, seed 2",
+    "label": "lively",
+    "seed": 2,
+    "within": true,
+    "margin": 0.0277,
+    "closest": "joint_speed",
+    "features": {
+     "quantity_of_motion_deg_s": 5.995,
+     "trunk_speed_mm_s": 35.81,
+     "jerk_rms_deg_s3": 4539.758,
+     "smoothness": -3.657,
+     "tempo_s": 0.6,
+     "tempo_regularity": 0.619,
+     "stillness_ratio": 0.54,
+     "expressive_range_deg_s": 8.622,
+     "postural_height": 1.0,
+     "openness": 0.987,
+     "approach_mm": 627.312
+    },
+    "repeat_dissimilarity": {
+     "walk": 0.026
+    },
+    "repeat_dissimilarity_mean": 0.026,
+    "height_sd_mm": 0.63,
+    "roll_sd_deg": 0.989,
+    "pitch_sd_deg": 0.495,
+    "still_share": 0.261
+   },
+   {
+    "sim": "20261105-060413-sim-3bbd",
+    "title": "R6c trotting (6, 8) g012-026: 60 s, seed 0",
+    "label": "trotting",
+    "seed": 0,
+    "within": true,
+    "margin": 0.0485,
+    "closest": "joint_speed",
+    "features": {
+     "quantity_of_motion_deg_s": 9.521,
+     "trunk_speed_mm_s": 67.992,
+     "jerk_rms_deg_s3": 5594.653,
+     "smoothness": -3.748,
+     "tempo_s": 0.6,
+     "tempo_regularity": 0.902,
+     "stillness_ratio": 0.45,
+     "expressive_range_deg_s": 18.445,
+     "postural_height": 0.995,
+     "openness": 1.223,
+     "approach_mm": 2159.318
+    },
+    "repeat_dissimilarity": {
+     "shift_hr": 0.079,
+     "stand": 0.195,
+     "trot": 0.026
+    },
+    "repeat_dissimilarity_mean": 0.1,
+    "height_sd_mm": 5.32,
+    "roll_sd_deg": 0.255,
+    "pitch_sd_deg": 1.182,
+    "still_share": 0.456
+   },
+   {
+    "sim": "20261105-060426-sim-bf75",
+    "title": "R6c trotting (6, 8) g012-026: 60 s, seed 1",
+    "label": "trotting",
+    "seed": 1,
+    "within": true,
+    "margin": 0.0471,
+    "closest": "joint_speed",
+    "features": {
+     "quantity_of_motion_deg_s": 12.007,
+     "trunk_speed_mm_s": 88.043,
+     "jerk_rms_deg_s3": 6269.993,
+     "smoothness": -3.797,
+     "tempo_s": 0.6,
+     "tempo_regularity": 0.85,
+     "stillness_ratio": 0.291,
+     "expressive_range_deg_s": 18.243,
+     "postural_height": 0.996,
+     "openness": 1.29,
+     "approach_mm": 2730.958
+    },
+    "repeat_dissimilarity": {
+     "trot": 0.075,
+     "stand": 0.05
+    },
+    "repeat_dissimilarity_mean": 0.062,
+    "height_sd_mm": 5.19,
+    "roll_sd_deg": 0.153,
+    "pitch_sd_deg": 1.095,
+    "still_share": 0.281
+   },
+   {
+    "sim": "20261105-060439-sim-0b66",
+    "title": "R6c trotting (6, 8) g012-026: 60 s, seed 2",
+    "label": "trotting",
+    "seed": 2,
+    "within": true,
+    "margin": 0.0503,
+    "closest": "joint_speed",
+    "features": {
+     "quantity_of_motion_deg_s": 9.366,
+     "trunk_speed_mm_s": 66.724,
+     "jerk_rms_deg_s3": 5414.106,
+     "smoothness": -3.734,
+     "tempo_s": 0.6,
+     "tempo_regularity": 0.837,
+     "stillness_ratio": 0.437,
+     "expressive_range_deg_s": 18.032,
+     "postural_height": 0.994,
+     "openness": 1.204,
+     "approach_mm": 2125.98
+    },
+    "repeat_dissimilarity": {
+     "stand": 0.209,
+     "trot": 0.025
+    },
+    "repeat_dissimilarity_mean": 0.117,
+    "height_sd_mm": 5.04,
+    "roll_sd_deg": 0.127,
+    "pitch_sd_deg": 1.063,
+    "still_share": 0.393
+   },
+   {
+    "sim": "20261105-060317-sim-e6ea",
+    "title": "R6c walking (4, 7) g013-008: 60 s, seed 0",
+    "label": "walking",
+    "seed": 0,
+    "within": true,
+    "margin": 0.018,
+    "closest": "joint_speed",
+    "features": {
+     "quantity_of_motion_deg_s": 6.5,
+     "trunk_speed_mm_s": 27.271,
+     "jerk_rms_deg_s3": 6323.986,
+     "smoothness": -3.801,
+     "tempo_s": 1.0,
+     "tempo_regularity": 0.743,
+     "stillness_ratio": 0.53,
+     "expressive_range_deg_s": 8.446,
+     "postural_height": 0.999,
+     "openness": 0.993,
+     "approach_mm": 685.121
+    },
+    "repeat_dissimilarity": {
+     "walk": 0.027
+    },
+    "repeat_dissimilarity_mean": 0.027,
+    "height_sd_mm": 0.51,
+    "roll_sd_deg": 0.747,
+    "pitch_sd_deg": 0.427,
+    "still_share": 0.194
+   },
+   {
+    "sim": "20261105-060331-sim-2d64",
+    "title": "R6c walking (4, 7) g013-008: 60 s, seed 1",
+    "label": "walking",
+    "seed": 1,
+    "within": true,
+    "margin": 0.0178,
+    "closest": "joint_speed",
+    "features": {
+     "quantity_of_motion_deg_s": 8.526,
+     "trunk_speed_mm_s": 49.77,
+     "jerk_rms_deg_s3": 5840.911,
+     "smoothness": -3.766,
+     "tempo_s": 0.62,
+     "tempo_regularity": 0.667,
+     "stillness_ratio": 0.476,
+     "expressive_range_deg_s": 16.226,
+     "postural_height": 0.999,
+     "openness": 1.342,
+     "approach_mm": 1154.789
+    },
+    "repeat_dissimilarity": {
+     "shift_hr": 0.843,
+     "trot": 0.005,
+     "walk": 0.02
+    },
+    "repeat_dissimilarity_mean": 0.289,
+    "height_sd_mm": 0.39,
+    "roll_sd_deg": 0.652,
+    "pitch_sd_deg": 0.295,
+    "still_share": 0.295
+   },
+   {
+    "sim": "20261105-060344-sim-e33a",
+    "title": "R6c walking (4, 7) g013-008: 60 s, seed 2",
+    "label": "walking",
+    "seed": 2,
+    "within": true,
+    "margin": 0.018,
+    "closest": "joint_speed",
+    "features": {
+     "quantity_of_motion_deg_s": 6.462,
+     "trunk_speed_mm_s": 27.535,
+     "jerk_rms_deg_s3": 6293.167,
+     "smoothness": -3.799,
+     "tempo_s": 1.0,
+     "tempo_regularity": 0.716,
+     "stillness_ratio": 0.527,
+     "expressive_range_deg_s": 8.592,
+     "postural_height": 0.999,
+     "openness": 0.985,
+     "approach_mm": 718.847
+    },
+    "repeat_dissimilarity": {
+     "walk": 0.025
+    },
+    "repeat_dissimilarity_mean": 0.025,
+    "height_sd_mm": 0.57,
+    "roll_sd_deg": 0.807,
+    "pitch_sd_deg": 0.478,
+    "still_share": 0.22
+   }
+  ]
+ },
+ "B": {
+  "archive": {
+   "run": "20261105-232649-evolve-4237",
+   "duration_s": 2350.6426358000026,
+   "candidates": 420,
+   "passed_seeds": 60,
+   "safe_cells": 7,
+   "cells": [
+    {
+     "cell": [
+      1,
+      5
+     ],
+     "candidate": "20261105-232649-evolve-4237-g000-000",
+     "qom": 2.06,
+     "regularity": 0.56,
+     "unpredictability": 0.4966,
+     "margin": 0.08,
+     "states": [
+      "shift_hl",
+      "stand",
+      "step_hl",
+      "turn",
+      "walk"
+     ],
+     "within": {
+      "switch_slack": 0.015,
+      "blend_var": 0.08,
+      "drift_hz": 0.15,
+      "w_height": 0.1,
+      "w_weight": 0.1,
+      "w_head": 0.1
+     }
+    },
+    {
+     "cell": [
+      4,
+      6
+     ],
+     "candidate": "20261105-232649-evolve-4237-g000-001",
+     "qom": 7.16,
+     "regularity": 0.68,
+     "unpredictability": 0.643,
+     "margin": 0.0241,
+     "states": [
+      "shift_hl",
+      "shift_hr",
+      "stand",
+      "trot",
+      "turn",
+      "walk"
+     ],
+     "within": {
+      "switch_slack": 0.015,
+      "blend_var": 0.08,
+      "drift_hz": 0.15,
+      "w_height": 0.1,
+      "w_weight": 0.1,
+      "w_head": 0.1
+     }
+    },
+    {
+     "cell": [
+      4,
+      7
+     ],
+     "candidate": "20261105-232649-evolve-4237-g008-000",
+     "qom": 6.72,
+     "regularity": 0.76,
+     "unpredictability": 0.5681,
+     "margin": 0.0779,
+     "states": [
+      "shift_hl",
+      "shift_hr",
+      "stand",
+      "trot",
+      "walk"
+     ],
+     "within": {
+      "switch_slack": 0.0053,
+      "blend_var": 0.2047,
+      "drift_hz": 0.1163,
+      "w_height": 0.0086,
+      "w_weight": 0.0,
+      "w_head": 0.3376
+     }
+    },
+    {
+     "cell": [
+      6,
+      8
+     ],
+     "candidate": "20261105-232649-evolve-4237-g000-003",
+     "qom": 9.96,
+     "regularity": 0.88,
+     "unpredictability": 0.5494,
+     "margin": 0.0069,
+     "states": [
+      "shift_hl",
+      "shift_hr",
+      "stand",
+      "trot"
+     ],
+     "within": {
+      "switch_slack": 0.015,
+      "blend_var": 0.08,
+      "drift_hz": 0.15,
+      "w_height": 0.1,
+      "w_weight": 0.1,
+      "w_head": 0.1
+     }
+    },
+    {
+     "cell": [
+      5,
+      7
+     ],
+     "candidate": "20261105-232649-evolve-4237-g006-013",
+     "qom": 8.37,
+     "regularity": 0.76,
+     "unpredictability": 0.5845,
+     "margin": 0.0037,
+     "states": [
+      "shift_hl",
+      "shift_hr",
+      "stand",
+      "trot",
+      "walk"
+     ],
+     "within": {
+      "switch_slack": 0.0148,
+      "blend_var": 0.094,
+      "drift_hz": 0.1842,
+      "w_height": 0.1336,
+      "w_weight": 0.0719,
+      "w_head": 0.0
+     }
+    },
+    {
+     "cell": [
+      5,
+      8
+     ],
+     "candidate": "20261105-232649-evolve-4237-g001-015",
+     "qom": 8.06,
+     "regularity": 0.85,
+     "unpredictability": 0.5581,
+     "margin": 0.1171,
+     "states": [
+      "shift_hl",
+      "shift_hr",
+      "stand",
+      "trot"
+     ],
+     "within": {
+      "switch_slack": 0.0163,
+      "blend_var": 0.1603,
+      "drift_hz": 0.15,
+      "w_height": 0.1194,
+      "w_weight": 0.0,
+      "w_head": 0.1258
+     }
+    },
+    {
+     "cell": [
+      2,
+      5
+     ],
+     "candidate": "20261105-232649-evolve-4237-g009-004",
+     "qom": 3.72,
+     "regularity": 0.54,
+     "unpredictability": 0.5581,
+     "margin": 0.0108,
+     "states": [
+      "shift_hl",
+      "shift_hr",
+      "stand",
+      "walk"
+     ],
+     "within": {
+      "switch_slack": 0.022,
+      "blend_var": 0.0,
+      "drift_hz": 0.2653,
+      "w_height": 0.105,
+      "w_weight": 0.0339,
+      "w_head": 0.0792
+     }
+    }
+   ],
+   "stops": {
+    "servo_sustained": 353,
+    "joint_speed": 272,
+    "belt_sustained": 153,
+    "envelope": 105,
+    "stall": 24,
+    "joint_limit": 3
+   }
+  },
+  "performances": [
+   {
+    "sim": "20261106-001243-sim-fc58",
+    "title": "R7 ambling (2, 5) g009-004: 60 s, seed 0",
+    "label": "ambling",
+    "seed": 0,
+    "within": true,
+    "margin": 0.0294,
+    "closest": "joint_speed",
+    "features": {
+     "quantity_of_motion_deg_s": 3.867,
+     "trunk_speed_mm_s": 28.59,
+     "jerk_rms_deg_s3": 2911.124,
+     "smoothness": -3.464,
+     "tempo_s": 0.36,
+     "tempo_regularity": 0.49,
+     "stillness_ratio": 0.669,
+     "expressive_range_deg_s": 7.564,
+     "postural_height": 0.997,
+     "openness": 1.01,
+     "approach_mm": 229.598
+    },
+    "repeat_dissimilarity": {
+     "shift_hr": 0.65,
+     "walk": 0.066
+    },
+    "repeat_dissimilarity_mean": 0.358,
+    "height_sd_mm": 3.71,
+    "roll_sd_deg": 0.674,
+    "pitch_sd_deg": 0.992,
+    "still_share": 0.608
+   },
+   {
+    "sim": "20261106-001256-sim-aaea",
+    "title": "R7 ambling (2, 5) g009-004: 60 s, seed 1",
+    "label": "ambling",
+    "seed": 1,
+    "within": true,
+    "margin": 0.0286,
+    "closest": "joint_speed",
+    "features": {
+     "quantity_of_motion_deg_s": 3.3,
+     "trunk_speed_mm_s": 26.953,
+     "jerk_rms_deg_s3": 2549.618,
+     "smoothness": -3.406,
+     "tempo_s": 0.36,
+     "tempo_regularity": 0.523,
+     "stillness_ratio": 0.725,
+     "expressive_range_deg_s": 7.895,
+     "postural_height": 0.998,
+     "openness": 0.992,
+     "approach_mm": 195.426
+    },
+    "repeat_dissimilarity": {
+     "shift_hr": 0.693,
+     "walk": 0.085
+    },
+    "repeat_dissimilarity_mean": 0.389,
+    "height_sd_mm": 3.2,
+    "roll_sd_deg": 0.648,
+    "pitch_sd_deg": 0.844,
+    "still_share": 0.652
+   },
+   {
+    "sim": "20261106-001310-sim-5890",
+    "title": "R7 ambling (2, 5) g009-004: 60 s, seed 2",
+    "label": "ambling",
+    "seed": 2,
+    "within": true,
+    "margin": 0.0301,
+    "closest": "joint_speed",
+    "features": {
+     "quantity_of_motion_deg_s": 2.739,
+     "trunk_speed_mm_s": 22.449,
+     "jerk_rms_deg_s3": 2172.046,
+     "smoothness": -3.337,
+     "tempo_s": 0.36,
+     "tempo_regularity": 0.507,
+     "stillness_ratio": 0.777,
+     "expressive_range_deg_s": 6.902,
+     "postural_height": 0.998,
+     "openness": 0.992,
+     "approach_mm": 174.766
+    },
+    "repeat_dissimilarity": {
+     "shift_hr": 0.217,
+     "walk": 0.1
+    },
+    "repeat_dissimilarity_mean": 0.159,
+    "height_sd_mm": 3.16,
+    "roll_sd_deg": 0.583,
+    "pitch_sd_deg": 0.803,
+    "still_share": 0.729
+   },
+   {
+    "sim": "20261106-000700-sim-4321",
+    "title": "R7 calm (1, 5) g000-000: 60 s, seed 0",
+    "label": "calm",
+    "seed": 0,
+    "within": true,
+    "margin": 0.4284,
+    "closest": "joint_speed",
+    "features": {
+     "quantity_of_motion_deg_s": 2.232,
+     "trunk_speed_mm_s": 21.911,
+     "jerk_rms_deg_s3": 735.005,
+     "smoothness": -2.866,
+     "tempo_s": 0.3,
+     "tempo_regularity": 0.527,
+     "stillness_ratio": 0.821,
+     "expressive_range_deg_s": 5.98,
+     "postural_height": 0.999,
+     "openness": 0.991,
+     "approach_mm": 28.231
+    },
+    "repeat_dissimilarity": {
+     "shift_hl": 1.074,
+     "step_hl": 0.767
+    },
+    "repeat_dissimilarity_mean": 0.921,
+    "height_sd_mm": 0.91,
+    "roll_sd_deg": 1.244,
+    "pitch_sd_deg": 0.768,
+    "still_share": 0.897
+   },
+   {
+    "sim": "20261106-000714-sim-abbd",
+    "title": "R7 calm (1, 5) g000-000: 60 s, seed 1",
+    "label": "calm",
+    "seed": 1,
+    "within": true,
+    "margin": 0.16,
+    "closest": "belt_sustained",
+    "features": {
+     "quantity_of_motion_deg_s": 2.221,
+     "trunk_speed_mm_s": 22.382,
+     "jerk_rms_deg_s3": 1779.649,
+     "smoothness": -3.25,
+     "tempo_s": 0.3,
+     "tempo_regularity": 0.584,
+     "stillness_ratio": 0.825,
+     "expressive_range_deg_s": 6.46,
+     "postural_height": 0.999,
+     "openness": 0.993,
+     "approach_mm": 279.865
+    },
+    "repeat_dissimilarity": {
+     "shift_hl": 1.19,
+     "walk": 0.382
+    },
+    "repeat_dissimilarity_mean": 0.786,
+    "height_sd_mm": 0.83,
+    "roll_sd_deg": 1.138,
+    "pitch_sd_deg": 0.709,
+    "still_share": 0.785
+   },
+   {
+    "sim": "20261106-000727-sim-6f10",
+    "title": "R7 calm (1, 5) g000-000: 60 s, seed 2",
+    "label": "calm",
+    "seed": 2,
+    "within": true,
+    "margin": 0.1623,
+    "closest": "joint_speed",
+    "features": {
+     "quantity_of_motion_deg_s": 2.574,
+     "trunk_speed_mm_s": 25.268,
+     "jerk_rms_deg_s3": 1822.986,
+     "smoothness": -3.261,
+     "tempo_s": 0.3,
+     "tempo_regularity": 0.527,
+     "stillness_ratio": 0.783,
+     "expressive_range_deg_s": 6.772,
+     "postural_height": 0.999,
+     "openness": 0.992,
+     "approach_mm": 214.426
+    },
+    "repeat_dissimilarity": {
+     "shift_hl": 0.311,
+     "step_hl": 0.149
+    },
+    "repeat_dissimilarity_mean": 0.23,
+    "height_sd_mm": 0.94,
+    "roll_sd_deg": 1.254,
+    "pitch_sd_deg": 0.787,
+    "still_share": 0.816
+   },
+   {
+    "sim": "20261106-000758-sim-c2be",
+    "title": "R7 lively (4, 6) g000-001: 60 s, seed 0",
+    "label": "lively",
+    "seed": 0,
+    "within": true,
+    "margin": 0.0257,
+    "closest": "joint_speed",
+    "features": {
+     "quantity_of_motion_deg_s": 7.187,
+     "trunk_speed_mm_s": 41.825,
+     "jerk_rms_deg_s3": 4757.43,
+     "smoothness": -3.677,
+     "tempo_s": 0.62,
+     "tempo_regularity": 0.618,
+     "stillness_ratio": 0.476,
+     "expressive_range_deg_s": 13.661,
+     "postural_height": 0.999,
+     "openness": 0.99,
+     "approach_mm": 789.079
+    },
+    "repeat_dissimilarity": {
+     "walk": 1.46,
+     "trot": 0.459
+    },
+    "repeat_dissimilarity_mean": 0.96,
+    "height_sd_mm": 0.62,
+    "roll_sd_deg": 1.009,
+    "pitch_sd_deg": 0.571,
+    "still_share": 0.261
+   },
+   {
+    "sim": "20261106-000811-sim-6c60",
+    "title": "R7 lively (4, 6) g000-001: 60 s, seed 1",
+    "label": "lively",
+    "seed": 1,
+    "within": true,
+    "margin": 0.0249,
+    "closest": "joint_speed",
+    "features": {
+     "quantity_of_motion_deg_s": 6.12,
+     "trunk_speed_mm_s": 38.762,
+     "jerk_rms_deg_s3": 4275.602,
+     "smoothness": -3.631,
+     "tempo_s": 0.62,
+     "tempo_regularity": 0.611,
+     "stillness_ratio": 0.536,
+     "expressive_range_deg_s": 13.144,
+     "postural_height": 0.999,
+     "openness": 0.986,
+     "approach_mm": 591.939
+    },
+    "repeat_dissimilarity": {
+     "shift_hr": 2.383,
+     "trot": 1.198,
+     "walk": 0.472
+    },
+    "repeat_dissimilarity_mean": 1.351,
+    "height_sd_mm": 0.58,
+    "roll_sd_deg": 0.996,
+    "pitch_sd_deg": 0.461,
+    "still_share": 0.341
+   },
+   {
+    "sim": "20261106-000825-sim-a3e4",
+    "title": "R7 lively (4, 6) g000-001: 60 s, seed 2",
+    "label": "lively",
+    "seed": 2,
+    "within": true,
+    "margin": 0.0274,
+    "closest": "joint_speed",
+    "features": {
+     "quantity_of_motion_deg_s": 5.972,
+     "trunk_speed_mm_s": 36.14,
+     "jerk_rms_deg_s3": 4513.388,
+     "smoothness": -3.655,
+     "tempo_s": 0.6,
+     "tempo_regularity": 0.606,
+     "stillness_ratio": 0.544,
+     "expressive_range_deg_s": 8.441,
+     "postural_height": 0.999,
+     "openness": 0.984,
+     "approach_mm": 627.951
+    },
+    "repeat_dissimilarity": {
+     "walk": 0.797
+    },
+    "repeat_dissimilarity_mean": 0.797,
+    "height_sd_mm": 0.67,
+    "roll_sd_deg": 1.017,
+    "pitch_sd_deg": 0.514,
+    "still_share": 0.259
+   },
+   {
+    "sim": "20261106-001146-sim-0e1e",
+    "title": "R7 trot-shift (5, 8) g001-015: 60 s, seed 0",
+    "label": "trot-shift",
+    "seed": 0,
+    "within": true,
+    "margin": 0.1783,
+    "closest": "joint_speed",
+    "features": {
+     "quantity_of_motion_deg_s": 7.101,
+     "trunk_speed_mm_s": 46.542,
+     "jerk_rms_deg_s3": 4548.048,
+     "smoothness": -3.658,
+     "tempo_s": 0.62,
+     "tempo_regularity": 0.827,
+     "stillness_ratio": 0.502,
+     "expressive_range_deg_s": 15.033,
+     "postural_height": 0.993,
+     "openness": 1.369,
+     "approach_mm": 1445.76
+    },
+    "repeat_dissimilarity": {
+     "stand": 0.191,
+     "trot": 0.174,
+     "shift_hl": 0.157
+    },
+    "repeat_dissimilarity_mean": 0.174,
+    "height_sd_mm": 5.0,
+    "roll_sd_deg": 0.107,
+    "pitch_sd_deg": 1.06,
+    "still_share": 0.497
+   },
+   {
+    "sim": "20261106-001159-sim-2ff5",
+    "title": "R7 trot-shift (5, 8) g001-015: 60 s, seed 1",
+    "label": "trot-shift",
+    "seed": 1,
+    "within": true,
+    "margin": 0.1762,
+    "closest": "joint_speed",
+    "features": {
+     "quantity_of_motion_deg_s": 5.891,
+     "trunk_speed_mm_s": 40.2,
+     "jerk_rms_deg_s3": 4101.674,
+     "smoothness": -3.613,
+     "tempo_s": 0.62,
+     "tempo_regularity": 0.829,
+     "stillness_ratio": 0.598,
+     "expressive_range_deg_s": 14.528,
+     "postural_height": 0.994,
+     "openness": 1.417,
+     "approach_mm": 1211.745
+    },
+    "repeat_dissimilarity": {
+     "shift_hl": 0.742,
+     "trot": 0.326,
+     "stand": 0.249
+    },
+    "repeat_dissimilarity_mean": 0.439,
+    "height_sd_mm": 5.28,
+    "roll_sd_deg": 0.129,
+    "pitch_sd_deg": 1.124,
+    "still_share": 0.568
+   },
+   {
+    "sim": "20261106-001213-sim-c8b8",
+    "title": "R7 trot-shift (5, 8) g001-015: 60 s, seed 2",
+    "label": "trot-shift",
+    "seed": 2,
+    "within": true,
+    "margin": 0.1274,
+    "closest": "joint_speed",
+    "features": {
+     "quantity_of_motion_deg_s": 7.159,
+     "trunk_speed_mm_s": 49.368,
+     "jerk_rms_deg_s3": 4557.393,
+     "smoothness": -3.659,
+     "tempo_s": 0.62,
+     "tempo_regularity": 0.797,
+     "stillness_ratio": 0.494,
+     "expressive_range_deg_s": 15.001,
+     "postural_height": 0.994,
+     "openness": 1.304,
+     "approach_mm": 1463.103
+    },
+    "repeat_dissimilarity": {
+     "shift_hl": 0.883,
+     "stand": 0.172,
+     "trot": 0.115
+    },
+    "repeat_dissimilarity_mean": 0.39,
+    "height_sd_mm": 5.01,
+    "roll_sd_deg": 0.151,
+    "pitch_sd_deg": 1.064,
+    "still_share": 0.419
+   },
+   {
+    "sim": "20261106-001049-sim-df6a",
+    "title": "R7 trot-walk (5, 7) g006-013: 60 s, seed 0",
+    "label": "trot-walk",
+    "seed": 0,
+    "within": true,
+    "margin": 0.0039,
+    "closest": "joint_speed",
+    "features": {
+     "quantity_of_motion_deg_s": 6.535,
+     "trunk_speed_mm_s": 31.435,
+     "jerk_rms_deg_s3": 6060.7,
+     "smoothness": -3.783,
+     "tempo_s": 0.52,
+     "tempo_regularity": 0.746,
+     "stillness_ratio": 0.529,
+     "expressive_range_deg_s": 8.571,
+     "postural_height": 0.999,
+     "openness": 0.981,
+     "approach_mm": 549.184
+    },
+    "repeat_dissimilarity": {
+     "walk": 1.122
+    },
+    "repeat_dissimilarity_mean": 1.122,
+    "height_sd_mm": 0.54,
+    "roll_sd_deg": 0.713,
+    "pitch_sd_deg": 0.41,
+    "still_share": 0.206
+   },
+   {
+    "sim": "20261106-001103-sim-b188",
+    "title": "R7 trot-walk (5, 7) g006-013: 60 s, seed 1",
+    "label": "trot-walk",
+    "seed": 1,
+    "within": true,
+    "margin": 0.0038,
+    "closest": "joint_speed",
+    "features": {
+     "quantity_of_motion_deg_s": 10.442,
+     "trunk_speed_mm_s": 59.942,
+     "jerk_rms_deg_s3": 6907.838,
+     "smoothness": -3.839,
+     "tempo_s": 0.52,
+     "tempo_regularity": 0.826,
+     "stillness_ratio": 0.355,
+     "expressive_range_deg_s": 15.257,
+     "postural_height": 0.999,
+     "openness": 1.242,
+     "approach_mm": 1053.179
+    },
+    "repeat_dissimilarity": {
+     "trot": 1.118,
+     "walk": 0.268
+    },
+    "repeat_dissimilarity_mean": 0.693,
+    "height_sd_mm": 0.5,
+    "roll_sd_deg": 0.7,
+    "pitch_sd_deg": 0.335,
+    "still_share": 0.172
+   },
+   {
+    "sim": "20261106-001116-sim-db3d",
+    "title": "R7 trot-walk (5, 7) g006-013: 60 s, seed 2",
+    "label": "trot-walk",
+    "seed": 2,
+    "within": true,
+    "margin": 0.004,
+    "closest": "joint_speed",
+    "features": {
+     "quantity_of_motion_deg_s": 5.784,
+     "trunk_speed_mm_s": 30.017,
+     "jerk_rms_deg_s3": 5633.972,
+     "smoothness": -3.751,
+     "tempo_s": 0.52,
+     "tempo_regularity": 0.698,
+     "stillness_ratio": 0.574,
+     "expressive_range_deg_s": 9.077,
+     "postural_height": 1.0,
+     "openness": 0.981,
+     "approach_mm": 532.611
+    },
+    "repeat_dissimilarity": {
+     "walk": 0.839
+    },
+    "repeat_dissimilarity_mean": 0.839,
+    "height_sd_mm": 0.59,
+    "roll_sd_deg": 0.822,
+    "pitch_sd_deg": 0.486,
+    "still_share": 0.27
+   },
+   {
+    "sim": "20261106-000952-sim-058e",
+    "title": "R7 trotting (6, 8) g000-003: 60 s, seed 0",
+    "label": "trotting",
+    "seed": 0,
+    "within": true,
+    "margin": 0.0168,
+    "closest": "joint_speed",
+    "features": {
+     "quantity_of_motion_deg_s": 9.404,
+     "trunk_speed_mm_s": 66.655,
+     "jerk_rms_deg_s3": 5522.912,
+     "smoothness": -3.742,
+     "tempo_s": 0.6,
+     "tempo_regularity": 0.897,
+     "stillness_ratio": 0.455,
+     "expressive_range_deg_s": 18.05,
+     "postural_height": 0.995,
+     "openness": 1.232,
+     "approach_mm": 2121.801
+    },
+    "repeat_dissimilarity": {
+     "shift_hr": 0.411,
+     "stand": 0.258,
+     "trot": 0.197,
+     "shift_hl": 0.686
+    },
+    "repeat_dissimilarity_mean": 0.388,
+    "height_sd_mm": 5.32,
+    "roll_sd_deg": 0.263,
+    "pitch_sd_deg": 1.18,
+    "still_share": 0.46
+   },
+   {
+    "sim": "20261106-001005-sim-195e",
+    "title": "R7 trotting (6, 8) g000-003: 60 s, seed 1",
+    "label": "trotting",
+    "seed": 1,
+    "within": true,
+    "margin": 0.0165,
+    "closest": "joint_speed",
+    "features": {
+     "quantity_of_motion_deg_s": 11.997,
+     "trunk_speed_mm_s": 87.365,
+     "jerk_rms_deg_s3": 6249.793,
+     "smoothness": -3.796,
+     "tempo_s": 0.62,
+     "tempo_regularity": 0.841,
+     "stillness_ratio": 0.288,
+     "expressive_range_deg_s": 17.65,
+     "postural_height": 0.996,
+     "openness": 1.283,
+     "approach_mm": 2709.571
+    },
+    "repeat_dissimilarity": {
+     "shift_hl": 0.676,
+     "trot": 0.219,
+     "stand": 0.046
+    },
+    "repeat_dissimilarity_mean": 0.314,
+    "height_sd_mm": 5.25,
+    "roll_sd_deg": 0.191,
+    "pitch_sd_deg": 1.104,
+    "still_share": 0.278
+   },
+   {
+    "sim": "20261106-001019-sim-d7ea",
+    "title": "R7 trotting (6, 8) g000-003: 60 s, seed 2",
+    "label": "trotting",
+    "seed": 2,
+    "within": true,
+    "margin": 0.039,
+    "closest": "joint_speed",
+    "features": {
+     "quantity_of_motion_deg_s": 9.362,
+     "trunk_speed_mm_s": 66.388,
+     "jerk_rms_deg_s3": 5403.996,
+     "smoothness": -3.733,
+     "tempo_s": 0.6,
+     "tempo_regularity": 0.836,
+     "stillness_ratio": 0.438,
+     "expressive_range_deg_s": 17.82,
+     "postural_height": 0.994,
+     "openness": 1.204,
+     "approach_mm": 2127.022
+    },
+    "repeat_dissimilarity": {
+     "shift_hl": 1.097,
+     "stand": 0.209,
+     "trot": 0.118
+    },
+    "repeat_dissimilarity_mean": 0.475,
+    "height_sd_mm": 5.04,
+    "roll_sd_deg": 0.14,
+    "pitch_sd_deg": 1.062,
+    "still_share": 0.392
+   },
+   {
+    "sim": "20261106-000855-sim-abe9",
+    "title": "R7 walking (4, 7) g008-000: 60 s, seed 0",
+    "label": "walking",
+    "seed": 0,
+    "within": false,
+    "margin": -2.52,
+    "closest": "servo_sustained",
+    "features": {
+     "quantity_of_motion_deg_s": 5.101,
+     "trunk_speed_mm_s": 33.222,
+     "jerk_rms_deg_s3": 3474.833,
+     "smoothness": -3.541,
+     "tempo_s": 0.6,
+     "tempo_regularity": 0.722,
+     "stillness_ratio": 0.593,
+     "expressive_range_deg_s": 12.252,
+     "postural_height": 0.995,
+     "openness": 1.355,
+     "approach_mm": 984.407
+    },
+    "repeat_dissimilarity": {
+     "shift_hr": 0.298,
+     "stand": 0.143,
+     "trot": 0.1,
+     "shift_hl": 0.168
+    },
+    "repeat_dissimilarity_mean": 0.177,
+    "height_sd_mm": 4.96,
+    "roll_sd_deg": 0.79,
+    "pitch_sd_deg": 1.292,
+    "still_share": 0.65
+   },
+   {
+    "sim": "20261106-000908-sim-c9e2",
+    "title": "R7 walking (4, 7) g008-000: 60 s, seed 1",
+    "label": "walking",
+    "seed": 1,
+    "within": true,
+    "margin": 0.299,
+    "closest": "joint_speed",
+    "features": {
+     "quantity_of_motion_deg_s": 6.13,
+     "trunk_speed_mm_s": 41.197,
+     "jerk_rms_deg_s3": 3896.87,
+     "smoothness": -3.591,
+     "tempo_s": 0.6,
+     "tempo_regularity": 0.764,
+     "stillness_ratio": 0.504,
+     "expressive_range_deg_s": 12.527,
+     "postural_height": 0.995,
+     "openness": 1.419,
+     "approach_mm": 1269.682
+    },
+    "repeat_dissimilarity": {
+     "shift_hl": 0.685,
+     "trot": 0.486,
+     "stand": 0.348
+    },
+    "repeat_dissimilarity_mean": 0.506,
+    "height_sd_mm": 5.19,
+    "roll_sd_deg": 0.127,
+    "pitch_sd_deg": 1.108,
+    "still_share": 0.477
+   },
+   {
+    "sim": "20261106-000922-sim-285f",
+    "title": "R7 walking (4, 7) g008-000: 60 s, seed 2",
+    "label": "walking",
+    "seed": 2,
+    "within": true,
+    "margin": 0.287,
+    "closest": "joint_speed",
+    "features": {
+     "quantity_of_motion_deg_s": 6.005,
+     "trunk_speed_mm_s": 41.195,
+     "jerk_rms_deg_s3": 3846.056,
+     "smoothness": -3.585,
+     "tempo_s": 0.6,
+     "tempo_regularity": 0.797,
+     "stillness_ratio": 0.516,
+     "expressive_range_deg_s": 12.399,
+     "postural_height": 0.996,
+     "openness": 1.247,
+     "approach_mm": 1271.749
+    },
+    "repeat_dissimilarity": {
+     "stand": 0.393,
+     "shift_hl": 0.188,
+     "trot": 0.291,
+     "shift_hr": 0.209
+    },
+    "repeat_dissimilarity_mean": 0.27,
+    "height_sd_mm": 4.84,
+    "roll_sd_deg": 0.144,
+    "pitch_sd_deg": 1.034,
+    "still_share": 0.5
+   }
+  ]
+ }
+}

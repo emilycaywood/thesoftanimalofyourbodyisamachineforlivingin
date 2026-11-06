@@ -3619,6 +3619,19 @@ candidates, 29 passed their three seeds, every one went over a limit in a forced
   extremes; at 30 % all four go over on their seeds. **Added:** `start_vectors` (and `start_within`): a run may
   start from given generators, padded with variation genes.
 
+*Second run* (`20261105-232649-evolve-4237`, 15 x 28 seeded from R6c's four safe generators with 10 % variation,
+`variation_weight` 0.5, 2355 s; a follow-up within session R7 after the chosen 40 x 28 found nothing):
+* **11 safe in 7 cells** (R6c 4), quantity of motion 2.1-10.0 deg/s; three new cells.
+* **The variation that holds is small**: variation amount 0.07-0.10, where it started (about +-2.5 % tempo and
+  amplitude per cycle; posture drift a fraction of a millimetre). Evolution did not raise it within margin 0.2.
+* **20 of 21 one-minute performances hold.** The one that goes over plays a step 1.4 % likely in a minute, never
+  checked (the R6c rare-state gap).
+* Means over the minute (quantity of motion, regularity, jerk, range, posture spread) barely move; **repeat
+  dissimilarity** (two plays of one state) rises from 0.007-0.03 to 0.12-1.46 for walks and trots: the repeats
+  now differ, mostly in timing.
+* **Five minutes (seed 0): 3 of 7 hold** (R6c 1 of 4). Like for like the same: lively holds, calm and trotting
+  go over in transitions as in R6c. The variation neither closes nor widens R6d's gap.
+
 ## ADR-099 — Faster joints: what binds per joint, and which levers buy a 0.6 s trot (**VERIFY**)
 
 *Context.* Session R8. The trot is within the limits only at a 1.2 s cycle (77 mm/s); joint speed is the wall
