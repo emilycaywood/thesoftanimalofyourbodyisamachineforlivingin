@@ -62,6 +62,38 @@
   guessed: []
   verified: false
 
+# Supplied by the researcher on 2026-11-05 as a candidate for up to four of the ten feral-calf servos (session R9,
+# ADR-100). Only these values were given. Not given, so null (the model default is then used and the audit reports
+# it as "default assumed"): armature, idle current, winding resistance, thermal values, encoder resolution, cost.
+# Given but with no field in the model, so kept here and in `notes`: operating voltage 6-12 V; spline 25T, outer
+# diameter 5.9 mm; dual shaft. A third-party test measured 0.129 s / 60 deg at no load: a remark, not the spec.
+- key: sts3250_c002
+  kind: actuator
+  name: Feetech STS3250 C002 (12 V)
+  manufacturer: Feetech
+  mass_g: 74.5
+  dims_mm: [45.22, 24.72, 35.0]   # the same body as the STS3215
+  stall_torque_nm: 4.9           # 50 kg.cm @ 12 V
+  rated_torque_nm: 1.57          # 16 kg.cm @ 12 V
+  stall_current_a: 4.2           # A @ 12 V
+  no_load_speed_rpm: 75.188      # 0.133 s / 60 deg @ 12 V = 10 / 0.133 rpm (451.1 deg/s)
+  voltage_v: 12.0                # V the figures are given for; operating range 6-12 V
+  gear_ratio: 345                # 1/345
+  encoder_steps_per_rev: null    # not given
+  idle_current_a: null           # not given (default assumed)
+  armature_kgm2: null            # not given (default assumed)
+  winding_resistance_ohm: null   # not given (default assumed)
+  r_thermal_k_per_w: null        # not given (default assumed)
+  c_thermal_j_per_k: null        # not given (default assumed)
+  max_temp_c: null               # not given (default assumed)
+  cost_usd: null                 # not given (default assumed)
+  url: null
+  protocol: null
+  source: Researcher-supplied specification, 2026-11-05 (Feetech STS3250 C002, at 12 V)
+  guessed: []
+  verified: false
+  notes: "Operating voltage 6-12 V. Spline 25T, outer diameter 5.9 mm; dual shaft. Remark (not the spec): a third-party test measured 0.129 s / 60 deg at no load."
+
 - key: xm430_w350
   kind: actuator
   name: Dynamixel XM430-W350
