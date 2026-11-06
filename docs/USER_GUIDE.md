@@ -1054,6 +1054,21 @@ genome stored with them builds the working body: *Simulate* or *Load* from
 such a run gives today's servos and belts, not the what-if. The servo entry
 `sts3250_c002` is in the library (unverified) and is not on any body.
 
+**A servo model per joint pair (R10, ADR-101).** The feral calf has five
+servo genes in Form > Mechanism: *Servo: hip ab/adduction*, *stifle*,
+*hock*, *shoulder*, *carpus*. Each sets the model on both sides of that
+joint (the case and its place on the leg are the same for every model). A
+project saved before these genes had one *Servo (all ten joints)*: it keeps
+its servo on every joint, and the next save writes the five genes with it.
+The Mass tab's **Servos by joint** table lists every actuated joint with its
+servo, mass, drive (belt ratio or direct), no-load speed and stall / rated
+torque *at the joint*: the figures the simulator limits that joint by. On a
+mixed body the Belts panel lists the pairs too. Runs titled
+`R10 what-if (<case>) ...` and `R10 play: ...` store a genome with the
+case's servos and catalog belts, so *Load* or *Simulate* from one gives
+those servos; R8's 45T and 30T/45T pulleys are not in the catalog and no
+gene holds them, so those stay in memory only.
+
 #### Proportions: comparing bodies instead of finding one
 
 The lab has three ways to look for a better body or gait:

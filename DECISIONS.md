@@ -3702,3 +3702,66 @@ on today's 2:1 belts and combined with R8's pulley what-ifs; to watch belt tensi
   the 1:1 carpus's sustained torque (half the joint torque). Where they hold, headroom rises from about +0.02 to
   +0.4; the movement itself is unchanged. They would need evolving again on such a body.
 * Nothing added to the pulley catalog; no body changed.
+
+## ADR-101 — One servo model per joint pair in the feral calf's genome; the carpus drive for a faster body (**VERIFY**)
+
+*Context.* Session R10. R9 (ADR-100) found its best body with up to four STS3250 C002s only in memory, because the
+feral calf had one `actuator` gene for all ten servos. The researcher asked for a servo gene per joint pair, with a
+migration that keeps every stored body as it was, the servo shown per joint in the lab, and then, still in memory,
+the carpus drive that keeps the calm behaviours and `lie_rise` within limits while the trot stays fast.
+
+*Decisions / assumptions (part 1, the genome):*
+* `config/genes/feral_calf.yaml` v2: `servo_hip_abd`, `servo_stifle`, `servo_hock`, `servo_shoulder`,
+  `servo_carpus` (enum, `choices_from: actuator`, default `sts3215_c018`, not evolvable, group Mechanism) replace
+  `actuator`. Ids are API (stable from now on). One model per left/right pair: no left/right asymmetry.
+* Migration `feral_calf` v1 -> v2 copies `actuator` into each pair gene with `setdefault` and drops it. A v1 genome
+  that never mentioned `actuator` had the default, which is the pair genes' default.
+* **Unversioned params.** A document's genome node params carry no version (`GenomeNode` stamps the current one),
+  so a migration may now name the genes it removes (`migration(..., removes=("actuator",))`).
+  `GenomeDefinition.complete` runs `upgrade_unversioned` first: params still holding a removed gene are taken
+  through that step. Every path that completes params (build, Form, gene table, `clean_params`) therefore sees an open
+  v1 document's own servo, and the next save (`Lab._commit`, any command) or clean writes the v2 params. Only
+  steps that are harmless on values already past them may be marked; the calf's v1 -> v2 (which re-measures
+  `neck_angle`) is not.
+* The servo case and its place on the leg stay the config's (`config/feral_calf.yaml servo.*_mm`), the same for both
+  models, as R9 assumed. What is not per joint (`metadata.feral.servo`: encoder resolution, the case) describes the
+  model on the most pairs; `servo.mixed` is set on a mixed body and `metadata.feral.servos` lists each pair.
+* **Bit-identity** is checked against fingerprints written with the code before the change
+  (`tests/data/make_servo_fingerprints.py`, run from an archive of commit 7bc181a): spec (leaving out the genome
+  version, the new `servos` key and the belt catalog's folder), MJCF and mass breakdown of the default body, a v1
+  genome with `actuator: sts3250_c002`, and from `projects/robot-calf-final` its document (v1, unversioned), the
+  baked design `calf1-v001` and run candidate `20261105-232649-evolve-4237-g000-000`. All identical. The project
+  test skips where that folder (not in git) is missing.
+* The lab shows each joint's servo: `scene.mass.servos` (`calflab.mech.limits.joint_servos`: component, mass, belt
+  ratio, stall and rated torque at the servo and at the joint, no-load speed at the joint) in a *Servos by joint*
+  table in the Mass tab; the Belts panel lists the pairs on a mixed body. `joint_figures` is the one place the
+  simulator's columns and this table get a joint's limits from.
+* The working body is unchanged (its document still says `actuator: sts3215_c018` until its next save, which writes
+  the five pair genes with the same value).
+
+*Decisions / assumptions (part 2, the carpus study; `docs/studies/carpus_r10.md`):*
+* Bodies are built through the servo genes (`servos_r9.py` `case_genome`). R8's 45T and 30T/45T pairs stay in-memory
+  ratio and driver changes. R9's rule that they apply only to joints keeping the old servo is lifted, as R10 asked.
+* Every body keeps R9's stifle and hock 40T/80T belts. "At most four new servos" means two pairs. When `lie_rise`
+  turned out to bind on the front shoulders, the shoulder pairs were added. A six-servo body (hip ab/ad + hocks +
+  carpi) was played as a reference only, outside the budget.
+* "Best" within the budget means the most behaviour minutes held with a trot at the grid's fast end. Its plays are
+  stored as `R10 ...` runs, with a genome that carries the servo and catalog belt genes.
+
+*Results:*
+* **No carpus drive keeps the calm behaviours within limits with a fast trot, with at most four new servos.**
+  * The fast trot (0.5 s) needs a 1:1 carpus and new hocks.
+  * On a 1:1 or 1.5:1 carpus the calm behaviours go over: old servo on sustained torque; new servo on the carpus
+    belt's sustained tension (44 N allowable).
+  * The walk and turn need new hip ab/ad servos.
+* **No body keeps `lie_rise` within limits.** It binds on the old front shoulders' sustained torque (today -3.00; new
+  shoulders -1.2 to -2.0).
+* New hocks + carpi, carpi 1:1 45T: 26 of 33 minutes, trot 0.5 s / 2.0 at 418-425 mm/s; walk and turn over on two
+  seeds (hip ab/ad). Stored as R10 runs.
+* New hocks + carpi, carpi on the catalog's 40T/80T: 28 of 33, calm on 2 of 3 seeds, the rest over on the old front
+  shoulders; trot 0.8 s; no new pulley size.
+* R9's best (new hip ab/ad + hocks, old carpus 1:1): 20 of 33, walk and turn within.
+* At 11.1 V the new-carpus body drops to 314 mm/s, and its walk and turn get worse. R9's best keeps 300 mm/s and the walk.
+* Peak belt tension within limits is at most 80 N (breaking judged at 172 N). The four new servos draw at most
+  1.9-2.7 A peak (sum) and about 1 A mean.
+* Nothing added to any catalog; no component value, `verified` flag or the working body changed.

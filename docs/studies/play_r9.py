@@ -4,7 +4,7 @@ and can be compared side by side (``compare.html?a=<run>&b=<run>``).
 Each play is judged as in ``servos_r9.py`` (margin 0.2, the diversity preset's randomisation, the given seed) and
 recorded with its verdict. The stored scene is the what-if spec's; the stored genome builds the working body.
 
-Run:  python docs/studies/play_r9.py <project dir> <seed> "<case>=<primitive>:<k:v,k:v>=<label>" ...
+Run:  python docs/studies/play_r9.py <project dir> <seed> [--title=R10] "<case>=<primitive>:<k:v,k:v>=<label>" ...
 e.g.  python docs/studies/play_r9.py projects/robot-calf-final 0 "now=trot:cycle_s:1.2,stride:1.0,lift:0.6=today, fastest trot"
 """
 from __future__ import annotations
@@ -28,10 +28,13 @@ def main() -> None:
     from calflab.behave.study import randomization
     from calflab.plugins import load_plugins, registry
     from calflab.project.registry import RunRecord
-    from servos_r9 import MARGIN, lib_at, parse_case, what_if
+    from perform_r9 import NOTE
+    from servos_r9 import MARGIN, case_genome, lib_at, parse_case, what_if
 
     load_plugins()
-    proj, seed = Path(sys.argv[1]), int(sys.argv[2])
+    args = [a for a in sys.argv[1:] if not a.startswith("--title=")]
+    prefix = next((a.split("=", 1)[1] for a in sys.argv[1:] if a.startswith("--title=")), "R9")
+    proj, seed = Path(args[0]), int(args[1])
     strip = phys.compile_params
     rand = randomization(True, (0.7, 1.1), (0.95, 1.05))
     phys.compile_params = lambda d: {**strip(d), "randomization": rand}  # type: ignore[assignment]
@@ -42,7 +45,7 @@ def main() -> None:
     gen_params = lab.job_generator_params(g)
     overrides = [o for o in lab.state.overrides if o.enabled]
     doc = dict(g.role("model").params)
-    for item in sys.argv[3:]:
+    for item in args[2:]:
         case_name, rest = item.split("=", 1)
         prim_part, label = rest.rsplit("=", 1)
         key, _, prm = prim_part.partition(":")
@@ -64,19 +67,19 @@ def main() -> None:
         ro.save(rdir / "rollout.npz")
         scene = build_scene(dataclasses.replace(design, spec=spec), lab.state.layers, lab.state.settings)
         (rdir / "scene.json").write_text(json.dumps(scene), encoding="utf-8")
-        title = f"R9 play: {label} ({case_name}; {key} {prm or ''}), seed {seed}"
+        title = f"{prefix} play: {label} ({case_name}; {key} {prm or ''}), seed {seed}"
         lab.registry.save_run(RunRecord(
             id=sim_id, kind="sim", title=title, duration_s=time.perf_counter() - t, seed=seed, backend="local",
-            inputs={"what_if": {"case": case_name, **case, "note": "in-memory spec change; the genome and overrides "
-                                "stored here build the working body, not this one (ADR-100)"},
+            inputs={"what_if": {"case": case_name, **case, "note": NOTE if prefix != "R9" else "in-memory spec change; "
+                                "the genome and overrides stored here build the working body, not this one (ADR-100)"},
                     "primitive": {"key": key, "params": prim.params.model_dump(mode="json")}, "margin": MARGIN,
                     "judged": j, "speed_mm_s": round(speed, 1)},
-            genome=dict(design.genome.model_dump(mode="json")), overrides=[o.model_dump(mode="json") for o in overrides],
+            genome=dict((design.genome if prefix == "R9" else case_genome(design.genome, case)).model_dump(mode="json")), overrides=[o.model_dump(mode="json") for o in overrides],
             controller={"key": ckey, "params": cparams},
             metrics={"within_limits": j["within_limits"], "safety_margin": j["margin"], "fell": j["fell"],
                      "speed_mm_s": round(speed, 1)},
             artifacts={"rollout": f"runs/{sim_id}/rollout.npz", "scene": f"runs/{sim_id}/scene.json"},
-            tags=["R9", "what-if", "play"]))
+            tags=[prefix, "what-if", "play"]))
         print(f"{sim_id}  {label}: within {j['within_limits']} margin {j['margin']:+.2f} {speed:.0f} mm/s", flush=True)
     lab.close()
 

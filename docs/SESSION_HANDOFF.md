@@ -2,7 +2,8 @@
 
 Everything a new Claude Code session (or a new collaborator) needs to pick up
 CALFLAB. Last updated 2026-11-06 on branch `robot-calf-final` (cut from
-`chassis-mass`), after session R9 (up to four STS3250 C002 servos, in simulation only, ADR-100), section 4
+`chassis-mass`), after session R10 (a servo gene per joint pair; the carpus drive study, ADR-101), section 4
+"Session R10"; before it session R9 (up to four STS3250 C002 servos, in simulation only, ADR-100), section 4
 "Session R9"; before it sessions R7 (movement that varies within a movement, ADR-098) and R8 (faster joints, ADR-099),
 section 4 "Sessions R7 and R8"; before them session R (a body for vigorous movement; steps 1-2 of 6
 done, plus wider blocks and hip springs; steps 3-4 done; then redirected to behaviour diversity on the wide-block body: the first full run (ADR-094), session R6, three of its behaviours played for a minute (ADR-095), R6b, a coverage check that makes them hold for a minute (ADR-096), and R6c, durations capped at the checked length (ADR-097); section 4, "Session R", ADR-086..097); before it
@@ -1229,6 +1230,37 @@ catalogs, other component values and `verified` flags were not changed; nothing 
 * **Found:** the feral calf has one `actuator` gene for all ten servos, so a mixed body cannot be built yet. It
   needs a servo choice per pair: a genome change with a migration (next session R10).
 
+**Session R10 (2026-11-06; ADR-101): one servo model per joint pair; which carpus drive.** The working body
+(document values), catalogs, component values and `verified` flags were not changed; nothing installed.
+
+* **Genome v2** (`config/genes/feral_calf.yaml`):
+  * `servo_hip_abd`, `servo_stifle`, `servo_hock`, `servo_shoulder` and `servo_carpus` replace `actuator`, with a
+    v1 -> v2 migration.
+  * Unversioned document params that still hold a removed gene are upgraded wherever they are completed
+    (`migration(..., removes=...)`, `upgrade_unversioned`, called from `GenomeDefinition.complete`). They are
+    written as v2 on the next save (`Lab._commit`).
+  * The robot-calf-final document still says `actuator` on disk until its next edit.
+* **Bit-identical** to the previous code: spec, MJCF and masses for the default body, a v1 genome on the STS3250, and
+  the project's document, baked design and a run candidate (`tests/data/servo_fingerprints_r10.json`, written from
+  an archive of 7bc181a). The project test skips without the project folder.
+* Lab: the Mass tab's **Servos by joint** (`scene.mass.servos`, `mech.limits.joint_servos`); the Belts panel lists
+  the pairs on a mixed body. Seen in a scratch lab (`projects/_scratch-r10`, launch entry `calflab-r10`, port 8050).
+* Tests: `calflab test --py` gave ruff OK and 542 passed, 2 failed, both load-related. `test_physics` adapt passes
+  alone. `test_lift`'s 60 s wall-clock limit took 68-80 s while the study ran; it does not touch the genome. mypy
+  passes; web typecheck and eslint on the changed files pass; Vitest and Playwright were not run.
+* **Study** (`docs/studies/carpus_r10.md`; scripts `carpus_r10.py`, `carpus_r10_table.py`, `compare_r10.py`): 24
+  bodies with at most four new servos, plus a six-servo reference.
+  * No carpus drive keeps the calm behaviours with a fast trot, and no body keeps `lie_rise` within limits (the old
+    front shoulders bind; today too).
+  * 1:1 carpus and new hocks give the 0.5 s trot. The calm stance then goes over on the old servo's torque or, with
+    a new carpus, on the carpus belt's sustained tension.
+  * New hocks + carpi on 1:1 45T: 26 of 33 minutes, 418-425 mm/s, walk and turn over on two seeds. Stored as R10 runs.
+  * The same on the catalog's 40T/80T: 28 of 33, calm on 2 of 3 seeds (the rest over on the old shoulders), trot
+    0.8 s.
+* **Stored runs:** `R10 what-if (...) <label> ...` (33) and `R10 play: ...` (6); compare links in
+  `docs/studies/compare_r10.md`. **Restart the lab on 8020**: the running server has the v1 gene file and would
+  refuse Load/Simulate from an R10 run (replay works).
+
 **Scaffolded only (interfaces + tests, no behaviour):** PPO training, MJX
 simulator, RemoteSSH and CloudNotebook transports (job bundling is real),
 imitation reward, interactive selection, molds, skin patterns, nesting,
@@ -1565,7 +1597,7 @@ Journal, Rhino bridge):**
 |---|---|
 | `CLAUDE.md` | Conventions for every session (loaded automatically) |
 | `PLAN.md` | Architecture, module boundaries, data flow, phases, risks, status |
-| `DECISIONS.md` | ADR log: every assumption (100 so far) |
+| `DECISIONS.md` | ADR log: every assumption (101 so far) |
 | `docs/proposals/anatomical-leg.md` | Proposal for a three-segment leg (set aside 2026-10-04; not built) |
 | `docs/USER_GUIDE.md` | How to use the lab |
 | `docs/CHAT_GUIDE_PROMPT.md` | Prompt that makes a chat assistant a guide to the whole lab |
@@ -1581,7 +1613,24 @@ Journal, Rhino bridge):**
 
 Prefix each with the opening message from section 1.
 
-**R10. A body with two servo models, in the genome** (recommended next; written after R9, ADR-100.)
+**R11a. Choose the body, then make it the working body** (recommended next; written after R10, ADR-101.)
+> In projects/robot-calf-final, R10 (`docs/studies/carpus_r10.md`, ADR-101) showed that, with at most four STS3250
+> C002s, the carpus ratio decides between a fast trot (new hocks + carpi, carpi 1:1 on 45T/45T: 418 mm/s, 26 of 33
+> minutes) and calm stance (the same on the catalog's 40T/80T: 28 of 33, trot 0.8 s), and that the walk and turn
+> want new hip ab/ad servos too. I have chosen <body>. Show me first what changes (servo genes per pair, belts with
+> `set_belt_drive`, every belt check, the servo on its segment, masses), then make it the working body with undoable
+> commands. If it needs 45T pulleys, I will give you sources first: add them to the catalog unverified, masses null.
+> Re-run the R10 grid and R6c's / R7's behaviours on the real body and store them as runs. Do not change component
+> values or `verified` flags.
+
+**R11b. Lying down and rising within limits** (written after R10.)
+> In projects/robot-calf-final, `lie_rise` goes over on every body R10 tried (`docs/studies/carpus_r10.md`): the
+> front shoulders' sustained torque, at -3.0 today and -1.2 to -2.0 with new shoulders. In memory only, find what
+> brings it within limits: the primitive's own timing and depth (`phase_s`, `hold_s`, a kneel that moves load off the
+> shoulders), shoulder springs, or a belted shoulder. Report per lever the margin on three seeds and what it costs the
+> walk and the quick trot. Do not change the working body, component values or `verified` flags.
+
+**R10. A body with two servo models, in the genome** (done in session R10, ADR-101; kept for reference.)
 > In projects/robot-calf-final, R9 (`docs/studies/servos_r9.md`, ADR-100) found the best body with at most four
 > STS3250 C002s:
 > * new servos on the hip ab/ad and the hocks;

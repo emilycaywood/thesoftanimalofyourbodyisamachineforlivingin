@@ -72,6 +72,24 @@
       "port": 8030
     },
     {
+      "name": "calflab-r10",
+      "runtimeExecutable": "powershell",
+      "runtimeArgs": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "calflab.ps1",
+        "lab",
+        "--no-browser",
+        "--port",
+        "8050",
+        "--project",
+        "projects/_scratch-r10"
+      ],
+      "port": 8050
+    },
+    {
       "name": "calflab-q",
       "runtimeExecutable": "powershell",
       "runtimeArgs": [

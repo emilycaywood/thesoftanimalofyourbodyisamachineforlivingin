@@ -7,7 +7,10 @@ with each run is built from that what-if spec, so the Mass tab of the replay sho
 is the candidate's stored one (``perform_r6.py`` showed the re-run reproduces it).
 
 Run:  python docs/studies/perform_r9.py <project dir> <out.json> "<case>" [--seconds=60] [--seeds=0,1,2]
-          [--workers=7] <run id>:<candidate suffix>=<label> ...
+          [--workers=7] [--store=0] [--title=R10] <run id>:<candidate suffix>=<label> ...
+
+``--title=R10`` (session R10, ADR-101): runs titled ``R10 what-if ...``, and their stored genome has the case's servo
+and catalog belt genes, so Load or Simulate from one gives those (not R8's 45T what-ifs, which no gene holds).
 """
 from __future__ import annotations
 
@@ -72,12 +75,13 @@ def main() -> None:
     from calflab.model.overrides import Override
     from calflab.plugins import load_plugins
     from calflab.project.registry import RunRecord
-    from servos_r9 import parse_case, what_if
+    from servos_r9 import case_genome, parse_case, what_if
 
     proj, outp, case_name = Path(sys.argv[1]), Path(sys.argv[2]), sys.argv[3]
     opts = dict(a[2:].split("=", 1) for a in sys.argv[4:] if a.startswith("--"))
     picks = [a for a in sys.argv[4:] if not a.startswith("--")]
     seconds = float(opts.get("seconds", 60))
+    prefix = opts.get("title", "R9")  # R10: "R10" (ADR-101)
     load_plugins()
     lib = library()
     case = parse_case(case_name)
@@ -130,26 +134,33 @@ def main() -> None:
             rdir.mkdir(parents=True, exist_ok=True)
             shutil.move(r.pop("rollout"), rdir / "rollout.npz")
             (rdir / "scene.json").write_text(json.dumps(m["scene"]), encoding="utf-8")
-            title = (f"R9 what-if ({case_name}) {m['label']} {tuple(m['cell'] or [])}: {seconds:.0f} s, "
+            title = (f"{prefix} what-if ({case_name}) {m['label']} {tuple(m['cell'] or [])}: {seconds:.0f} s, "
                      f"seed {r['seed']}")
             lab.registry.save_run(RunRecord(
                 id=sim_id, kind="sim", title=title, duration_s=r["wall_s"], seed=r["seed"], backend="local",
                 inputs={"source": {"run": m["run"], "candidate": m["candidate"], "label": m["label"]},
-                        "what_if": {"case": case_name, **case, "note": "in-memory spec change; the genome and "
-                                    "overrides stored here build the working body, not this one (ADR-100)"},
+                        "what_if": {"case": case_name, **case, "note": NOTE if prefix != "R9" else "in-memory spec "
+                                    "change; the genome and overrides stored here build the working body, not this one "
+                                    "(ADR-100)"},
                         "seconds": seconds, "compile": m["copts"], "margin": m["margin"], "report": whole,
                         "first_24_s": r["first_24_s"], "windows": r["windows"]},
-                genome=m["genome"], overrides=m["overrides"], controller={"key": "interpreted", "params": m["ctrl"]},
+                genome=m["genome"] if prefix == "R9" else case_genome(Genome.model_validate(m["genome"]), case).model_dump(
+                    mode="json"), overrides=m["overrides"], controller={"key": "interpreted", "params": m["ctrl"]},
                 metrics={"within_limits": whole["within"], "safety_margin": whole["margin"], "closest": whole["closest"],
                          "fell": whole["fell"], "movement": r["movement"]},
                 artifacts={"rollout": f"runs/{sim_id}/rollout.npz", "scene": f"runs/{sim_id}/scene.json"},
-                parent=m["run"], tags=["R9", m["label"], "what-if"]))
+                parent=m["run"], tags=[prefix, m["label"], "what-if"]))
             m["seeds"].append({k: v for k, v in r.items()} | {"run": sim_id})
             print(f"{m['label']:12s} seed {r['seed']}: margin {whole['margin']:+.3f} closest {whole['closest']} "
                   f"({whole['closest_detail']}) within {whole['within']} fell {whole['fell']}; run {sim_id} "
                   f"({r['wall_s']:.0f} s; {time.perf_counter() - t:.0f} s total)", flush=True)
             save(outp, case_name, meta)
     lab.close()
+
+
+#: since R10 the stored genome carries the case's servos and catalog belts (ADR-101)
+NOTE = ("the genome stored here has this case's servos and catalog belts; R8's 45T and 30T/45T pulley what-ifs are "
+        "in-memory spec changes that no gene holds (ADR-101)")
 
 
 def save(outp: Path, case_name: str, meta: dict[str, Any]) -> None:

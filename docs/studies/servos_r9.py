@@ -20,8 +20,13 @@ Per play, besides R8's per-joint table: the peak belt tension per belted joint (
 tension and breaking strength), and the current the new servos draw (A at the servo: |servo torque| / (stall
 torque / stall current) + idle current; the C018 has no stall current, so its share is unknown).
 
+Session R10 (ADR-101): the new servos are now built through the genome's per-pair servo genes (``servo_<joint>``),
+not patched into the spec; the model is the same bit for bit (``tests/test_feral_calf.py``), only the servo geoms'
+labels lose R9's "[what-if: ...]". R8's pulley what-ifs may now be combined with a new servo on the same joint (R10
+asked for a new carpus servo on 1:1 and 1.5:1). Grid ``r10`` = the quick grid + walk + turn + ``lie_rise``.
+
 Run:  python docs/studies/servos_r9.py <project dir> <out.json> [--cases=a;b;...] [--seeds=0,1,2] [--workers=7]
-          [--grid=wide]
+          [--grid=wide|quick|r10]
 """
 from __future__ import annotations
 
@@ -82,17 +87,18 @@ def parse_case(name: str) -> dict[str, Any]:
     head, *puls = (p.strip() for p in name.split("|"))
     if head.startswith("new:"):  # any order of the joints
         head = "new: " + "+".join(sorted(head[4:].strip().split("+"), key=PAIRS.index))
-    case: dict[str, Any] = dict(assignments()[head]) if head in assignments() else {}
-    if head not in assignments():
+    if head.startswith("new: ") and head not in assignments():  # R10: three pairs, as an out-of-budget reference
+        joints = head[5:].split("+")
+        if not set(joints) <= set(PAIRS):
+            raise KeyError(f"unknown assignment {head!r}")
+        case: dict[str, Any] = {"new": joints}
+    elif head in assignments():
+        case = dict(assignments()[head])
+    else:
         raise KeyError(f"unknown assignment {head!r}")
     for pul in puls:
-        if pul in PULLEYS:
-            p = PULLEYS[pul]
-            clash = set(p.get("ratio", {})) & set(case.get("new", []))
-            if clash:
-                raise ValueError(f"{name}: R8's pulley what-ifs are for joints keeping the old servo, not {clash}")
-        else:
-            p = CATALOG[pul]
+        # R9 kept R8's pulley what-ifs to joints with the old servo, as its request put it; R10 lifts that
+        p = PULLEYS[pul] if pul in PULLEYS else CATALOG[pul]
         for k, v in p.items():
             case[k] = {**case.get(k, {}), **v}
     if volt is not None:
@@ -101,7 +107,8 @@ def parse_case(name: str) -> dict[str, Any]:
 
 
 def swapped(spec: Any, new: list[str], lib: Any) -> Any:
-    """The new servo on every actuator of the named joints (both sides): component and servo geom mass."""
+    """The new servo on every actuator of the named joints (both sides): component and servo geom mass. R9's in-memory
+    swap; since R10 ``what_if`` sets the servo genes instead (the same model, ``tests/test_feral_calf.py``)."""
     servo = lib.actuator(NEW)
     ids = set()
     for a in spec.actuators:
@@ -119,6 +126,21 @@ def swapped(spec: Any, new: list[str], lib: Any) -> Any:
     return spec
 
 
+def case_genome(genome: Any, case: dict[str, Any]) -> Any:
+    """The genome with the case's catalog belt choices and new servos set through the genes (R10, ADR-101). R8's
+    ratio and driver what-ifs (45T, 30T/45T) are not in any catalog, so no gene holds them: ``body`` applies them."""
+    from calflab.design import genome_definition
+    from calflab.model.migrations import migrate
+
+    genome = migrate(genome, genome_definition(genome.definition))
+    vals = dict(genome.values)
+    for drive, (pair, length) in (case.get("belts") or {}).items():
+        vals[f"belt_{drive}_pulleys"], vals[f"belt_{drive}_length"] = pair, length
+    for joint in case.get("new", []):
+        vals[f"servo_{joint}"] = NEW
+    return genome.model_copy(update={"values": vals})
+
+
 def what_if(design: Any, overrides: list[Any], generator: str, gen_params: dict[str, Any], case: dict[str, Any],
             lib: Any) -> Any:
     """The case's in-memory spec: catalog belt choices through the genes (real C and checks), R8's levers, then the
@@ -127,12 +149,8 @@ def what_if(design: Any, overrides: list[Any], generator: str, gen_params: dict[
 
     from joints_r8 import body
 
-    if case.get("belts"):
-        vals = dict(design.genome.values)
-        for drive, (pair, length) in case["belts"].items():
-            vals[f"belt_{drive}_pulleys"], vals[f"belt_{drive}_length"] = pair, length
-        design = dataclasses.replace(design, genome=design.genome.model_copy(update={"values": vals}))
-    spec = swapped(body(design, overrides, generator, gen_params, case), case.get("new", []), lib)
+    design = dataclasses.replace(design, genome=case_genome(design.genome, case))
+    spec = body(design, overrides, generator, gen_params, case)
     fer = spec.metadata.get("feral") or {}
     if fer.get("infeasible"):
         raise ValueError(f"{case}: the body cannot be built as asked: {fer['infeasible']}")
@@ -196,10 +214,11 @@ def belts_and_current(ro: Any, spec: Any, lib: Any) -> dict[str, Any]:
 
 
 def plays(grid: str) -> list[tuple[str, dict[str, Any]]]:
-    cycles = (0.4, 0.45, 0.5, 0.6, 0.8) if grid == "quick" else (0.5, 0.6, 0.8, 1.0, 1.2)
-    strides = (0.5, 1.0, 1.5, 2.0) if grid == "quick" else (0.5, 1.0, 1.5)
+    quick = grid in ("quick", "r10")
+    cycles = (0.4, 0.45, 0.5, 0.6, 0.8) if quick else (0.5, 0.6, 0.8, 1.0, 1.2)
+    strides = (0.5, 1.0, 1.5, 2.0) if quick else (0.5, 1.0, 1.5)
     out = [("trot", {"cycle_s": c, "stride": st, "lift": 0.6, "turn": 0.0}) for c in cycles for st in strides]
-    return out + [("walk", {}), ("turn", {})]
+    return out + [("walk", {}), ("turn", {})] + ([("lie_rise", {})] if grid == "r10" else [])
 
 
 def task(name: str, case: dict[str, Any], spec_json: str, doc: dict[str, Any], seed: int, grid: str) -> dict[str, Any]:
@@ -271,7 +290,8 @@ def main() -> None:
             ok = [f"{x['params'].get('cycle_s', '')}/{x['params'].get('stride', '')}" for x in r["rows"]
                   if x["primitive"] == "trot" and x["within"]]
             wt = {x["primitive"]: x["margin"] for x in r["rows"] if x["primitive"] != "trot"}
-            print(f"{r['name']:44s} seed {r['seed']}: trots within {ok}; walk {wt.get('walk')}, turn {wt.get('turn')} "
+            print(f"{r['name']:44s} seed {r['seed']}: trots within {ok}; walk {wt.get('walk')}, turn {wt.get('turn')}, "
+                  f"lie_rise {wt.get('lie_rise')} "
                   f"({r['wall_s']:.0f} s; {time.perf_counter() - t:.0f} s total)", flush=True)
             outp.write_text(json.dumps(out, separators=(",", ":"), default=float), encoding="utf-8")
 
