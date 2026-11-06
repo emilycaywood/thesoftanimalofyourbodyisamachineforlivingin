@@ -4,7 +4,7 @@
 import { create } from "zustand";
 import { useEffect, useMemo, useState } from "react";
 import { api } from "@/api/client";
-import type { ArchiveView, EvolveHistoryEntry } from "@/api/types";
+import type { ArchiveView, EvolveHistoryEntry, ServerTableView } from "@/api/types";
 import { SchemaForm } from "@/components/SchemaForm";
 import { Badge, Button, Empty, PanelScroll, Planned, Row, Section, fmt } from "@/components/ui";
 import { onLabEvent, useLab } from "@/store/lab";
@@ -468,6 +468,11 @@ export function ArchivePanel() {
             </div>
           )}
         </Section>
+        {archive.tables?.map((t) => (
+          <Section key={t.title} title={t.title}>
+            <ServerTable table={t} onPick={(id) => void useEvolve.getState().pick(id)} />
+          </Section>
+        ))}
         {candidate ? (
           <Section
             title="Selected candidate"
@@ -484,6 +489,7 @@ export function ArchivePanel() {
                 <span>{k}</span><span>{t.value.toFixed(2)} x {t.weight} = {t.weighted.toFixed(2)}</span>
               </div>
             ))}
+            {(candidate.metrics.hardware?.tables as ServerTableView[] | undefined)?.map((t) => <ServerTable key={t.title} table={t} />)}
             {candidate.metrics.seeds && <SeedTable seeds={candidate.metrics.seeds} aggregate={candidate.metrics.aggregate} />}
             {candidate.metrics.safety && <SafetyTable report={candidate.metrics.safety} />}
             <div className="mt-1 text-[10px] font-semibold text-dim uppercase">Lineage ({lineage.length})</div>
@@ -526,6 +532,36 @@ function duration_text(s: number): string {
   if (s < 90) return `${Math.round(s)} s`;
   if (s < 5400) return `${Math.round(s / 60)} min`;
   return `${(s / 3600).toFixed(1)} h`;
+}
+
+/** A table the server built (strings only); rows listed in `warn` are highlighted. With `candidates` and `onPick`,
+ *  clicking a row picks that candidate. */
+function ServerTable({ table, onPick }: { table: ServerTableView; onPick?: (candidateId: string) => void }) {
+  const titled = !onPick;
+  return (
+    <div className="mt-1 overflow-x-auto" data-testid="server-table">
+      {titled && <div className="text-[10px] font-semibold uppercase text-dim">{table.title}</div>}
+      <table className="w-full font-mono text-[10px]">
+        <thead>
+          <tr>{table.columns.map((c, i) => <th key={i} className="pr-2 text-left font-normal text-dim">{c}</th>)}</tr>
+        </thead>
+        <tbody>
+          {table.rows.map((r, i) => {
+            const id = table.candidates?.[i];
+            return (
+              <tr
+                key={i}
+                className={(table.warn.includes(i) ? "text-warn " : "") + (id && onPick ? "cursor-pointer hover:bg-bg" : "")}
+                onClick={() => { if (id && onPick) onPick(id); }}
+              >
+                {r.map((v, j) => <td key={j} className="pr-2 align-top">{v}</td>)}
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
 }
 
 interface SafetyRow { key: string; label: string; value: number | null; limit: number; violated: boolean; unknown: boolean; action: string; penalty: number; detail: string }

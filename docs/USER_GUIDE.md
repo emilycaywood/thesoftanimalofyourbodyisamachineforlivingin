@@ -1069,6 +1069,60 @@ case's servos and catalog belts, so *Load* or *Simulate* from one gives
 those servos; R8's 45T and 30T/45T pulleys are not in the catalog and no
 gene holds them, so those stay in memory only.
 
+#### Hardware chosen by the loads of behaviour (R11, ADR-102)
+
+Optimizer **MAP-Elites: hardware by behaviour loads** (`map_elites_hardware`)
+with fitness preset **hardware**. The body evolves together with its
+hardware: the servo of each joint pair (from the preset's `servo_choices`,
+library actuators only) and each belt drive as its three catalog ids (belt
+system, pulley pair, belt length). The centre distance is never chosen: it is
+derived when the body is built and every belt check runs. A body whose belt
+fails a check, or that needs more new servos than the budget (default four
+STS3250 C002s), is **rejected before anything is simulated**, recorded as
+*infeasible* with the reason, and never repaired. Geometry evolves as before
+(switch *Vary geometry*, *Vary servos*, *Vary belts* in the optimizer's
+settings).
+
+Each body plays, at margin 0.2 on three randomised seeds:
+
+* a **screen**: the quick trot grid (cycle 0.4-0.8 s x stride 0.5-2.0), the
+  walk, the turn and lie/rise. A play that fails on seed 0 is not repeated on
+  the others;
+* if its best screen play's worst-seed margin reaches -0.25, the **11 safe
+  behaviours of R6c and R7 for 60 s each**.
+
+Plays are cached per body (`<project>/.cache/hardware`), so a body seen again
+costs nothing. The archive's axes are **behaviour minutes held** (out of 33)
+and **fastest trot within limits** (mm/s). Within a cell, more headroom and
+lower hardware cost win. Under the fitness chart, the **Pareto front** lists
+the bodies that no other beats on minutes, trot speed and hardware cost;
+click a row to open that body.
+
+For the clicked candidate the panel shows, all computed by the server:
+*Servos per pair*, *Belt drives* (ids, ratio, derived C), *Binding limit per
+joint* (each limit's use, 1 = at the limit lowered by the margin, and how
+many plays that joint and limit stopped), the *Screen*, the *Behaviours*
+(seeds held, worst margin, closest limit) and *Hardware costs*: new servos
+against the budget, new pulley sizes (sizes the starting body does not use),
+new belt lengths, mass, servo current where the library has a stall current,
+parts not in a catalog, and every value that is unknown (the C018's stall
+current, the masses not entered). Unknowns are listed, never guessed.
+
+**What-if pulleys.** R8's 45T/45T and 30T/45T pairs are not in the catalog.
+Switch *What if pulleys* on to offer them; they appear as
+`45T-45T-whatif` / `30T-45T-whatif`, are flagged in every table and add to
+the cost index. A body with them cannot be loaded into the document (the
+project catalog does not have them). The preset's seed bodies (R9's best,
+R10's 1:1 45T and 40T/80T bodies) are judged in the first generation; the
+two that need 45T are skipped unless what-ifs are on.
+
+**Cost.** *Estimate cost* with this preset counts the screen and the
+behaviours per body (about 1 CPU-minute for a screen and 10-15 more for the
+behaviours, divided over the workers). Start with a few generations.
+From a script, `docs/studies/hardware_r11.py <project> estimate|seeds|trial|table`
+runs the same through the lab, with the preset passed by name so the
+document is not changed (`run_evolve ... preset=hardware`).
+
 #### Proportions: comparing bodies instead of finding one
 
 The lab has three ways to look for a better body or gait:

@@ -461,6 +461,18 @@ export interface ArchiveView {
     descriptors: Record<string, number>;
     speed_mps: number | null;
   }[];
+  /** ready-to-show tables built by the server (e.g. the hardware run's Pareto front, ADR-102) */
+  tables?: ServerTableView[];
+}
+
+/** A table the server built for display: strings only, rows in `warn` are highlighted; `candidates` (optional) are
+ *  the candidate ids of the rows, in order, so a row can be picked. No logic in the web (ADR-102). */
+export interface ServerTableView {
+  title: string;
+  columns: string[];
+  rows: string[][];
+  warn: number[];
+  candidates?: string[];
 }
 
 export interface EvolveHistoryEntry {

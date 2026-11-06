@@ -1415,10 +1415,13 @@ class RunEvolve(Command):
         backend: str = P("", desc="Compute backend key (empty = current).")
         sim: dict[str, Any] = P(default_factory=dict, ui="json", desc="Simulation overrides for evaluation rollouts.")
         design: str = P("", desc="Baked design to start from (empty = the working document).")
+        preset: str = P("", desc="Fitness preset to use (empty = the document's fitness node; the document is not "
+                                  "changed). The hardware optimizer needs 'hardware'.")
 
     def run(self, lab: Any, state: DocumentState) -> Any:
         p = self.params
-        job = lab.run_evolve(p.optimizer, p.params, p.backend or None, p.sim, p.design or None)  # type: ignore[attr-defined]
+        job = lab.run_evolve(p.optimizer, p.params, p.backend or None, p.sim, p.design or None,  # type: ignore[attr-defined]
+                             p.preset or None)
         return {"job": job.id, "run_id": job.result.get("run_id")}
 
 

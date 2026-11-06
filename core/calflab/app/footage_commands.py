@@ -361,10 +361,13 @@ class EstimateEvolve(Command):
         optimizer: str = P("map_elites_cma", desc="Optimizer plugin key.")
         params: dict[str, Any] = P(default_factory=dict, ui="json", desc="Optimizer parameters (partial).")
         sim: dict[str, Any] = P(default_factory=dict, ui="json", desc="Simulation settings (partial).")
+        preset: str = P("", desc="Fitness preset (empty = the document's).")
+        pass_rate: float = P(0.5, ge=0.0, le=1.0, desc="Hardware preset: share of bodies assumed to pass the screen.")
 
     def run(self, lab: Any, state: Any) -> Any:
         p = self.params
         try:
-            return lab.estimate_evolve(p.optimizer, dict(p.params), dict(p.sim))  # type: ignore[attr-defined]
+            return lab.estimate_evolve(p.optimizer, dict(p.params), dict(p.sim), p.preset or None,  # type: ignore[attr-defined]
+                                       p.pass_rate)
         except Exception as exc:
             raise _err(f"estimate_evolve: {exc}") from exc
