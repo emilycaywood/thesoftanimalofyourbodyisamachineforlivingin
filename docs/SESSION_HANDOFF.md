@@ -1613,7 +1613,62 @@ Journal, Rhino bridge):**
 
 Prefix each with the opening message from section 1.
 
-**R11a. Choose the body, then make it the working body** (recommended next; written after R10, ADR-101.)
+**R11. Hardware chosen by the loads of behaviour** (recommended next; the researcher's direction after R10,
+ADR-101. Supersedes R11a and R11b below, which are kept for reference.)
+> In projects/robot-calf-final, R9 and R10 (`docs/studies/servos_r9.md`, `carpus_r10.md`, ADR-100, ADR-101) chose
+> servos and pulleys by hand. Each choice moved the binding limit somewhere else: carpus speed, carpus torque, carpus
+> belt tension, the hip ab/ad, the front shoulders. I want the hardware logic and the loads that behaviour puts on
+> the body to drive body evolution and selection, so the search finds these trade-offs itself.
+>
+> Body search space (the body evolves; selection uses the loads from behaviour):
+> * the servo gene per joint pair (`servo_<joint>`, catalog actuators only);
+> * each belt drive as catalog ids only: belt system, pulley pair, belt length. C is derived; every check runs and a
+>   failing choice is rejected, never clamped (ADR-063, ADR-070);
+> * the geometry genes that are already evolvable.
+>
+> This revises the rule that evolution never varies belts or servos. Record that as an ADR. Do not touch the rule
+> that C is never a gene.
+>
+> Hardware logic as constraints and costs, read from the catalogs and component library, never invented:
+> * a budget of new servos (default at most four STS3250 C002s, a parameter);
+> * the number of distinct new pulley sizes;
+> * mass;
+> * the servos' current where it is known;
+> * whether every part is in a catalog. Unknown values (null masses, the C018's missing stall current) are reported
+>   as unknown, not guessed.
+> R8's 45T and 30T/45T what-ifs are not in the catalog: offer them only as an option I switch on, flagged as what-ifs.
+>
+> Loads from behaviour: judge each body by playing a behaviour suite. Use the analysis that already exists
+> (`calflab.mech.loads`, `behave.interpret.judge`, the R6c coverage and capped durations), with every limit at margin
+> 0.2 on three randomised seeds:
+> * the quick trot grid, the walk, the turn and `lie_rise`;
+> * R6c's and R7's safe behaviours for 60 s.
+> Selection uses:
+> * which behaviours stay within limits, and their headroom;
+> * trot speed within limits;
+> * per joint, which limit binds (speed, sustained torque, sustained belt tension, envelope);
+> * the costs above.
+> Prefer a Pareto archive or MAP-Elites over one weighted number. Suggested axes: behaviour minutes held x fastest
+> trot within limits, with hardware cost as a constraint or a third view. Show per body which joint and which limit
+> stop it, so I can read the trade-offs.
+>
+> Cost: R10 took about 5 min of 7 workers per body for the full suite. Screen with the trot grid, walk, turn and
+> `lie_rise` first, and play the 60 s behaviours only on bodies that pass a screen. Cache plays per body. Estimate
+> the run's cost and let me choose the budget before the full run. Start with a trial of a few generations.
+>
+> Build it in the core as a fitness preset and optimizer option (as `vigour` and `diversity` are), with tests:
+> * a contract test;
+> * a determinism test;
+> * a test that a rejected belt choice never reaches a rollout;
+> * a test that the servo budget is respected.
+> The Evolve panel must show the hardware genes of each candidate and the binding limit per joint (server payload, no
+> logic in the web). Seed the search with R9's best and R10's two bodies (new hocks + carpi on 1:1 45T, and on
+> 40T/80T). Compare the archive with them. Store the best bodies' plays as runs with compare.html links against
+> today's body.
+>
+> Do not change the working body, component values, `verified` flags or the catalogs. Ask me before any of those.
+
+**R11a. Choose the body, then make it the working body** (written after R10, ADR-101; superseded by R11.)
 > In projects/robot-calf-final, R10 (`docs/studies/carpus_r10.md`, ADR-101) showed that, with at most four STS3250
 > C002s, the carpus ratio decides between a fast trot (new hocks + carpi, carpi 1:1 on 45T/45T: 418 mm/s, 26 of 33
 > minutes) and calm stance (the same on the catalog's 40T/80T: 28 of 33, trot 0.8 s), and that the walk and turn
@@ -1623,7 +1678,7 @@ Prefix each with the opening message from section 1.
 > Re-run the R10 grid and R6c's / R7's behaviours on the real body and store them as runs. Do not change component
 > values or `verified` flags.
 
-**R11b. Lying down and rising within limits** (written after R10.)
+**R11b. Lying down and rising within limits** (written after R10; folded into R11, where `lie_rise` is in the suite.)
 > In projects/robot-calf-final, `lie_rise` goes over on every body R10 tried (`docs/studies/carpus_r10.md`): the
 > front shoulders' sustained torque, at -3.0 today and -1.2 to -2.0 with new shoulders. In memory only, find what
 > brings it within limits: the primitive's own timing and depth (`phase_s`, `hold_s`, a kneel that moves load off the
