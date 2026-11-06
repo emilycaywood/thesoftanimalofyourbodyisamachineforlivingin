@@ -3603,6 +3603,22 @@ primitive level, as evolvable genes of the generator, every variation inside wha
 *Cost:* trial `20261105-221316-evolve-c71d` (2 x 14, 210 s, of which about 70 s finding start settings). The
 researcher chose 40 x 28.
 
+*First run* (`20261105-221840-evolve-02e3`, 40 x 28 from random generators, 2780 s): **no safe cell.** 1120
+candidates, 29 passed their three seeds, every one went over a limit in a forced play (sustained servo torque
+21, joint speed 8, belt 7). What the study found (`docs/studies/variation_r7.md`):
+* the forced plays had put *every* state into its extremes, not only the one checked. **Changed:** only the
+  forced state plays its extremes (`extremes_state`, faded in and out with the cross-fade); the states before and
+  after draw, as in a performance. Re-judged, the 29 are still unsafe (margins mostly better);
+* the same 29 without their variation genes are unsafe too: the search had not found sequences whose every
+  forced play holds (R6c: 4 of 20 in 53 genes; here 87 genes, each mutated);
+* nothing in the fitness rewarded variation. **Added:** `variation_weight` x `variation_amount` (0-1: per state
+  the mean of drift x axis weight, noise, tempo and amplitude over their largest values, weighted by the
+  stationary share, 3/4; the switch slack and cross-fade variation, 1/4). Default 0, so earlier runs score as
+  before;
+* R6c's four safe generators with every variation gene at 10 % of its range all stay safe with coverage at the
+  extremes; at 30 % all four go over on their seeds. **Added:** `start_vectors` (and `start_within`): a run may
+  start from given generators, padded with variation genes.
+
 ## ADR-099 — Faster joints: what binds per joint, and which levers buy a 0.6 s trot (**VERIFY**)
 
 *Context.* Session R8. The trot is within the limits only at a 1.2 s cycle (77 mm/s); joint speed is the wall
