@@ -42,6 +42,9 @@ class EvaluationSettings(BaseModel):
     #: score a body on a suite of motions, each tuned for it, instead of one controller
     #: (calflab.evolve.vigour.SuiteSettings; ADR-090); None = not used
     suite: dict[str, Any] | None = None
+    #: judge a body and its hardware (servo per pair, belt drives) by the loads of a behaviour suite
+    #: (calflab.evolve.hardware.HardwareSettings; ADR-102); None = not used
+    hardware: dict[str, Any] | None = None
 
 
 class FitnessPreset(BaseModel):

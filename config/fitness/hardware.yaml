@@ -1,0 +1,70 @@
+# Fitness preset: hardware chosen by the loads of behaviour (session R11, ADR-102).
+# Use it with the optimizer `map_elites_hardware`. The body evolves with its servo per joint pair and its belt
+# drives (catalog ids only; C derived; a failing choice is rejected, never clamped). Each body is screened (the quick
+# trot grid, walk, turn, lie_rise), then the safe behaviours of R6c and R7 are played for 60 s on every seed
+# if it passes. Every limit at margin 0.2, three randomised seeds. Archive axes: behaviour minutes held x fastest
+# trot within limits; the hardware cost is a constraint (servo budget) and a third view (Pareto front).
+# Bump `version` whenever you change it.
+name: hardware
+version: 1
+description: >
+  Judge a body and its hardware (servo per joint pair, belt drives from the catalog) by the loads a behaviour suite
+  puts on it, at margin 0.2 on three randomised seeds: the quick trot grid, walk, turn and lie_rise as a
+  screen, then R6c's and R7's safe behaviours for 60 s. Fitness within a cell = headroom minus 0.1 x a hardware
+  cost index; at most four new STS3250 C002s.
+terms:
+  - {term: survival, weight: 0.0}   # recorded only; the hardware evaluation computes the fitness (ADR-102)
+evaluation:
+  seeds: [0, 1, 2]
+  randomize: true
+  friction: [0.7, 1.1]
+  mass_scale: [0.95, 1.05]
+  aggregate: worst
+  torque_derating: 1.0
+  servo_model: torque_speed
+  hardware:
+    margin: 0.2
+    servo_choices: [sts3215_c018, sts3250_c002]
+    servo_budget: {sts3250_c002: 4}
+    drives: [stifle, hock, carpus]
+    belt_systems: null          # every catalog system that has a pulley pair of its pitch
+    trot_cycles_s: [0.4, 0.45, 0.5, 0.6, 0.8]
+    trot_strides: [0.5, 1.0, 1.5, 2.0]
+    trot_lift: 0.6
+    screen_extra: [walk, turn, lie_rise]
+    screen_min_held: 0
+    screen_min_margin: -0.25   # R10: screen margins do not predict the minutes (ADR-102)
+    performance_s: 60
+    performances:               # R6c's and R7's safe behaviours (as R9 and R10 played them)
+      - {label: R6c-calm, ref: "20261105-053201-evolve-e4c8:g002-016"}
+      - {label: R6c-lively, ref: "20261105-053201-evolve-e4c8:g018-025"}
+      - {label: R6c-walking, ref: "20261105-053201-evolve-e4c8:g013-008"}
+      - {label: R6c-trotting, ref: "20261105-053201-evolve-e4c8:g012-026"}
+      - {label: R7-calm, ref: "20261105-232649-evolve-4237:g000-000"}
+      - {label: R7-ambling, ref: "20261105-232649-evolve-4237:g009-004"}
+      - {label: R7-lively, ref: "20261105-232649-evolve-4237:g000-001"}
+      - {label: R7-walking, ref: "20261105-232649-evolve-4237:g008-000"}
+      - {label: R7-trot-walk, ref: "20261105-232649-evolve-4237:g006-013"}
+      - {label: R7-trot-shift, ref: "20261105-232649-evolve-4237:g001-015"}
+      - {label: R7-trotting, ref: "20261105-232649-evolve-4237:g000-003"}
+    cost_weights: {servos: 1.0, pulley_sizes: 0.25, what_if: 0.5, mass_kg: 1.0}
+    cost_weight: 0.1
+    seeds_bodies:               # R9's best and R10's two bodies (ADR-100, ADR-101); 45T needs what_if_pulleys
+      - label: R9 best
+        note: "new hip ab/ad + hocks; carpus 1:1 45T (what-if); stifle 40T/80T 444; hock 40T/80T 400"
+        values: {servo_hip_abd: sts3250_c002, servo_hock: sts3250_c002,
+                 belt_carpus_pulleys: 45T-45T-whatif, belt_carpus_length: GT2-2mm-640-C,
+                 belt_stifle_pulleys: 40T-80T, belt_stifle_length: GT2-2mm-444-C,
+                 belt_hock_pulleys: 40T-80T, belt_hock_length: GT2-2mm-400-C}
+      - label: R10 1:1 45T
+        note: "new hocks + carpi; carpus 1:1 45T (what-if); stifle 40T/80T 444; hock 40T/80T 400"
+        values: {servo_hock: sts3250_c002, servo_carpus: sts3250_c002,
+                 belt_carpus_pulleys: 45T-45T-whatif, belt_carpus_length: GT2-2mm-640-C,
+                 belt_stifle_pulleys: 40T-80T, belt_stifle_length: GT2-2mm-444-C,
+                 belt_hock_pulleys: 40T-80T, belt_hock_length: GT2-2mm-400-C}
+      - label: R10 40T/80T
+        note: "new hocks + carpi; carpus 40T/80T 640; stifle 40T/80T 444; hock 40T/80T 400 (all in the catalog)"
+        values: {servo_hock: sts3250_c002, servo_carpus: sts3250_c002,
+                 belt_carpus_pulleys: 40T-80T, belt_carpus_length: GT2-2mm-640-C,
+                 belt_stifle_pulleys: 40T-80T, belt_stifle_length: GT2-2mm-444-C,
+                 belt_hock_pulleys: 40T-80T, belt_hock_length: GT2-2mm-400-C}

@@ -663,8 +663,12 @@ class Lab:
         backend: str | None = None,
         sim: dict[str, Any] | None = None,
         design: str | None = None,
+        preset_name: str | None = None,
     ) -> Job:
         """Start an optimization run.
+
+        ``preset_name`` names a fitness preset to use instead of the document's fitness node (the document is not
+        changed; ADR-102).
 
         It starts from the working document, or from the baked design
         ``design``: then body and gait (genome, generator and model settings,
@@ -725,9 +729,12 @@ class Lab:
         if fixed:
             raise LabError(f"These genes cannot be evolved: {', '.join(fixed)}. Only numeric genes marked evolvable can; "
                            "catalog choices such as the belt drives stay as they are in every candidate (ADR-070).")
-        preset = presets().get(str(g.role("fitness").params.get("preset")))
+        preset = presets().get(str(preset_name or g.role("fitness").params.get("preset")))
         if preset is None:
             raise LabError("The fitness node has no valid preset")
+        varies_hardware = bool(getattr(opt, "varies_hardware", False))
+        if varies_hardware and (preset.evaluation is None or preset.evaluation.hardware is None):
+            raise LabError(f"Optimizer {optimizer!r} needs a fitness preset with evaluation.hardware (preset 'hardware')")
         ctrl = self._role_output("controller", "controller", g, state)
         sim_params = {**g.role("simulation").params, **(sim or {})}
         job_gen_params = self.job_generator_params(g)
@@ -761,9 +768,10 @@ class Lab:
             only = list(getattr(opt.params, "genes", []) or []) or None
             job.report(0.0, "checking which geometry keeps the belts valid")
             try:
-                scan = feasible_bounds(start_design.genome, [o for o in state.overrides if o.enabled],
-                                       g.role("design").type.split(":", 1)[1], g.role("design").params, self.project.path,
-                                       gdef_start.evolvable(only), cancelled=job.cancelled)
+                # the scan assumes the starting belts; with the hardware evolving a failing body is rejected instead
+                scan = {} if varies_hardware else feasible_bounds(
+                    start_design.genome, [o for o in state.overrides if o.enabled], g.role("design").type.split(":", 1)[1],
+                    g.role("design").params, self.project.path, gdef_start.evolvable(only), cancelled=job.cancelled)
             except ValueError as exc:
                 raise LabError(str(exc)) from exc
             for gene, b in scan.items():
@@ -779,6 +787,14 @@ class Lab:
                 job.report(0.01, "measuring the gaits' reference speeds; reading the interpretation")
                 fitness_dump = self.prepare_suite(fitness_dump, start_design)
                 record.inputs["suite"] = fitness_dump["evaluation"]["suite"]
+                self.registry.save_run(record)
+            if preset.evaluation is not None and preset.evaluation.hardware is not None:  # ADR-102
+                job.report(0.01, "reading the behaviours' controllers")
+                fitness_dump = self.prepare_hardware(fitness_dump)
+                record.inputs["hardware"] = {k: v for k, v in fitness_dump["evaluation"]["hardware"].items()
+                                             if k != "performances"}
+                record.inputs["hardware"]["performances"] = [
+                    {"label": q["label"], "ref": q["ref"]} for q in fitness_dump["evaluation"]["hardware"]["performances"]]
                 self.registry.save_run(record)
             problem = EvolveProblem(
                 genome=start_design.genome.model_dump(mode="json"),
@@ -846,6 +862,29 @@ class Lab:
         job.result = {"run_id": run_id}
         return job
 
+    def prepare_hardware(self, fitness: dict[str, Any]) -> dict[str, Any]:
+        """A hardware preset with its performances' controllers read from their runs' candidates and the per-body
+        play cache set (ADR-102). A missing run or candidate stops the run with its name."""
+        from calflab.evolve.hardware import HardwareSettings
+
+        ev = dict(fitness["evaluation"])
+        hw = HardwareSettings.model_validate(ev["hardware"])
+        for perf in hw.performances:
+            if perf.controller is not None:
+                continue
+            run_id, _, suffix = perf.ref.partition(":")
+            try:
+                cands = self.registry.list_candidates(run_id)
+            except Exception as exc:
+                raise LabError(f"Behaviour {perf.label!r}: run {run_id} cannot be read: {exc}") from exc
+            cand = next((c for c in cands if str(c.get("id", "")).endswith(suffix)), None)
+            if cand is None:
+                raise LabError(f"Behaviour {perf.label!r}: run {run_id} has no candidate ending in {suffix!r}")
+            perf.controller = dict(cand["controller"])
+        hw.cache_dir = str(Path(self.project.path) / ".cache" / "hardware")
+        ev["hardware"] = hw.model_dump(mode="json")
+        return {**fitness, "evaluation": ev}
+
     def prepare_suite(self, fitness: dict[str, Any], design: Any) -> dict[str, Any]:
         """A vigour preset's suite with its targets filled in (ADR-090): the gaits' reference speeds on ``design``
         and the read behaviours of the interpretation run, plus the per-body play cache."""
@@ -872,7 +911,8 @@ class Lab:
         return {**fitness, "evaluation": ev}
 
     def estimate_evolve(self, optimizer: str = "map_elites_cma", params: dict[str, Any] | None = None,
-                        sim: dict[str, Any] | None = None) -> dict[str, Any]:
+                        sim: dict[str, Any] | None = None, preset_name: str | None = None,
+                        pass_rate: float = 0.5) -> dict[str, Any]:
         """CPU cost of an evolution before starting it (ADR-079): one short rollout of the working design is
         timed, then scaled by the number of rollouts (generations x batch x (1 + inner iterations x popsize) x the
         preset's seeds) and divided by the workers. Also a small budget to try first."""
@@ -891,7 +931,7 @@ class Lab:
         cls = registry.get("optimizer", optimizer)
         p = cls.Params.model_validate({**{k: v for k, v in evo.items() if k in cls.Params.model_fields}, **(params or {})})
         sim_p = {**g.role("simulation").params, **evo_sim, **(sim or {})}
-        preset = presets().get(str(g.role("fitness").params.get("preset")))
+        preset = presets().get(str(preset_name or g.role("fitness").params.get("preset")))
         seeds = len(preset.evaluation.seeds) if preset is not None and preset.evaluation is not None else 1
         design = self.design()
         ctrl = self._role_output("controller", "controller", g, self.state)
@@ -914,6 +954,24 @@ class Lab:
             return {"generations": gens, "batch_size": batch, "inner_iterations": iters, "inner_popsize": pop,
                     "rollouts": rollouts, "cpu_s": round(rollouts * duration * per_sim_s, 1), "wall_s": round(secs, 1)}
 
+        hw_cfg = preset.evaluation.hardware if preset is not None and preset.evaluation is not None else None
+        if hw_cfg is not None:  # screen + performances per body (ADR-102)
+            from calflab.evolve.hardware import HardwareSettings
+            from calflab.evolve.hardware import estimate as hw_estimate
+
+            hw = HardwareSettings.model_validate(hw_cfg)
+            gens, batch = int(getattr(p, "generations", 1)), int(getattr(p, "batch_size", 1))
+            full_hw = hw_estimate(hw, seeds, per_sim_s, workers, gens, batch, pass_rate)
+            small_hw = hw_estimate(hw, seeds, per_sim_s, workers, 2, min(4, batch), pass_rate)
+            return {"run": {**full_hw, "generations": gens, "batch_size": batch, "rollouts": None},
+                    "small": {**small_hw, "generations": 2, "batch_size": min(4, batch), "inner_iterations": 0,
+                              "inner_popsize": 0, "rollouts": None},
+                    "seeds": seeds, "workers": workers, "rollout_s": hw.performance_s,
+                    "seconds_per_simulated_second": round(per_sim_s, 4), "preset": preset.ref if preset else None,
+                    "note": (f"Measured on one {probe_s:g} s rollout of the working design. Per body: the screen "
+                             f"(~{full_hw['body_cpu_s_screen']:.0f} CPU-s), then {len(hw.performances)} behaviours x "
+                             f"{seeds} seeds of {hw.performance_s:g} s if it passes (~{full_hw['body_cpu_s_full']:.0f} "
+                             f"CPU-s in all); assumes {pass_rate:.0%} pass. Cached plays cost nothing.")}
         suite_cfg = preset.evaluation.suite if preset is not None and preset.evaluation is not None else None
         if suite_cfg is not None:  # a suite of motions per body (ADR-090): plays, not one controller's rollouts
             from calflab.evolve.vigour import SuiteSettings, suite_plays
