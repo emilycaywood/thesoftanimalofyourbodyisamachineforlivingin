@@ -106,6 +106,24 @@
         "projects/_scratch-q"
       ],
       "port": 8040
+    },
+    {
+      "name": "calflab-r11",
+      "runtimeExecutable": "powershell",
+      "runtimeArgs": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "calflab.ps1",
+        "lab",
+        "--no-browser",
+        "--port",
+        "8060",
+        "--project",
+        "projects/robot-calf-final"
+      ],
+      "port": 8060
     }
   ]
 }

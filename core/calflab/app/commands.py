@@ -1420,8 +1420,8 @@ class RunEvolve(Command):
 
     def run(self, lab: Any, state: DocumentState) -> Any:
         p = self.params
-        job = lab.run_evolve(p.optimizer, p.params, p.backend or None, p.sim, p.design or None,  # type: ignore[attr-defined]
-                             p.preset or None)
+        job = lab.run_evolve(p.optimizer, p.params, p.backend or None, p.sim,  # type: ignore[attr-defined]
+                             p.design or None, p.preset or None)  # type: ignore[attr-defined]
         return {"job": job.id, "run_id": job.result.get("run_id")}
 
 

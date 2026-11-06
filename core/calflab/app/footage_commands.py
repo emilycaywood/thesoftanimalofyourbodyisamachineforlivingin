@@ -367,7 +367,7 @@ class EstimateEvolve(Command):
     def run(self, lab: Any, state: Any) -> Any:
         p = self.params
         try:
-            return lab.estimate_evolve(p.optimizer, dict(p.params), dict(p.sim), p.preset or None,  # type: ignore[attr-defined]
-                                       p.pass_rate)
+            return lab.estimate_evolve(p.optimizer, dict(p.params), dict(p.sim),  # type: ignore[attr-defined]
+                                       p.preset or None, p.pass_rate)  # type: ignore[attr-defined]
         except Exception as exc:
             raise _err(f"estimate_evolve: {exc}") from exc

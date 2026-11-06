@@ -1,0 +1,272 @@
+{
+ "20261106-045624-evolve-59fd-g000-001": {
+  "label": "R10-40T80T",
+  "run": "20261106-045624-evolve-59fd",
+  "plays": [
+   {
+    "label": "R6c-lively",
+    "seed": 0,
+    "run": "20261106-051644-sim-a495",
+    "within": true,
+    "margin": 0.3913,
+    "closest": "joint_speed"
+   },
+   {
+    "label": "R6c-calm",
+    "seed": 1,
+    "run": "20261106-051644-sim-322f",
+    "within": false,
+    "margin": -0.16,
+    "closest": "servo_sustained"
+   },
+   {
+    "label": "R6c-lively",
+    "seed": 1,
+    "run": "20261106-051645-sim-e448",
+    "within": true,
+    "margin": 0.3934,
+    "closest": "joint_speed"
+   },
+   {
+    "label": "R6c-calm",
+    "seed": 0,
+    "run": "20261106-051645-sim-6dbb",
+    "within": true,
+    "margin": 0.4,
+    "closest": "servo_sustained"
+   },
+   {
+    "label": "R6c-lively",
+    "seed": 2,
+    "run": "20261106-051645-sim-2b50",
+    "within": true,
+    "margin": 0.3913,
+    "closest": "joint_speed"
+   },
+   {
+    "label": "R6c-calm",
+    "seed": 2,
+    "run": "20261106-051645-sim-839a",
+    "within": true,
+    "margin": 0.2402,
+    "closest": "envelope"
+   },
+   {
+    "label": "R6c-walking",
+    "seed": 0,
+    "run": "20261106-051645-sim-53a9",
+    "within": true,
+    "margin": 0.2873,
+    "closest": "joint_speed"
+   },
+   {
+    "label": "R6c-walking",
+    "seed": 2,
+    "run": "20261106-051714-sim-cdba",
+    "within": false,
+    "margin": -0.6,
+    "closest": "servo_sustained"
+   },
+   {
+    "label": "R6c-trotting",
+    "seed": 0,
+    "run": "20261106-051714-sim-aa75",
+    "within": true,
+    "margin": 0.04,
+    "closest": "servo_sustained"
+   },
+   {
+    "label": "R6c-walking",
+    "seed": 1,
+    "run": "20261106-051714-sim-1b84",
+    "within": true,
+    "margin": 0.2,
+    "closest": "servo_sustained"
+   },
+   {
+    "label": "R6c-trotting",
+    "seed": 1,
+    "run": "20261106-051714-sim-77e6",
+    "within": true,
+    "margin": 0.0,
+    "closest": "servo_sustained"
+   },
+   {
+    "label": "R6c-trotting",
+    "seed": 2,
+    "run": "20261106-051715-sim-3d79",
+    "within": true,
+    "margin": 0.04,
+    "closest": "servo_sustained"
+   },
+   {
+    "label": "R7-calm",
+    "seed": 0,
+    "run": "20261106-051715-sim-4a18",
+    "within": true,
+    "margin": 0.28,
+    "closest": "servo_sustained"
+   },
+   {
+    "label": "R7-calm",
+    "seed": 1,
+    "run": "20261106-051716-sim-5c3b",
+    "within": false,
+    "margin": -0.16,
+    "closest": "servo_sustained"
+   },
+   {
+    "label": "R7-ambling",
+    "seed": 0,
+    "run": "20261106-051745-sim-084f",
+    "within": true,
+    "margin": 0.362,
+    "closest": "joint_speed"
+   },
+   {
+    "label": "R7-calm",
+    "seed": 2,
+    "run": "20261106-051745-sim-52ce",
+    "within": true,
+    "margin": 0.2281,
+    "closest": "envelope"
+   },
+   {
+    "label": "R7-ambling",
+    "seed": 1,
+    "run": "20261106-051745-sim-f2e1",
+    "within": true,
+    "margin": 0.3565,
+    "closest": "joint_speed"
+   },
+   {
+    "label": "R7-ambling",
+    "seed": 2,
+    "run": "20261106-051745-sim-b70c",
+    "within": true,
+    "margin": 0.3351,
+    "closest": "joint_speed"
+   },
+   {
+    "label": "R7-lively",
+    "seed": 0,
+    "run": "20261106-051745-sim-3404",
+    "within": true,
+    "margin": 0.3696,
+    "closest": "joint_speed"
+   },
+   {
+    "label": "R7-lively",
+    "seed": 1,
+    "run": "20261106-051747-sim-edee",
+    "within": true,
+    "margin": 0.16,
+    "closest": "servo_sustained"
+   },
+   {
+    "label": "R7-lively",
+    "seed": 2,
+    "run": "20261106-051747-sim-e230",
+    "within": true,
+    "margin": 0.3745,
+    "closest": "joint_speed"
+   },
+   {
+    "label": "R7-walking",
+    "seed": 0,
+    "run": "20261106-051812-sim-3956",
+    "within": false,
+    "margin": -0.84,
+    "closest": "servo_sustained"
+   },
+   {
+    "label": "R7-walking",
+    "seed": 1,
+    "run": "20261106-051812-sim-41c0",
+    "within": true,
+    "margin": 0.32,
+    "closest": "servo_sustained"
+   },
+   {
+    "label": "R7-walking",
+    "seed": 2,
+    "run": "20261106-051812-sim-d272",
+    "within": true,
+    "margin": 0.32,
+    "closest": "servo_sustained"
+   },
+   {
+    "label": "R7-trot-walk",
+    "seed": 0,
+    "run": "20261106-051813-sim-8be7",
+    "within": true,
+    "margin": 0.2011,
+    "closest": "joint_speed"
+   },
+   {
+    "label": "R7-trot-walk",
+    "seed": 1,
+    "run": "20261106-051813-sim-296c",
+    "within": true,
+    "margin": 0.2,
+    "closest": "servo_sustained"
+   },
+   {
+    "label": "R7-trot-shift",
+    "seed": 0,
+    "run": "20261106-051814-sim-802c",
+    "within": true,
+    "margin": 0.16,
+    "closest": "servo_sustained"
+   },
+   {
+    "label": "R7-trot-walk",
+    "seed": 2,
+    "run": "20261106-051814-sim-4e92",
+    "within": true,
+    "margin": 0.2011,
+    "closest": "joint_speed"
+   },
+   {
+    "label": "R7-trot-shift",
+    "seed": 1,
+    "run": "20261106-051833-sim-f9d2",
+    "within": true,
+    "margin": 0.12,
+    "closest": "servo_sustained"
+   },
+   {
+    "label": "R7-trot-shift",
+    "seed": 2,
+    "run": "20261106-051834-sim-6322",
+    "within": true,
+    "margin": 0.16,
+    "closest": "servo_sustained"
+   },
+   {
+    "label": "R7-trotting",
+    "seed": 0,
+    "run": "20261106-051834-sim-d003",
+    "within": true,
+    "margin": 0.0,
+    "closest": "servo_sustained"
+   },
+   {
+    "label": "R7-trotting",
+    "seed": 1,
+    "run": "20261106-051834-sim-ccba",
+    "within": true,
+    "margin": 0.0,
+    "closest": "servo_sustained"
+   },
+   {
+    "label": "R7-trotting",
+    "seed": 2,
+    "run": "20261106-051835-sim-b2ba",
+    "within": false,
+    "margin": -0.04,
+    "closest": "servo_sustained"
+   }
+  ]
+ }
+}

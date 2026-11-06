@@ -2,8 +2,9 @@
 
 Everything a new Claude Code session (or a new collaborator) needs to pick up
 CALFLAB. Last updated 2026-11-06 on branch `robot-calf-final` (cut from
-`chassis-mass`), after session R10 (a servo gene per joint pair; the carpus drive study, ADR-101), section 4
-"Session R10"; before it session R9 (up to four STS3250 C002 servos, in simulation only, ADR-100), section 4
+`chassis-mass`), after session R11 (hardware chosen by the loads of behaviour: servos and belts evolve as catalog
+ids, ADR-102), section 4 "Session R11"; before it session R10 (a servo gene per joint pair; the carpus drive study,
+ADR-101), section 4 "Session R10"; before it session R9 (up to four STS3250 C002 servos, in simulation only, ADR-100), section 4
 "Session R9"; before it sessions R7 (movement that varies within a movement, ADR-098) and R8 (faster joints, ADR-099),
 section 4 "Sessions R7 and R8"; before them session R (a body for vigorous movement; steps 1-2 of 6
 done, plus wider blocks and hip springs; steps 3-4 done; then redirected to behaviour diversity on the wide-block body: the first full run (ADR-094), session R6, three of its behaviours played for a minute (ADR-095), R6b, a coverage check that makes them hold for a minute (ADR-096), and R6c, durations capped at the checked length (ADR-097); section 4, "Session R", ADR-086..097); before it
@@ -1261,6 +1262,37 @@ catalogs, other component values and `verified` flags were not changed; nothing 
   `docs/studies/compare_r10.md`. **Restart the lab on 8020**: the running server has the v1 gene file and would
   refuse Load/Simulate from an R10 run (replay works).
 
+**Session R11 (2026-11-06; ADR-102): hardware chosen by the loads of behaviour.** The working body, catalogs,
+component values and `verified` flags were not changed; nothing installed.
+
+* **Optimizer `map_elites_hardware` + preset `hardware`** (`core/calflab/evolve/hardware.py`,
+  `config/fitness/hardware.yaml`). Revises ADR-070 for this optimizer only: the servo per joint pair and each belt
+  drive's three catalog ids evolve with the geometry. C is still derived, never a gene. A body failing a belt check or
+  the servo budget (four STS3250 C002s) is rejected before any play (recorded `infeasible`, redrawn).
+* Judging: a screen (quick trot grid, walk, turn, `lie_rise`), then R6c's and R7's 11 safe behaviours for 60 s on
+  three seeds at margin 0.2 if the best screen margin is at least -0.25 (R10's data shows the screen does not predict
+  the minutes). Plays cached per body in `<project>/.cache/hardware`.
+* Selection: MAP-Elites on minutes held x fastest trot within; within a cell headroom - 0.1 x a hardware cost index;
+  a Pareto front adds cost. Costs from catalogs and library only: new servos, new pulley sizes, belt lengths, mass,
+  known current, what-ifs, unknowns listed.
+* R8's 45T/45T and 30T/45T only with *What if pulleys* on (`-whatif` ids, in-memory, flagged).
+* Evolve panel: per candidate, server-built tables (servos per pair, belt drives with derived C, binding limit per
+  joint and the plays each stopped, screen, behaviours, costs); the run's Pareto front (rows pick a candidate).
+  `run_evolve` / `estimate_evolve` take `preset` so a run needs no document change. Web rebuilt (`web/dist`).
+* Tests: `tests/test_hardware.py` (7: contract, catalog-ids-only genes, servo budget, a rejected belt never reaches
+  the simulator, optimizer determinism and constraints, Pareto, determinism of real plays).
+* **Study** (`docs/studies/hardware_r11.md`): the new path reproduces R9/R10 exactly. Pareto front: the working body
+  (32/33 min, no quick trot), R10 40T/80T (28/33, 63 mm/s, catalog only), R10 1:1 45T (26/33, 419 mm/s, what-if).
+  The 3 x 7 trial (18 min) found nothing better: geometry moves break the behaviours, which were evolved for today's
+  geometry. No body holds `lie_rise`.
+* Stored: `R11 R10-40T80T <behaviour>: 60 s, seed N` runs; compare links in `docs/studies/store_r11.md`.
+* **The full run has not been started: the researcher chooses the budget** (section 7, R11-full).
+* Known: candidates stored in the two R11 runs say "new servo cost 0.00 USD"; the C002 has no cost entered (the
+  library's default). Fixed after the runs: new judgements say "unknown". The browser check also left one replay
+  run, `20261106-053129-sim-1bf0`. The R11 lab on port 8060 is the `calflab-r11` launch entry.
+* Tests: `calflab test` ran with ruff and mypy failing on two nits (fixed, re-checked on the changed files);
+  554 pytest, 14 Vitest and 13 Playwright tests passed. The full suite was not re-run after the fixes.
+
 **Scaffolded only (interfaces + tests, no behaviour):** PPO training, MJX
 simulator, RemoteSSH and CloudNotebook transports (job bundling is real),
 imitation reward, interactive selection, molds, skin patterns, nesting,
@@ -1298,6 +1330,20 @@ Journal, Rhino bridge):**
   Properties, entry in Overrides).
 * `doctor` warned "uv not found" on top of the three expected warnings:
   false alarm, fixed (see Tests above).
+
+**The researcher must verify (new in session R11, ADR-102):**
+
+* **Choose the full run's budget and space** (section 7, R11-full): hardware only (geometry fixed), or with small
+  geometry steps; with or without the 45T what-ifs. Measured: about 170 s wall per fully played body on 7 workers.
+* The **cost index weights** (1 per budget's worth of new servos, 0.25 per new pulley size, 0.5 for a what-if, 1 per
+  added kg) and the **screen threshold** (-0.25): both my assumptions.
+* That **40T and 80T count as new pulley sizes** (R9 counted catalog pairs as "no new pulley"; here a size the
+  starting body does not use must be bought).
+* Only STS3215 C018 and STS3250 C002 are servo choices (the mount fits their case); say if another library servo
+  should be allowed.
+* **Watch** `R11 R10-40T80T ...` against today's body (links in `docs/studies/store_r11.md`; restart the lab on 8020
+  first, the running server has the old code).
+* The Evolve panel's hardware tables by hand (seen only in the lab's browser pane).
 
 **The researcher must verify (new in session R9, ADR-100):**
 
@@ -1597,7 +1643,7 @@ Journal, Rhino bridge):**
 |---|---|
 | `CLAUDE.md` | Conventions for every session (loaded automatically) |
 | `PLAN.md` | Architecture, module boundaries, data flow, phases, risks, status |
-| `DECISIONS.md` | ADR log: every assumption (101 so far) |
+| `DECISIONS.md` | ADR log: every assumption (102 so far) |
 | `docs/proposals/anatomical-leg.md` | Proposal for a three-segment leg (set aside 2026-10-04; not built) |
 | `docs/USER_GUIDE.md` | How to use the lab |
 | `docs/CHAT_GUIDE_PROMPT.md` | Prompt that makes a chat assistant a guide to the whole lab |
@@ -1613,8 +1659,35 @@ Journal, Rhino bridge):**
 
 Prefix each with the opening message from section 1.
 
-**R11. Hardware chosen by the loads of behaviour** (recommended next; the researcher's direction after R10,
-ADR-101. Supersedes R11a and R11b below, which are kept for reference.)
+**R11-full. The full hardware run** (recommended next; written after R11, ADR-102.)
+> In projects/robot-calf-final, R11 built hardware evolution (`map_elites_hardware`, preset `hardware`,
+> `docs/studies/hardware_r11.md`). The trial found that geometry moves break R6c's and R7's behaviours. Run the full
+> search with my budget: <generations x batch>, <geometry fixed / small geometry steps (sigma_iso 0.02)>,
+> <what-if pulleys on / off>, seeded as in the trial. Report the archive and the Pareto front against the working
+> body, R10 40T/80T and R10 1:1 45T, which joint and limit stop each front body, and how often each hardware choice
+> appears on the front. Store the front bodies' plays as runs with compare links. Do not change the working body,
+> component values, `verified` flags or the catalogs.
+
+**R12. Behaviours and body together** (after R11-full.)
+> In projects/robot-calf-final, R11 judged bodies with R6c's and R7's behaviours, which were evolved for today's
+> body, so a changed body is judged on behaviours not made for it. For each body on R11-full's Pareto front, re-run
+> behaviour diversity (`calflab.evolve.diversity`, coverage, capped durations, variation as R7) seeded from R7's safe
+> generators, and compare minutes held, quantity of motion and trot speed with the R11 numbers. Then say whether a
+> nested search (hardware outside, a short diversity run inside) is affordable, with an estimate. Do not change the
+> working body, component values or `verified` flags.
+
+**R11b-2. Lying down and rising within limits** (still open; `lie_rise` fails on every body R11 judged.)
+> In projects/robot-calf-final, `lie_rise` goes over on the front shoulders' sustained torque on every body (-2.7 to
+> -3.0, `docs/studies/hardware_r11.md`). In memory only, find what brings it within limits: the primitive's timing
+> and depth, a kneel that moves load off the shoulders, shoulder springs, or a belted shoulder through the catalog.
+> Report per lever the margin on three seeds and what it costs the walk and the quick trot. Do not change the working
+> body, component values or `verified` flags.
+
+*(R11, hardware chosen by the loads of behaviour, was done 2026-11-06: ADR-102, `docs/studies/hardware_r11.md`;
+its prompt is kept below.)*
+
+**R11. Hardware chosen by the loads of behaviour** (done in session R11, ADR-102; kept for reference. Supersedes R11a
+and R11b below.)
 > In projects/robot-calf-final, R9 and R10 (`docs/studies/servos_r9.md`, `carpus_r10.md`, ADR-100, ADR-101) chose
 > servos and pulleys by hand. Each choice moved the binding limit somewhere else: carpus speed, carpus torque, carpus
 > belt tension, the hip ab/ad, the front shoulders. I want the hardware logic and the loads that behaviour puts on

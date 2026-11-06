@@ -7,7 +7,6 @@ import importlib
 from typing import Any
 
 import pytest
-
 from calflab.design import build_design, genome_definition
 from calflab.evolve.hardware import (
     HardwareSettings,
@@ -203,3 +202,14 @@ def test_screen_plays_are_deterministic() -> None:
     strip = [{k: v for k, v in s.items() if k != "controller"} for pl in a["plays"] for s in pl["seeds"]]
     assert strip == [{k: v for k, v in s.items() if k != "controller"} for pl in b["plays"] for s in pl["seeds"]]
     assert a["plays"][0]["seeds"][0]["joints"]  # per-joint uses
+
+
+def test_unknown_costs_are_reported_not_guessed() -> None:
+    from calflab.components import library
+    from calflab.evolve.hardware import hardware_costs
+
+    d = build_design(_genome(servo_hock=NEW, servo_carpus=NEW), [], "feral_calf")
+    c = hardware_costs(d.spec, dict(d.genome.values), _hw(), library())
+    assert c["new_servo_cost_usd"] is None and NEW in c["cost_unknown_for"]  # no price entered for the C002
+    assert any("sts3215_c018 stall current" in u for u in c["unknown"])
+    assert c["masses_not_entered"] > 0

@@ -3765,3 +3765,79 @@ the carpus drive that keeps the calm behaviours and `lie_rise` within limits whi
 * Peak belt tension within limits is at most 80 N (breaking judged at 172 N). The four new servos draw at most
   1.9-2.7 A peak (sum) and about 1 A mean.
 * Nothing added to any catalog; no component value, `verified` flag or the working body changed.
+
+## ADR-102 — Hardware chosen by the loads of behaviour: servos and belts evolve as catalog ids (**VERIFY**)
+
+*Context.* Session R11. R9 and R10 (ADR-100, ADR-101) chose servos and pulleys by hand, and each choice moved the
+binding limit elsewhere (carpus speed, carpus torque, carpus belt tension, hip ab/ad, front shoulders). The
+researcher asked for the hardware logic and the loads of behaviour to drive body evolution and selection.
+
+*Decisions / assumptions:*
+* **Revises ADR-070's "evolution never varies belts or servos".** With the optimizer `map_elites_hardware` (and only
+  there) the servo gene per joint pair and each belt drive's three catalog ids evolve with the geometry. The genes
+  stay `evolvable: false` in the gene file: Form, `set_genes` and the other optimizers are unchanged, and
+  `set_belt_drive` stays the only way a person changes a belt. **C is still never a gene** (ADR-063): it is derived
+  at build, every belt check runs, and a body whose drive fails a check is rejected before any play.
+* Hardware genes are ordinal dimensions in [0, 1] decoded to catalog ids only: a servo from the preset's
+  `servo_choices` (default STS3215 C018 and STS3250 C002: the two whose case the feral calf's mount fits; other
+  library actuators are left out); a belt system with at least one pulley pair of its pitch; a pulley pair of that
+  pitch; a belt length among the lengths that system's catalog sources list (sorted by teeth). Children take each
+  hardware choice from one of two parents (uniform crossover) and redraw it with probability 0.2.
+* **Rejection, never repair.** A drawn body that fails a belt check or the hardware constraints is recorded as
+  `infeasible` with its reasons (ids ending `-x`) and the slot is drawn again (up to 40 times, 74 ms per build).
+  Nothing rejected is submitted for a play; the worker rejects again if one ever were. The belt-bound range scan of
+  ADR-070 assumes the starting belts, so it is skipped for this optimizer.
+* **Servo budget**: new servos per model, two per pair whose model differs from the starting body's; default at most
+  four STS3250 C002s (`servo_budget`). Over it = rejected.
+* **Hardware costs**, from the catalogs and the component library only: new servos; distinct new pulley sizes
+  (sizes the *starting body* does not use; R9 counted catalog pairs as "no new pulley", here 40T and 80T count as
+  two new sizes because they would have to be bought); pulleys of those sizes (left + right); new belt lengths;
+  mass and added mass; masses not entered (14 on today's body, counted 0 g as ADR-068); servo current where the
+  library has a stall current (the C018 has none, so its current is not counted and that is listed); parts not in a
+  catalog; new-servo cost where entered (the C002 has none: "unknown"). A **cost index** = new servos / budget +
+  0.25 x new pulley sizes + 0.5 if any part is a what-if + added kg. These weights are my assumption (preset
+  `cost_weights`); the index only orders bodies within a cell and on the Pareto front.
+* **What-if pulleys**: R8's 45T/45T and 30T/45T are offered only with `what_if_pulleys` on, as in-memory catalog
+  pairs `45T-45T-whatif` / `30T-45T-whatif` added to the inlined catalog of the run (the project's catalog files are
+  never written), so their C and checks are real. Masses null. Flagged in every table.
+* **The suite**, at margin 0.2 on three seeds with the diversity preset's randomisation (friction 0.7-1.1, mass x
+  0.95-1.05), compiled as the physics review compiles (derating 1, torque-speed servos):
+  * screen: the quick trot grid of R9/R10 (cycle 0.4, 0.45, 0.5, 0.6, 0.8 s x stride 0.5-2.0, lift 0.6), walk, turn
+    and `lie_rise` at their defaults. A play that fails on seed 0 is not re-played on seeds 1 and 2 (it cannot hold
+    on all three);
+  * performances: R6c's and R7's 11 safe behaviours (as R9 and R10 played them) for 60 s on each seed, with their
+    stored controllers, only for a body that passes the screen.
+* **The screen rule.** R10's data shows the screen does not predict the minutes: today's body holds no quick-grid
+  play yet 32 of 33 minutes, and the R10 bodies with 18-28 minutes have walk margins from -0.24 to +0.21. A stand
+  holds on every body (+0.97 today), so it was dropped. A body passes when its best screen play's worst-seed margin
+  is at least -0.25 (every R10 body: -0.20 to +0.39). The screen therefore only spares the behaviours on bodies far
+  from holding anything.
+* **Selection**: MAP-Elites on *behaviour minutes held* (0-33) x *fastest trot within limits* (the fastest grid
+  setting held on every seed, at its slowest seed; mm/s). Fitness within a cell = headroom - 0.1 x cost index;
+  headroom = 0.5 x the mean worst-seed margin over walk, turn, `lie_rise` and the fastest held trot + 0.5 x the mean
+  over the behaviours, each clipped to [-1, 0.5] (-1 for a body screened out). A Pareto front over (minutes, trot
+  speed, cost index) is the third view.
+* **Binding limit per joint**: for every joint, each limit's use = value / limit lowered by the margin (joint speed
+  against no-load speed; sustained torque share and sustained belt share against 0.25; envelope; stall), its
+  largest over every play and seed, the limit that binds (largest use), and in how many plays that joint and limit
+  was the one most over (the "stoppers").
+* Plays are cached per body in `<project>/.cache/hardware/` (a hash of the built spec, the play, the seed, the
+  compile options, the margin). Two-stage parallelism: screens one body per task, then one task per (body,
+  behaviour) with its three seeds.
+* `run_evolve` and `estimate_evolve` take a preset name (`preset=hardware`), so a run needs no document change.
+* The seed bodies are R9's best and R10's two bodies (servo and belt genes as in ADR-100/101; the carpus 1:1 is the
+  45T/45T what-if on the 640 mm belt, C 275.0 against R8's in-memory 274.8). Two of the three need what-ifs: they are
+  judged in a one-generation run with what-ifs on; the trial search itself stays on the catalog.
+* Cost estimate: the lab's single-process probe is scaled by 2 for 7 parallel workers (`PARALLEL_SLOWDOWN`, measured
+  on the seed run: 3 bodies fully played in 8.5 min).
+
+*Results* (`docs/studies/hardware_r11.md`; runs `20261106-044751-evolve-dbf1`, seeds with what-ifs on, and
+`20261106-045624-evolve-59fd`, the 3 x 7 trial on the catalog only):
+* The new core path reproduces R9 and R10: working body 32/33 minutes and no quick trot; R10 40T/80T 28/33, trot
+  63 mm/s (0.8 s); R10 1:1 45T (what-if) 26/33, 419 mm/s; R9's best (what-if) 20/33, 394 mm/s, the only one whose walk
+  and turn hold. No body holds `lie_rise` (front shoulders' sustained torque).
+* Pareto front: the working body, R10 40T/80T, R10 1:1 45T.
+* The trial found nothing better. Geometry mutations break R6c's and R7's behaviours (evolved for today's geometry) on
+  stifle belt tension and hip ab/ad torque; 235 draws were rejected by belt checks before any play.
+* Measured cost: about 170 s wall per fully played body, 15 s per body screened out, on 7 workers.
+* Nothing added to a catalog; no component value, `verified` flag or the working body changed.

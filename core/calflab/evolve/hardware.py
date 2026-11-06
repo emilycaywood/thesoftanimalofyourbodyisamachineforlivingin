@@ -281,8 +281,8 @@ def hardware_costs(spec: Any, values: dict[str, Any], hw: HardwareSettings, lib:
     cost_unknown: set[str] = set()
     for model, n in servos.items():
         c = lib.actuator(model)
-        if c.cost_usd is None:
-            cost_unknown.add(model)
+        if c.cost_usd is None or "cost_usd" in (c.defaulted or []) or "cost_usd" in (c.unknown or []):
+            cost_unknown.add(model)  # a library default is not a price
         else:
             cost_usd += float(c.cost_usd) * n
     no_current: set[str] = set()
@@ -293,7 +293,7 @@ def hardware_costs(spec: Any, values: dict[str, Any], hw: HardwareSettings, lib:
         c = lib.actuator(v)
         if not c.verified:
             unverified.add(str(v))
-        if c.stall_current_a is None:
+        if c.stall_current_a is None or "stall_current_a" in (c.defaulted or []):
             no_current.add(str(v))
     unknown += [f"{v} stall current (its current is not counted)" for v in sorted(no_current)]
     missing = list(spec.metadata.get("missing_masses") or [])
@@ -717,12 +717,20 @@ def tables(s: dict[str, Any], hw: HardwareSettings) -> list[dict[str, Any]]:
 
 
 # ====================================================================== cost estimate
+#: R11 (ADR-102): plays in 7 parallel workers ran about 2x slower per simulated second than the single-process probe
+#: rollout the lab times (the seed run: 3 bodies fully played in 8.5 min on 7 workers)
+PARALLEL_SLOWDOWN = 2.0
+
+
 def estimate(hw: HardwareSettings, n_seeds: int, per_sim_s: float, workers: int, generations: int, batch: int,
              pass_rate: float = 0.5, held_rate: float = 0.2) -> dict[str, Any]:
     """CPU and wall time of a run. A screen plays every play on the first seed and the other seeds only for what
     held there (``held_rate`` of them); a body that passes (``pass_rate``) plays every performance on every seed.
-    ``per_sim_s`` = wall seconds per simulated second on one worker. Cached plays cost nothing (not counted)."""
+    ``per_sim_s`` = wall seconds per simulated second of the lab's single probe rollout, scaled by
+    ``PARALLEL_SLOWDOWN``. An upper bound: plays that fall stop early, and cached plays cost nothing."""
     from calflab.behave.interpret import InterpretSettings
+
+    per_sim_s = per_sim_s * PARALLEL_SLOWDOWN
 
     s = InterpretSettings()
     screen_s = 0.0
