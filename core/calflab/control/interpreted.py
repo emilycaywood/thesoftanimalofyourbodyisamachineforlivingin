@@ -33,6 +33,7 @@ from typing import Any
 import numpy as np
 from pydantic import BaseModel, Field
 
+from calflab import units as u
 from calflab.plugins import ControlInfo, Controller, Observation, register, registry
 from calflab.schema import P
 
@@ -271,7 +272,7 @@ class InterpretedController(Controller):
             if e < 1:
                 v += (1 - e) * self.signals.value(axis, t, amp["drift"], amp["noise"])
             for i, deg in basis.items():
-                out[i] += math.radians(deg) * k * v * ramp
+                out[i] += u.deg_to_rad(deg) * k * v * ramp
         return out
 
     # ------------------------------------------------------------------ runtime

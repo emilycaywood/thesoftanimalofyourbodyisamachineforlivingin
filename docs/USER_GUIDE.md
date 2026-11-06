@@ -1034,6 +1034,14 @@ weight carried to all four corners at full crouch, the fastest and slowest
 cycles at the largest amplitude, the earliest switch, the shortest and
 longest cross-fade. Old runs replay exactly as before.
 
+Set **variation weight** (Fitness group) above 0 so variation counts in a
+cell, as unpredictability does; without it evolution has no reason to vary.
+To add variation to behaviours you already have, give their generator
+vectors as **start vectors** (advanced): the first generation starts from
+them, their variation genes at *start within* of each range. On the working
+body, R6c's safe behaviours stayed safe with about 10 % of each range and
+not at 30 % (ADR-098, `docs/studies/variation_r7.md`).
+
 **Two replays side by side.** Open `http://localhost:<port>/compare.html?a=<run id>&b=<run id>`
 (optional `la`, `lb`: labels). Each side is the lab replaying one run.
 `http://localhost:<port>/?replay=<run id>` opens the lab replaying a run.

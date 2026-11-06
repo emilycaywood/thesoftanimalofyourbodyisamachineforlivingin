@@ -1,8 +1,9 @@
 # CALFLAB session handoff
 
 Everything a new Claude Code session (or a new collaborator) needs to pick up
-CALFLAB. Last updated 2026-11-04 on branch `robot-calf-final` (cut from
-`chassis-mass`), during session R (a body for vigorous movement; steps 1-2 of 6
+CALFLAB. Last updated 2026-11-05 on branch `robot-calf-final` (cut from
+`chassis-mass`), after sessions R7 (movement that varies within a movement, ADR-098) and R8 (faster joints, ADR-099),
+section 4 "Sessions R7 and R8"; before them session R (a body for vigorous movement; steps 1-2 of 6
 done, plus wider blocks and hip springs; steps 3-4 done; then redirected to behaviour diversity on the wide-block body: the first full run (ADR-094), session R6, three of its behaviours played for a minute (ADR-095), R6b, a coverage check that makes them hold for a minute (ADR-096), and R6c, durations capped at the checked length (ADR-097); section 4, "Session R", ADR-086..097); before it
 session Q: the calf's movement read and interpreted as
 the robot's own (section 4, "Added in session Q", ADR-085); before it session
@@ -1154,6 +1155,40 @@ values not touched; nothing installed.
   * Runs `R6c <label> ...`: 12 of 60 s, 4 of 300 s.
 * Next: R7, then R8 (the researcher's order, 2026-11-05), in section 7; R6d later.
 
+**Sessions R7 and R8 (2026-11-05; ADR-098, ADR-099). Body, belts, catalogs and component values not changed;
+nothing installed.**
+
+* Tests: `calflab test` after R7/R8: ruff, mypy, web typecheck and eslint, 14 Vitest, 13 Playwright pass; pytest 533
+  passed and 1 failed (an architecture rule: a degree conversion outside `calflab.units`), fixed and re-run
+  (`tests/test_architecture.py`, `tests/test_variation.py`, 9 new tests); the full pytest was not re-run after it.
+
+* **R7, variation within a movement** (`docs/studies/variation_r7.md`): `calflab.control.variation` and the
+  `interpreted` controller's `variation` block; optimizer options `vary_within`, `variation_weight`,
+  `start_vectors`, `start_within`. Posture drift and noise (trunk height, weight over the hooves; head only with
+  neck motors, which the feral calf lacks), per-cycle tempo and amplitude, switches before all hooves are down,
+  varying cross-fades; coverage plays the checked state's extremes. Off by default; old runs replay bit for bit.
+  * Run `20261105-221840-evolve-02e3` (the chosen 40 x 28, from random generators): **no safe cell**. Diagnosed:
+    every state played its extremes (now only the checked one), the sequences themselves did not hold, and nothing
+    rewarded variation (now `variation_weight`).
+  * Run `20261105-232649-evolve-4237` (15 x 28, seeded from R6c's four safe generators): **7 safe cells** (R6c 4).
+    The variation that holds is small (about 8 % of its ranges: +-2.5 % tempo and amplitude per cycle; posture
+    invisible).
+  * **20 of 21 one-minute performances hold** (the one over plays a step coverage never checked, 1.4 % likely).
+    Means unchanged; **repeats of a walk or trot now differ** (repeat dissimilarity 0.007-0.03 -> 0.12-1.46),
+    mostly in timing.
+  * **5 minutes: 3 of 7 hold** (R6c 1 of 4); like for like the same. The variation neither closes nor widens R6d.
+  * **Side by side:** `http://localhost:8020/compare.html?a=<run>&b=<run>`; `?replay=<run>` opens the lab replaying
+    a run. A table of 21 ready links (R6c left, R7 right) is in `variation_r7.md`. Runs `R7 <label> ...`.
+* **R8, faster joints** (`docs/studies/joints_r8.md`, simulation only, what-ifs on an in-memory spec):
+  * The front carpi bind on joint speed in every motion; in a quick trot also the hocks (speed) and the hip ab/ad
+    (sustained torque). The stifles have room.
+  * **Carpi at 1:1 on a 45T/45T pair and hocks at 1.5:1 (30T/45T): a 0.6 s trot within every limit at margin 0.2
+    on three randomised seeds** (+0.16, 130-137 mm/s; today 77 mm/s at 1.2 s), and the walk and turn pass too.
+  * 1:1 with today's 30T driver moves the carpus onto belt tension; a 2:1 hip ab/ad belt costs the walk; stiffer
+    hip springs and 10 % less mass do not help.
+  * Not added to the catalog (needs your go-ahead): 30T and 45T GT2 10 mm pulleys are listed commercially.
+    Belt lengths, derived C, fit and pulley masses for those pairs are not checked; nor is `lie_rise`.
+
 **Scaffolded only (interfaces + tests, no behaviour):** PPO training, MJX
 simulator, RemoteSSH and CloudNotebook transports (job bundling is real),
 imitation reward, interactive selection, molds, skin patterns, nesting,
@@ -1191,6 +1226,18 @@ Journal, Rhino bridge):**
   Properties, entry in Overrides).
 * `doctor` warned "uv not found" on top of the three expected warnings:
   false alarm, fixed (see Tests above).
+
+**The researcher must verify (new in sessions R7 and R8, ADR-098, ADR-099):**
+
+* **Watch R7 against R6c side by side** (start the lab on port 8020, open the links in
+  `docs/studies/variation_r7.md`). For calm, lively and trotting both sides play the same states in the same
+  order; only the movement within them differs. Is the timing variation visible, and does it read as organic?
+* Whether the variation should be allowed to be larger at the cost of margin, or checked differently: within
+  margin 0.2 and coverage at the extremes, it stayed at about 8 % of its ranges.
+* The variation's ranges (PROVISIONAL): crouch 15 mm, weight shift 0.3, head 8 deg, tempo and amplitude 25 %,
+  switch slack 15 % of a cycle, cross-fade x / 2.2.
+* **R8:** whether to add GT2 10 mm pulleys to the catalog for a 1:1 carpus (45T/45T) and a 1.5:1 hock (30T/45T),
+  with sources; then the belt lengths that fit them, their masses, and whether a 45T pulley fits at the carpus.
 
 **The researcher must verify (new in session R6c, ADR-097):**
 
@@ -1461,7 +1508,7 @@ Journal, Rhino bridge):**
 |---|---|
 | `CLAUDE.md` | Conventions for every session (loaded automatically) |
 | `PLAN.md` | Architecture, module boundaries, data flow, phases, risks, status |
-| `DECISIONS.md` | ADR log: every assumption (97 so far) |
+| `DECISIONS.md` | ADR log: every assumption (99 so far) |
 | `docs/proposals/anatomical-leg.md` | Proposal for a three-segment leg (set aside 2026-10-04; not built) |
 | `docs/USER_GUIDE.md` | How to use the lab |
 | `docs/CHAT_GUIDE_PROMPT.md` | Prompt that makes a chat assistant a guide to the whole lab |
@@ -1477,7 +1524,27 @@ Journal, Rhino bridge):**
 
 Prefix each with the opening message from section 1.
 
-**R7. Organic movement within a movement** (recommended next, chosen by the researcher 2026-11-05; then R8.)
+**R9. Pulleys for faster joints, in the catalog and the body** (recommended next; written after R8, ADR-099.)
+> In projects/robot-calf-final, R8 (`docs/studies/joints_r8.md`) found that carpi at 1:1 on a 45T/45T GT2 10 mm pair
+> and hocks at 1.5:1 (30T/45T) give a 0.6 s trot within every limit at margin 0.2 on three seeds, and the walk and
+> turn too. Add these pulleys to the catalog from these listings <links>, masses null, unverified. Then show me,
+> for each new pair, which catalog belt lengths fit (derived C, every belt check, the servo on its segment, a 45T
+> pulley's clearance at the carpus), and only then change the working body with `set_belt_drive` (undoable). Re-run
+> `joints_r8.py` on the real body, play `lie_rise`, and re-run R6c's and R7's safe behaviours on it: what is now
+> possible that was not? Do not change component values or `verified` flags.
+
+**R7b. How far can each behaviour vary?** (written after R7, ADR-098.)
+> In projects/robot-calf-final the variation within movements that holds at margin 0.2 stayed at about 8 % of its
+> ranges (`docs/studies/variation_r7.md`). Keep the sequence and primitive genes of the safe cells of run
+> `20261105-232649-evolve-4237` fixed and evolve only the variation genes (with variation weight), so each behaviour
+> shows how far its posture, tempo, amplitude, switches and cross-fades can vary within every limit. Report per
+> gene which limit stops it and play the most varied safe versions for 60 s on three seeds, side by side with
+> R6c's. Estimate the cost and let me choose the budget. Do not change the body, belts or component values.
+
+*(R7, movement that varies within a movement, and R8, faster joints, were done 2026-11-05: ADR-098, ADR-099,
+`docs/studies/variation_r7.md`, `docs/studies/joints_r8.md`.)*
+
+**R7. Organic movement within a movement** (done 2026-11-05, ADR-098; kept for reference.)
 > In projects/robot-calf-final, behaviour diversity (`calflab.evolve.diversity`) with coverage and capped durations
 > (ADR-096, ADR-097) gives behaviours that hold every limit for a minute: run `20261105-053201-evolve-e4c8`, studied
 > in `docs/studies/coverage_r6c.md`. I watched them: the sequences are starting to look good, but each movement
@@ -1495,7 +1562,7 @@ Prefix each with the opening message from section 1.
 > movement features with run `20261105-053201-evolve-e4c8`, and set up the replays so I can watch them side by
 > side with the R6c ones. Do not change the body, belts or component values.
 
-**R8. Faster joints: lifting the vigour ceiling** (after R7.)
+**R8. Faster joints: lifting the vigour ceiling** (done 2026-11-05, ADR-099; kept for reference.)
 > In projects/robot-calf-final the trot is within the limits only at a 1.2 s cycle (77 mm/s, against the default
 > 0.6 s): joint speed is the wall, the STS3215 C018's 270 deg/s halved by the 2:1 belts. Even at margin 0.1, or
 > with the sustained check at full rated torque, no 0.6-0.8 s cycle passes; relaxing torque only moves long strides
