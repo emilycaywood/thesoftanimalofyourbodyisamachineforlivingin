@@ -1582,15 +1582,44 @@ Journal, Rhino bridge):**
 Prefix each with the opening message from section 1.
 
 **R10. A body with two servo models, in the genome** (recommended next; written after R9, ADR-100.)
-> In projects/robot-calf-final, R9 (`docs/studies/servos_r9.md`) found the best body with at most four STS3250 C002s:
-> new servos on hip ab/ad and hocks, carpi 1:1 on 45T/45T, stifles and hocks on the catalog's 40T/80T. But the
-> feral calf has one `actuator` gene for all ten servos. Add a servo choice per joint pair (`choices_from:
-> actuator`, default today's servo, not evolvable), bump the genome version, and write a migration and test so
-> every old document, run and design builds exactly as before. Show the Mass tab and the per-joint speed and torque
-> limits per servo. Do not change the working body yet. Then, still in memory, find the carpus drive that keeps the
-> calm behaviours and `lie_rise` within limits: 1:1, 1.5:1 and 2:1 with an old or new carpus servo, at most four new
-> in all. Play R6c's and R7's safe behaviours (`docs/studies/perform_r9.py`) and the trot grid (`servos_r9.py
-> --grid=quick`). Ask me before any catalog change or body change.
+> In projects/robot-calf-final, R9 (`docs/studies/servos_r9.md`, ADR-100) found the best body with at most four
+> STS3250 C002s:
+> * new servos on the hip ab/ad and the hocks;
+> * carpi 1:1 on 45T/45T with the old servo;
+> * stifles and hocks on the catalog's 40T/80T.
+>
+> It trots at 0.5 s / 394 mm/s within every limit, but the calm behaviours go over on the 1:1 carpus's torque.
+> The feral calf cannot be built that way yet: `morphology/feral.py` reads one `actuator` gene for all ten servos.
+>
+> Part 1, the genome:
+> * Replace `actuator` in `config/genes/feral_calf.yaml` with one servo gene per joint pair (hip ab/ad, stifle,
+>   hock, shoulder, carpus): `choices_from: actuator`, default `sts3215_c018`, not evolvable, group Mechanism.
+> * Bump the version to 2 and add a v1 -> v2 migration in `calflab/model/migrations.py`. It copies `actuator` into
+>   each pair gene with setdefault, so values already set are kept, then drops `actuator`.
+> * Note that a document's genome node params carry no version: `GenomeNode` stamps the current one. So also make
+>   an open v1 document (params with `actuator`, without the pair genes) build with its own servo, not the
+>   defaults, and migrate when its params are next cleaned or saved.
+> * Tests in `tests/test_genome.py` and `tests/test_feral_calf.py`: specs, MJCF and masses are bit-identical for
+>   the default body, for a v1 genome with a non-default `actuator`, for a run candidate and baked design from
+>   `projects/robot-calf-final`, and for the project document itself. A mixed body builds with the right component
+>   and servo mass on each joint. Mass sums still add up (ADR-050).
+> * Show each joint's servo in the lab: the Mass tab rows, and per-joint speed and torque limits by servo (server
+>   payload, no logic in the web).
+> * Do not change the working body.
+>
+> Part 2, still in memory (`docs/studies/servos_r9.py` / `perform_r9.py`, now able to build mixed bodies through the
+> genes): find the carpus drive that keeps the calm behaviours and `lie_rise` within limits while the trot stays
+> fast. Try 1:1 and 1.5:1 (45T/45T and 30T/45T what-ifs), and 2:1 on 30T/60T or the catalog's 40T/80T, with an old
+> or a new carpus servo, at most four new servos in all. For each, play:
+> * the quick trot grid, the walk and the turn on three seeds at margin 0.2;
+> * `lie_rise`;
+> * R6c's and R7's safe behaviours for 60 s on three seeds.
+>
+> Report belt peaks and the new servos' current. Judge at 12 V and say what changes at 11.1 V. Store the best
+> body's plays with `docs/studies/play_r9.py` and give me compare.html links against today's body.
+>
+> Do not change component values or `verified` flags. Ask me before any catalog change (45T pulleys need sources)
+> or any change to the working body.
 
 **R11. Behaviours evolved for the faster body** (after R10, once the researcher has chosen a body.)
 > In projects/robot-calf-final, R9 showed that R6c's and R7's behaviours keep their old pace on a faster body:
