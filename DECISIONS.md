@@ -3926,3 +3926,35 @@ simulation the peak spring force per site; per drive the peak and the largest me
 *Deliverables* (`calflab.bridge.production_sheet`, `docs/studies/production_r11c.py sheets`): a geometry CSV (segment
 lengths, joint, servo, pulley centres and spring anchors in the standing pose, derived C) and a parts list (belts,
 pulleys with listings, springs to source, servos, and what to verify before ordering).
+
+## ADR-104 — Reading Stage B's 20 generations: how the front is reported (**VERIFY**)
+
+*Context.* Session R11c-B. Emily ran Stage B herself (`production_r11c.py ... stageB --generations=21`, run
+`20261107-043030-evolve-c02e`, 10.8 h) and asked for the Pareto front after every five generations against the working
+body, A012, A013 and `g001-006-r05`, the rejection reasons, which genes move, and production sheets for the front. No
+code, catalog, component value, `verified` flag or the working body changed.
+
+*Facts found.* The run is a fresh run with the same seed and settings as `ba33`, so its generation 1 is `ba33`'s
+generation 1 replayed from the cache (0 new evaluations; same candidate ids under the new run): **19 new generations,
+285 new bodies**. Rejections stayed at 23-35 % per block (at most 44 % in one generation), under the 50 % stop.
+
+*ASSUMPTIONS.*
+1. **The front** is over every *distinct* judged body up to the generation (duplicates by genome removed), on three
+   objectives: minutes held (max), fastest trot within every limit on all seeds (max), cost index (min), with trot
+   rounded to 1 mm/s and cost to 0.001 so near-ties count as ties. It is not the MAP-Elites archive (which keeps one
+   body per cell by fitness); walk / turn / lie_rise margins are reported, not objectives.
+2. **"Which genes move"** is the share of judged bodies whose gene differs from the working body's, counting only
+   genes that act on that body (a belted shoulder's belt genes only when the shoulder is belted; a spring's values only
+   when the spring is on) and **leaving out spring free lengths**, which are derived from the standing length and so
+   change whenever a segment length does.
+3. **Sheets** are written for every body on the final front except the two that already have them (working body,
+   `g001-006-r05`), plus `g012-009`, which was on the front through generation 15 and is dominated at 20 only by its
+   own child (`g020-008-r01`). Labels `B20_<candidate>`.
+4. **The trot objective saturates**: 0.4 s / stride 2.0 is the quick grid's fastest corner, and the fastest bodies
+   (about 517-535 mm/s) all trot there. The figure is reported as the grid's ceiling; the grid was not widened (that
+   would change R11's judging, ADR-102, and every stored score).
+
+*Result (simulated, unverified parts).* `g020-008-r01`: 33/33 minutes, 530 mm/s (grid ceiling), lie_rise -0.16 (best
+yet), cost 2.12; C002 on hocks, shoulders and carpi; stifle and hock 40T/60T, carpus 80T/80T on 640 mm; no shoulder
+spring; lengths within 2.5 % of today. It dominates A012, A013 and `g001-006-r05`. Details and caveats:
+`docs/studies/production_r11c.md`, "Stage B — 20 generations"; script `docs/studies/report_r11cb.py`.

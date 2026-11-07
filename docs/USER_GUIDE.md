@@ -1160,6 +1160,15 @@ and `<label>_parts.json` (belts, pulleys with listings and bores, springs to
 source, servos, and what to verify before ordering). Stages `stageA`,
 `stageB`, `table` and `summary` run and report the search.
 
+**Reading a finished Stage B run.** `python docs/studies/report_r11cb.py`
+(read-only) prints the Pareto front over minutes held / trot / cost index
+after every five generations, the rejection reasons per block, which genes
+moved, the lineage of the best body and its belt loads, for run
+`20261107-043030-evolve-c02e` (change `RID` at the top for another run).
+That run's results and the sheets of its front (`sheets_r11c/B20_*`) are in
+`docs/studies/production_r11c.md`. Its trot figures stop at about 530 mm/s
+because that is the quick grid's fastest setting (0.4 s, stride 2.0).
+
 #### Proportions: comparing bodies instead of finding one
 
 The lab has three ways to look for a better body or gait:
