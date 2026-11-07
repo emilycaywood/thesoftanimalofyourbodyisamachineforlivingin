@@ -884,6 +884,14 @@ id and `inputs.start` is `{source: design, design: <id>}` or
 `{source: document, revision: N}`; the Archive tab shows it above the heatmap
 and the list of past runs says `from <design>`.
 
+*From a stored candidate* (ADR-105, command line or a script; no panel button
+yet): `run_evolve candidate=<candidate id>` starts from that candidate's body
+as its run evaluated it (genome, model and generator settings, that run's
+overrides), without adopting it. Used to give a body found by the hardware
+search behaviours of its own (`map_elites_behaviour`, session R12 / Stage C):
+`inputs.start` is `{source: candidate, candidate: <id>}` and `parent` the
+candidate id.
+
 *Overrides are not genes.* The enabled overrides of the starting point are
 built into every candidate unchanged. A one-leg override (say
 `leg.fl.shank.length = 200`) keeps that shank at 200 mm in every candidate

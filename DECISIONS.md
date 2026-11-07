@@ -3958,3 +3958,37 @@ generation 1 replayed from the cache (0 new evaluations; same candidate ids unde
 yet), cost 2.12; C002 on hocks, shoulders and carpi; stifle and hock 40T/60T, carpus 80T/80T on 640 mm; no shoulder
 spring; lengths within 2.5 % of today. It dominates A012, A013 and `g001-006-r05`. Details and caveats:
 `docs/studies/production_r11c.md`, "Stage B — 20 generations"; script `docs/studies/report_r11cb.py`.
+
+## ADR-105 — Stage C: every front body gets behaviours evolved for it (**VERIFY**)
+
+*Context.* Session R12. Stage B (ADR-104) judged every body with R6c's and R7's 11 behaviours, which were evolved for
+today's working body, so a changed body was judged on behaviours not made for it. Asked: for `g020-008-r01`,
+`g012-009`, `g011-003`, `g009-000` and `g007-002`, re-run behaviour diversity seeded from R7's safe generators, judge
+minutes held, quantity of motion, trot speed and lie_rise with the R11c suite, re-rank against the working body, and
+write production sheets for the winner and runners-up. No change to the working body, catalog values or `verified`.
+
+*Decisions / ASSUMPTIONS.*
+1. **Evolve from a candidate.** `Lab.run_evolve(candidate=<id>)` and the `run_evolve` command's `candidate` field start
+   a run from a stored candidate's body as its run evaluated it (`Lab.candidate_body`: genome, that run's model and
+   generator settings and overrides; the belt catalog is the project's, inlined as for every job). The document is not
+   changed; `inputs.start = {source: candidate, candidate}`, `parent` = the candidate. Design and candidate together
+   are refused. (Baking each body as a design would have added five designs to the project for a study.)
+2. **The working body gets the same treatment** (a sixth run from the document), so the re-ranking compares like with
+   like; R7's own run (`4237`) started from R6c's four generators, not R7's eleven.
+3. **Settings are R7's run `4237` exactly** (15 generations x 28, 24 s per seed, coverage at p 0.05 over 60 s, capped
+   durations, variation within a movement, `variation_weight` 0.5, unpredictability 0.5, margin 0.2, preset
+   `diversity`, seed 0), except the start: **all eleven safe candidates of `4237`** (with their variation genes) as
+   `start_vectors`, not only the seven cell elites the suite plays.
+4. **Judging = the R11c suite** of the Stage B run (its stored preset: seeds 0-2, friction 0.7-1.1, mass x0.95-1.05,
+   torque-speed servos, derating 1, margin 0.2): the screen (trot grid, walk, turn, lie_rise) replayed through
+   `screen_task` from the play cache (0 new plays = the body is bit for bit the one Stage B judged), and **each body's
+   own safe cells** (one elite per cell) played for 60 s on every seed, summarised by `hardware.summarise` (minutes,
+   headroom, binding limit per joint). Quantity of motion is the mean joint speed (`quantity_of_motion_deg_s`) of each
+   minute.
+5. **Bodies have different numbers of behaviours**, so minutes are not compared as counts alone. Ranking: first the
+   number of distinct behaviours that hold a minute on all three seeds (what the body can do, robustly), then the share
+   of minutes held, then the widest quantity of motion held, then trot speed and lie_rise; the Pareto front over
+   (behaviours held 3/3, trot, lie_rise, -cost) is reported beside it.
+6. Study script `docs/studies/stagec_r12.py` (evolve / judge / report); runs titled `R12 Stage C <body>`, tagged
+   `R12`, `stage-c`. The two driver processes ran three bodies each in parallel (7 workers each; results do not depend
+   on the worker count).
