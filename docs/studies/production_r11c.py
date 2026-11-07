@@ -71,6 +71,34 @@ def main() -> None:
                         for r in t["rows"]:
                             print("| " + " | ".join(str(x) for x in r) + " |")
             return
+        if stage == "sheets":
+            # geometry CSV + parts list for the given candidates (``--cands=id:label,id:label``)
+            from calflab.bridge.production_sheet import geometry_csv, geometry_rows, parts_list
+            from calflab.components import library
+            from calflab.design import build_design, genome_definition
+            from calflab.evolve.production import SpringSpace, spring_checks
+            from calflab.mech.belts import BeltCatalog
+            from calflab.model.genome import Genome
+
+            out_dir = Path("docs/studies/sheets_r11c")
+            out_dir.mkdir(parents=True, exist_ok=True)
+            gp = lab.job_generator_params(lab.state.graph)
+            cat = BeltCatalog.from_dict(gp["belt_catalog"])
+            gdef = genome_definition("feral_calf")
+            for item in opts["cands"].split(","):
+                cid, label = item.split(":", 1) if ":" in item else (item, item)
+                run_id = cid.rsplit("-g", 1)[0]
+                c = next(x for x in lab.registry.list_candidates(run_id) if x["id"] == cid)
+                vals = gdef.complete(c["genome"]["values"])
+                d = build_design(Genome(definition="feral_calf", version=gdef.version, values=vals), [], "feral_calf", gp)
+                _why, srep = spring_checks(d.spec, vals, SpringSpace())
+                slug = "".join(ch if ch.isalnum() else "_" for ch in label).strip("_")
+                (out_dir / f"{slug}_geometry.csv").write_bytes(geometry_csv(geometry_rows(d.spec, vals)).encode())
+                parts = parts_list(d.spec, vals, cat, srep, library())
+                parts["candidate"], parts["label"] = cid, label
+                (out_dir / f"{slug}_parts.json").write_bytes(json.dumps(parts, indent=1).encode())
+                print("wrote", slug)
+            return
         if stage == "summary":
             out = []
             for run_id in opts["runs"].split(","):

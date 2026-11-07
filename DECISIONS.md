@@ -3841,3 +3841,88 @@ researcher asked for the hardware logic and the loads of behaviour to drive body
   stifle belt tension and hip ab/ad torque; 235 draws were rejected by belt checks before any play.
 * Measured cost: about 170 s wall per fully played body, 15 s per body screened out, on 7 workers.
 * Nothing added to a catalog; no component value, `verified` flag or the working body changed.
+
+## ADR-103 — Toward a production body: sourced pulleys, bounded geometry, springs and the shoulder drive evolve (**VERIFY**)
+
+*Context.* Session R11c. Emily asked for the best body within bounded proportions, judged in simulation, whose every
+part is commercially listed, delivered in a form she can build. Her decisions (2026-11-06), which revise ADR-102's
+scope for the optimizer `map_elites_hardware` with the preset `hardware_r11c` only:
+1. segment lengths evolvable, bounded near today's proportions;
+2. belt system, belt length and the driver and driven pulleys (separately) evolvable;
+3. springs evolvable: on/off, rate, preload, both anchors; a new spring site at the carpus;
+4. the shoulder drive evolvable: direct or belted;
+5. at most six new STS3250 C002 (three pairs); per pair C018 or C002;
+6. go-ahead to add **sourced** belt and pulley entries; each stays `verified: false` until she verifies it.
+
+*Step 0, the catalog (Emily's decision 6; ASSUMPTIONS on how it is stored).*
+* `pulleys.json` gains a `pulleys` list of **single listed pulleys** (`Pulley`: teeth, pitch, the belt widths the
+  listings name for that tooth count, bores, listings with `read` true when the page itself was read and false when
+  only a search result's title or snippet showed it, `listed_mass_g`, `verified: false`). Two of them form a pair
+  with the id `<driver>+<driven>`; when the catalog's own pair has the same teeth (30T-60T, 40T-80T), its id is kept so
+  today's bodies stay bit-identical. A single pulley is offered to a belt system only if its listings name that
+  system's width (new check `pulley_width`). The researcher's three pairs are unchanged (no width is recorded for
+  them, so they get no width check).
+* Added, 10 mm: 20, 30, 36, 40, 45, 48, 60, 80T; 15 mm: 20, 40, 60, 80T (`docs/studies/catalog_r11c.py`). Not found
+  in 10 mm: 72T (so the existing 36T/72T pair cannot be rebuilt from singles). 100-140T (na3D) are outside the
+  proposed 20-80T range and were left out. No GT2 pulley listed for 9 mm belts was found: the 9 mm Gates system is
+  not offered in the R11c search (its lengths stay in the catalog). Many shop pages refused automated reading;
+  which listings were read is recorded per entry.
+* **Listed masses are not used** (ASSUMPTION): `mass_g` stays null (0 g, listed as missing, ADR-068) for every pulley,
+  and the listing's figure is kept in `listed_mass_g`. Using them would make a body heavier only because its pulleys
+  happen to have a listed weight (three do: 18, 40 and 80 g, the last one given for every width). Emily verifies them.
+* 15 mm: source **E** (Amazon B0DPV1912G, title only: "Length 300mm 310mm, Width 6/9/10/12/15mm") gives 300 and 310 mm;
+  the 15 mm system's `length_sources` is now `["E"]` (it was empty, a REQUIRED gap). Working and breaking tension are
+  the researcher's existing per-width figures (66 N, 1290 N from SDP-SI per inch and Ondrives per mm, both stated per
+  width by their sources; the SDP-SI narrow-belt derating note still applies). A wider 15 mm range seen elsewhere
+  (homediyer, 50-175 teeth) names no exact lengths, so none was entered. Source E is offered to the 15 mm system only.
+* The catalog digest changes, so every spec's `belt_catalog.digest` does. Bodies built with the pre-R11c catalog are
+  bit-identical to the R10 fingerprints (checked by swapping the old files in); the fingerprints now leave the digest
+  out and were regenerated from the old catalog (spec hash only; MJCF and masses unchanged).
+
+*The body (generator `feral_calf`; no genome version bump: new genes carry `absent` values).*
+* `shoulder_belt` (off; absent off) and `belt_shoulder_system/_pulleys/_length` (hidden catalog ids). A belted
+  shoulder's servo rides on the **rails behind the shoulder axle**, at the derived C, within 28 mm of the axle (fitting
+  + clearance) to the hip block (axle spacing - overhang - 3 mm); the belt runs inboard of the leg tube in the leg's
+  plane. All PROVISIONAL; clearances of that servo and belt to the block, rails and the swinging leg are **not
+  checked**. Default: 30T/60T, 394 mm, C 151.7 (target C 150 in `config/feral_calf.yaml belt_targets.shoulder`).
+* `spring_carpus` (off; absent off) and its six values. Side chosen by statics: in the standing pose gravity flexes
+  the carpus (+0.10 N*m on the cannon); a spring on the front (anchors 40 mm along each segment, 25 mm forward)
+  resists it (-0.18 N*m), one behind would help it (+0.20 N*m). Rate 0.2 N/mm and free length 46 mm give about 8 N
+  standing, like the shoulder spring. PROVISIONAL.
+* An optional site that is off leaves no trace in the spec (no `springs.carpus` entry, its genes not in
+  `provisional`), so every existing body builds as before.
+
+*The search space (`calflab.evolve.production`; preset `hardware_r11c`, ASSUMPTIONS unless Emily said so).*
+* Segment lengths (femur, tibia, rear cannon, upper leg, front cannon): +-10 % of today's on 2 mm steps; the ratios
+  tibia/femur, rear cannon/tibia and front cannon/upper leg within +-5 % of today's (PROPOSAL, Emily to confirm;
+  front-to-rear reach is left to the generator's level-back check). Angles, axle spacing and widths stay fixed.
+* Per belted drive (stifle, hock, carpus; shoulder if belted): system, driver pulley, driven pulley, length index.
+  **ADR-070 reinterpreted**: the length index decodes only over the system's listed lengths that pass every belt check
+  for this body (the hock's against the chosen stifle belt), so a drawn length is feasible by construction; nothing is
+  adjusted afterwards, and a drive with no feasible listed length is rejected with the reason. C stays derived.
+* A ratio whose servo travel would exceed 360 deg over the joint's PROVISIONAL range is rejected (separate pulleys
+  allow 20T/80T = 4:1, which the stifle's 110 deg cannot take).
+* Springs per site (hip ab/ad, stifle, hock, shoulder, carpus): on/off; rate x 0.5/0.75/1/1.5/2 of today's; preload =
+  the standing extension x 0.5/1/1.5 of today's, so free length = standing length - preload (the anchors move, so
+  free length is derived from the built body); anchors along each segment -15/0/+15 mm and across it -10/0/+10 mm of
+  today's (hip ab/ad: femur anchor along, block anchor inward). Ranges, with today's values, are in the study.
+* Shoulder drive: direct or belted. Servo per pair: C018 or C002, at most six C002 (`servo_budget`).
+* Lateral or angular placement offsets of pulleys and belts: **not modelled** (the lab has one plane). Pulley
+  clearance at the joint for the pulley's own diameter: **not checked** (needs that lateral stack).
+
+*Checks and rejections.* Every rejection is recorded with its reason: ratios; belt checks; the 360 deg travel; servo
+budget; spring anchors on their segments (within the far joint's fitting, at most 30 mm above the joint on a lever;
+the shoulder's chest anchor within the block); free length within the gene's range. **The spring line's clearance
+from its joint through the whole range is reported, not rejected** (ASSUMPTION, a decision for Emily): today's own
+stifle, hock and shoulder springs come within 1.2, 8.3 and 1.1 mm of their axes somewhere in the PROVISIONAL ranges
+(the stifle line crosses the knee at 50 deg of flexion; the carpus spring's at 50 deg), so rejecting would reject
+the working body. The run stops when more than 50 % of a generation's draws are rejected and lists the reasons.
+
+*Judging* is R11's (ADR-102), unchanged. *Cost index* (ASSUMPTIONS): new servos / 4 (fixed denominator) + 0.25 per new
+pulley size + 0.5 if any part is a what-if + 1.0 per added kg + 0.25 per spring site added. Reported per body: spring
+geometry through the range (standing and largest length, extension, force, closest approach to the axis) and from
+simulation the peak spring force per site; per drive the peak and the largest mean belt tension over every play.
+
+*Deliverables* (`calflab.bridge.production_sheet`, `docs/studies/production_r11c.py sheets`): a geometry CSV (segment
+lengths, joint, servo, pulley centres and spring anchors in the standing pose, derived C) and a parts list (belts,
+pulleys with listings, springs to source, servos, and what to verify before ordering).

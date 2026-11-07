@@ -436,9 +436,24 @@ class ProductionSpace:
             if cur not in {e.id for e in lens}:
                 v[f"belt_{drive}_length"] = lens[len(lens) // 2].id
             picks[drive] = (s, pid, float(x[idx[f"belt_{drive}_length"]]))
+        # a belted joint's range must fit the servo's 360 deg turned by the ratio (the generator raises otherwise)
+        from calflab.morphology.feral import feral_config
+
+        ranges = feral_config().get("joint_ranges_deg", {})
+        for drive, (_s, pid, _xl) in picks.items():
+            if drive == "carpus" and not v.get("carpus_belt", True) or drive == "shoulder" and not v.get("shoulder_belt"):
+                continue
+            pr = self.cat.pair(pid)
+            lo, hi = ranges.get(drive, (-90.0, 90.0))
+            if hi - lo > 360.0 / pr.ratio + 1e-9:
+                reasons.append(f"{drive}: {pid} is {pr.ratio:g}:1; the {drive} range {lo:g} to {hi:g} deg needs "
+                               f"{(hi - lo) * pr.ratio:g} deg of servo travel (360 available)")
         if reasons:
             return v, None, reasons, {}
-        d1 = self.build(v)
+        try:
+            d1 = self.build(v)
+        except ValueError as exc:
+            return v, None, [f"the body cannot be built: {exc}"], {}
         fer = d1.spec.metadata.get("feral") or {}
         belted = set(fer.get("belted") or [])
         feas_n: dict[str, int] = {}
@@ -476,7 +491,10 @@ class ProductionSpace:
                 v[f"spring_{s}_free_length"] = free
         if reasons:
             return v, None, reasons, {"feasible_lengths": feas_n}
-        d2 = self.build(v)
+        try:
+            d2 = self.build(v)
+        except ValueError as exc:
+            return v, None, [f"the body cannot be built: {exc}"], {"feasible_lengths": feas_n}
         sreasons, srep = spring_checks(d2.spec, v, sp) if sp else ([], {})
         return v, d2, sreasons, {"feasible_lengths": feas_n, "springs": srep}
 
