@@ -197,6 +197,28 @@ def test_load_a_baked_design_and_evolve_from_it(lab):
         lab.run_evolve(params=SMALL, backend="inline", design="no-such-v001")
 
 
+def test_evolve_from_a_stored_candidate_without_touching_the_document(lab):
+    """ADR-105: a run may start from a candidate's body as its run evaluated it (genome, that run's overrides)."""
+    lab.execute("add_override", {"target": "leg.fl.shank", "param": "length", "value": 200.0})
+    first = lab.jobs.wait(lab.run_evolve(params=SMALL, backend="inline", sim=SIM).id, timeout=300)
+    child = next(c for c in lab.registry.list_candidates(first.result["run_id"]) if c["generation"] == 1)
+    lab.execute("clear_overrides")
+    lab.execute("reset_genes")
+    doc_genes = dict(lab.state.graph.role("genome").params)
+    r = lab.execute("run_evolve", {"params": SMALL, "backend": "inline", "sim": SIM, "candidate": child["id"]})["result"]
+    job = lab.jobs.wait(r["job"], timeout=300)
+    assert job.status == "done", job.error
+    rec = lab.registry.get_run(job.result["run_id"])
+    assert rec.inputs["start"] == {"source": "candidate", "candidate": child["id"]} and rec.parent == child["id"]
+    assert rec.genome["values"] == child["genome"]["values"]
+    assert [o["target"] for o in rec.overrides] == ["leg.fl.shank"], "the candidate's run's overrides come along"
+    assert lab.state.graph.role("genome").params == doc_genes and lab.state.overrides == []
+    with pytest.raises(LabError, match="not both"):
+        lab.run_evolve(params=SMALL, backend="inline", design="x-v001", candidate=child["id"])
+    with pytest.raises(LabError):
+        lab.run_evolve(params=SMALL, backend="inline", candidate="no-such-candidate")
+
+
 def test_evolution_is_reproducible(lab):
     ids = []
     for _ in range(2):

@@ -1417,11 +1417,14 @@ class RunEvolve(Command):
         design: str = P("", desc="Baked design to start from (empty = the working document).")
         preset: str = P("", desc="Fitness preset to use (empty = the document's fitness node; the document is not "
                                   "changed). The hardware optimizer needs 'hardware'.")
+        candidate: str = P("", desc="Stored candidate whose body to start from, as its run evaluated it (empty = the "
+                                     "working document or the design); the document is not changed.")
 
     def run(self, lab: Any, state: DocumentState) -> Any:
         p = self.params
         job = lab.run_evolve(p.optimizer, p.params, p.backend or None, p.sim,  # type: ignore[attr-defined]
-                             p.design or None, p.preset or None)  # type: ignore[attr-defined]
+                             p.design or None, p.preset or None,  # type: ignore[attr-defined]
+                             p.candidate or None)  # type: ignore[attr-defined]
         return {"job": job.id, "run_id": job.result.get("run_id")}
 
 

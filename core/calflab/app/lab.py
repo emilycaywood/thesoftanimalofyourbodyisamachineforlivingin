@@ -664,6 +664,7 @@ class Lab:
         sim: dict[str, Any] | None = None,
         design: str | None = None,
         preset_name: str | None = None,
+        candidate: str | None = None,
     ) -> Job:
         """Start an optimization run.
 
@@ -673,8 +674,12 @@ class Lab:
         It starts from the working document, or from the baked design
         ``design``: then body and gait (genome, generator and model settings,
         controller, overrides) come from that design, while the fitness preset
-        and simulation settings are still the document's. Either way the
-        enabled overrides of the starting point are applied to every candidate.
+        and simulation settings are still the document's. Or from the stored
+        candidate ``candidate`` (ADR-105): its body as it was evaluated (genome,
+        model settings and generator settings of its run, that run's overrides;
+        :meth:`candidate_body`), so a behaviour run can judge an evolved body
+        without the document changing. Either way the enabled overrides of the
+        starting point are applied to every candidate.
         """
         from calflab.evolve import EvolveProblem
         from calflab.fitness import presets
@@ -682,6 +687,8 @@ class Lab:
         g = self.state.graph.model_copy(deep=True)
         state = self.state.model_copy(deep=True)
         start: dict[str, Any] = {"source": "document", "revision": self.revision}
+        if design and candidate:
+            raise LabError("Start from a baked design or from a candidate, not both")
         if design:
             baked, baked_overrides = self.design_document(design)
             for role in ("genome", "design", "model", "controller"):
@@ -692,6 +699,13 @@ class Lab:
                 dst.type, dst.params = src.type, dict(src.params)
             state.overrides = baked_overrides
             start = {"source": "design", "design": design}
+        elif candidate:
+            _c, cg, c_overrides = self.candidate_body(candidate)
+            for role in ("genome", "design", "model"):
+                src, dst = cg.role(role), g.role(role)
+                dst.type, dst.params = src.type, dict(src.params)
+            state.overrides = c_overrides
+            start = {"source": "candidate", "candidate": candidate}
         # a body's own evolve defaults fill in what the caller did not set (ADR-070)
         try:
             evo = dict(genome_definition(g.role("genome").type.split(":", 1)[1]).evolve)
@@ -758,7 +772,7 @@ class Lab:
                 overrides=[o.model_dump(mode="json") for o in state.overrides if o.enabled],
                 controller=ctrl,
                 fitness={"preset": preset.model_dump(mode="json")},
-                parent=design or None,
+                parent=design or candidate or None,
             )
             self.registry.save_run(record)
             self.bus.emit("runs.changed", run_id=run_id)
