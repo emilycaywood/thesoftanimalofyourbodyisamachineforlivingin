@@ -15,7 +15,8 @@ Stages:
 * ``evolve <body> ...``: one diversity run per body (``working`` or a Stage B candidate suffix); ``--generations``
   (15) ``--batch`` (28) ``--seed`` (0). Runs are titled ``R12 Stage C <body>``.
 * ``judge``: every body's latest finished ``R12 Stage C`` run -> ``docs/studies/stagec_r12.json`` (``--workers`` 7).
-* ``report``: markdown tables from that JSON.
+* ``report``: markdown tables from that JSON (ranked, ADR-105 point 5).
+* ``sheets``: production sheets for the top ``--top`` (3) bodies -> ``docs/studies/sheets_r12``.
 
 Run:  python docs/studies/stagec_r12.py <project dir> evolve|judge|report [args]
 """
@@ -203,6 +204,7 @@ def judge(lab: Any, opts: dict[str, str]) -> None:
                         "stage_b": None if bc is None else {
                             k: bc["metrics"]["hardware"][k] for k in ("minutes_held", "minutes_of", "trot_speed_mm_s",
                                                                        "fastest_trot", "screen", "costs", "headroom")},
+                        "perf_refs": [{"label": p["label"], "ref": p["ref"]} for p in new_perfs],
                         "_hw": payload_hw}
     print(f"{len(screens)} screens, {len(perfs)} behaviours x 3 seeds", flush=True)
     t0 = time.time()
@@ -227,20 +229,108 @@ def judge(lab: Any, opts: dict[str, str]) -> None:
     print("wrote", OUT, flush=True)
 
 
-def report() -> None:
-    data = json.loads(OUT.read_text(encoding="utf-8"))["bodies"]
-    print("| body | safe cells | behaviours held 3/3 | minutes | trot mm/s | lie_rise | walk | turn | qom held (min-max) |"
-          " cost | Stage B minutes |")
-    print("|---|---|---|---|---|---|---|---|---|---|---|")
+def rows(data: dict[str, Any]) -> list[dict[str, Any]]:
+    """One row per body with the ranking numbers (ADR-105, 5), ranked; ``pareto`` over (behaviours held 3/3, trot,
+    lie_rise, -cost)."""
+    out = []
     for body, b in data.items():
         s = b["summary"]
-        held3 = sum(1 for r in s["performances"] if r["held"] == r["of"])
+        held3 = [r for r in s["performances"] if r["held"] == r["of"]]
         q = [x["qom"] for r in b["behaviours"] for x in r["seeds"] if x["within"] and x["qom"] is not None]
-        sb = b["stage_b"] or {}
-        print(f"| {body} | {b['safe_cells']} | {held3} | {s['minutes_held']}/{s['minutes_of']} | "
-              f"{s['trot_speed_mm_s']:.0f} | {_m(s['screen'].get('lie_rise'))} | {_m(s['screen'].get('walk'))} | "
-              f"{_m(s['screen'].get('turn'))} | {min(q, default=0):.1f}-{max(q, default=0):.1f} | "
-              f"{s['costs']['cost_index']:.2f} | {sb.get('minutes_held')}/{sb.get('minutes_of')} |")
+        lr = (s["screen"].get("lie_rise") or {}).get("worst_margin")
+        out.append({"body": body, "safe_cells": b["safe_cells"], "safe_candidates": b["safe_candidates"],
+                    "held3": len(held3), "minutes": s["minutes_held"], "of": s["minutes_of"],
+                    "share": s["minutes_held"] / s["minutes_of"] if s["minutes_of"] else 0.0,
+                    "qom_lo": min(q, default=0.0), "qom_hi": max(q, default=0.0), "trot": s["trot_speed_mm_s"],
+                    "lie_rise": -9.0 if lr is None else lr, "cost": float(s["costs"]["cost_index"]),
+                    "headroom": s["headroom"], "stoppers": s["stoppers"][:3], "stage_b": b["stage_b"] or {}})
+    out.sort(key=lambda r: (-r["held3"], -round(r["share"], 3), -round(r["qom_hi"] - r["qom_lo"], 1), -r["trot"],
+                            -r["lie_rise"]))
+    for i, r in enumerate(out):
+        me = (r["held3"], r["trot"], r["lie_rise"], -r["cost"])
+        pts = [(o["held3"], o["trot"], o["lie_rise"], -o["cost"]) for o in out if o is not r]
+        r["rank"] = i + 1
+        r["pareto"] = not any(all(a >= b for a, b in zip(o, me, strict=True)) and o != me for o in pts)
+    return out
+
+
+def report() -> None:
+    data = json.loads(OUT.read_text(encoding="utf-8"))["bodies"]
+    print("| rank | body | safe cells (candidates) | behaviours held 3/3 | minutes | qom held deg/s | trot mm/s | "
+          "lie_rise | walk | turn | cost | front | Stage B minutes (R6c/R7) |")
+    print("|---|---|---|---|---|---|---|---|---|---|---|---|---|")
+    for r in rows(data):
+        s = data[r["body"]]["summary"]
+        sb = r["stage_b"]
+        print(f"| {r['rank']} | {r['body']} | {r['safe_cells']} ({r['safe_candidates']}) | {r['held3']} | "
+              f"{r['minutes']}/{r['of']} | {r['qom_lo']:.1f}-{r['qom_hi']:.1f} | {r['trot']:.0f} | "
+              f"{_m(s['screen'].get('lie_rise'))} | {_m(s['screen'].get('walk'))} | {_m(s['screen'].get('turn'))} | "
+              f"{r['cost']:.2f} | {'yes' if r['pareto'] else ''} | {sb.get('minutes_held')}/{sb.get('minutes_of')} |")
+    for body, b in data.items():
+        print(f"\n#### {body} (run `{b['run']}`)\n")
+        print("| behaviour | cell qom / regularity | held | worst margin | closest limit per seed | qom per seed | "
+              "states |")
+        print("|---|---|---|---|---|---|---|")
+        cells = {c["candidate"].rsplit("-", 2)[-2] + "-" + c["candidate"].rsplit("-", 1)[-1]: c for c in b["cells"]}
+        for perf, beh in zip(b["summary"]["performances"], b["behaviours"], strict=True):
+            d = cells.get(perf["label"].split(" ")[0], {}).get("descriptors") or {}
+            wm = perf["worst_margin"]
+            qs = ", ".join("-" if x["qom"] is None else f"{x['qom']:.1f}" for x in beh["seeds"])
+            states = ", ".join(sorted({st for x in beh["seeds"] for st in (x["states"] or [])}))
+            wms = "-" if wm is None else f"{wm:+.2f}"
+            print(f"| {perf['label']} | {d.get('quantity_of_motion', 0):.1f} / {d.get('tempo_regularity', 0):.2f} | "
+                  f"{perf['held']}/{perf['of']} | {wms} | {', '.join(str(x) for x in perf['closest'])} | {qs} | "
+                  f"{states} |")
+        st = b["summary"]["stoppers"]
+        if st:
+            print("\nStopped by: " + "; ".join(f"{j} {lim} ({n})" for j, lim, n in st))
+        bl = b["summary"].get("belt_loads") or {}
+        if bl:
+            print("\nBelt loads (peak / largest mean, N): "
+                  + "; ".join(f"{k} {v['peak_n']:.0f} / {v['mean_n']:.0f}" for k, v in sorted(bl.items())))
+
+
+def sheets(lab: Any, top: int) -> None:
+    """Production sheets (geometry CSV + parts list) for the ranked winner and runners-up, with the Stage C
+    judgement added to the parts list (rank, behaviours, belt loads and spring peaks from the body's own
+    behaviours)."""
+    from calflab.bridge.production_sheet import geometry_csv, geometry_rows, parts_list
+    from calflab.components import library
+    from calflab.design import build_design, genome_definition
+    from calflab.evolve.production import SpringSpace, spring_checks
+    from calflab.mech.belts import BeltCatalog
+    from calflab.model.genome import Genome
+
+    data = json.loads(OUT.read_text(encoding="utf-8"))["bodies"]
+    out_dir = Path("docs/studies/sheets_r12")
+    out_dir.mkdir(parents=True, exist_ok=True)
+    gp = lab.job_generator_params(lab.state.graph)
+    cat = BeltCatalog.from_dict(gp["belt_catalog"])
+    gdef = genome_definition("feral_calf")
+    for r in [x for x in rows(data) if x["body"] != "working"][:top]:
+        b = data[r["body"]]
+        c = lab.registry.get_candidate(b["candidate"])
+        vals = gdef.complete(c["genome"]["values"])
+        d = build_design(Genome(definition="feral_calf", version=gdef.version, values=vals), [], "feral_calf", gp)
+        _why, srep = spring_checks(d.spec, vals, SpringSpace())
+        slug = f"C{r['rank']}_{r['body'].replace('-', '_')}"
+        (out_dir / f"{slug}_geometry.csv").write_bytes(geometry_csv(geometry_rows(d.spec, vals)).encode())
+        parts = parts_list(d.spec, vals, cat, srep, library())
+        s = b["summary"]
+        parts["candidate"], parts["label"] = b["candidate"], slug
+        parts["stage_c"] = {
+            "rank": r["rank"], "behaviour_run": b["run"], "behaviours_held_3_of_3": r["held3"],
+            "safe_cells": r["safe_cells"], "minutes_held": s["minutes_held"], "minutes_of": s["minutes_of"],
+            "qom_held_deg_s": [round(r["qom_lo"], 2), round(r["qom_hi"], 2)], "trot_mm_s": r["trot"],
+            "fastest_trot": s["fastest_trot"], "screen": s["screen"], "stoppers": s["stoppers"],
+            "belt_loads_n": s.get("belt_loads"), "spring_peaks_sim_n": s.get("spring_peaks_sim_n"),
+            "known_current_peak_a": s.get("known_current_peak_a"),
+            "behaviours": [{"label": p["label"], "ref": h["ref"], "held": p["held"], "of": p["of"],
+                            "worst_margin": p["worst_margin"]}
+                           for p, h in zip(s["performances"], b["perf_refs"], strict=True)],
+            "note": "Simulation only; parts unverified (ADR-103, ADR-104, ADR-105)."}
+        (out_dir / f"{slug}_parts.json").write_bytes(json.dumps(parts, indent=1, default=float).encode())
+        print("wrote", slug)
 
 
 def _m(row: dict[str, Any] | None) -> str:
@@ -269,6 +359,8 @@ def main() -> None:
             evolve(lab, args or BODIES, opts)
         elif stage == "judge":
             judge(lab, opts)
+        elif stage == "sheets":
+            sheets(lab, int(opts.get("top", 3)))
     finally:
         close = getattr(lab, "close", None)
         if close:
