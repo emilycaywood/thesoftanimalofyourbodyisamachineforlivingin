@@ -76,7 +76,12 @@ def links(stored: dict[str, Any], order: list[str], port: str) -> None:
 def main() -> None:
     from calflab.app.lab import Lab
     from calflab.app.scene import build_scene
-    from calflab.evolve.hardware import HardwareSettings, _build, catalog_with_what_ifs, screen_plays
+    from calflab.evolve.hardware import (
+        HardwareSettings,
+        _build,
+        catalog_with_what_ifs,
+        screen_plays,
+    )
     from calflab.plugins import load_plugins
     from calflab.project.registry import RunRecord
 
