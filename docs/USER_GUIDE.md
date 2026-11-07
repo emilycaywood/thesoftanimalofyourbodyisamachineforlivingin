@@ -1123,6 +1123,43 @@ From a script, `docs/studies/hardware_r11.py <project> estimate|seeds|trial|tabl
 runs the same through the lab, with the preset passed by name so the
 document is not changed (`run_evolve ... preset=hardware`).
 
+#### Toward a production body (R11c, ADR-103)
+
+Fitness preset **hardware_r11c** with the same optimizer searches a bounded,
+fully discrete space, so a body drawn twice is the same body:
+
+* **segment lengths** (femur, tibia, cannons, upper leg) within +-10 % of
+  today's on 2 mm steps, with each leg's segment ratios within +-5 %;
+* per belt drive the **belt system, driver pulley and driven pulley
+  separately** (single pulleys from `catalog/pulleys.json` *pulleys*, offered
+  only for a belt width their listings name), and a **belt length that is
+  feasible by construction**: it is picked only among the listed lengths that
+  pass every belt check on that body;
+* **springs** per site (hip ab/ad, stifle, hock, shoulder and the new carpus
+  site): on/off, rate, preload and both anchors, in a few steps around today's;
+* the **shoulder drive**, direct or belted (new gene *Belt-drive the
+  shoulder*, off by default; its servo rides on the rails behind the axle);
+* the servo per pair, at most six STS3250 C002.
+
+Every rejected draw is recorded with its reason; a generation where more than
+half the draws are rejected stops the run and lists the reasons. The candidate
+tables add *Belt tension per drive and spring force per site* (simulated) and
+*Springs through the joint range* (rate, free length, largest extension and
+force, and how close the spring line comes to the joint axis, flagged, not
+rejected).
+
+The pulleys added in R11c carry their listings (`read: false` = seen only in a
+search result). Their listed masses are kept in `listed_mass_g` and are not
+used until you enter `mass_g` (and set `verified`).
+
+**Production sheets.** `docs/studies/production_r11c.py <project> sheets
+--cands=<candidate id>:<label>` writes `docs/studies/sheets_r11c/<label>_geometry.csv`
+(segment lengths; joint, servo and pulley centres and spring anchors in mm in
+the standing pose, X forward, Y left, Z up; derived C) for Rhino/Grasshopper,
+and `<label>_parts.json` (belts, pulleys with listings and bores, springs to
+source, servos, and what to verify before ordering). Stages `stageA`,
+`stageB`, `table` and `summary` run and report the search.
+
 #### Proportions: comparing bodies instead of finding one
 
 The lab has three ways to look for a better body or gait:

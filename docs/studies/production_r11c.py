@@ -43,11 +43,12 @@ def main() -> None:
     try:
         if stage in ("stageA", "stageB"):
             a = stage == "stageA"
-            params: dict[str, Any] = {"generations": int(opts.get("generations", 1 if a else 3)),
-                                      "batch_size": int(opts.get("batch", 15 if a else 14)),
+            params: dict[str, Any] = {"generations": int(opts.get("generations", 1 if a else 2)),
+                                      "batch_size": int(opts.get("batch", 15)),
                                       "vary_geometry": not a, "what_if_pulleys": False, "seed_bodies": True,
                                       "sigma_init": float(opts.get("sigma_init", 0.1)),
                                       "sigma_iso": float(opts.get("sigma_iso", 0.05)),
+                                      "hardware_flip": float(opts.get("flip", 0.2 if a else 0.05)),
                                       "seed": int(opts.get("seed", 0))}
             t0 = time.time()
             job = lab.run_evolve("map_elites_hardware", params, None, None, None, "hardware_r11c")
