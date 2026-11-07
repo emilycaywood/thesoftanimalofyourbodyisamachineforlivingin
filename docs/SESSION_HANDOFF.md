@@ -2,7 +2,8 @@
 
 Everything a new Claude Code session (or a new collaborator) needs to pick up
 CALFLAB. Last updated 2026-11-07 on branch `robot-calf-final` (cut from
-`chassis-mass`), after session R11c (toward a production body: sourced pulleys, bounded geometry, springs and the
+`chassis-mass`), after session R11c-B (reading Stage B's 20 generations; new best body g020-008-r01, ADR-104), section 4
+"Session R11c-B"; before it session R11c (toward a production body: sourced pulleys, bounded geometry, springs and the
 shoulder drive evolve; Stage A and one Stage B generation, ADR-103), section 4 "Session R11c"; before it session R11 (hardware chosen by the loads of behaviour: servos and belts evolve as catalog
 ids, ADR-102), section 4 "Session R11"; before it session R10 (a servo gene per joint pair; the carpus drive study,
 ADR-101), section 4 "Session R10"; before it session R9 (up to four STS3250 C002 servos, in simulation only, ADR-100), section 4
@@ -1322,6 +1323,24 @@ entries, component values and `verified` flags were not changed; nothing install
 * Tests: `calflab test --py` passes (ruff; 562 pytest in 515 s, over the usual budget; mypy). Web unchanged; its
   checks (Vitest, Playwright) were not re-run. New: `tests/test_production.py` (6), two new checks in `test_belts.py`.
 
+**Session R11c-B (2026-11-07; ADR-104): reading Stage B's 20 generations.** Emily ran Stage B herself
+(`20261107-043030-evolve-c02e`, 10.8 h; generation 1 is `ba33`'s replayed from the cache, so 19 new generations, 285
+new bodies; 117 of 432 draws rejected, 23-35 % per block, never at the 50 % stop). No code, catalog, component value,
+`verified` flag or the working body changed.
+
+* **New best `g020-008-r01`**: 33/33 minutes, 530 mm/s trot (the quick grid's fastest corner, so a ceiling), lie_rise
+  **-0.16** (A012 -1.44), walk -0.52, turn -0.08, cost 2.12 (= A012). C002 on hocks + shoulders + carpi; stifle and hock
+  40T/60T (1.5:1) on 444 / 400 mm; carpus 80T/80T (1:1) on 640 mm, C 240; shoulder direct, no shoulder spring, hip
+  ab/ad spring rate halved; lengths within 2.5 % of today. Dominates A012, A013 and `g001-006-r05`. A crossover of
+  `g012-009` (33/33, 414, -0.24) and a belted-shoulder body.
+* lie_rise comes near only with **C002 shoulders driven directly**; belted shoulders cost minutes (none on the front
+  holds more than 25). C002 on hocks + carpi is on 16 of 24 front bodies; C002 hip ab/ad and stifles almost never.
+  Lengths barely move as a population. The search has not converged (QD score still rising, best improved at 20).
+* `docs/studies/production_r11c.md` "Stage B — 20 generations" (fronts after 5/10/15/20, rejections, gene movement,
+  belt loads); `docs/studies/report_r11cb.py` (read-only, reproduces it); sheets `docs/studies/sheets_r11c/B20_*` for
+  the 23 front bodies without sheets plus `g012-009`.
+* Tests: no code changed; `calflab test --py` passes (ruff; 562 pytest in 540 s; mypy). Web checks not re-run.
+
 **Scaffolded only (interfaces + tests, no behaviour):** PPO training, MJX
 simulator, RemoteSSH and CloudNotebook transports (job bundling is real),
 imitation reward, interactive selection, molds, skin patterns, nesting,
@@ -1359,6 +1378,16 @@ Journal, Rhino bridge):**
   Properties, entry in Overrides).
 * `doctor` warned "uv not found" on top of the three expected warnings:
   false alarm, fixed (see Tests above).
+
+**The researcher must verify (new in session R11c-B, ADR-104):**
+
+* **Watch `g020-008-r01`** (Evolve > Archive or Journal > Runs, run `20261107-043030-evolve-c02e`): lie_rise (-0.16)
+  and walk (-0.52), against `g012-009` and A012 (`g000-012`).
+* **The 80T 10 mm pulley** it needs twice per carpus: one listing only (na3D, sold out when read); and whether two 80T
+  pulleys (50.9 mm pitch diameter) fit at the carpus, clear of the leg. Also the 40T and 60T 10 mm listings.
+* Whether the trot grid should get a faster corner (cycle 0.35 s or stride 2.5): the best bodies all sit at 0.4 / 2.0.
+* How the front is computed (ADR-104: distinct bodies, three objectives, near-ties rounded) and which genes count.
+* Whether to continue the search (it had not converged) or move to Stage C with the five bodies named in the study.
 
 **The researcher must verify (new in session R11c, ADR-103):**
 
@@ -1704,7 +1733,30 @@ Journal, Rhino bridge):**
 
 Prefix each with the opening message from section 1.
 
-**R11c-B. Continue the production search** (recommended next; written after R11c, ADR-103.)
+**R12 / Stage C. Fairness check on the R11c-B front** (recommended next; written after R11c-B, ADR-104.)
+> In projects/robot-calf-final, Stage B (run 20261107-043030-evolve-c02e, `docs/studies/production_r11c.md`
+> "Stage B — 20 generations") found g020-008-r01 (33/33, 530 mm/s, lie_rise -0.16). Its 11 behaviours were evolved for
+> today's body. For g020-008-r01, g012-009, g011-003, g009-000 and g007-002, re-run behaviour diversity
+> (`calflab.evolve.diversity`, coverage, capped durations, variation as R7) seeded from R7's safe generators, judge
+> minutes held, quantity of motion, trot speed and lie_rise with the R11c suite, and re-rank them against the working
+> body. Write production sheets for the winner and runners-up. Do not change the working body, catalog values or
+> `verified` flags.
+
+**R11b-3. Bring lie_rise within limits on g020-008-r01** (it is at -0.16, the closest yet.)
+> In projects/robot-calf-final, g020-008-r01 of run 20261107-043030-evolve-c02e misses lie_rise by -0.16 on sustained
+> servo torque. In memory only (no document change), find what brings it within on all three seeds: the primitive's
+> timing and depth, a kneel that moves load off the shoulders, the shoulder spring back on with other rates/anchors
+> from the hardware_r11c steps, or one-step length moves. Report which joint binds before and after, and whether
+> minutes, trot and walk hold. Do not change the working body, catalog values or `verified` flags.
+
+**R11c-B2. Continue the production search** (only if Emily wants more before Stage C; the search had not converged.)
+> In projects/robot-calf-final, continue Stage B with
+> `python docs/studies/production_r11c.py projects/robot-calf-final stageB --generations=<21+N>` (same seed: generations
+> 0-20 of run 20261107-043030-evolve-c02e replay from the cache), then report with `docs/studies/report_r11cb.py` (set
+> RID) after every five new generations, and write sheets for the new front bodies. Do not change the working body,
+> catalog values or `verified` flags.
+
+**R11c-B. Continue the production search** (done in session R11c-B, run 20261107-043030-evolve-c02e; kept for reference.)
 > In projects/robot-calf-final, R11c built the bounded production space (preset `hardware_r11c`,
 > `docs/studies/production_r11c.md`). Stage B ran one generation (run 20261107-032610-evolve-ba33, about 34 min per
 > generation of 15). Continue it for <N> generations of 15 with
