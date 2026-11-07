@@ -1319,7 +1319,8 @@ entries, component values and `verified` flags were not changed; nothing install
   **g001-006-r05**: 31/33 minutes, 405 mm/s trot, cost 2.08 (new hocks + carpi, carpus 45T/45T 1:1, carpus springs,
   no shoulder springs, small length changes). Not continued: Emily chooses the budget (about 34 min per generation of
   15). No body holds lie_rise.
-* Tests: see the end of this section's verify list.
+* Tests: `calflab test --py` passes (ruff; 562 pytest in 515 s, over the usual budget; mypy). Web unchanged; its
+  checks (Vitest, Playwright) were not re-run. New: `tests/test_production.py` (6), two new checks in `test_belts.py`.
 
 **Scaffolded only (interfaces + tests, no behaviour):** PPO training, MJX
 simulator, RemoteSSH and CloudNotebook transports (job bundling is real),
