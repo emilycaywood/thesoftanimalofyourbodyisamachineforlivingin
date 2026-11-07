@@ -1,0 +1,298 @@
+# Fitness preset R11c (ADR-103): written by docs/studies/preset_r11c.py from hardware.yaml. Use with the
+# optimizer map_elites_hardware. Bump `version` whenever you change it.
+name: hardware_r11c
+version: 1
+description: 'R11c (ADR-103): R11''s judging (ADR-102) over a bounded production space: segment lengths +-10% on 2 mm steps
+  with ratios +-5%, driver and driven pulleys chosen separately from listed pulleys, belt lengths feasible by construction,
+  springs and the shoulder drive as genes, at most six STS3250 C002. Fitness within a cell = headroom minus 0.1 x a hardware
+  cost index.'
+terms:
+- term: survival
+  weight: 0.0
+evaluation:
+  seeds:
+  - 0
+  - 1
+  - 2
+  randomize: true
+  friction:
+  - 0.7
+  - 1.1
+  mass_scale:
+  - 0.95
+  - 1.05
+  aggregate: worst
+  torque_derating: 1.0
+  servo_model: torque_speed
+  hardware:
+    margin: 0.2
+    servo_choices:
+    - sts3215_c018
+    - sts3250_c002
+    servo_budget:
+      sts3250_c002: 6
+    drives:
+    - stifle
+    - hock
+    - carpus
+    - shoulder
+    belt_systems: null
+    trot_cycles_s:
+    - 0.4
+    - 0.45
+    - 0.5
+    - 0.6
+    - 0.8
+    trot_strides:
+    - 0.5
+    - 1.0
+    - 1.5
+    - 2.0
+    trot_lift: 0.6
+    screen_extra:
+    - walk
+    - turn
+    - lie_rise
+    screen_min_held: 0
+    screen_min_margin: -0.25
+    performance_s: 60
+    performances:
+    - label: R6c-calm
+      ref: 20261105-053201-evolve-e4c8:g002-016
+    - label: R6c-lively
+      ref: 20261105-053201-evolve-e4c8:g018-025
+    - label: R6c-walking
+      ref: 20261105-053201-evolve-e4c8:g013-008
+    - label: R6c-trotting
+      ref: 20261105-053201-evolve-e4c8:g012-026
+    - label: R7-calm
+      ref: 20261105-232649-evolve-4237:g000-000
+    - label: R7-ambling
+      ref: 20261105-232649-evolve-4237:g009-004
+    - label: R7-lively
+      ref: 20261105-232649-evolve-4237:g000-001
+    - label: R7-walking
+      ref: 20261105-232649-evolve-4237:g008-000
+    - label: R7-trot-walk
+      ref: 20261105-232649-evolve-4237:g006-013
+    - label: R7-trot-shift
+      ref: 20261105-232649-evolve-4237:g001-015
+    - label: R7-trotting
+      ref: 20261105-232649-evolve-4237:g000-003
+    cost_weights:
+      servos: 1.0
+      pulley_sizes: 0.25
+      what_if: 0.5
+      mass_kg: 1.0
+      spring_sites: 0.25
+    cost_weight: 0.1
+    seeds_bodies:
+    - label: today's body + carpus spring
+      note: the working body; carpus springs on (gene defaults)
+      values:
+        spring_carpus: true
+    - label: today's body + belted shoulder
+      note: 'the working body; shoulder belted (gene defaults: 30T/60T, 394 mm)'
+      values:
+        shoulder_belt: true
+    - label: R10 1:1 45T
+      note: 'new hocks + carpi; carpus 45T/45T (now listed: GT2-45T-10) 640; stifle and hock 40T/80T'
+      values:
+        servo_hock: sts3250_c002
+        servo_carpus: sts3250_c002
+        belt_carpus_pulleys: GT2-45T-10+GT2-45T-10
+        belt_carpus_length: GT2-2mm-640-C
+        belt_stifle_pulleys: 40T-80T
+        belt_stifle_length: GT2-2mm-444-C
+        belt_hock_pulleys: 40T-80T
+        belt_hock_length: GT2-2mm-400-C
+    - label: R10 1:1 45T + carpus spring
+      note: 'new hocks + carpi; carpus 45T/45T (now listed: GT2-45T-10) 640; stifle and hock 40T/80T; carpus springs on
+        (gene defaults)'
+      values:
+        servo_hock: sts3250_c002
+        servo_carpus: sts3250_c002
+        belt_carpus_pulleys: GT2-45T-10+GT2-45T-10
+        belt_carpus_length: GT2-2mm-640-C
+        belt_stifle_pulleys: 40T-80T
+        belt_stifle_length: GT2-2mm-444-C
+        belt_hock_pulleys: 40T-80T
+        belt_hock_length: GT2-2mm-400-C
+        spring_carpus: true
+    - label: R10 1:1 45T + belted shoulder
+      note: 'new hocks + carpi; carpus 45T/45T (now listed: GT2-45T-10) 640; stifle and hock 40T/80T; shoulder belted (gene
+        defaults: 30T/60T, 394 mm)'
+      values:
+        servo_hock: sts3250_c002
+        servo_carpus: sts3250_c002
+        belt_carpus_pulleys: GT2-45T-10+GT2-45T-10
+        belt_carpus_length: GT2-2mm-640-C
+        belt_stifle_pulleys: 40T-80T
+        belt_stifle_length: GT2-2mm-444-C
+        belt_hock_pulleys: 40T-80T
+        belt_hock_length: GT2-2mm-400-C
+        shoulder_belt: true
+    - label: R10 40T/80T
+      note: new hocks + carpi; carpus, stifle and hock 40T/80T
+      values:
+        servo_hock: sts3250_c002
+        servo_carpus: sts3250_c002
+        belt_carpus_pulleys: 40T-80T
+        belt_carpus_length: GT2-2mm-640-C
+        belt_stifle_pulleys: 40T-80T
+        belt_stifle_length: GT2-2mm-444-C
+        belt_hock_pulleys: 40T-80T
+        belt_hock_length: GT2-2mm-400-C
+    - label: R10 40T/80T + carpus spring
+      note: new hocks + carpi; carpus, stifle and hock 40T/80T; carpus springs on (gene defaults)
+      values:
+        servo_hock: sts3250_c002
+        servo_carpus: sts3250_c002
+        belt_carpus_pulleys: 40T-80T
+        belt_carpus_length: GT2-2mm-640-C
+        belt_stifle_pulleys: 40T-80T
+        belt_stifle_length: GT2-2mm-444-C
+        belt_hock_pulleys: 40T-80T
+        belt_hock_length: GT2-2mm-400-C
+        spring_carpus: true
+    - label: R10 40T/80T + belted shoulder
+      note: 'new hocks + carpi; carpus, stifle and hock 40T/80T; shoulder belted (gene defaults: 30T/60T, 394 mm)'
+      values:
+        servo_hock: sts3250_c002
+        servo_carpus: sts3250_c002
+        belt_carpus_pulleys: 40T-80T
+        belt_carpus_length: GT2-2mm-640-C
+        belt_stifle_pulleys: 40T-80T
+        belt_stifle_length: GT2-2mm-444-C
+        belt_hock_pulleys: 40T-80T
+        belt_hock_length: GT2-2mm-400-C
+        shoulder_belt: true
+    - label: hips+hocks+carpi C002
+      note: 'six new: hip ab/ad, hocks, carpi; belts as R10 40T/80T'
+      values:
+        servo_hip_abd: sts3250_c002
+        servo_hock: sts3250_c002
+        servo_carpus: sts3250_c002
+        belt_carpus_pulleys: 40T-80T
+        belt_carpus_length: GT2-2mm-640-C
+        belt_stifle_pulleys: 40T-80T
+        belt_stifle_length: GT2-2mm-444-C
+        belt_hock_pulleys: 40T-80T
+        belt_hock_length: GT2-2mm-400-C
+    - label: hips+hocks+carpi C002 + carpus spring
+      note: 'six new: hip ab/ad, hocks, carpi; belts as R10 40T/80T; carpus springs on (gene defaults)'
+      values:
+        servo_hip_abd: sts3250_c002
+        servo_hock: sts3250_c002
+        servo_carpus: sts3250_c002
+        belt_carpus_pulleys: 40T-80T
+        belt_carpus_length: GT2-2mm-640-C
+        belt_stifle_pulleys: 40T-80T
+        belt_stifle_length: GT2-2mm-444-C
+        belt_hock_pulleys: 40T-80T
+        belt_hock_length: GT2-2mm-400-C
+        spring_carpus: true
+    - label: hips+hocks+carpi C002 + belted shoulder
+      note: 'six new: hip ab/ad, hocks, carpi; belts as R10 40T/80T; shoulder belted (gene defaults: 30T/60T, 394 mm)'
+      values:
+        servo_hip_abd: sts3250_c002
+        servo_hock: sts3250_c002
+        servo_carpus: sts3250_c002
+        belt_carpus_pulleys: 40T-80T
+        belt_carpus_length: GT2-2mm-640-C
+        belt_stifle_pulleys: 40T-80T
+        belt_stifle_length: GT2-2mm-444-C
+        belt_hock_pulleys: 40T-80T
+        belt_hock_length: GT2-2mm-400-C
+        shoulder_belt: true
+    - label: hocks+carpi+shoulders C002
+      note: 'six new: hocks, carpi, shoulders; belts as R10 40T/80T'
+      values:
+        servo_hock: sts3250_c002
+        servo_carpus: sts3250_c002
+        servo_shoulder: sts3250_c002
+        belt_carpus_pulleys: 40T-80T
+        belt_carpus_length: GT2-2mm-640-C
+        belt_stifle_pulleys: 40T-80T
+        belt_stifle_length: GT2-2mm-444-C
+        belt_hock_pulleys: 40T-80T
+        belt_hock_length: GT2-2mm-400-C
+    - label: hocks+carpi+shoulders C002 + carpus spring
+      note: 'six new: hocks, carpi, shoulders; belts as R10 40T/80T; carpus springs on (gene defaults)'
+      values:
+        servo_hock: sts3250_c002
+        servo_carpus: sts3250_c002
+        servo_shoulder: sts3250_c002
+        belt_carpus_pulleys: 40T-80T
+        belt_carpus_length: GT2-2mm-640-C
+        belt_stifle_pulleys: 40T-80T
+        belt_stifle_length: GT2-2mm-444-C
+        belt_hock_pulleys: 40T-80T
+        belt_hock_length: GT2-2mm-400-C
+        spring_carpus: true
+    - label: hocks+carpi+shoulders C002 + belted shoulder
+      note: 'six new: hocks, carpi, shoulders; belts as R10 40T/80T; shoulder belted (gene defaults: 30T/60T, 394 mm)'
+      values:
+        servo_hock: sts3250_c002
+        servo_carpus: sts3250_c002
+        servo_shoulder: sts3250_c002
+        belt_carpus_pulleys: 40T-80T
+        belt_carpus_length: GT2-2mm-640-C
+        belt_stifle_pulleys: 40T-80T
+        belt_stifle_length: GT2-2mm-444-C
+        belt_hock_pulleys: 40T-80T
+        belt_hock_length: GT2-2mm-400-C
+        shoulder_belt: true
+    servo_denominator: 4
+    production:
+      geometry:
+        genes:
+        - femur_length
+        - tibia_length
+        - rear_cannon_length
+        - upper_leg_length
+        - front_cannon_length
+        rel: 0.1
+        step_mm: 2.0
+        ratios:
+        - - tibia_length
+          - femur_length
+        - - rear_cannon_length
+          - tibia_length
+        - - front_cannon_length
+          - upper_leg_length
+        ratio_tolerance: 0.05
+      springs:
+        sites:
+        - hip_abd
+        - stifle
+        - hock
+        - shoulder
+        - carpus
+        switch: true
+        k_factors:
+        - 0.5
+        - 0.75
+        - 1.0
+        - 1.5
+        - 2.0
+        preload_factors:
+        - 0.5
+        - 1.0
+        - 1.5
+        along_steps_mm:
+        - -15.0
+        - 0.0
+        - 15.0
+        normal_steps_mm:
+        - -10.0
+        - 0.0
+        - 10.0
+        clearance_mm: 3.0
+        sweep_step_deg: 5.0
+        fitting_mm: 28.0
+        lever_mm: 30.0
+      pulleys: singles
+      feasible_lengths: true
+      shoulder_drive: true
+      stop_rejected_fraction: 0.5

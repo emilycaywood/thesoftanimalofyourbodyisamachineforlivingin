@@ -52,7 +52,7 @@ PAIRS = ("hip_abd", "stifle", "hock", "shoulder", "carpus")
 LIMITS = ("speed", "torque", "belt", "envelope", "stall")
 LIMIT_LABELS = {"speed": "joint speed", "torque": "sustained servo torque", "belt": "sustained belt tension",
                 "envelope": "torque-speed envelope", "stall": "stall torque"}
-CACHE_VERSION = 1
+CACHE_VERSION = 2  # 2: plays record spring peaks and belt means (R11c)
 
 #: R8's what-if pulley pairs (ADR-099). NOT in any catalog: offered only when ``what_if_pulleys`` is on, always
 #: flagged as what-ifs. Masses are not known (null, counted 0 g and listed as missing).
@@ -120,6 +120,11 @@ class HardwareSettings(BaseModel):
                     "is not in a catalog) + mass_kg x added kg.")
     cost_weight: float = P(0.1, ge=0.0, le=5.0, desc="Fitness lost per unit of the cost index (within a cell).")
     seeds_bodies: list[SeedBody] = Field(default_factory=list)
+    # ---- R11c (ADR-103): bounded geometry, single pulleys, feasible lengths, springs, shoulder drive
+    production: dict[str, Any] | None = Field(None, description="calflab.evolve.production.ProductionSettings; None "
+                                                                "= R11's space (ADR-102).")
+    servo_denominator: int | None = Field(None, description="Servo term of the cost index = new servos / this "
+                                                            "(None = the budget's total, as R11).")
     # ---- filled when a run starts
     baseline: dict[str, Any] | None = None
     catalog: dict[str, Any] | None = None
@@ -256,6 +261,8 @@ def baseline_of(spec: Any, values: dict[str, Any]) -> dict[str, Any]:
     """What the starting body already has: servo per pair, pulley sizes, belt lengths, mass (g)."""
     drives = (spec.metadata.get("feral") or {}).get("belt_drives") or {}
     return {"servos": {p: values.get(f"servo_{p}") for p in PAIRS if f"servo_{p}" in values},
+            "spring_sites": [s for s in ("hip_abd", "stifle", "hock", "shoulder", "carpus")
+                             if bool(values.get(f"spring_{s}", False))],
             "pulley_sizes": sorted(pulley_sizes(spec)),
             "belt_lengths": sorted({str(values.get(f"belt_{d}_length")) for d in drives}),
             "mass_g": round(float(spec.total_mass_g()), 1)}
@@ -274,7 +281,10 @@ def hardware_costs(spec: Any, values: dict[str, Any], hw: HardwareSettings, lib:
     what_if = [f"{d}: {values.get(f'belt_{d}_pulleys')}" for d in drives
                if str(values.get(f"belt_{d}_pulleys", "")).endswith("-whatif")]
     servos = servo_count(values, hw.baseline)
-    budget_total = sum(hw.servo_budget.values()) or 1
+    budget_total = hw.servo_denominator or sum(hw.servo_budget.values()) or 1
+    from calflab.evolve.production import spring_sites_added
+
+    sites_added = spring_sites_added(values, hw.baseline) if hw.production else []
     unknown: list[str] = []
     unverified: set[str] = set()
     cost_usd = 0.0
@@ -302,7 +312,8 @@ def hardware_costs(spec: Any, values: dict[str, Any], hw: HardwareSettings, lib:
     added_kg = (mass - float(base.get("mass_g", mass))) / 1000.0
     w = hw.cost_weights
     index = (w.get("servos", 1.0) * sum(servos.values()) / budget_total + w.get("pulley_sizes", 0.25) * len(new_sizes)
-             + (w.get("what_if", 0.5) if what_if else 0.0) + w.get("mass_kg", 1.0) * max(0.0, added_kg))
+             + (w.get("what_if", 0.5) if what_if else 0.0) + w.get("mass_kg", 1.0) * max(0.0, added_kg)
+             + w.get("spring_sites", 0.25) * len(sites_added))
     return {
         "new_servos": servos, "new_servos_total": sum(servos.values()), "servo_budget": dict(hw.servo_budget),
         "new_pulley_sizes": new_sizes, "new_pulleys": pieces, "new_belt_lengths": new_lengths,
@@ -310,6 +321,7 @@ def hardware_costs(spec: Any, values: dict[str, Any], hw: HardwareSettings, lib:
         "masses_not_entered": len(missing), "not_in_catalog": what_if, "unverified_servos": sorted(unverified),
         "new_servo_cost_usd": round(cost_usd, 2) if not cost_unknown else None,
         "cost_unknown_for": sorted(cost_unknown), "unknown": unknown, "cost_index": round(index, 4),
+        "spring_sites_added": sites_added, "servo_denominator": budget_total,
     }
 
 
@@ -402,7 +414,8 @@ def per_joint(ro: Any, spec: Any, lib: Any, margin: float, window_s: float = 2.0
         known = {n: v for n, v in vals.items() if v is not None}
         out[j] = {**{n: (None if v is None else round(v, 3)) for n, v in vals.items()},
                   "binds": max(known, key=lambda n: known[n]) if known else None,
-                  "belt_peak_n": None if r.get("belt_tension_peak_n") is None else round(float(r["belt_tension_peak_n"]), 1)}
+                  "belt_peak_n": None if r.get("belt_tension_peak_n") is None else round(float(r["belt_tension_peak_n"]), 1),
+                  "belt_mean_n": None if r.get("belt_tension_mean_n") is None else round(float(r["belt_tension_mean_n"]), 1)}
     return out
 
 
@@ -444,7 +457,22 @@ def judge_play(ro: Any, spec: Any, lib: Any, margin: float, t0: float, t1: float
         speed = float(np.linalg.norm(p[-1] - p[0])) * 1000.0 / max(1e-6, float(ro.t[mm][-1] - ro.t[mm][0]))
     return {"within": bool(j["within_limits"]), "fell": bool(j["fell"]), "margin": j["margin"],
             "violations": list(j["violations"]), "closest": closest, "speed_mm_s": round(speed, 1),
-            "joints": per_joint(ro, spec, lib, margin), "current": current_of(ro, spec, lib)}
+            "joints": per_joint(ro, spec, lib, margin), "current": current_of(ro, spec, lib),
+            "springs": spring_peaks(ro)}
+
+
+def spring_peaks(ro: Any) -> dict[str, float]:
+    """Largest spring force (N) per spring site over a play (both sides)."""
+    if ro.spring_force is None or not len(ro.spring_ids):
+        return {}
+    m = ro.t >= 0
+    f = np.asarray(ro.spring_force, float)
+    out: dict[str, float] = {}
+    for i, sid in enumerate(ro.spring_ids):
+        site = sid.split(".")[-1]
+        if m.any() and f.ndim == 2 and f.shape[1] > i:
+            out[site] = round(max(out.get(site, 0.0), float(np.max(f[m, i]))), 1)
+    return out
 
 
 def play_primitive_seed(play: dict[str, Any], spec: Any, lib: Any, copts: dict[str, Any], seed: int,
@@ -640,6 +668,18 @@ def summarise(screen: dict[str, Any], performances: list[dict[str, Any]] | None,
     cost = screen["costs"]
     fitness = headroom - hw.cost_weight * float(cost["cost_index"])
     current = [s["current"]["known_peak_a"] for s in all_seeds if (s.get("current") or {}).get("known_peak_a") is not None]
+    # belt tension per drive (both sides, every play and seed) and spring force per site, from the simulation (R11c)
+    belt_loads: dict[str, dict[str, float]] = {}
+    spring_sim: dict[str, float] = {}
+    for s in all_seeds:
+        for j, u in (s.get("joints") or {}).items():
+            drive = j.split(".")[-1]
+            if u.get("belt_peak_n") is not None:
+                row = belt_loads.setdefault(drive, {"peak_n": 0.0, "mean_n": 0.0})
+                row["peak_n"] = max(row["peak_n"], float(u["belt_peak_n"]))
+                row["mean_n"] = max(row["mean_n"], float(u.get("belt_mean_n") or 0.0))
+        for site, f in (s.get("springs") or {}).items():
+            spring_sim[site] = max(spring_sim.get(site, 0.0), float(f))
     out = {
         "passed_screen": passed, "screen_held": screen_held, "screen_plays": len(plays),
         "screen_best_margin": None if best is None else round(best, 4),
@@ -651,6 +691,7 @@ def summarise(screen: dict[str, Any], performances: list[dict[str, Any]] | None,
         "performances": perf_rows, "joints": joint_rows, "stoppers": [list(x) for x in stoppers],
         "costs": cost, "drives": screen["drives"], "headroom": round(headroom, 4),
         "fitness": round(fitness, 4), "known_current_peak_a": max(current) if current else None,
+        "belt_loads": belt_loads, "spring_peaks_sim_n": spring_sim,
     }
     out["tables"] = tables(out, hw)
     return out
@@ -698,6 +739,15 @@ def tables(s: dict[str, Any], hw: HardwareSettings) -> list[dict[str, Any]]:
               ("no cost entered for " + ", ".join(c["cost_unknown_for"])) if c["cost_unknown_for"] else ""],
              ["unknown", f"{len(c['unknown'])} values", "; ".join(c["unknown"][:6])],
              ["cost index", _f(c["cost_index"], 3), "the costs weighted (preset cost_weights)"]]
+    if c.get("spring_sites_added"):
+        costs.insert(-1, ["spring sites added", ", ".join(c["spring_sites_added"]), ""])
+    loads = [[d, f"{v['peak_n']:.0f}", f"{v['mean_n']:.0f}"] for d, v in sorted((s.get("belt_loads") or {}).items())]
+    loads += [[f"spring: {k}", f"{v:.0f}", ""] for k, v in sorted((s.get("spring_peaks_sim_n") or {}).items())]
+    prod = s.get("production") or {}
+    spr = [[k, f"{r['k_n_per_mm']:g}", f"{r['free_mm']:g}", f"{r['standing_mm']:g}", f"{r['max_extension_mm']:g}",
+            f"{r['peak_force_n']:g}", f"{r['min_line_gap_mm']:g} at {r['at_deg']:g}"]
+           for k, r in sorted((prod.get("springs") or {}).items()) if not k.startswith("_")]
+    spr += [["FLAG", f, "", "", "", "", ""] for f in (prod.get("springs") or {}).get("_flags", [])]
     out: list[dict[str, Any]] = [
         {"title": "Servos per pair", "columns": ["pair", "servo", ""], "rows": hw_rows, "warn": []},
         {"title": "Belt drives (catalog ids; C derived)", "columns": ["drive", "pulleys", "belt", "ratio", "C mm",
@@ -713,6 +763,14 @@ def tables(s: dict[str, Any], hw: HardwareSettings) -> list[dict[str, Any]]:
          "warn": [i for i, r in enumerate(s["performances"]) if r["held"] < r["of"]]},
         {"title": "Hardware costs (catalogs and library only)", "columns": ["", "", ""], "rows": costs, "warn": []},
     ]
+    if loads:
+        out.append({"title": "Belt tension per drive and spring force per site, simulated (largest over every play "
+                             "and seed, N)", "columns": ["drive / spring", "peak N", "largest mean N"], "rows": loads,
+                    "warn": []})
+    if spr:
+        out.append({"title": "Springs through the joint range (geometry, left leg)",
+                    "columns": ["site", "k N/mm", "free mm", "standing mm", "max extension mm", "peak force N",
+                                "closest line to axis mm (deg)"], "rows": spr, "warn": []})
     return out
 
 
@@ -840,19 +898,52 @@ class MapElitesHardware(Optimizer):
         geo = gdef.evolvable(only) if p.vary_geometry else []
         if p.vary_geometry and only and gdef.not_evolvable(only):
             raise ValueError(f"These genes cannot be evolved: {', '.join(gdef.not_evolvable(only))}")
-        space = HardwareSpace(gdef, hw, catalog, base_values, servos=p.vary_servos, belts=p.vary_belts)
-        n_geo, n_hw = len(geo), len(space)
+        prod: Any = None
+        if hw.production is not None:
+            # R11c (ADR-103): every gene in one bounded, discrete space; geometry moves are Gaussian, the rest redrawn
+            from calflab.evolve.production import ProductionSettings, ProductionSpace
+
+            pr = ProductionSettings.model_validate(hw.production)
+            if not p.vary_geometry:
+                pr.geometry = None
+            if not p.vary_belts:
+                raise ValueError("The production space always varies the belt drives (vary_belts must be on)")
+            hw.production = pr.model_dump(mode="json")
+            prod = ProductionSpace(gdef, hw, catalog, base_values, start.spec, build)
+            geo = []
+            if prod.excluded_systems:
+                notes0 = [f"belt systems with no pulley listed for their width, not offered: "
+                          f"{', '.join(prod.excluded_systems)}"]
+            else:
+                notes0 = []
+        space = None if prod is not None else HardwareSpace(gdef, hw, catalog, base_values, servos=p.vary_servos,
+                                                              belts=p.vary_belts)
+        if prod is not None:
+            n_geo, n_hw = prod.n_ordinal, len(prod) - prod.n_ordinal
+        else:
+            n_geo, n_hw = len(geo), len(space)  # type: ignore[arg-type]
+            notes0 = []
         if n_geo + n_hw == 0:
             raise ValueError("Nothing to evolve: geometry, servos and belts are all off")
         geo_ids = [g.id for g in geo]
 
         def encode(values: dict[str, Any]) -> np.ndarray:
+            if prod is not None:
+                return prod.encode(values)
             g = gdef.encode(values, geo_ids) if n_geo else np.zeros(0)
-            return np.concatenate([g, space.encode(values)])
+            return np.concatenate([g, space.encode(values)])  # type: ignore[union-attr]
 
-        def decode(x: np.ndarray) -> dict[str, Any]:
+        def realise(x: np.ndarray) -> tuple[dict[str, Any], Any, list[str], dict[str, Any]]:
+            """Gene values, the built design (None if rejected before building), reasons, extra report."""
+            if prod is not None:
+                values, d, why, extra = prod.realise(x, base_values)
+                if d is None:
+                    return values, None, why, extra
+                return values, d, why + rejection(d, hw), extra
             v = gdef.decode(x[:n_geo], base_values, geo_ids) if n_geo else dict(base_values)
-            return space.decode(x[n_geo:], v)
+            values = space.decode(x[n_geo:], v)  # type: ignore[union-attr]
+            d = build(values)
+            return values, d, rejection(d, hw), {}
 
         payload_hw = hw.model_dump(mode="json")
         payload_ev = ev.model_dump(mode="json")
@@ -868,7 +959,9 @@ class MapElitesHardware(Optimizer):
         summaries: dict[str, dict[str, Any]] = {}
         x_base = encode(base_values)
         seeds: list[tuple[str, np.ndarray]] = [("working body", x_base)]
-        notes: list[str] = []
+        notes: list[str] = list(notes0)
+        slot_values: dict[str, dict[str, Any]] = {}
+        slot_extra: dict[str, dict[str, Any]] = {}
         if p.seed_bodies:
             for sb in hw.seeds_bodies:
                 vals = {**base_values, **sb.values}
@@ -918,12 +1011,11 @@ class MapElitesHardware(Optimizer):
                         x[n_geo:] = np.where(flip, rng.random(n_hw), x[n_geo:])
                         parents = [a.id] if a.id == b.id else [a.id, b.id]
                     x = np.clip(x, 0.0, 1.0)
-                    values = decode(x)
-                    d = build(values)
-                    why = rejection(d, hw)
+                    values, d, why, extra = realise(x)
                     cid = f"{problem.run_id}-g{gen:03d}-{i:03d}" + (f"-r{attempt:02d}" if attempt else "")
                     if not why:
                         slots.append((x, parents, None, cid))
+                        slot_values[cid], slot_extra[cid] = values, extra
                         if label:
                             labels[cid] = label
                         break
@@ -931,13 +1023,34 @@ class MapElitesHardware(Optimizer):
                                               genome={"definition": gdef.name, "version": gdef.version,
                                                       "values": values},
                                               controller=problem.controller, fitness=-1e9, status="infeasible",
-                                              error="; ".join(why), mass_g=float(d.spec.total_mass_g())))
+                                              error="; ".join(why),
+                                              mass_g=float(d.spec.total_mass_g()) if d is not None else 0.0))
                     if label:
                         notes.append(f"seed body {label!r} rejected: {'; '.join(why)}")
                         break
+            # ---- R11c: stop when more than the set share of this generation's draws is rejected (ADR-103)
+            if prod is not None:
+                n_draws = len(rejected) + len(slots)
+                frac = len(rejected) / max(1, n_draws)
+                if frac > prod.pr.stop_rejected_fraction:
+                    tally: dict[str, int] = {}
+                    for c in rejected:
+                        for r in str(c.error).split("; "):
+                            key = r.split(" (")[0][:120]
+                            tally[key] = tally.get(key, 0) + 1
+                    entry = {"generation": gen, "stopped": True, "rejected": len(rejected), "draws": n_draws,
+                             "rejected_fraction": round(frac, 3),
+                             "reasons": [[k, n] for k, n in sorted(tally.items(), key=lambda kv: -kv[1])[:20]],
+                             "notes": list(notes), "bodies": 0, "infeasible": len(rejected), "failed": 0,
+                             "unsafe": 0, "evals": result.evals}
+                    result.candidates += rejected
+                    result.history.append(entry)
+                    result.archive = self.archive_view(result, by_id, summaries, dkeys, ranges)
+                    report(kind="generation", generation=gen, entry=entry, candidates=rejected, result=result)
+                    break
             # ---- stage 1: the screen of every accepted body
-            tasks = [Task(fn="calflab.evolve.hardware:screen_task", payload=common(decode(x)), id=cid)
-                     for x, _par, _w, cid in slots]
+            tasks = [Task(fn="calflab.evolve.hardware:screen_task", payload=common(slot_values[cid]), id=cid)
+                     for _x, _par, _w, cid in slots]
             n_all = len(tasks)
             done = [0]
 
@@ -994,6 +1107,7 @@ class MapElitesHardware(Optimizer):
                 summary["servo_genes"] = {g: genome["values"].get(g) for g in (f"servo_{q}" for q in PAIRS)
                                           if g in genome["values"]}
                 summary["label"] = labels.get(cid, "")
+                summary["production"] = slot_extra.get(cid) or {}
                 summary["tables"] = tables(summary, hw)
                 result.evals += int(out.get("evals", 0)) + sum(int(po.get("evals", 0)) for po in perfs.get(k, []))
                 desc = {key: float(registry.get("behavior_descriptor", key)().describe_candidate(  # type: ignore[attr-defined]

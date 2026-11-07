@@ -72,3 +72,4 @@ belt_targets:
   stifle: {kind: C, value: 175, low: 150, high: 200, note: "C 150-200 mm with the servo in the hip block (about a 390-490 mm belt)"}
   hock: {kind: C, value: 180, note: "C about 180 mm (about a 444-460 mm belt with 30T/60T)"}
   carpus: {kind: L, value: 680, note: "belt about 680 mm"}
+  shoulder: {kind: C, value: 150, note: "R11c (ADR-103), PROVISIONAL: a belted shoulder's servo on the rails about 150 mm behind the axle"}

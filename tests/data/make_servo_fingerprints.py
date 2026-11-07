@@ -25,7 +25,7 @@ DESIGN = "calf1-v001"
 
 def fingerprint(spec: Any) -> dict[str, str]:
     """sha256 of the spec, of its MJCF (seed 0) and of its mass breakdown. The spec leaves out the genome version,
-    the new ``metadata.feral.servos`` and the belt catalog's folder."""
+    the new ``metadata.feral.servos`` and the belt catalog's folder and (since R11c) digest."""
     from calflab.components import library
     from calflab.model.mass import mass_breakdown
     from calflab.sim import CompileOptions, compile_mjcf
@@ -36,6 +36,9 @@ def fingerprint(spec: Any) -> dict[str, str]:
     fer = dump.get("metadata", {}).get("feral") or {}
     fer.pop("servos", None)
     (fer.get("belt_catalog") or {}).pop("origin", None)  # the folder the catalog was read from (machine-specific)
+    # R11c (ADR-103) added sourced entries to the catalogs, which changes their digest and nothing else (checked
+    # against the pre-R11c catalog: spec, MJCF and masses identical)
+    (fer.get("belt_catalog") or {}).pop("digest", None)
     h = lambda s: hashlib.sha256(s.encode("utf-8")).hexdigest()  # noqa: E731
     return {
         "spec": h(json.dumps(dump, sort_keys=True)),

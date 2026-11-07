@@ -49,7 +49,8 @@
       "construction": null,
       "url": "",
       "range_note": "Listed by the researcher for GT2-3mm-9mm and GT2-3mm-15mm; the widths this listing covers were not stated."
-    }
+    },
+    {"id": "E", "label": "Amazon B0DPV1912G 'GT2/2M Closed Loop ... Length 300mm 310mm, Width 6/9/10/12/15mm'", "pitch_mm": 2, "widths_mm": [6, 9, 10, 12, 15], "construction": "generic rubber", "url": "https://www.amazon.com/clp/B0DPV1912G", "range_note": "R11c (ADR-103): search-result title only; offered for the 15 mm system only. A wider 15 mm range seen elsewhere (homediyer, 50T-175T) names no exact lengths, so none is entered."}
   ],
   "lengths": [
     {
@@ -1632,6 +1633,8 @@
         "AliExpress 10 mm closed-loop listing"
       ],
       "purchase_confirmed": false
-    }
+    },
+    {"id": "GT2-2mm-300-E", "pitch_mm": 2, "pitch_length_mm": 300, "teeth": 150, "source": "E", "purchase_confirmed": false},
+    {"id": "GT2-2mm-310-E", "pitch_mm": 2, "pitch_length_mm": 310, "teeth": 155, "source": "E", "purchase_confirmed": false}
   ]
 }

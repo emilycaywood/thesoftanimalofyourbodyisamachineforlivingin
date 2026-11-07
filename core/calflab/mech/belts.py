@@ -178,6 +178,44 @@ class PulleyPair(BaseModel):
                 f"D1 {self.d1_mm:.3f} / D2 {self.d2_mm:.3f} mm)")
 
 
+class Listing(BaseModel):
+    """Where a catalog entry is listed for sale (R11c, ADR-103). ``read``: the page itself was read; otherwise the
+    figures come from the search result's title or snippet only."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    url: str
+    label: str = ""
+    read: bool = False
+    note: str = ""
+
+
+class Pulley(BaseModel):
+    """One commercially listed GT2 pulley (R11c, ADR-103): a driver and a driven pulley are chosen separately and
+    combined into a pair ``<driver id>+<driven id>``. Pitch diameter is computed, never entered. ``belt_widths_mm``
+    are the belt widths the listings name for THIS tooth count; a pulley is offered only to a belt system of one of
+    those widths. ``listed_mass_g`` is what a listing says, kept for the researcher; it is NOT used as a mass until
+    verified (``mass_g`` stays null, counted 0 g like every pulley, ADR-068)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    id: str
+    teeth: int = Field(gt=0)
+    pitch_mm: float = Field(gt=0)
+    belt_widths_mm: list[float]
+    bores_mm: list[float] = []
+    mass_g: float | None = None
+    listed_mass_g: float | None = None
+    listed_mass_note: str = ""
+    listings: list[Listing] = []
+    verified: bool = False
+    notes: str = ""
+
+
+#: separator of a pair made of two single pulleys
+PAIR_SEP = "+"
+
+
 class _SystemsFile(BaseModel):
     model_config = ConfigDict(extra="allow")
     default: str
@@ -194,6 +232,7 @@ class _PulleysFile(BaseModel):
     model_config = ConfigDict(extra="allow")
     default: str
     pairs: list[PulleyPair]
+    pulleys: list[Pulley] = []
 
 
 class BeltChoice(BaseModel):
@@ -213,17 +252,21 @@ class BeltCatalog(BaseModel):
     lengths: list[BeltLength]
     pairs: list[PulleyPair]
     default_pair: str
+    #: single listed pulleys (R11c, ADR-103); a pair of two of them has the id ``<driver>+<driven>``
+    pulleys: list[Pulley] = []
     origin: str = ""  # where it was read from
 
     @model_validator(mode="after")
     def _refs(self) -> BeltCatalog:
         problems: list[str] = []
         for group, items in (("belt system", self.systems), ("length source", self.sources),
-                             ("belt length", self.lengths), ("pulley pair", self.pairs)):
+                             ("belt length", self.lengths), ("pulley pair", self.pairs), ("pulley", self.pulleys)):
             seen: set[str] = set()
             for it in items:
                 if it.id in seen:
                     problems.append(f"duplicate {group} id {it.id!r}")
+                if group == "pulley" and PAIR_SEP in it.id:
+                    problems.append(f"pulley id {it.id!r} may not contain {PAIR_SEP!r}")
                 seen.add(it.id)
         src = {s.id: s for s in self.sources}
         for s in self.systems:
@@ -281,13 +324,14 @@ class BeltCatalog(BaseModel):
         s, ln, p = parsed["belt_systems.json"], parsed["belt_lengths.json"], parsed["pulleys.json"]
         try:
             return cls(systems=s.systems, default_system=s.default, sources=ln.sources, lengths=ln.lengths,
-                       pairs=p.pairs, default_pair=p.default, origin=origin)
+                       pairs=p.pairs, default_pair=p.default, pulleys=p.pulleys, origin=origin)
         except ValidationError as exc:
             raise CatalogError(f"Belt catalog {origin}: {exc.errors()[0]['msg']}") from exc
 
     def digest(self) -> str:
         """SHA-256 of the catalog content (recorded with designs and runs)."""
-        body = self.model_dump(mode="json", exclude={"origin"})
+        # a catalog without single pulleys digests as it did before they existed (R11c)
+        body = self.model_dump(mode="json", exclude={"origin"} | (set() if self.pulleys else {"pulleys"}))
         return hashlib.sha256(json.dumps(body, sort_keys=True).encode()).hexdigest()
 
     # ---------------------------------------------------------------- lookup
@@ -297,10 +341,40 @@ class BeltCatalog(BaseModel):
                 return s
         raise CatalogError(f"Unknown belt system {system_id!r}. Choose one of: {', '.join(x.id for x in self.systems)}")
 
+    def pulley(self, pulley_id: str) -> Pulley:
+        for p in self.pulleys:
+            if p.id == pulley_id:
+                return p
+        raise CatalogError(f"Unknown pulley {pulley_id!r}. Choose one of: {', '.join(x.id for x in self.pulleys)}")
+
+    def pulleys_for(self, system: BeltSystem) -> list[Pulley]:
+        """Single pulleys of the system's pitch whose listings name the system's width, fewest teeth first."""
+        return sorted((p for p in self.pulleys if p.pitch_mm == system.pitch_mm
+                       and any(abs(w - system.width_mm) < 1e-9 for w in p.belt_widths_mm)), key=lambda p: (p.teeth, p.id))
+
+    def pair_of(self, driver_id: str, driven_id: str) -> str:
+        """The pair id for two single pulleys: ``<driver>+<driven>``."""
+        self.pulley(driver_id)
+        self.pulley(driven_id)
+        return f"{driver_id}{PAIR_SEP}{driven_id}"
+
+    def singles(self, pair_id: str) -> tuple[Pulley, Pulley] | None:
+        """The two single pulleys of a pair made of them, else None (a pair entered as a pair)."""
+        if PAIR_SEP not in pair_id:
+            return None
+        a, b = pair_id.split(PAIR_SEP, 1)
+        return self.pulley(a), self.pulley(b)
+
     def pair(self, pair_id: str) -> PulleyPair:
         for p in self.pairs:
             if p.id == pair_id:
                 return p
+        if PAIR_SEP in pair_id:
+            a, b = self.singles(pair_id)  # type: ignore[misc]
+            if a.pitch_mm != b.pitch_mm:
+                raise CatalogError(f"Pulley pair {pair_id!r}: {a.pitch_mm:g} and {b.pitch_mm:g} mm pitch differ")
+            return PulleyPair(id=pair_id, driver_teeth=a.teeth, driven_teeth=b.teeth, pitch_mm=a.pitch_mm,
+                              driver_mass_g=a.mass_g, driven_mass_g=b.mass_g)
         raise CatalogError(f"Unknown pulley pair {pair_id!r}. Choose one of: {', '.join(x.id for x in self.pairs)}")
 
     def length(self, length_id: str) -> BeltLength:
@@ -503,6 +577,13 @@ def evaluate_drive(
     checks.append(Check(id="pitch", label="Pulleys match the belt pitch",
                         status="pass" if pair.pitch_mm == system.pitch_mm else "fail",
                         detail=f"pulleys {pair.pitch_mm:g} mm, belt {system.pitch_mm:g} mm"))
+    sing = catalog.singles(choice.pulleys)
+    if sing is not None:  # pulleys chosen one by one (R11c): each must be listed for this belt's width
+        bad = [f"{p.id} is listed for {'/'.join(f'{w:g}' for w in p.belt_widths_mm)} mm belts" for p in sing
+               if not any(abs(w - system.width_mm) < 1e-9 for w in p.belt_widths_mm)]
+        checks.append(Check(id="pulley_width", label="Pulleys listed for this belt's width",
+                            status="fail" if bad else "pass",
+                            detail="; ".join(bad) if bad else f"both listed for {system.width_mm:g} mm belts"))
     checks.append(Check(id="length_source", label="Length offered in this belt's width",
                         status="pass" if selectable else "fail", detail=reason or f"source {entry.source}"))
     c: float | None

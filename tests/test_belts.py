@@ -120,8 +120,27 @@ def test_lengths_are_offered_only_where_their_source_covers_the_width(catalog: B
     assert not ok and "width unconfirmed" in why
     gates = catalog.system("GT2-2mm-9mm-gates")
     assert all(e.source == "B" for e in catalog.lengths_for(gates) if catalog.length_status(gates, e)[0])
-    wide = catalog.system("GT2-2mm-15mm-generic")
-    assert not any(catalog.length_status(wide, e)[0] for e in catalog.lengths_for(wide))
+    wide = catalog.system("GT2-2mm-15mm-generic")  # R11c (ADR-103): source E lists 300 and 310 mm in 15 mm
+    assert {e.pitch_length_mm for e in catalog.lengths_for(wide) if catalog.length_status(wide, e)[0]} == {300, 310}
+
+
+def test_single_pulleys_pair_by_id_and_by_width(catalog: BeltCatalog):
+    """R11c (ADR-103): listed pulleys are offered to a system only for a width their listings name; two of them make
+    a pair ``<driver>+<driven>`` whose masses stay unentered until verified."""
+    ten, wide = catalog.system("GT2-2mm-10mm-generic"), catalog.system("GT2-2mm-15mm-generic")
+    assert [p.teeth for p in catalog.pulleys_for(ten)] == [20, 30, 36, 40, 45, 48, 60, 80]
+    assert [p.teeth for p in catalog.pulleys_for(wide)] == [20, 40, 60, 80]
+    assert not catalog.pulleys_for(catalog.system("GT2-2mm-9mm-gates"))
+    pair = catalog.pair(catalog.pair_of("GT2-45T-10", "GT2-45T-10"))
+    assert pair.ratio == 1.0 and pair.driver_mass_g is None and pair.driven_mass_g is None
+    assert all(not p.verified and p.mass_g is None and p.listings for p in catalog.pulleys)
+    from calflab.mech.belts import BeltChoice, DriveLayout, DriveTarget, evaluate_drive
+
+    lay = DriveLayout(drive="hock", joint_label="hock", segment="tibia", segment_length_mm=245, near_limit_mm=28,
+                      far_limit_mm=217, servo_length_mm=45.2, servo_width_mm=24.7, target=DriveTarget(value=150))
+    rep = evaluate_drive(catalog, lay, BeltChoice(system=ten.id, pulleys="GT2-20T-15+GT2-40T-15",
+                                                  length="GT2-2mm-400-C"))
+    assert not rep.ok and any(c.id == "pulley_width" and c.status == "fail" for c in rep.checks)
 
 
 # ---------------------------------------------------------------------- checks, rejection

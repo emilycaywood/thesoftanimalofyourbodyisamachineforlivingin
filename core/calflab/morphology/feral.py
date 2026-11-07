@@ -79,8 +79,12 @@ REAR = ("hl", "hr")
 FRONT = ("fl", "fr")
 SIDE = {"fl": 1, "fr": -1, "hl": 1, "hr": -1}
 LEG_NAMES = {"fl": "front left", "fr": "front right", "hl": "hind left", "hr": "hind right"}
-DRIVES = ("stifle", "hock", "carpus")
-SPRINGS = {"stifle": ("femur", "tibia"), "hock": ("tibia", "cannon"), "shoulder": (None, "upper")}
+DRIVES = ("stifle", "hock", "carpus", "shoulder")
+SPRINGS = {"stifle": ("femur", "tibia"), "hock": ("tibia", "cannon"), "shoulder": (None, "upper"),
+           "carpus": ("upper", "cannon")}
+#: R11c (ADR-103): gene prefixes of sites that exist only when their switch is on; an off site leaves the spec as it
+#: was before the site existed
+OPTIONAL_SITES = {"spring_carpus": "spring_carpus", "belt_shoulder": "shoulder_belt", "shoulder_belt": "shoulder_belt"}
 #: rail cross-sections (mm): (outer diameter, inner diameter, density gene or None if not entered)
 RAILS = {"cf_rod_8mm": (8.0, 0.0, "tube_density"), "al_tube_half_inch": (12.7, 12.7 - 2 * 1.2446, None)}
 RAIL_LABELS = {"cf_rod_8mm": "8 mm solid carbon fibre rod", "al_tube_half_inch": "1/2 in aluminium tube, 0.049 in wall"}
@@ -314,7 +318,8 @@ class FeralCalfGenerator(PartGenerator):
         if cat_note:
             warnings.append(f"Belt catalog: {cat_note}.")
         ratio_for: dict[str, float] = {}
-        belted = ["stifle", "hock"] + (["carpus"] if bool(genes.get("carpus_belt", False)) else [])
+        belted = (["stifle", "hock"] + (["carpus"] if bool(genes.get("carpus_belt", False)) else [])
+                  + (["shoulder"] if bool(genes.get("shoulder_belt", False)) else []))
         targets = cfg.get("belt_targets", {})
 
         def layout(drive: str) -> DriveLayout:
@@ -322,9 +327,13 @@ class FeralCalfGenerator(PartGenerator):
                 "stifle": (Lf, Lf + float(lay.get("hip_block_reach_mm", 40))),
                 "hock": (Lt, Lt - fit),
                 "carpus": (Lu, Lu - fit),
+                # a belted shoulder (R11c, ADR-103): the servo rides on the rails behind the shoulder axle, clear of
+                # the hip block (PROVISIONAL)
+                "shoulder": (A, A - overhang - float(lay.get("pulley_clearance_mm", 3))),
             }[drive]
             return DriveLayout(
-                drive=drive, joint_label=drive, segment={"stifle": "femur", "hock": "tibia", "carpus": "upper leg"}[drive],
+                drive=drive, joint_label=drive, segment={"stifle": "femur", "hock": "tibia", "carpus": "upper leg",
+                                                         "shoulder": "rails (behind the shoulder axle)"}[drive],
                 segment_length_mm=seg_len, near_limit_mm=fit, far_limit_mm=far, servo_length_mm=s_len,
                 servo_width_mm=s_wid, output_axis_offset_mm=None if offset is None else float(offset),
                 pulley_clearance_mm=float(lay.get("pulley_clearance_mm", 3)), min_teeth_in_mesh=6.0,
@@ -497,6 +506,53 @@ class FeralCalfGenerator(PartGenerator):
                 upper.geoms += ph_geom(f"act.{k}.{drive}.collar", "clamp_collar_g", "Clamp collar",
                                        (0.0, 0.0, z_joint + c), upper.id)
 
+        def shoulder_belt_parts(upper: Body, k: str, x_axle: float, y_leg: float, od: float) -> None:
+            """A belted shoulder (R11c, ADR-103): driver servo on the rails at C behind the shoulder axle, driven
+            pulley on the upper leg, the belt inboard of the leg tube. PROVISIONAL layout: belt and servo inboard of
+            the leg in the leg's plane; clearances to the block, rails and leg are not checked."""
+            rep = reports["shoulder"]
+            sy = SIDE[k]
+            pair = catalog.pair(rep.choice.pulleys)
+            c = rep.c_mm if rep.c_mm is not None else layout("shoulder").far_limit_mm - s_len / 2.0
+            w = rep.width_mm
+            y_belt = y_leg - sy * (od / 2.0 + 2.0 + w / 2.0)
+            y_servo = y_belt - sy * (w / 2.0 + 2.0 + s_dep / 2.0)
+            span = rep.servo_span_mm or (c - s_len / 2.0, c + s_len / 2.0)
+            centre = (span[0] + span[1]) / 2.0 if offset is not None else c
+            trunk.geoms.append(servo_geom(f"act.{k}.shoulder.motor", (x_axle - centre, y_servo, 0.0),
+                                          (s_len, s_dep, s_wid),
+                                          f"{servos['shoulder'].name} (shoulder driver, C {c:.1f} mm behind the axle)"))
+            cyl_y = quat_from_z_to((0.0, 1.0, 0.0))
+            for gid, body, pos, d, mkey in (
+                    (f"belt.{k}.shoulder.driver", trunk, (x_axle - c, y_belt, 0.0), rep.d1_mm, "driver_mass_g"),
+                    (f"belt.{k}.shoulder.driven", upper, (0.0, y_belt - y_leg, 0.0), rep.d2_mm, "driven_mass_g")):
+                m = getattr(pair, mkey)
+                teeth = pair.driver_teeth if mkey == "driver_mass_g" else pair.driven_teeth
+                if m is None:
+                    row = missing.setdefault(f"pulley_{teeth}t", {"item": f"pulley_{teeth}t", "label": f"Pulley {teeth}T",
+                                                                    "qty": 0, "where": [],
+                                                                    "enter_in": f"catalog/pulleys.json {pair.id}.{mkey}"})
+                    row["qty"] += 1
+                    if body.id not in row["where"]:
+                        row["where"].append(body.id)
+                body.geoms.append(Geom(id=gid, shape="cylinder", size=(d / 2.0, w, 0.0), pos=pos, quat=cyl_y,
+                                       layer="Transmission", role="visual", mass_g=float(m or 0.0),
+                                       mass_source="specified" if m is not None else "parametric",
+                                       label=f"{teeth}T pulley, pitch diameter {d:.2f} mm"))
+            r1, r2 = rep.d1_mm / 2.0, rep.d2_mm / 2.0
+            for n, sgn in ((1, 1.0), (2, -1.0)):
+                p2, p1 = (x_axle, sgn * r2), (x_axle - c, sgn * r1)
+                span_len = math.hypot(p1[0] - p2[0], p1[1] - p2[1])
+                trunk.geoms.append(Geom(
+                    id=f"belt.{k}.shoulder.span{n}", shape="box", size=(1.5, w, span_len),
+                    pos=((p1[0] + p2[0]) / 2.0, y_belt, (p1[1] + p2[1]) / 2.0),
+                    quat=quat_from_z_to((p1[0] - p2[0], 0.0, p1[1] - p2[1])), layer="Transmission", role="visual",
+                    label=f"{rep.choice.system} belt, {rep.length_mm:g} mm ({rep.belt_teeth} teeth)"))
+            trunk.geoms += ph_geom(f"belt.{k}.shoulder.belt_mass", "belt_g", "Belt", (x_axle - c / 2.0, y_belt, 0.0),
+                                   "trunk", layer="Transmission")
+            trunk.geoms += ph_geom(f"act.{k}.shoulder.horn", "servo_horn_g", "Servo horn", (x_axle - c, y_servo, 0.0),
+                                   "trunk", layer="Actuators")
+
         def plugs(body: Body, length: float) -> None:
             for n, z in ((1, 0.0), (2, -length)):
                 body.geoms += ph_geom(f"{body.id}.plug{n}", "tube_plug_g", "Tube plug", (0.0, 0.0, z), body.id)
@@ -570,11 +626,15 @@ class FeralCalfGenerator(PartGenerator):
             joints.append(Joint(id=f"joint.{k}.shoulder", name=f"{name} shoulder", body=upper.id, axis=(0.0, 1.0, 0.0),
                                 range_deg=lim("shoulder", (-60, 60)), group="leg", damping=jd, friction=jf))
             actuate(k, "shoulder", f"joint.{k}.shoulder")
-            trunk.geoms.append(servo_geom(f"act.{k}.shoulder.motor", (sx, sy * (block_wc / 2.0 - s_dep / 2.0 - 2.0), 0.0),
-                                          (s_wid, s_dep, s_len), f"{servos['shoulder'].name} (shoulder, direct)").model_copy(
-                update={"quat": m_f}))
-            trunk.geoms += ph_geom(f"act.{k}.shoulder.horn", "servo_horn_g", "Servo horn", (sx, sy * block_wc / 2.0, 0.0),
-                                   "trunk", layer="Actuators")
+            if "shoulder" in belted:
+                shoulder_belt_parts(upper, k, sx, sy * leg_yc, _num(genes, "upper_leg_od"))
+            else:
+                trunk.geoms.append(servo_geom(f"act.{k}.shoulder.motor",
+                                              (sx, sy * (block_wc / 2.0 - s_dep / 2.0 - 2.0), 0.0),
+                                              (s_wid, s_dep, s_len), f"{servos['shoulder'].name} (shoulder, direct)"
+                                              ).model_copy(update={"quat": m_f}))
+                trunk.geoms += ph_geom(f"act.{k}.shoulder.horn", "servo_horn_g", "Servo horn",
+                                       (sx, sy * block_wc / 2.0, 0.0), "trunk", layer="Actuators")
             cannon = Body(id=f"leg.{k}.cannon", name=f"{name} cannon", parent=upper.id, pos=(0.0, 0.0, -Lu_k),
                           quat=ry(2.0 * theta))
             cannon.geoms.append(tube(f"leg.{k}.cannon.tube", "Cannon", Lfc_k, "front_cannon_od", "front_cannon_id"))
@@ -600,10 +660,12 @@ class FeralCalfGenerator(PartGenerator):
             g = {f: _num(genes, f"spring_{sname}_{f}") for f in
                  ("k", "free_length", "upper_along", "upper_normal", "lower_along", "lower_normal")}
             on = bool(genes.get(f"spring_{sname}", True))
+            if sname == "carpus" and not on:
+                continue  # an optional site (R11c): absent from the spec while off, so older bodies build as before
             spring_meta[sname] = {"enabled": on, **g}
             if not on:
                 continue
-            legs = FRONT if sname == "shoulder" else REAR
+            legs = FRONT if sname in ("shoulder", "carpus") else REAR
             joint_name = sname
             for k in legs:
                 if up_seg is None:  # the shoulder: anchored on the chest block, relative to the shoulder axle
@@ -758,6 +820,9 @@ def provisional_values(genes: dict[str, GeneValue], gp: Any, cfg: dict[str, Any]
     gdef = gene_definition_files()["feral_calf"]
     out: list[dict[str, Any]] = []
     for g in gdef.genes:
+        site = next((s for prefix, s in OPTIONAL_SITES.items() if g.id.startswith(prefix)), None)
+        if site is not None and not bool(genes.get(site, False)):
+            continue  # an optional site that is off (R11c): its values are not in use
         if g.provisional:
             out.append({"name": g.label or g.id, "value": genes.get(g.id), "unit": g.unit, "where": f"gene {g.id}"})
     for name, f in type(gp).model_fields.items():

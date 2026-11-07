@@ -113,7 +113,7 @@ def test_no_gene_or_parameter_sets_a_belt_distance():
         else:
             assert not any(word in g.id for word in ("center", "centre", "servo_pos")), g.id
     assert {g.id for g in gdef.genes if g.id.startswith("belt_")} == {
-        f"belt_{d}_{f}" for d in ("stifle", "hock", "carpus") for f in ("system", "pulleys", "length")}
+        f"belt_{d}_{f}" for d in ("stifle", "hock", "carpus", "shoulder") for f in ("system", "pulleys", "length")}
     from calflab.morphology.feral import FeralCalfGenerator
 
     for name, f in FeralCalfGenerator.Params.model_fields.items():

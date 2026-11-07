@@ -151,6 +151,18 @@ genes:
   - {id: belt_carpus_length, type: enum, default: GT2-2mm-640-C, choices: [GT2-2mm-640-C], open: true, hidden: true,
      evolvable: false, group: Belts, label: "Carpus belt length", description: "Catalog id; used when the carpus is belted."}
 
+  # A belted shoulder (R11c, ADR-103): off by default and for every stored genome. On = the shoulder servo rides on the
+  # rails behind the shoulder axle (C derived from the belt genes below) and belts the upper leg.
+  - {id: shoulder_belt, type: bool, default: false, absent: false, group: Mechanism, evolvable: false,
+     label: "Belt-drive the shoulder",
+     description: "On = the shoulder is belted; its servo rides on the rails behind the shoulder axle at the derived centre distance (PROVISIONAL layout, ADR-103). Off = shoulder servo direct on the axle."}
+  - {id: belt_shoulder_system, type: enum, default: GT2-2mm-10mm-generic, choices: [GT2-2mm-10mm-generic], open: true, hidden: true,
+     evolvable: false, group: Belts, label: "Shoulder belt system", description: "Catalog id; used when the shoulder is belted."}
+  - {id: belt_shoulder_pulleys, type: enum, default: 30T-60T, choices: [30T-60T], open: true, hidden: true,
+     evolvable: false, group: Belts, label: "Shoulder pulley pair", description: "Catalog id; used when the shoulder is belted."}
+  - {id: belt_shoulder_length, type: enum, default: GT2-2mm-394-C, choices: [GT2-2mm-394-C], open: true, hidden: true,
+     evolvable: false, group: Belts, label: "Shoulder belt length", description: "Catalog id; used when the shoulder is belted."}
+
   # Belted by default since 2026-11-02 (ADR-071); a genome that does not mention it was made with a direct carpus.
   - {id: carpus_belt, type: bool, default: true, absent: false, group: Mechanism, evolvable: false,
      label: "Belt-drive the carpus",
@@ -197,3 +209,13 @@ genes:
   - {id: spring_shoulder_upper_normal, default: -30, min: -150, max: 150, step: 1, unit: mm, group: Springs, provisional: true, label: "Shoulder: chest anchor forward", description: "Forward of the shoulder axle (negative = behind)."}
   - {id: spring_shoulder_lower_along, default: 40, min: -60, max: 200, step: 1, unit: mm, group: Springs, provisional: true, label: "Shoulder: upper-leg anchor along", description: "Down the upper leg from the shoulder axis."}
   - {id: spring_shoulder_lower_normal, default: -25, min: -100, max: 100, step: 1, unit: mm, group: Springs, provisional: true, label: "Shoulder: upper-leg anchor out", description: "Across the upper leg, positive toward the front."}
+
+  # Carpus springs (R11c, ADR-103): a new site, off by default and for every stored genome. Values PROVISIONAL.
+  - {id: spring_carpus, type: bool, default: false, absent: false, group: Springs, provisional: true, evolvable: false,
+     label: "Carpus springs", description: "Tension springs across each carpus, from the upper leg to the cannon (R11c; side and values PROVISIONAL)."}
+  - {id: spring_carpus_k, default: 0.2, absent: 0.2, min: 0.0, max: 3.0, step: 0.01, unit: N/mm, group: Springs, provisional: true, label: "Carpus: rate", description: "Spring rate."}
+  - {id: spring_carpus_free_length, default: 46, absent: 46, min: 10, max: 300, step: 0.5, unit: mm, group: Springs, provisional: true, label: "Carpus: free length", description: "Length with no force. 46 mm gives about 8 N in the standing pose, like the shoulder (PROVISIONAL)."}
+  - {id: spring_carpus_upper_along, default: 40, absent: 40, min: -60, max: 200, step: 1, unit: mm, group: Springs, provisional: true, label: "Carpus: upper-leg anchor along", description: "Up the upper leg from the carpus axis."}
+  - {id: spring_carpus_upper_normal, default: 25, absent: 25, min: -100, max: 100, step: 1, unit: mm, group: Springs, provisional: true, label: "Carpus: upper-leg anchor out", description: "Across the upper leg, positive toward the front."}
+  - {id: spring_carpus_lower_along, default: 40, absent: 40, min: -60, max: 200, step: 1, unit: mm, group: Springs, provisional: true, label: "Carpus: cannon anchor along", description: "Down the cannon from the carpus axis."}
+  - {id: spring_carpus_lower_normal, default: 25, absent: 25, min: -100, max: 100, step: 1, unit: mm, group: Springs, provisional: true, label: "Carpus: cannon anchor out", description: "Across the cannon, positive toward the front."}
