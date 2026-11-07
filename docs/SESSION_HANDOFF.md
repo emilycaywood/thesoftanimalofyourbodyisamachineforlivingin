@@ -1,8 +1,9 @@
 # CALFLAB session handoff
 
 Everything a new Claude Code session (or a new collaborator) needs to pick up
-CALFLAB. Last updated 2026-11-06 on branch `robot-calf-final` (cut from
-`chassis-mass`), after session R11 (hardware chosen by the loads of behaviour: servos and belts evolve as catalog
+CALFLAB. Last updated 2026-11-07 on branch `robot-calf-final` (cut from
+`chassis-mass`), after session R11c (toward a production body: sourced pulleys, bounded geometry, springs and the
+shoulder drive evolve; Stage A and one Stage B generation, ADR-103), section 4 "Session R11c"; before it session R11 (hardware chosen by the loads of behaviour: servos and belts evolve as catalog
 ids, ADR-102), section 4 "Session R11"; before it session R10 (a servo gene per joint pair; the carpus drive study,
 ADR-101), section 4 "Session R10"; before it session R9 (up to four STS3250 C002 servos, in simulation only, ADR-100), section 4
 "Session R9"; before it sessions R7 (movement that varies within a movement, ADR-098) and R8 (faster joints, ADR-099),
@@ -1293,6 +1294,33 @@ component values and `verified` flags were not changed; nothing installed.
 * Tests: `calflab test` ran with ruff and mypy failing on two nits (fixed, re-checked on the changed files);
   554 pytest, 14 Vitest and 13 Playwright tests passed. The full suite was not re-run after the fixes.
 
+**Session R11c (2026-11-06/07; ADR-103): toward a production body.** The working body (document), existing catalog
+entries, component values and `verified` flags were not changed; nothing installed.
+
+* **Catalog (Emily's go-ahead to add sourced entries):** `catalog/pulleys.json` (project and `config/belts`) gains a
+  `pulleys` list of 12 single listed GT2 pulleys (10 mm: 20/30/36/40/45/48/60/80T; 15 mm: 20/40/60/80T) with listings
+  (`read` true/false), bores and `listed_mass_g` (not used: `mass_g` null). Two make a pair `<driver>+<driven>`; check
+  `pulley_width`. 15 mm system: source E (300, 310 mm). No 9 mm pulley found (9 mm Gates not offered in the search).
+  Table: `docs/studies/production_r11c.md`. Script: `docs/studies/catalog_r11c.py`.
+* **Body:** genes `shoulder_belt` + `belt_shoulder_*` (servo on the rails behind the shoulder axle) and `spring_carpus`
+  + six values (front side, chosen by statics), all off by default and for stored genomes; no version bump. Bodies built
+  with the old catalog are bit-identical to R10's fingerprints (regenerated without the catalog digest).
+* **Search:** `calflab.evolve.production` and preset `hardware_r11c` for `map_elites_hardware`: lengths +-10 % on 2 mm
+  (ratios +-5 %), driver/driven pulleys separately, belt lengths feasible by construction, springs (on/off, rate,
+  preload, anchors), shoulder drive, at most six C002, cost servos/4 + 0.25 per new pulley size + 0.25 per spring site
+  + 1/kg. Rejections with reasons; stops when > 50 % of a generation is rejected. Spring-line clearance is flagged, not
+  rejected (today's own springs cross their joints in the PROVISIONAL ranges).
+* **Sheets:** `calflab.bridge.production_sheet` -> `docs/studies/sheets_r11c/*_geometry.csv` (Rhino/Grasshopper) and
+  `*_parts.json`, via `docs/studies/production_r11c.py <project> sheets --cands=<id>:<label>`.
+* **Stage A** (`20261107-024828-evolve-4ae0`, 15 bodies, 37 min): reproduces R11. Belted shoulders cost 6-15 minutes
+  (shoulder belt sustained tension). Best: C002 on hocks + carpi + shoulders, 31/33, lie_rise -1.44; with a carpus
+  spring 31/33 and 214 mm/s.
+* **Stage B, generation 1 only** (`20261107-032610-evolve-ba33`, 34 min for 15 bodies, 9 of 24 draws rejected): best
+  **g001-006-r05**: 31/33 minutes, 405 mm/s trot, cost 2.08 (new hocks + carpi, carpus 45T/45T 1:1, carpus springs,
+  no shoulder springs, small length changes). Not continued: Emily chooses the budget (about 34 min per generation of
+  15). No body holds lie_rise.
+* Tests: see the end of this section's verify list.
+
 **Scaffolded only (interfaces + tests, no behaviour):** PPO training, MJX
 simulator, RemoteSSH and CloudNotebook transports (job bundling is real),
 imitation reward, interactive selection, molds, skin patterns, nesting,
@@ -1330,6 +1358,21 @@ Journal, Rhino bridge):**
   Properties, entry in Overrides).
 * `doctor` warned "uv not found" on top of the three expected warnings:
   false alarm, fixed (see Tests above).
+
+**The researcher must verify (new in session R11c, ADR-103):**
+
+* **Every new catalog entry** (`catalog/pulleys.json` `pulleys`, source E and its two lengths): listing, belt width,
+  bore, mass (`listed_mass_g` -> `mass_g`), then `verified`. Several were seen only in search results (`read: false`);
+  45T, 48T, 80T (10 mm) and three of the 15 mm sizes have one listing each.
+* **The segment-ratio proposal** (+-5 % of tibia/femur, rear cannon/tibia, front cannon/upper leg) and the spring
+  steps (rate x 0.5-2, preload x 0.5-1.5, anchors +-15 / +-10 mm).
+* **Spring lines crossing their joints**: today's stifle, hock and shoulder springs and the new carpus spring come
+  within 0.4-8 mm of their axes in the PROVISIONAL ranges. Flagged, not rejected; say whether to reject instead.
+* **The belted-shoulder layout** (servo on the rails behind the axle, belt inboard of the leg): clearances not checked.
+* The cost-index weights (servos / 4, 0.25 per pulley size and per spring site, 1 per kg) and the mutation rate 0.05.
+* Not checked anywhere: the driving pulley to servo spline connection; the lateral stack and pulley clearance at the
+  joint for its own diameter.
+* **Watch g001-006-r05** (Journal or Evolve, run `20261107-032610-evolve-ba33`) and choose Stage B's budget.
 
 **The researcher must verify (new in session R11, ADR-102):**
 
@@ -1643,7 +1686,7 @@ Journal, Rhino bridge):**
 |---|---|
 | `CLAUDE.md` | Conventions for every session (loaded automatically) |
 | `PLAN.md` | Architecture, module boundaries, data flow, phases, risks, status |
-| `DECISIONS.md` | ADR log: every assumption (102 so far) |
+| `DECISIONS.md` | ADR log: every assumption (103 so far) |
 | `docs/proposals/anatomical-leg.md` | Proposal for a three-segment leg (set aside 2026-10-04; not built) |
 | `docs/USER_GUIDE.md` | How to use the lab |
 | `docs/CHAT_GUIDE_PROMPT.md` | Prompt that makes a chat assistant a guide to the whole lab |
@@ -1659,6 +1702,28 @@ Journal, Rhino bridge):**
 ## 7. Recommended next sessions
 
 Prefix each with the opening message from section 1.
+
+**R11c-B. Continue the production search** (recommended next; written after R11c, ADR-103.)
+> In projects/robot-calf-final, R11c built the bounded production space (preset `hardware_r11c`,
+> `docs/studies/production_r11c.md`). Stage B ran one generation (run 20261107-032610-evolve-ba33, about 34 min per
+> generation of 15). Continue it for <N> generations of 15 with
+> `python docs/studies/production_r11c.py projects/robot-calf-final stageB --generations=<N+1>` (generation 0 replays
+> Stage A's bodies from the cache). Report after each 5 generations: the Pareto front (minutes / trot / cost) against
+> the working body, A012, A013 and B g001-006-r05, rejection reasons, which genes move, and write production sheets
+> for the front. Do not change the working body, catalog values or `verified` flags.
+
+**R12 / Stage C. Fairness check: re-evolve behaviours for the top bodies** (after R11c-B.)
+> In projects/robot-calf-final, take the top 3-5 Pareto bodies of the R11c search. For each, re-run behaviour diversity
+> (`calflab.evolve.diversity`, coverage, capped durations, variation as R7) seeded from R7's safe generators, judge
+> minutes held, quantity of motion and trot speed with the R11c suite, and re-rank them. Report which body is best when
+> each has behaviours made for it, then write production sheets for the chosen body and runners-up. Do not change the
+> working body, component values or `verified` flags.
+
+**R11c-V. Verify the parts and adopt a body** (when Emily has checked the catalog entries.)
+> In projects/robot-calf-final, I have verified <entries> in catalog/pulleys.json (masses entered). Re-judge the R11c
+> front with the masses in, then make <chosen candidate> the working body through `set_genes` and `set_belt_drive`
+> (logged, undoable), bake it, and regenerate its geometry CSV and parts list.
+
 
 **R11-full. The full hardware run** (recommended next; written after R11, ADR-102.)
 > In projects/robot-calf-final, R11 built hardware evolution (`map_elites_hardware`, preset `hardware`,

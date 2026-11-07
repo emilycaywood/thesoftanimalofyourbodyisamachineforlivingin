@@ -124,3 +124,45 @@ What Stage A says:
   minutes there, but costs 3 minutes on today's body.
 * **New hip ab/ad servos are what make the walk hold** (+0.08 to +0.22); no body holds walk, turn and lie_rise together.
 * No body holds lie_rise.
+
+## Stage B — first generation, every gene on (run `20261107-032610-evolve-ba33`)
+
+Two generations of 15: generation 0 re-judged Stage A's bodies from the cache (about 2 min); generation 1 drew 24
+bodies (geometry Gaussian, sigma 0.05; each discrete gene redrawn with probability 0.05, an ASSUMPTION: R11's 0.2 would
+change about 11 of the 55 discrete genes per child), **rejected 9 (37.5 %, under the 50 % stop)** and judged 15.
+
+Rejections (each recorded with its reason): servo budget 8 > 6 (3); a 4:1 pulley pair (20T/80T) needing 440 deg of
+servo travel over the stifle or hock range (4); front legs 0.4-5.8 mm too short for a level back (4, the generator's
+check). (A rejection can list more than one reason.)
+
+**Timing:** generation 1 took 34.2 min wall for 15 new bodies on 7 workers (about 137 s per body). Projected, at that
+rate and 15 bodies per generation: 10 generations about 5.7 h, 20 about 11.4 h, 30 about 17 h (less as the cache
+fills with repeated bodies). **Not continued: Emily decides.**
+
+Generation 1's bodies (simulated; minutes /33, trot mm/s, walk / turn / lie_rise worst-seed margins, cost):
+
+| Candidate | Body | Minutes | Trot | Walk | Turn | lie_rise | Cost | Stopped most by |
+|---|---|---|---|---|---|---|---|---|
+| **g001-006-r05** | new hocks + carpi; carpus 45T/45T 640 (1:1), stifle and hock 40T/80T 444 / 400; springs hip ab/ad (rate x 0.5), stifle, hock, **carpus**, **no shoulder**; femur 198, tibia 245, rear cannon 228, upper leg 342, front cannon 243 | **31** | **405** (0.5 s / 2.0; 14 settings hold) | -0.28 | -0.11 | -3.00 | 2.08 | hl.stifle joint speed (3), fl.shoulder torque (2) |
+| g001-004 | new hocks + carpi + shoulders, 40T/80T, carpus spring, no stifle spring, upper leg 336 | 31 | 135 | -0.32 | -0.04 | -1.52 | 2.37 | fl.carpus belt (10), hr.hip_abd torque (6) |
+| g001-011 | no new servos, 30T/60T, carpus spring on, front cannon 251 | 32 | 0 | -0.16 | -0.24 | -3.00 | 0.25 | fl.carpus speed (8) |
+| g001-012 | new hip ab/ad + hocks + carpi, carpus 45T/80T, hock 444 | 28 | 401 | -0.04 | -0.08 | -3.00 | 2.37 | fl.shoulder torque (8) |
+| g001-008 | new hocks + carpi, 40T/80T, hock 444, all five springs | 30 | 207 | -0.40 | -0.27 | -2.88 | 1.83 | fl.carpus belt (9) |
+| others (10) | | 6-29 | 0-213 | | | | | belted shoulders (6, 16 min) and 40T/60T stifles do worst |
+
+g001-006-r05 against the previous best bodies (all simulated):
+
+| Body | Minutes /33 | Fastest trot within | Walk | Turn | lie_rise | Cost | Stopped most by |
+|---|---|---|---|---|---|---|---|
+| working body | 32 | none | -0.13 | -0.25 | -3.00 | 0.00 | fl.carpus speed |
+| R10 1:1 45T (R11: a what-if; now listed) | 26 | 419 | -0.24 | -0.20 | -2.88 | 1.83 | carpus belt |
+| A012 hocks+carpi+shoulders C002 | 31 | 80 | -0.40 | -0.01 | -1.44 | 2.12 | carpus belt |
+| A013 + carpus spring | 31 | 214 | -0.44 | -0.19 | -1.44 | 2.37 | carpus belt |
+| **B g001-006-r05** | **31** | **405** | -0.28 | -0.11 | -3.00 | 2.08 | stifle speed, shoulder torque |
+
+Its belts (simulated peak / largest mean): stifle 103 / 23 N, hock 64 / 17 N, carpus 145 / 22 N. Springs through the
+range: carpus 0.2 N/mm, free 47.4 mm, 46.9 mm max extension, 9.4 N; stifle 12 N; hock 8.3 N; hip ab/ad 3.0 N (rate
+0.089). Sheets: `sheets_r11c/B1_006r05_1to1_45T_carpus_spring_geometry.csv` and `_parts.json`.
+
+Read with care: the 11 behaviours were evolved for today's geometry and servos (Stage C exists for that); and the
+C002's stiffness ASSUMPTION (position gain from stall torque) may inflate belt peaks on C002 bodies.
