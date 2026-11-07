@@ -1169,6 +1169,17 @@ That run's results and the sheets of its front (`sheets_r11c/B20_*`) are in
 `docs/studies/production_r11c.md`. Its trot figures stop at about 530 mm/s
 because that is the quick grid's fastest setting (0.4 s, stride 2.0).
 
+**Watching several replays side by side.** `compare.html` (served by the lab,
+e.g. `http://localhost:8020/compare.html`) now takes any number of runs:
+`?runs=<id>,<id>,...&labels=<label>|<label>|...` lays them out in a grid
+(`&cols=<n>` to choose the columns). Each cell shows only the viewport and
+timeline of that replay; *Restart all*, *Play all* and *Pause all* drive every
+cell together. `&full=1` shows the whole lab in each cell instead; the old
+`?a=<id>&b=<id>&la=..&lb=..` links still work. To store replays of chosen
+candidates for it: `python docs/studies/store_r11cb.py <project> <out.json>
+--plays=lie_rise,trot 0.4/2,R7-lively <candidate id>=<label> ...` (screen
+plays by their key, behaviours by their label; prints the links).
+
 #### Proportions: comparing bodies instead of finding one
 
 The lab has three ways to look for a better body or gait:

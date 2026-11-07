@@ -2,42 +2,78 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>CALFLAB: two replays side by side</title>
+    <title>CALFLAB: replays side by side</title>
     <style>
       html, body, #root { margin: 0; height: 100%; background: #1d1f22; color: #ddd; font: 13px system-ui, sans-serif; }
-      .bar { display: flex; height: 28px; }
-      .bar div { flex: 1; padding: 6px 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-      .views { display: flex; height: calc(100% - 28px); }
-      iframe { flex: 1; border: 0; border-left: 1px solid #333; }
+      .top { display: flex; gap: 6px; align-items: center; height: 30px; padding: 0 8px; }
+      .top button { background: #2c2f33; color: #ddd; border: 1px solid #444; border-radius: 3px; padding: 2px 10px; cursor: pointer; }
+      .top button:hover { border-color: #e8833a; }
+      .top span { color: #999; }
+      .grid { display: grid; height: calc(100% - 30px); gap: 1px; background: #333; }
+      .cell { display: flex; flex-direction: column; min-width: 0; min-height: 0; background: #1d1f22; }
+      .label { padding: 6px 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .label b { color: #fff; }
+      iframe { flex: 1; border: 0; }
       .empty { padding: 24px; line-height: 1.6; }
     </style>
   </head>
   <body>
-    <!-- Layout only: each side is the lab itself, opened with ?replay=<run id>. Usage:
-         compare.html?a=<run id>&b=<run id>&la=<left label>&lb=<right label> -->
+    <!-- Layout only: each cell is the lab itself, opened with ?replay=<run id>. Usage:
+         compare.html?a=<run id>&b=<run id>&la=<left label>&lb=<right label>       (two, as before)
+         compare.html?runs=<id>,<id>,...&labels=<label>|<label>|...                (any number, in a grid)
+         optional &cols=<n> (default: 2 for two, 3 for up to six, else 4); &full=1 shows the whole lab in each cell
+         instead of only its viewport and timeline. The buttons restart, play or pause every cell together. -->
     <div id="root"></div>
     <script>
       const q = new URLSearchParams(location.search);
-      const a = q.get("a"), b = q.get("b");
+      let ids = [], labels = [];
+      if (q.get("runs")) {
+        ids = q.get("runs").split(",").map((s) => s.trim()).filter(Boolean);
+        labels = (q.get("labels") || "").split("|");
+      } else if (q.get("a") && q.get("b")) {
+        ids = [q.get("a"), q.get("b")];
+        labels = [q.get("la") || "", q.get("lb") || ""];
+      }
       const root = document.getElementById("root");
-      if (!a || !b) {
-        root.innerHTML = '<div class="empty">Shows two recorded runs side by side, each in its own lab view.<br>' +
+      if (ids.length < 2) {
+        root.innerHTML = '<div class="empty">Shows recorded runs side by side, each in its own lab view.<br>' +
           "Open <code>compare.html?a=&lt;run id&gt;&amp;b=&lt;run id&gt;</code> (optional <code>la</code>, " +
-          "<code>lb</code>: labels). Run ids are in Journal &gt; Runs.</div>";
+          "<code>lb</code>: labels), or <code>compare.html?runs=&lt;id&gt;,&lt;id&gt;,...&amp;labels=a|b|...</code> " +
+          "for a series. Run ids are in Journal &gt; Runs.</div>";
       } else {
-        const bar = document.createElement("div");
-        bar.className = "bar";
-        const views = document.createElement("div");
-        views.className = "views";
-        for (const [id, label] of [[a, q.get("la")], [b, q.get("lb")]]) {
+        const n = ids.length;
+        const cols = Number(q.get("cols")) || (n <= 2 ? 2 : n <= 6 ? 3 : 4);
+        const grid = document.createElement("div");
+        grid.className = "grid";
+        grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+        grid.style.gridTemplateRows = `repeat(${Math.ceil(n / cols)}, 1fr)`;
+        ids.forEach((id, i) => {
+          const cell = document.createElement("div");
+          cell.className = "cell";
           const t = document.createElement("div");
-          t.textContent = (label ? label + ": " : "") + id;
-          bar.appendChild(t);
+          t.className = "label";
+          const b = document.createElement("b");
+          b.textContent = labels[i] || "";
+          t.append(b, document.createTextNode((labels[i] ? "  " : "") + id));
+          t.title = (labels[i] || "") + " " + id;
           const f = document.createElement("iframe");
-          f.src = "/?replay=" + encodeURIComponent(id);
-          views.appendChild(f);
+          f.src = "/?replay=" + encodeURIComponent(id) + (q.get("full") ? "" : "&embed=1");
+          cell.append(t, f);
+          grid.appendChild(cell);
+        });
+        const top = document.createElement("div");
+        top.className = "top";
+        const frames = () => [...grid.querySelectorAll("iframe")];
+        for (const [label, action] of [["Restart all", "restart"], ["Play all", "play"], ["Pause all", "pause"]]) {
+          const btn = document.createElement("button");
+          btn.textContent = label;
+          btn.onclick = () => frames().forEach((f) => f.contentWindow?.postMessage({ calflab: "playback", action }, location.origin));
+          top.appendChild(btn);
         }
-        root.append(bar, views);
+        const hint = document.createElement("span");
+        hint.textContent = n + " replays. Each cell: RMB orbit, wheel zoom; its own timeline below it.";
+        top.appendChild(hint);
+        root.append(top, grid);
       }
     </script>
   </body>

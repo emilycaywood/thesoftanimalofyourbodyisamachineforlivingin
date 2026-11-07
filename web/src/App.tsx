@@ -6,14 +6,18 @@ import { chord, isTypingTarget, loadKeys } from "@/commands/keys";
 import { execute, hooks, repeatLast, replayRun } from "@/commands/registry";
 import { Badge, Button, Empty, IconButton } from "@/components/ui";
 import { connectEvolve } from "@/panels/Evolve";
-import { usePlaybackClock } from "@/panels/Timeline";
+import { TimelinePanel, usePlaybackClock } from "@/panels/Timeline";
 import { CommandLine } from "@/shell/CommandLine";
 import { CommandDialog, ShortcutsDialog, Tour } from "@/shell/Dialogs";
 import { Dock } from "@/shell/Dock";
 import { useLab } from "@/store/lab";
-import { connectPlayback } from "@/store/playback";
+import { connectPlayback, usePlayback } from "@/store/playback";
 import { useView } from "@/store/view";
+import { ViewportPanel } from "@/viewport/Viewport";
 import { WORKSPACES } from "@/workspaces";
+
+/** Opened by compare.html with `&embed=1`: the viewport and timeline only. */
+const EMBED = new URLSearchParams(window.location.search).get("embed") === "1";
 
 function TopBar() {
   const ws = useView((s) => s.workspace);
@@ -120,12 +124,30 @@ export function App() {
     };
   }, []);
 
-  // `?replay=<run id>` opens the lab replaying that run (compare.html shows two side by side)
+  // `?replay=<run id>` opens the lab replaying that run (compare.html shows several side by side)
   useEffect(() => {
     if (!ready) return;
     const run = new URLSearchParams(window.location.search).get("replay");
     if (run) void replayRun(run);
   }, [ready]);
+
+  // compare.html drives every embedded replay together: restart / play / pause (same origin only)
+  useEffect(() => {
+    if (!EMBED) return;
+    const onMessage = (e: MessageEvent) => {
+      if (e.origin !== window.location.origin) return;
+      const msg = e.data as { calflab?: string; action?: string } | null;
+      if (msg?.calflab !== "playback") return;
+      const pb = usePlayback.getState();
+      if (msg.action === "restart") pb.set({ frame: 0, playing: true });
+      else if (msg.action === "play") pb.set({ playing: true });
+      else if (msg.action === "pause") pb.set({ playing: false });
+    };
+    window.addEventListener("message", onMessage);
+    return () => {
+      window.removeEventListener("message", onMessage);
+    };
+  }, []);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -165,6 +187,15 @@ export function App() {
     );
   }
   if (!ready) return <Empty title="Opening the project..." />;
+  if (EMBED) {
+    // `&embed=1`: only the viewport and the timeline, for compare.html's grid (no tour, panels or menus)
+    return (
+      <div className="flex h-full flex-col" data-testid="embed">
+        <div className="min-h-0 flex-1"><ViewportPanel /></div>
+        <div className="h-20 shrink-0 overflow-hidden border-t border-line"><TimelinePanel /></div>
+      </div>
+    );
+  }
   return (
     <div className="flex h-full flex-col">
       <TopBar />

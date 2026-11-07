@@ -1,0 +1,182 @@
+{
+ "20261107-043030-evolve-c02e-g000-000": {
+  "label": "0 working body",
+  "run": "20261107-043030-evolve-c02e",
+  "plays": [
+   {
+    "label": "trot 0.4/2",
+    "seed": 0,
+    "run": "20261107-200004-sim-dee6",
+    "within": false,
+    "margin": -0.2536,
+    "closest": "joint_speed"
+   },
+   {
+    "label": "lie_rise",
+    "seed": 0,
+    "run": "20261107-200006-sim-0a14",
+    "within": false,
+    "margin": -3.0,
+    "closest": "belt_sustained"
+   },
+   {
+    "label": "R7-lively",
+    "seed": 0,
+    "run": "20261107-200025-sim-fd74",
+    "within": true,
+    "margin": 0.0257,
+    "closest": "joint_speed"
+   }
+  ]
+ },
+ "20261107-043030-evolve-c02e-g000-013": {
+  "label": "gen 0 A013",
+  "run": "20261107-043030-evolve-c02e",
+  "plays": [
+   {
+    "label": "trot 0.4/2",
+    "seed": 0,
+    "run": "20261107-200005-sim-e744",
+    "within": false,
+    "margin": -0.24,
+    "closest": "belt_sustained"
+   },
+   {
+    "label": "lie_rise",
+    "seed": 0,
+    "run": "20261107-200007-sim-c847",
+    "within": false,
+    "margin": -1.44,
+    "closest": "servo_sustained"
+   },
+   {
+    "label": "R7-lively",
+    "seed": 0,
+    "run": "20261107-200030-sim-da88",
+    "within": true,
+    "margin": 0.3732,
+    "closest": "joint_speed"
+   }
+  ]
+ },
+ "20261107-043030-evolve-c02e-g002-012": {
+  "label": "gen 2 g002-012",
+  "run": "20261107-043030-evolve-c02e",
+  "plays": [
+   {
+    "label": "lie_rise",
+    "seed": 0,
+    "run": "20261107-200007-sim-426d",
+    "within": false,
+    "margin": -2.0,
+    "closest": "belt_sustained"
+   },
+   {
+    "label": "trot 0.4/2",
+    "seed": 0,
+    "run": "20261107-200007-sim-59b0",
+    "within": false,
+    "margin": -0.1076,
+    "closest": "joint_speed"
+   },
+   {
+    "label": "R7-lively",
+    "seed": 0,
+    "run": "20261107-200033-sim-80a5",
+    "within": true,
+    "margin": 0.04,
+    "closest": "belt_sustained"
+   }
+  ]
+ },
+ "20261107-043030-evolve-c02e-g006-005": {
+  "label": "gen 6 g006-005",
+  "run": "20261107-043030-evolve-c02e",
+  "plays": [
+   {
+    "label": "trot 0.4/2",
+    "seed": 0,
+    "run": "20261107-200009-sim-74ee",
+    "within": false,
+    "margin": -0.0488,
+    "closest": "joint_speed"
+   },
+   {
+    "label": "lie_rise",
+    "seed": 0,
+    "run": "20261107-200011-sim-dac0",
+    "within": false,
+    "margin": -1.7327,
+    "closest": "belt_sustained"
+   },
+   {
+    "label": "R7-lively",
+    "seed": 0,
+    "run": "20261107-200035-sim-185f",
+    "within": false,
+    "margin": -0.76,
+    "closest": "belt_sustained"
+   }
+  ]
+ },
+ "20261107-043030-evolve-c02e-g012-009": {
+  "label": "gen 12 g012-009",
+  "run": "20261107-043030-evolve-c02e",
+  "plays": [
+   {
+    "label": "lie_rise",
+    "seed": 0,
+    "run": "20261107-200012-sim-b6de",
+    "within": false,
+    "margin": -0.24,
+    "closest": "servo_sustained"
+   },
+   {
+    "label": "trot 0.4/2",
+    "seed": 0,
+    "run": "20261107-200012-sim-75ad",
+    "within": false,
+    "margin": -0.0486,
+    "closest": "joint_speed"
+   },
+   {
+    "label": "R7-lively",
+    "seed": 0,
+    "run": "20261107-200038-sim-dbf9",
+    "within": true,
+    "margin": 0.6084,
+    "closest": "envelope"
+   }
+  ]
+ },
+ "20261107-043030-evolve-c02e-g020-008-r01": {
+  "label": "gen 20 g020-008-r01",
+  "run": "20261107-043030-evolve-c02e",
+  "plays": [
+   {
+    "label": "trot 0.4/2",
+    "seed": 0,
+    "run": "20261107-200014-sim-c10f",
+    "within": true,
+    "margin": 0.2124,
+    "closest": "joint_speed"
+   },
+   {
+    "label": "lie_rise",
+    "seed": 0,
+    "run": "20261107-200015-sim-1b3a",
+    "within": false,
+    "margin": -0.16,
+    "closest": "servo_sustained"
+   },
+   {
+    "label": "R7-lively",
+    "seed": 0,
+    "run": "20261107-200034-sim-27fc",
+    "within": true,
+    "margin": 0.56,
+    "closest": "servo_sustained"
+   }
+  ]
+ }
+}

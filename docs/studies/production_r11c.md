@@ -455,6 +455,23 @@ on the front through generation 15; dominated at 20 only by its own child). Writ
 part on them is `verified: false`, pulley masses are not entered, and each parts list ends with what to verify
 before ordering.
 
+### Watch the best body's line of descent side by side
+
+The working body and five of `g020-008-r01`'s ancestors and itself (A013 at generation 0 -> `g002-012` -> `g006-005` ->
+`g012-009` -> `g020-008-r01`; its other parent line runs through a belted-shoulder body) each play lie_rise, the fastest
+trot setting (0.4 s / stride 2.0) and R7-lively on seed 0, stored as `sim` runs titled `R11c-B <label> <play>: seed 0`
+(`docs/studies/store_r11cb.py`, record in `store_r11cb.json`; plays are not stopped at a fall so the whole replay
+shows). Start the lab on port 8020 (`.\calflab.ps1 lab --project projects/robot-calf-final --port 8020`), then open a
+link: a 3 x 2 grid of replays, each cell its own viewport and timeline, with *Restart all / Play all / Pause all*.
+The labels give each play's worst margin (over = past a limit at margin 0.2).
+
+﻿* **R7-lively**: [side by side](http://localhost:8020/compare.html?runs=20261107-200025-sim-fd74,20261107-200030-sim-da88,20261107-200033-sim-80a5,20261107-200035-sim-185f,20261107-200038-sim-dbf9,20261107-200034-sim-27fc&labels=0%20working%20body%20%28within%20%2B0.03%29%7Cgen%200%20A013%20%28within%20%2B0.37%29%7Cgen%202%20g002-012%20%28within%20%2B0.04%29%7Cgen%206%20g006-005%20%28over%20-0.76%29%7Cgen%2012%20g012-009%20%28within%20%2B0.61%29%7Cgen%2020%20g020-008-r01%20%28within%20%2B0.56%29)
+* **lie_rise**: [side by side](http://localhost:8020/compare.html?runs=20261107-200006-sim-0a14,20261107-200007-sim-c847,20261107-200007-sim-426d,20261107-200011-sim-dac0,20261107-200012-sim-b6de,20261107-200015-sim-1b3a&labels=0%20working%20body%20%28over%20-3.00%29%7Cgen%200%20A013%20%28over%20-1.44%29%7Cgen%202%20g002-012%20%28over%20-2.00%29%7Cgen%206%20g006-005%20%28over%20-1.73%29%7Cgen%2012%20g012-009%20%28over%20-0.24%29%7Cgen%2020%20g020-008-r01%20%28over%20-0.16%29)
+* **trot 0.4/2**: [side by side](http://localhost:8020/compare.html?runs=20261107-200004-sim-dee6,20261107-200005-sim-e744,20261107-200007-sim-59b0,20261107-200009-sim-74ee,20261107-200012-sim-75ad,20261107-200014-sim-c10f&labels=0%20working%20body%20%28over%20-0.25%29%7Cgen%200%20A013%20%28over%20-0.24%29%7Cgen%202%20g002-012%20%28over%20-0.11%29%7Cgen%206%20g006-005%20%28over%20-0.05%29%7Cgen%2012%20g012-009%20%28over%20-0.05%29%7Cgen%2020%20g020-008-r01%20%28within%20%2B0.21%29)
+
+The replays reproduce the run's judgements: lie_rise -3.00, -1.44, -2.00, -1.73, -0.24, -0.16 along the line; the fast
+trot is within limits only on `g020-008-r01` (+0.21) on this seed; R7-lively holds on all but `g006-005` (-0.76).
+
 ### What to read next
 
 * **Watch `g020-008-r01`** (Evolve > Archive or Journal > Runs, run `20261107-043030-evolve-c02e`), especially
