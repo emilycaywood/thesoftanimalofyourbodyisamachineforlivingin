@@ -217,6 +217,16 @@ def create_app(lab: Lab, web_dist: Path | None = None, watch_plugins: bool = Tru
     def rollout(run_id: str) -> dict[str, Any]:
         return lab.rollout_payload(run_id)
 
+    @app.get("/api/compare/{set_key}")
+    def compare_manifest(set_key: str) -> dict[str, Any]:
+        """compare.html?set=<key>: bodies x behaviours -> stored plays, badges and limits (ADR-106)."""
+        from calflab.app.compare import CompareError, manifest
+
+        try:
+            return manifest(lab, set_key)
+        except CompareError as exc:
+            raise HTTPException(404, str(exc)) from exc
+
     @app.get("/api/evolve/{run_id}")
     def evolve(run_id: str) -> dict[str, Any]:
         return lab.evolve_view(run_id)
