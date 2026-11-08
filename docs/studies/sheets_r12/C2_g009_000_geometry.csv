@@ -1,0 +1,58 @@
+kind,id,label,x_mm,y_mm,z_mm,value,unit
+segment_length,femur_length,"femur",,,,200.0,mm
+segment_length,tibia_length,"tibia",,,,243.0,mm
+segment_length,rear_cannon_length,"rear cannon",,,,224.0,mm
+segment_length,upper_leg_length,"upper leg",,,,342.0,mm
+segment_length,front_cannon_length,"front cannon",,,,239.0,mm
+joint,joint.hl.hip_abd,"hind left hip ab/adduction",-275.0,139.1,599.72,,
+joint,joint.hl.stifle,"hind left stifle",-149.35,170.66,447.35,,
+joint,joint.hl.hock,"hind left hock",-290.23,174.33,249.39,,
+joint,joint.hr.hip_abd,"hind right hip ab/adduction",-275.0,-139.1,599.72,,
+joint,joint.hr.stifle,"hind right stifle",-149.35,-170.66,447.35,,
+joint,joint.hr.hock,"hind right hock",-290.23,-174.33,249.39,,
+joint,joint.fl.shoulder,"front left shoulder",275.0,131.7,599.72,,
+joint,joint.fl.carpus,"front left carpus",334.56,162.52,264.36,,
+joint,joint.fr.shoulder,"front right shoulder",275.0,-131.7,599.72,,
+joint,joint.fr.carpus,"front right carpus",334.56,-162.52,264.36,,
+servo,act.hl.hip_abd.motor,"Feetech STS3215 C018 (12 V) (hip ab/ad, direct)",-275.0,115.25,599.72,,
+servo,act.hr.hip_abd.motor,"Feetech STS3215 C018 (12 V) (hip ab/ad, direct)",-275.0,-115.25,599.72,,
+servo,act.fl.shoulder.motor,"Feetech STS3215 C018 (12 V) (shoulder, direct)",275.0,102.7,599.72,,
+servo,act.fr.shoulder.motor,"Feetech STS3215 C018 (12 V) (shoulder, direct)",275.0,-102.7,599.72,,
+servo,act.hl.stifle.motor,"Feetech STS3215 C018 (12 V) (stifle driver, C 161.5 mm)",-255.54,183.67,574.47,,
+pulley,belt.hl.stifle.driver,"40T pulley, pitch diameter 25.46 mm",-252.57,159.49,571.9,25.46,mm pitch diameter
+pulley,belt.hl.stifle.driven,"80T pulley, pitch diameter 50.93 mm",-151.11,184.98,448.87,50.93,mm pitch diameter
+servo,act.hl.hock.motor,"Feetech STS3250 C002 (12 V) (hock driver, C 139.4 mm)",-214.13,210.72,367.04,,
+pulley,belt.hl.hock.driver,"40T pulley, pitch diameter 25.46 mm",-211.16,186.54,364.48,25.46,mm pitch diameter
+pulley,belt.hl.hock.driven,"80T pulley, pitch diameter 50.93 mm",-291.99,188.64,250.9,50.93,mm pitch diameter
+servo,act.hr.stifle.motor,"Feetech STS3215 C018 (12 V) (stifle driver, C 161.5 mm)",-255.54,-183.67,574.47,,
+pulley,belt.hr.stifle.driver,"40T pulley, pitch diameter 25.46 mm",-252.57,-159.49,571.9,25.46,mm pitch diameter
+pulley,belt.hr.stifle.driven,"80T pulley, pitch diameter 50.93 mm",-151.11,-184.98,448.87,50.93,mm pitch diameter
+servo,act.hr.hock.motor,"Feetech STS3250 C002 (12 V) (hock driver, C 139.4 mm)",-214.13,-210.72,367.04,,
+pulley,belt.hr.hock.driver,"40T pulley, pitch diameter 25.46 mm",-211.16,-186.54,364.48,25.46,mm pitch diameter
+pulley,belt.hr.hock.driven,"80T pulley, pitch diameter 50.93 mm",-291.99,-188.64,250.9,50.93,mm pitch diameter
+servo,act.fl.carpus.motor,"Feetech STS3250 C002 (12 V) (carpus driver, C 255.8 mm)",290.01,178.3,518.76,,
+pulley,belt.fl.carpus.driver,"48T pulley, pitch diameter 30.56 mm",290.01,153.91,516.52,30.56,mm pitch diameter
+pulley,belt.fl.carpus.driven,"80T pulley, pitch diameter 50.93 mm",334.56,176.95,265.69,50.93,mm pitch diameter
+servo,act.fr.carpus.motor,"Feetech STS3250 C002 (12 V) (carpus driver, C 255.8 mm)",290.01,-178.3,518.76,,
+pulley,belt.fr.carpus.driver,"48T pulley, pitch diameter 30.56 mm",290.01,-153.91,516.52,30.56,mm pitch diameter
+pulley,belt.fr.carpus.driven,"80T pulley, pitch diameter 50.93 mm",334.56,-176.95,265.69,50.93,mm pitch diameter
+spring_anchor,spring.hl.stifle.upper,"hind left stifle spring (upper)",-125.93,167.39,505.37,,
+spring_anchor,spring.hl.stifle.lower,"hind left stifle spring (lower)",-122.43,179.88,391.54,64.5,mm free length
+spring_anchor,spring.hr.stifle.upper,"hind right stifle spring (upper)",-125.93,-167.39,505.37,,
+spring_anchor,spring.hr.stifle.lower,"hind right stifle spring (lower)",-122.43,-179.88,391.54,64.5,mm free length
+spring_anchor,spring.hl.hock.upper,"hind left hock spring (upper)",-251.91,171.53,320.27,,
+spring_anchor,spring.hl.hock.lower,"hind left hock spring (lower)",-308.12,170.33,266.39,39.5,mm free length
+spring_anchor,spring.hr.hock.upper,"hind right hock spring (upper)",-251.91,-171.53,320.27,,
+spring_anchor,spring.hr.hock.lower,"hind right hock spring (lower)",-308.12,-170.33,266.39,39.5,mm free length
+spring_anchor,spring.fl.shoulder.upper,"front left shoulder spring (upper)",245.0,129.41,624.62,,
+spring_anchor,spring.fl.shoulder.lower,"front left shoulder spring (lower)",257.35,135.7,556.16,29.7,mm free length
+spring_anchor,spring.fr.shoulder.upper,"front right shoulder spring (upper)",245.0,-129.41,624.62,,
+spring_anchor,spring.fr.shoulder.lower,"front right shoulder spring (lower)",257.35,-135.7,556.16,29.7,mm free length
+spring_anchor,spring.hl.hip_abd.upper,"hind left hip ab/ad spring (upper)",-243.0,99.1,561.72,,
+spring_anchor,spring.hl.hip_abd.lower,"hind left hip ab/ad spring (lower)",-243.59,146.99,561.63,30.0,mm free length
+spring_anchor,spring.hr.hip_abd.upper,"hind right hip ab/ad spring (upper)",-243.0,-99.1,561.72,,
+spring_anchor,spring.hr.hip_abd.lower,"hind right hip ab/ad spring (lower)",-243.59,-146.99,561.63,30.0,mm free length
+belt_centre_distance,belt.stifle,"stifle C (derived)",,,,161.5,mm
+belt_centre_distance,belt.hock,"hock C (derived)",,,,139.42,mm
+belt_centre_distance,belt.carpus,"carpus C (derived)",,,,255.8,mm
+standing_height,standing_height,"standing height",,,,599.72,mm
