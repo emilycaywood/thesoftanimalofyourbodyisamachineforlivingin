@@ -2,7 +2,8 @@
 
 Everything a new Claude Code session (or a new collaborator) needs to pick up
 CALFLAB. Last updated 2026-11-07 on branch `robot-calf-final` (cut from
-`chassis-mass`), after session R11c-B (reading Stage B's 20 generations; new best body g020-008-r01, ADR-104), section 4
+`chassis-mass`), after session R12 / Stage C (every front body gets behaviours evolved for it; ADR-105), section 4
+"Session R12"; before it session R11c-B (reading Stage B's 20 generations; new best body g020-008-r01, ADR-104), section 4
 "Session R11c-B"; before it session R11c (toward a production body: sourced pulleys, bounded geometry, springs and the
 shoulder drive evolve; Stage A and one Stage B generation, ADR-103), section 4 "Session R11c"; before it session R11 (hardware chosen by the loads of behaviour: servos and belts evolve as catalog
 ids, ADR-102), section 4 "Session R11"; before it session R10 (a servo gene per joint pair; the carpus drive study,
@@ -1341,6 +1342,28 @@ new bodies; 117 of 432 draws rejected, 23-35 % per block, never at the 50 % stop
   the 23 front bodies without sheets plus `g012-009`.
 * Tests: no code changed; `calflab test --py` passes (ruff; 562 pytest in 540 s; mypy). Web checks not re-run.
 
+**Session R12 / Stage C (2026-11-07/08; ADR-105): every front body gets behaviours evolved for it.** The working
+body, catalogs, component values and `verified` flags were not changed; nothing installed.
+
+* **New:** `Lab.run_evolve(candidate=<id>)` and the `run_evolve` command's `candidate` field start a run from a stored
+  candidate's body as its run evaluated it, without changing the document (`tests/test_evolve.py`, 1 new test). No
+  panel button yet (USER_GUIDE, Evolve).
+* **Study** `docs/studies/stagec_r12.md` (script `stagec_r12.py`: evolve / judge / report / sheets): one
+  `map_elites_behaviour` run per body with R7's settings (15 x 28, coverage, capped durations, variation), seeded with
+  R7's 11 safe generators; the working body got the same run. Each body's safe cells judged for 60 s on three seeds
+  with the Stage B run's R11c suite; screens replayed from the cache with 0 new plays (same bodies as Stage B).
+* **Behaviours that hold a minute on all three seeds (with margin >= +0.1):** g007-002 23 (6), g009-000 16 (15),
+  g012-009 14 (14), g011-003 11 (10), working body 11 (3), g020-008-r01 8 (6).
+  * Pre-registered winner **g007-002** (72/75 minutes; no quick trot; lie_rise -1.44). It and the working body keep
+    C018 carpi and sit at the margin-capped carpus speed (median headroom +0.03).
+  * With C002 carpi, **g009-000** (394 mm/s, cost 1.83) and **g012-009** (414 mm/s, lie_rise -0.24, cost 2.37) hold
+    their behaviours with room (median +0.35 / +0.44). Recommended reading for a build; Emily chooses.
+  * Stage B's best, g020-008-r01, is last: its 33/33 came from the working body's behaviours.
+* **Sheets** `docs/studies/sheets_r12/C1_g007_002`, `C2_g009_000`, `C3_g012_009` (geometry = their B20 sheets; parts
+  lists gain a `stage_c` block with each behaviour's run:candidate ref, stoppers, belt loads).
+* **Runs** `R12 Stage C <body>` (six evolve runs, 45-125 min each, two at a time) and a trial `20261107-204744-evolve-e7dd`.
+* Tests: `calflab test` passes (ruff; 563 pytest in 502 s, over the usual budget as since R11c; mypy; web typecheck and eslint; 14 Vitest; 13 Playwright).
+
 **Scaffolded only (interfaces + tests, no behaviour):** PPO training, MJX
 simulator, RemoteSSH and CloudNotebook transports (job bundling is real),
 imitation reward, interactive selection, molds, skin patterns, nesting,
@@ -1378,6 +1401,15 @@ Journal, Rhino bridge):**
   Properties, entry in Overrides).
 * `doctor` warned "uv not found" on top of the three expected warnings:
   false alarm, fixed (see Tests above).
+
+**The researcher must verify (new in session R12, ADR-105):**
+
+* **Which reading to adopt**: the pre-registered count (g007-002 first) or behaviours that hold with headroom
+  (g009-000, then g012-009). Watch a few of each in Journal > Runs (`R12 Stage C g007-002`, `... g009-000`,
+  `... g012-009`): the calm and lively cells, and whether g007-002's behaviours look different from the working body's.
+* Whether one run per body is enough: a second seed for the top three would measure the noise in safe-cell counts
+  (about 1-2 h per body).
+* The parts in `sheets_r12/*_parts.json` (`to_verify`), as for the B20 sheets: 80T and 48T 10 mm pulleys, the C002.
 
 **The researcher must verify (new in session R11c-B, ADR-104):**
 
@@ -1733,7 +1765,30 @@ Journal, Rhino bridge):**
 
 Prefix each with the opening message from section 1.
 
-**R12 / Stage C. Fairness check on the R11c-B front** (recommended next; written after R11c-B, ADR-104.)
+**R12b. A second seed for the Stage C top three** (recommended next; written after R12, ADR-105.)
+> In projects/robot-calf-final, R12 (`docs/studies/stagec_r12.md`, ADR-105) gave each front body its own behaviours.
+> Re-run the diversity runs for g007-002, g009-000 and g012-009 with seed 1 (`python docs/studies/stagec_r12.py
+> projects/robot-calf-final evolve g007-002 g009-000 g012-009 --seed=1 --prefix="R12b seed1"`, then `judge` and
+> `report` with the same prefix), and report how much the counts of behaviours held (at margin 0.2 and at +0.1) move
+> between seeds, and whether the ranking holds. Do not change the working body, catalog values or `verified` flags.
+
+**R12c. lie_rise and the carpus belt on g009-000 / g012-009** (after R12.)
+> In projects/robot-calf-final, R12 recommends g009-000 or g012-009 for a build. In memory only, find what brings
+> lie_rise within limits on g012-009 (-0.24) and g009-000 (-3.00), and what relieves the front-left carpus belt's
+> sustained tension that stops g009-000's plays: the lie_rise primitive's timing and depth, the shoulder spring's
+> rate/anchors from the hardware_r11c steps, the carpus pulley pair among listed ones. Re-judge the body's own Stage C
+> behaviours with any change (`stagec_r12.py judge`). Do not change the working body, catalog values or `verified`.
+
+**R12-adopt. Adopt the chosen body** (when Emily has chosen and verified its parts.)
+> In projects/robot-calf-final, I choose <g009-000 / g012-009 / g007-002> from R12 and have verified <entries>.
+> Make it the working body through `set_genes` and `set_belt_drive` (logged, undoable), bake it, load its Stage C
+> behaviours from run <R12 Stage C body> as named controllers, regenerate the geometry CSV and parts list, and
+> re-judge with the masses in.
+
+*(R12 / Stage C, the fairness check, was done 2026-11-07/08: ADR-105, `docs/studies/stagec_r12.md`; its prompt is kept
+below.)*
+
+**R12 / Stage C. Fairness check on the R11c-B front** (done in session R12, ADR-105; kept for reference.)
 > In projects/robot-calf-final, Stage B (run 20261107-043030-evolve-c02e, `docs/studies/production_r11c.md`
 > "Stage B — 20 generations") found g020-008-r01 (33/33, 530 mm/s, lie_rise -0.16). Its 11 behaviours were evolved for
 > today's body. For g020-008-r01, g012-009, g011-003, g009-000 and g007-002, re-run behaviour diversity
