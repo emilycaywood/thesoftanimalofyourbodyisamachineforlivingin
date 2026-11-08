@@ -23,6 +23,17 @@ export default defineConfig({
       "/ws": { target: api.replace("http", "ws"), ws: true },
     },
   },
-  build: { outDir: "dist", sourcemap: false, chunkSizeWarningLimit: 2500 },
+  build: {
+    outDir: "dist",
+    sourcemap: false,
+    chunkSizeWarningLimit: 2500,
+    // two pages: the lab, and compare.html (replays side by side, ADR-106)
+    rollupOptions: {
+      input: {
+        main: path.resolve(process.cwd(), "index.html"),
+        compare: path.resolve(process.cwd(), "compare.html"),
+      },
+    },
+  },
   test: { environment: "node", include: ["src/**/*.test.ts"] },
 });

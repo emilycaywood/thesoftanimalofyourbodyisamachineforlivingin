@@ -1188,6 +1188,45 @@ candidates for it: `python docs/studies/store_r11cb.py <project> <out.json>
 --plays=lie_rise,trot 0.4/2,R7-lively <candidate id>=<label> ...` (screen
 plays by their key, behaviours by their label; prints the links).
 
+**One picker for a group of bodies (R12 / Stage C).** Open
+
+  `http://localhost:8020/compare.html?set=r12`
+
+for the six R12 bodies: the working body, g007-002, g009-000, g012-009,
+g011-003 and g020-008-r01 (ADR-105, `docs/studies/stagec_r12.md`). Each cell
+is one body, titled with its name and a line of numbers from Stage C:
+behaviours that hold a minute on all three seeds, trot within limits (mm/s;
+`-` = none), lie_rise's worst margin and the cost index. The picker above the
+grid switches **every cell at once** to the same behaviour, loads them paused
+and starts them together; every few seconds a cell that has drifted is put
+back in step. Its three sections:
+
+* **Screen plays (every body):** lie_rise, walk, turn, the quick trot (0.4 s,
+  stride 2.0) and the slowest trot of the grid (0.8 s, stride 0.5).
+* **Shared behaviours:** R6c's and R7's 11, the ones Stage B judged every body
+  on.
+* **Own behaviours (Stage C):** each body's own safe cells, matched across
+  bodies by the server. Two behaviours match when they descend from the same R7
+  generator (Stage C started every body from R7's 11); otherwise the same
+  archive cell (quantity of motion x tempo regularity) or the nearest one
+  within two cells. A body without a match shows "no matching behaviour". Each
+  cell's second line says what it is actually playing and how it was matched,
+  e.g. `g002-010 q0.6 r0.16 (from R7-walking; same generator)`.
+
+Keys: **↑/↓** or **[ / ]** step through the picker, **Space** plays or
+pauses all, **R** restarts all (they work with the focus inside a cell too).
+*seed 0 / 1 / 2* switches every cell to that seed's play. Under each title a
+badge says whether that play held: **green** within, **orange** within but
+less than 0.1 above the margin, **red** over, with the limit that stopped it
+(joint and limit, e.g. `fl.carpus sustained belt tension`). Click a cell's
+title to open that body and play in the full lab (a new tab). The URL keeps
+the choice (`&item=shared%3AR7-lively&seed=1`), so a link opens the same view.
+
+The plays are stored runs (`R12 compare <body> <behaviour>: seed N` in Journal
+> Runs). To store the ones a set is missing (existing ones are reused):
+`python docs/studies/compare_r12.py projects/robot-calf-final` (`--dry` lists
+what would be played; `--workers=7`). The page says how many are missing.
+
 #### Proportions: comparing bodies instead of finding one
 
 The lab has three ways to look for a better body or gait:

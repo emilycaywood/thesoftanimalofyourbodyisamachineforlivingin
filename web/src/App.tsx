@@ -18,6 +18,38 @@ import { WORKSPACES } from "@/workspaces";
 
 /** Opened by compare.html with `&embed=1`: the viewport and timeline only. */
 const EMBED = new URLSearchParams(window.location.search).get("embed") === "1";
+/** Keys an embedded cell hands to compare.html's picker (ADR-106). */
+const EMBED_KEYS = new Set(["ArrowUp", "ArrowDown", "[", "]", " ", "r", "R"]);
+
+function tellParent(msg: Record<string, unknown>) {
+  if (window.parent !== window) window.parent.postMessage({ calflab: "embed", ...msg }, window.location.origin);
+}
+
+/** Load a run paused at its first frame and tell compare.html when it is ready, so all cells start together. */
+function embedLoad(run: string) {
+  usePlayback
+    .getState()
+    .loadRun(run, false)
+    .then(() => {
+      usePlayback.getState().set({ frame: 0, playing: false });
+      tellParent({ event: "ready", run });
+    })
+    .catch((e: Error) => {
+      useLab.getState().log("error", `Cannot replay run ${run}: ${e.message}`, "runs");
+      tellParent({ event: "failed", run });
+    });
+}
+
+/** Move to compare.html's shared time (s since the restart, looping) if this cell drifted more than 0.25 s. */
+function syncTo(t: number) {
+  const s = usePlayback.getState();
+  if (!s.playing || s.t.length < 2) return;
+  const span = s.t[s.t.length - 1] - s.t[0];
+  const frameDt = span / (s.t.length - 1);
+  if (span <= 0 || frameDt <= 0) return;
+  const target = (t % span) / frameDt;
+  if (Math.abs(target - s.frame) * frameDt > 0.25) s.set({ frame: target });
+}
 
 function TopBar() {
   const ws = useView((s) => s.workspace);
@@ -128,20 +160,23 @@ export function App() {
   useEffect(() => {
     if (!ready) return;
     const run = new URLSearchParams(window.location.search).get("replay");
-    if (run) void replayRun(run);
+    if (run && EMBED) embedLoad(run);
+    else if (run) void replayRun(run);
   }, [ready]);
 
-  // compare.html drives every embedded replay together: restart / play / pause (same origin only)
+  // compare.html drives every embedded replay together: load / restart / play / pause / sync (same origin only)
   useEffect(() => {
     if (!EMBED) return;
     const onMessage = (e: MessageEvent) => {
       if (e.origin !== window.location.origin) return;
-      const msg = e.data as { calflab?: string; action?: string } | null;
+      const msg = e.data as { calflab?: string; action?: string; run?: string; t?: number } | null;
       if (msg?.calflab !== "playback") return;
       const pb = usePlayback.getState();
-      if (msg.action === "restart") pb.set({ frame: 0, playing: true });
+      if (msg.action === "load" && msg.run) embedLoad(msg.run);
+      else if (msg.action === "restart") pb.set({ frame: 0, playing: true });
       else if (msg.action === "play") pb.set({ playing: true });
       else if (msg.action === "pause") pb.set({ playing: false });
+      else if (msg.action === "sync" && typeof msg.t === "number") syncTo(msg.t);
     };
     window.addEventListener("message", onMessage);
     return () => {
@@ -151,6 +186,14 @@ export function App() {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (EMBED) {
+        // in compare.html's grid the picker owns these keys, wherever the focus is
+        if (EMBED_KEYS.has(e.key) && !e.ctrlKey && !e.altKey && !e.metaKey) {
+          e.preventDefault();
+          tellParent({ event: "key", key: e.key });
+        }
+        return;
+      }
       const typing = isTypingTarget(e.target);
       const c = chord(e);
       if (c === "Ctrl+K") {
