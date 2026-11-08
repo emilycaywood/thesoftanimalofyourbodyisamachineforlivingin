@@ -3992,3 +3992,23 @@ write production sheets for the winner and runners-up. No change to the working 
 6. Study script `docs/studies/stagec_r12.py` (evolve / judge / report); runs titled `R12 Stage C <body>`, tagged
    `R12`, `stage-c`. The two driver processes ran three bodies each in parallel (7 workers each; results do not depend
    on the worker count).
+7. **Post-hoc reading (added after the results, labelled as such):** behaviours that hold 3/3 with worst-seed margin
+   at least +0.1, i.e. still within if every limit were 10 % lower again. Added because the pre-registered count
+   rewards bodies whose behaviours all sit exactly at the margin-capped joint speed.
+
+*Results* (`docs/studies/stagec_r12.md`, `stagec_r12_tables.md`, `stagec_r12.json`; runs `R12 Stage C <body>`):
+* Every screen replayed from the cache with 0 new plays: the bodies are the ones Stage B judged.
+* Behaviours held a minute on all three seeds (and with margin >= +0.1): **g007-002 23 (6)**, g009-000 16 (15),
+  g012-009 14 (14), g011-003 11 (10), working body 11 (3), **g020-008-r01 8 (6)**.
+* **Pre-registered winner: g007-002** (72/75 minutes, quantity of motion 0.5-11.9 deg/s; no quick trot, lie_rise
+  -1.44, cost 1.58). It and the working body keep C018 carpi and are bounded by carpus joint speed: median headroom
+  +0.03.
+* The C002-carpus bodies hold theirs with room (median +0.30 to +0.44) and trot at 394-414 mm/s. **Recommended for a
+  build: g009-000** (15 robust behaviours, 394 mm/s, 4 new servos, cost 1.83) **or g012-009** (14, 414 mm/s, lie_rise
+  -0.24, 6 new servos, cost 2.37). The choice is Emily's.
+* Stage B's best, g020-008-r01, is last: its 33/33 came from the working body's behaviours. Fastest trot (530) and best
+  lie_rise (-0.16) remain its own.
+* Every body is on the Pareto front over (behaviours held, trot, lie_rise, -cost).
+* One run per body (seed 0): differences of 1-3 behaviours are within unmeasured run-to-run noise.
+* Sheets: `docs/studies/sheets_r12/C1_g007_002`, `C2_g009_000`, `C3_g012_009` (geometry identical to the B20 sheets;
+  parts lists gain a `stage_c` block).
