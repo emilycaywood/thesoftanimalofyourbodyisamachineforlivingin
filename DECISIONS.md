@@ -4012,3 +4012,60 @@ write production sheets for the winner and runners-up. No change to the working 
 * One run per body (seed 0): differences of 1-3 behaviours are within unmeasured run-to-run noise.
 * Sheets: `docs/studies/sheets_r12/C1_g007_002`, `C2_g009_000`, `C3_g012_009` (geometry identical to the B20 sheets;
   parts lists gain a `stage_c` block).
+
+## ADR-106 — A group behaviour switcher for compare.html (**VERIFY**)
+
+*Context.* Session R12-view. Emily wants to watch the six R12 / Stage C bodies side by side and switch what they all
+perform at once; `compare.html?runs=...` (8500889) needed one URL per behaviour. Asked: one cell per body with a line
+of numbers, a picker in three sections (screen plays, the shared behaviours, each body's own Stage C behaviours matched
+across bodies on the server), keys, a seed picker, a badge and the stopping limit per cell, a click into the full lab;
+no logic in the web; plays stored as `sim` runs; tests in pytest, Vitest and Playwright.
+
+*Decisions.*
+1. **Core module `calflab.app.compare`** (in `app`, not `evolve`: it reads the registry, builds scenes and stores runs).
+   A *set* (`CompareSet`) names the runs it reads: the Stage B run (bodies' build params, the R11c suite, the shared
+   behaviours), R7's run (the generators), the Stage C runs by title (`R12 Stage C <body>`), the body order, and the
+   study JSON for the numbers line. One set exists, `r12`, defined in code (`SETS`). `manifest(lab, set)` returns
+   everything the page shows; `GET /api/compare/<set>` exposes it (404 for an unknown set or missing runs). The page
+   only renders it and keeps view state (which item, seed, playing, the shared clock).
+2. **Numbers line** per body: behaviours held a minute on all three seeds, trot within limits (mm/s, `-` = none),
+   lie_rise worst margin and cost index, read from `docs/studies/stagec_r12.json` (the session's judgement, not
+   recomputed).
+3. **Screen plays:** lie_rise, walk, turn, `trot 0.4/2` and "the slowest trot" = the trot grid's longest cycle and
+   shortest stride (`trot 0.8/0.5` in the Stage B preset). Assumption: "slowest" means the grid's slowest corner, the
+   same play for every body, not each body's slowest trot that holds.
+4. **Shared behaviours:** the Stage B preset's 11 performances (R6c's 4, R7's 7), as Stage B played them.
+5. **Own behaviours: origin.** `MapElitesBehaviour` gives generation 0's task `i` start vector `i mod n` (`n` = 11 R7
+   safe generators, `start_vectors`); every later candidate records `parents`, the first being the one mutated (the
+   second only sets the direction of the line term). A candidate's generator = its first parent followed back to
+   generation 0. Checked on the project: the first 11 tasks of generation 0 equal the 11 start vectors in every
+   Stage C run tested (`tests/test_compare.py`, skipped without the project).
+6. **Own behaviours: items and matching.** The picker's items are the distinct (generator, archive cell) pairs among
+   all bodies' safe cells (53 for R12; ordered by cell). Per body: a safe cell from the same generator (the nearest
+   cell among them, Chebyshev, ties by id); else one in the same cell; else the nearest within **2 cells**; else the
+   cell says "no matching behaviour". The 2-cell cap is my choice (the grid is 10 x 10 over quantity of motion
+   0-15 deg/s x tempo regularity 0-1); without a cap every body would always "match". Each cell names what it plays:
+   candidate, quantity of motion, regularity, generator and how it matched.
+7. **Plays** are runs of kind `sim` stored as `store_r11cb.py` stores them (rollout, scene, judged report and per-joint
+   uses in `inputs`; `metrics.within_limits/safety_margin/closest/fell/stopped_by`), titled `R12 compare <body>
+   <play>: seed N`, found again by `cache_key` = sha1(set, body, Stage C run, play, seed, version). Bodies are built
+   as `stagec_r12.judge` built them (the Stage C run's genome and overrides, the Stage B run's generator params and
+   compile options, the R11c suite's randomisation per seed); `stop_on_fall` is off so a fall is watched to the end.
+   Screen plays are judged over the primitive's window, behaviours over the minute. Reproduces the session's judging:
+   g007-002's `g000-000` on seeds 0-2 gave margins 0.411 / 0.1941 / 0.1843, identical to `stagec_r12.json`.
+8. **Badge:** within and margin >= +0.1 green; within and < +0.1 orange ("within 0.1 of the margin"); over red. The
+   stopping limit: the joint and limit used most beyond 1 (as `hardware.summarise` counts stoppers), else the judge's
+   first violation, else "fell".
+9. **Sync.** Changing behaviour or seed loads every cell paused (`load` message, no page reload), waits for each cell's
+   `ready` (20 s at most), then restarts all at once. Every 3 s cells more than 0.25 s off the page's shared clock
+   (time since the restart, looping per cell) are moved to it. Keys pressed inside a cell are forwarded to the page.
+10. **compare.html became a Vite entry** (`web/compare.html`, `src/compare/main.ts`, `picker.ts`), so the picker state
+    is TypeScript with a Vitest test; the `?runs=` and `?a=&b=` forms are unchanged. The Playwright test serves a
+    fixture manifest and stub cells (the e2e project has no R12 runs); the real manifest is tested in pytest.
+
+*Results.* 567 plays stored for set `r12` (5 screen plays x 6 bodies x 3 seeds = 90, 11 shared x 6 x 3 = 198, the 93
+own safe cells x 3 = 279): 3 in a trial, then 564 in 27.2 min on 7 workers, none failed; ~1.5 MB per one-minute
+rollout. Badges over the 1236 cell-seeds: own 706 green / 215 orange / 27 red; shared 142 / 53 / 3; screen 17 / 4 / 69
+(the quick trot and lie_rise go over on most bodies, as Stage B found). Own items: 53; matches 93 same generator and
+cell, 143 same generator in another cell, 43 same cell, 37 nearest cell, 2 none. Seen in the lab's browser pane: one
+key press switched all six cells, which then played in step.

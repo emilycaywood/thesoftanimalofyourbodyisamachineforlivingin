@@ -1,9 +1,10 @@
 # CALFLAB session handoff
 
 Everything a new Claude Code session (or a new collaborator) needs to pick up
-CALFLAB. Last updated 2026-11-07 on branch `robot-calf-final` (cut from
-`chassis-mass`), after session R12 / Stage C (every front body gets behaviours evolved for it; ADR-105), section 4
-"Session R12"; before it session R11c-B (reading Stage B's 20 generations; new best body g020-008-r01, ADR-104), section 4
+CALFLAB. Last updated 2026-11-08 on branch `robot-calf-final` (cut from
+`chassis-mass`), after session R12-view (one behaviour picker for the six R12 bodies on `compare.html?set=r12`;
+ADR-106), section 4 "Session R12-view"; before it session R12 / Stage C (every front body gets behaviours evolved for
+it; ADR-105), section 4 "Session R12"; before it session R11c-B (reading Stage B's 20 generations; new best body g020-008-r01, ADR-104), section 4
 "Session R11c-B"; before it session R11c (toward a production body: sourced pulleys, bounded geometry, springs and the
 shoulder drive evolve; Stage A and one Stage B generation, ADR-103), section 4 "Session R11c"; before it session R11 (hardware chosen by the loads of behaviour: servos and belts evolve as catalog
 ids, ADR-102), section 4 "Session R11"; before it session R10 (a servo gene per joint pair; the carpus drive study,
@@ -1364,6 +1365,32 @@ body, catalogs, component values and `verified` flags were not changed; nothing 
 * **Runs** `R12 Stage C <body>` (six evolve runs, 45-125 min each, two at a time) and a trial `20261107-204744-evolve-e7dd`.
 * Tests: `calflab test` passes (ruff; 563 pytest in 502 s, over the usual budget as since R11c; mypy; web typecheck and eslint; 14 Vitest; 13 Playwright).
 
+**Session R12-view (2026-11-08; ADR-106): one behaviour picker for the six R12 bodies.** The working body, catalogs,
+component values and `verified` flags were not changed; nothing installed.
+
+* **`http://localhost:8020/compare.html?set=r12`**: one cell per body (working, g007-002, g009-000, g012-009, g011-003,
+  g020-008-r01) titled with Stage C's numbers (behaviours held 3/3, trot, lie_rise, cost). The picker switches every
+  cell at once, loads them paused and starts them together; sections: 5 screen plays (lie_rise, walk, turn, trot 0.4/2,
+  the grid's slowest trot 0.8/0.5), the 11 shared behaviours, 53 own-behaviour items. Keys ↑/↓, [ ], Space, R; seed
+  0/1/2; per-cell badge (green / orange within 0.1 of the margin / red) and the stopping limit; the title opens the play
+  in the full lab. USER_GUIDE "Watching several replays side by side".
+* **Core:** `calflab.app.compare` (`manifest`, `plan`, matching, `todo`, `generate`), route `GET /api/compare/<set>`.
+  Own behaviours match by R7 generator (first parent back to generation 0; checked against the start vectors), then
+  the same archive cell, then the nearest within 2 cells; otherwise "no matching behaviour" (2 cells across the 53
+  items x 6 bodies).
+* **Plays:** `docs/studies/compare_r12.py <project>` stores what is missing as `sim` runs `R12 compare <body> <play>:
+  seed N` (cache key per set, body, Stage C run, play, seed). **567 plays stored** (90 screen, 198 shared, 279 own;
+3 in a trial, then 564 in 27.2 min on 7 workers, none failed); the set's 1236 cell-seeds all have a run. They reproduce Stage C's judging (checked
+  on g007-002 `g000-000`, three seeds identical). About 1.5 MB per one-minute rollout in `projects/robot-calf-final/runs`.
+* **Web:** `compare.html` moved from `web/public` to a Vite entry (`web/compare.html`, `src/compare/`); `?runs=` and
+  `?a=&b=` links unchanged. Embedded cells answer `load` / `sync` and report `ready`; keys inside a cell go to the page.
+  `web/dist` rebuilt.
+* Tests: `calflab test`: ruff; **570 pytest** in 515 s (new `tests/test_compare.py`, 7, one needs the project folder);
+  mypy; web typecheck and eslint; **19 Vitest** (new `src/compare/picker.test.ts`, 5); **14 Playwright** with 13 passing
+  in the full run. The one failure was `workflow.spec.ts` "evolve from a baked design": a late "Candidate ... done"
+  status line hid the expected "loaded design" one. It passed when re-run with `compare.spec.ts`, so it is a flaky
+  timing race in the status bar, not this change; worth a look if it recurs.
+
 **Scaffolded only (interfaces + tests, no behaviour):** PPO training, MJX
 simulator, RemoteSSH and CloudNotebook transports (job bundling is real),
 imitation reward, interactive selection, molds, skin patterns, nesting,
@@ -1401,6 +1428,17 @@ Journal, Rhino bridge):**
   Properties, entry in Overrides).
 * `doctor` warned "uv not found" on top of the three expected warnings:
   false alarm, fixed (see Tests above).
+
+**The researcher must verify (new in session R12-view, ADR-106):**
+
+* **Watch the page by hand** (`compare.html?set=r12`, lab restarted on 8020 so it has the new route and web build): a
+  browser test drove a fixture set and one look in the lab's browser pane checked the real one; nobody has used it with
+  six live cells on your screen. Say whether six WebGL cells play smoothly on your machine.
+* **The matching of own behaviours**: by R7 generator first, even when the matched cell is far in the archive (most
+  matches are "same generator, other cell"), then the same or nearest cell within 2 cells. Say if a cell distance
+  should win over the generator, or the 2-cell cap should change (`CompareSet.max_cell_distance`).
+* **"The slowest trot"** is taken as the grid's slowest corner (0.8 s, stride 0.5), the same play for every body.
+* The orange band (within, less than +0.1 above the margin) and the drift tolerance (0.25 s, checked every 3 s).
 
 **The researcher must verify (new in session R12, ADR-105):**
 
@@ -1748,7 +1786,7 @@ Journal, Rhino bridge):**
 |---|---|
 | `CLAUDE.md` | Conventions for every session (loaded automatically) |
 | `PLAN.md` | Architecture, module boundaries, data flow, phases, risks, status |
-| `DECISIONS.md` | ADR log: every assumption (105 so far) |
+| `DECISIONS.md` | ADR log: every assumption (106 so far) |
 | `docs/proposals/anatomical-leg.md` | Proposal for a three-segment leg (set aside 2026-10-04; not built) |
 | `docs/USER_GUIDE.md` | How to use the lab |
 | `docs/CHAT_GUIDE_PROMPT.md` | Prompt that makes a chat assistant a guide to the whole lab |
@@ -1784,6 +1822,16 @@ Prefix each with the opening message from section 1.
 > Make it the working body through `set_genes` and `set_belt_drive` (logged, undoable), bake it, load its Stage C
 > behaviours from run <R12 Stage C body> as named controllers, regenerate the geometry CSV and parts list, and
 > re-judge with the masses in.
+
+**R12-view2. Compare sets from the lab, not from code** (after R12b, so the seed-1 runs can be watched too.)
+> In projects/robot-calf-final, `compare.html?set=r12` (ADR-106) reads one set defined in `calflab.app.compare.SETS`.
+> Make sets project data: a command `new_compare_set` (logged, undoable) that takes bodies from a hardware run's
+> Pareto front or the Stage C runs by title prefix (e.g. `R12b seed1 `), and a button *Watch side by side* on the
+> Evolve panel's Pareto table that opens the page. Add a job with progress and cancel that stores a set's missing plays
+> (`compare.generate`), started from the page when it says plays are missing. Extend the Playwright test. Do not change
+> the working body, catalog values or `verified` flags.
+
+*(R12-view, the group behaviour switcher on `compare.html?set=r12`, was done 2026-11-08: ADR-106.)*
 
 *(R12 / Stage C, the fairness check, was done 2026-11-07/08: ADR-105, `docs/studies/stagec_r12.md`; its prompt is kept
 below.)*

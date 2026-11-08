@@ -31,7 +31,8 @@ function embedLoad(run: string) {
     .getState()
     .loadRun(run, false)
     .then(() => {
-      usePlayback.getState().set({ frame: 0, playing: false });
+      // inside compare.html the page starts every cell together; opened on its own, play at once
+      usePlayback.getState().set({ frame: 0, playing: window.parent === window });
       tellParent({ event: "ready", run });
     })
     .catch((e: Error) => {
