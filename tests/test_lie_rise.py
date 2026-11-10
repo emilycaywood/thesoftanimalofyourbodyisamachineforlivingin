@@ -160,7 +160,8 @@ def test_lie_rise_search_is_deterministic_whatever_the_play_order() -> None:
     def fake(job):
         p = job["params"]
         m = 0.3 - abs(p["kneel_carpus"] - 90.0) / 50.0 - 0.01 * job["seed"] - 0.05 * p.get("front_first", 0.0)
-        return {"margin": m, "within": m >= 0, "fell": False, "excess": max(0.0, -m), "cached": False}
+        return {"margin": m, "within": m >= 0, "fell": False, "excess": max(0.0, -m), "lying_fraction": 0.45,
+                "cached": False}
 
     def in_order(_fn, jobs):
         return [fake(j) for j in jobs]
@@ -175,6 +176,27 @@ def test_lie_rise_search_is_deterministic_whatever_the_play_order() -> None:
     assert r1["best"]["params"] == r2["best"]["params"]
     assert len(r1["history"]) == 1 + 6 * 4
     assert r1["best"]["worst"] >= r1["start"]["worst"]  # the search keeps today's if nothing beats it
+
+
+def test_a_fall_or_a_shallow_lie_never_beats_lying_down_and_standing_up() -> None:
+    """R13 found a version that somersaulted with low loads ranked above honest rises (fall penalty 1): a version
+    that falls on a seed, or does not get down to the lying depth, must rank below every one that lies down and
+    stands up again, whatever their margins."""
+    from calflab.evolve.lie_rise import LieRiseSearch, optimise
+
+    def fake(job):
+        p = job["params"]
+        # low loads when the kneel carpus is small, but then it tips; a small lie stifle keeps it high (a crouch)
+        tips = p["kneel_carpus"] < 90.0
+        m = 0.2 if tips else -2.5 + (p["kneel_carpus"] - 90.0) / 100.0
+        return {"margin": m, "within": False, "fell": tips, "excess": 1.0, "cached": False,
+                "lying_fraction": 0.45 if p.get("lie_stifle", 75.0) > 60.0 else 0.6}
+
+    s = LieRiseSearch(popsize=8, generations=6, extra_dims=[("lie_stifle", 30.0, 78.0)])
+    r = optimise(_payload(), [0], 0.2, s, map_fn=lambda _fn, jobs: [fake(j) for j in jobs])
+    best = r["best"]
+    assert not best["fell_any"] and best["lay_down"]
+    assert best["params"]["kneel_carpus"] >= 90.0 and best["params"]["lie_stifle"] > 60.0
 
 
 @pytest.mark.slow

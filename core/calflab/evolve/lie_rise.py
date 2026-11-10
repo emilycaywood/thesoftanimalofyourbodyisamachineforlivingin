@@ -28,7 +28,7 @@ from pydantic import BaseModel, Field
 
 from calflab.schema import P
 
-VERSION = 1  # part of every cache key; bump when a play would no longer give the same record
+VERSION = 2  # part of every cache key; bump when a play would no longer give the same record (2: lying_fraction)
 
 
 class LieRiseSearch(BaseModel):
@@ -40,7 +40,14 @@ class LieRiseSearch(BaseModel):
     seed: int = P(0, ge=0, ui="number", desc="Seed of the search (plays use the suite's seeds).")
     settle_s: float = P(1.0, unit="s", ge=0.0, le=5.0, step=0.1,
                         desc="Standing still after the motion, judged with it (PROVISIONAL).")
-    fall_penalty: float = P(1.0, ge=0.0, le=10.0, desc="Subtracted from a seed's margin when the body falls.")
+    fall_penalty: float = P(10.0, ge=0.0, le=100.0,
+                            desc="Subtracted from a seed's rank when the body falls (tips, or does not stand again). "
+                                 "A version that falls on any seed never ranks above one that stands on all.")
+    lying_depth: float | None = P(
+        0.5, ge=0.2, le=1.0, step=0.01,
+        desc="The trunk must get down to this share of its standing height or lower, or the version has not lain "
+             "down (today's lie reaches 0.45-0.47). Above it the rank loses 5 + 10 x the excess share. None = not "
+             "required.")
     excess_weight: float = P(0.1, ge=0.0, le=1.0,
                              desc="Ranking only: a seed's margin less this x its mean excess per move (0 for any "
                                   "version within every limit), so the search has a slope where the margin "
@@ -262,11 +269,20 @@ def lying_fall(ro: Any, spec: Any) -> dict[str, Any]:
     h = ro.body_pos[m, tr, 2].astype(float)
     if not len(h):
         return {"fell": True, "tipped": False, "risen": False, "sim_fell": bool(ro.meta.get("fell")),
-                "lying_height_mm": None}
+                "lying_height_mm": None, "lying_fraction": None}
     tipped = bool(np.min(up) < TIPPED_UP_Z)
     risen = bool(h[-1] >= RISEN_HEIGHT * h[0] and up[-1] > 0.9)
     return {"fell": tipped or not risen, "tipped": tipped, "risen": risen, "sim_fell": bool(ro.meta.get("fell")),
-            "lying_height_mm": round(float(np.min(h)) * 1000.0, 1)}
+            "lying_height_mm": round(float(np.min(h)) * 1000.0, 1),
+            "lying_fraction": round(float(np.min(h) / h[0]), 4) if h[0] > 0 else None}
+
+
+def lay_down(rec: dict[str, Any], depth: float | None) -> bool:
+    """Whether a play's trunk got down to ``depth`` x its standing height (always true when ``depth`` is None)."""
+    if depth is None:
+        return True
+    f = rec.get("lying_fraction")
+    return f is not None and float(f) <= depth
 
 
 def excess(move_rows: list[dict[str, Any]]) -> float:
@@ -286,11 +302,16 @@ def margin_of(rec: dict[str, Any]) -> float:
     return float(-1.0 if m is None else m)
 
 
-def score(rec: dict[str, Any], fall_penalty: float, excess_weight: float = 0.0) -> float:
+def score(rec: dict[str, Any], fall_penalty: float, excess_weight: float = 0.0,
+          depth: float | None = None) -> float:
     """A seed's rank in the search: its margin, less ``excess_weight`` x its excess, less ``fall_penalty`` if it
-    fell. Equal to the margin for a play within every limit that stood up again."""
-    return (margin_of(rec) - excess_weight * float(rec.get("excess") or 0.0)
-            - (fall_penalty if rec.get("fell") else 0.0))
+    fell, less 5 + 10 x the excess share if it did not lie down to ``depth``. Equal to the margin for a play within
+    every limit that lay down and stood up again."""
+    pen = fall_penalty if rec.get("fell") else 0.0
+    if not lay_down(rec, depth):
+        f = rec.get("lying_fraction")
+        pen += 5.0 + 10.0 * (1.0 if f is None else max(0.0, float(f) - float(depth or 0.0)))
+    return margin_of(rec) - excess_weight * float(rec.get("excess") or 0.0) - pen
 
 
 def task(job: dict[str, Any]) -> dict[str, Any]:
@@ -355,16 +376,19 @@ def evaluate(payload: dict[str, Any], keys: tuple[str, str], cands: list[dict[st
         complete = len(per[i]) == len(seeds)
         out.append({"params": c, "seeds": per[i], "complete": complete,
                     "worst": round(min(margin_of(r) for r in per[i]), 4),
-                    "rank": round(min(score(r, s.fall_penalty, s.excess_weight) for r in per[i]), 4),
-                    "held": complete and all(r["within"] for r in per[i]),
+                    "rank": round(min(score(r, s.fall_penalty, s.excess_weight, s.lying_depth) for r in per[i]), 4),
+                    "held": complete and all(r["within"] and lay_down(r, s.lying_depth) for r in per[i]),
                     "fell_any": any(bool(r.get("fell")) for r in per[i]),
+                    "lay_down": all(lay_down(r, s.lying_depth) for r in per[i]),
                     "evals": sum(0 if r.get("cached") else 1 for r in per[i])})
     return out
 
 
-def _key(e: dict[str, Any]) -> tuple[bool, bool, float]:
-    """Best first: played on every seed, holds on every seed, then the rank (= worst-seed margin when within)."""
-    return bool(e["complete"]), bool(e["held"]), float(e["rank"])
+def _key(e: dict[str, Any]) -> tuple[bool, bool, bool, bool, float]:
+    """Best first: played on every seed, holds on every seed (within, lay down, stood up), stood up again on every
+    seed, lay down on every seed, then the rank (= worst-seed margin when within)."""
+    return (bool(e["complete"]), bool(e["held"]), not e.get("fell_any", False), bool(e.get("lay_down", True)),
+            float(e["rank"]))
 
 
 def optimise(payload: dict[str, Any], seeds: list[int], margin: float, s: LieRiseSearch,
@@ -404,10 +428,11 @@ def optimise(payload: dict[str, Any], seeds: list[int], margin: float, s: LieRis
             best = gbest
         if report:
             report(f"generation {g + 1}/{s.generations}: best margin {best['worst']:+.3f} rank {best['rank']:+.3f} "
-                   f"held {best['held']} (this generation {gbest['worst']:+.3f}); "
-                   f"{sum(e['evals'] for e in res)} new plays")
+                   f"held {best['held']} fell {best['fell_any']} lay down {best['lay_down']} (this generation "
+                   f"{gbest['worst']:+.3f}); {sum(e['evals'] for e in res)} new plays")
     return {"start": next(e for e in history if e["generation"] == -1), "best": best,
             "history": [{"generation": e["generation"], "worst": e["worst"], "rank": e["rank"], "held": e["held"],
-                         "complete": e["complete"], "params": e["params"]} for e in history],
+                         "fell_any": e["fell_any"], "lay_down": e["lay_down"], "complete": e["complete"],
+                         "params": e["params"]} for e in history],
             "plays": sum(len(e["seeds"]) for e in history), "new_plays": sum(e["evals"] for e in history),
             "wall_s": round(time.perf_counter() - t0, 1), "search": s.model_dump()}

@@ -96,7 +96,7 @@ def diagnose(lab: Any, bodies: list[str], opts: dict[str, str]) -> None:
         data["bodies"][body] = {
             "stage_c_run": pays[body]["stage_c_run"],
             "screen": [{k: r[k] for k in ("seed", "margin", "within", "closest")} for r in mine if r["kind"] == "screen"],
-            "full": [{k: r.get(k) for k in ("seed", "within", "fell", "sim_fell", "tipped", "risen", "lying_height_mm", "margin", "closest", "violations", "moves",
+            "full": [{k: r.get(k) for k in ("seed", "within", "fell", "sim_fell", "tipped", "risen", "lying_height_mm", "lying_fraction", "margin", "closest", "violations", "moves",
                                             "length_s", "wall_s")} for r in mine if r["kind"] == "full"]}
     DIAG.write_bytes(json.dumps(data, indent=1, default=float).encode())
     print("wrote", DIAG)
@@ -150,14 +150,15 @@ def _full(job: dict[str, Any]) -> dict[str, Any]:
     from calflab.evolve.lie_rise import play_seed
 
     rec = play_seed(job["payload"], job["params"], job["seed"], job["margin"], job["settle_s"])
-    return {"seed": job["seed"], **{k: rec.get(k) for k in ("within", "fell", "sim_fell", "tipped", "risen", "lying_height_mm", "margin", "closest", "violations",
+    return {"seed": job["seed"], **{k: rec.get(k) for k in ("within", "fell", "sim_fell", "tipped", "risen", "lying_height_mm", "lying_fraction", "margin", "closest", "violations",
                                                               "moves", "length_s", "controller")}}
 
 
 def _slim(e: dict[str, Any]) -> dict[str, Any]:
     return {"params": e["params"], "worst": e["worst"], "rank": e["rank"], "held": e["held"],
+            "fell_any": e.get("fell_any"), "lay_down": e.get("lay_down"),
             "complete": e["complete"],
-            "seeds": [{k: r.get(k) for k in ("seed", "within", "fell", "margin", "excess", "closest", "violations",
+            "seeds": [{k: r.get(k) for k in ("seed", "within", "fell", "lying_fraction", "margin", "excess", "closest", "violations",
                                              "moves")} for r in e["seeds"]]}
 
 
@@ -293,12 +294,14 @@ def report() -> None:
         return
     o = json.loads(OUT.read_text(encoding="utf-8"))
     for section, title in (("bodies", "Stage 2: the primitive's dims, per body"),
-                           ("bodies_lying", "Extension: the lying pose searched too (--lying)")):
+                           ("bodies_lying", "Extension: the lying pose searched too (--lying)"),
+                           ("bodies_lying_free", "Extension without a lying depth (superseded: the body crouches)")):
         if not o.get(section):
             continue
         print(f"\n## {title}\n")
-        print("| body | today (whole) worst | best worst-seed | holds 3/3 | plays (new) | wall min | best version |")
-        print("|---|---|---|---|---|---|---|")
+        print("| body | today (whole) worst | best worst-seed | holds 3/3 | stands up again | lowest trunk (share of "
+              "standing) | plays (new) | wall min | best version |")
+        print("|---|---|---|---|---|---|---|---|---|")
         for body, b in o[section].items():
             p = b["best"]["params"]
             order = "front first" if p["front_first"] >= 0.5 else "hind first"
@@ -309,9 +312,15 @@ def report() -> None:
             if "lie_stifle" in p:
                 desc += (f"; lying stifle/hock {p['lie_stifle']:.0f}/{p['lie_hock']:.0f}, shoulder/carpus "
                          f"{p['lie_shoulder']:.0f}/{p['lie_carpus']:.0f}")
+            seeds = b["best_seeds"]
+            stood = "yes" if all(not r.get("fell") for r in seeds) else "NO (" + ", ".join(
+                f"seed {r['seed']}: {'tipped' if r.get('tipped') else 'not up'}" for r in seeds if r.get("fell")) + ")"
+            low = " / ".join(f"{r['lying_height_mm']:.0f} mm" + (f" ({r['lying_fraction']:.2f})"
+                                                                  if r.get("lying_fraction") is not None else "")
+                             for r in seeds if r.get("lying_height_mm") is not None)
             print(f"| {body} | {b['start']['worst']:+.3f} | {b['best']['worst']:+.3f} | "
-                  f"{'yes' if b['best']['held'] else 'no'} | {b['plays']} ({b['new_plays']}) | {b['wall_s'] / 60:.0f} | "
-                  f"{desc} |")
+                  f"{'yes' if b['best']['held'] else 'no'} | {stood} | {low} | {b['plays']} ({b['new_plays']}) | "
+                  f"{b['wall_s'] / 60:.0f} | {desc} |")
         for body, b in o[section].items():
             print(f"\n### {body}: best version, per move\n")
             print("\n".join(move_table(b["best_seeds"])))
