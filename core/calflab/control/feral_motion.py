@@ -52,6 +52,109 @@ def smooth(x: float) -> float:
     return 0.5 - 0.5 * math.cos(math.pi * x)
 
 
+#: the lie/rise parameters added in ADR-107 and their "not used" values; all at these = today's motion (classic)
+_LR_DURATIONS = ("kneel_s", "lie_s", "rise_hind_s", "reach_s", "rise_front_s")
+#: commanded lie/rise angles stay this far (deg) inside each joint's range (the joint-limit check counts 1 deg)
+RANGE_CLEARANCE_DEG = 2.0
+
+
+def lie_rise_is_classic(p: Any) -> bool:
+    """True when no per-move parameter is in use (every duration 0 or ``phase_s``, hind first, no rock, no pauses):
+    the motion is then played by today's code path, bit for bit (ADR-107)."""
+    d = float(p.phase_s)
+    return (all(float(getattr(p, k)) in (0.0, d) for k in _LR_DURATIONS) and float(p.front_first) < 0.5
+            and float(p.rock_back_deg) == 0.0 and float(p.pause_mid_s) == 0.0 and float(p.pause_reach_s) == 0.0)
+
+
+def _dur(p: Any, k: str) -> float:
+    v = float(getattr(p, k))
+    return float(p.phase_s) if v == 0.0 else v
+
+
+def lie_rise_timeline(p: Any) -> list[tuple[str, dict[str, float], float]]:
+    """The lie/rise as (move, pose reached at its end, duration s), starting from standing. Poses are joint angles
+    (deg, relative to standing) by short name. Zero-length moves are left out."""
+    kneel = {**{f"{k}.shoulder": float(p.kneel_shoulder) for k in FRONT}, **{f"{k}.carpus": float(p.kneel_carpus) for k in FRONT}}
+    hind_lie = {**{f"{k}.stifle": float(p.lie_stifle) for k in HIND}, **{f"{k}.hock": float(p.lie_hock) for k in HIND}}
+    lie = {**{f"{k}.shoulder": float(p.lie_shoulder) for k in FRONT}, **{f"{k}.carpus": float(p.lie_carpus) for k in FRONT},
+           **hind_lie}
+    reach_front = {**{f"{k}.shoulder": float(p.reach_shoulder) for k in FRONT},
+                   **{f"{k}.carpus": float(p.reach_carpus) for k in FRONT}}
+    rock = float(p.rock_back_deg)
+
+    def rocked(pose: dict[str, float]) -> dict[str, float]:
+        out = dict(pose)
+        for k in HIND:
+            for j in ("stifle", "hock"):
+                out[f"{k}.{j}"] = out.get(f"{k}.{j}", 0.0) + rock
+        return out
+
+    seq: list[tuple[str, dict[str, float], float]] = [
+        ("kneel", kneel, _dur(p, "kneel_s")), ("lie", lie, _dur(p, "lie_s")), ("hold", lie, float(p.hold_s))]
+    if float(p.front_first) < 0.5:  # hind end first (cattle)
+        seq.append(("rise hind", dict(kneel), _dur(p, "rise_hind_s")))
+        seq.append(("pause", dict(kneel), float(p.pause_mid_s)))
+        base = rocked(kneel) if rock > 0 else dict(kneel)
+        if rock > 0:
+            seq.append(("rock back", base, float(p.rock_s)))
+        seq.append(("reach", {**base, **reach_front}, _dur(p, "reach_s")))
+        seq.append(("pause on hooves", {**base, **reach_front}, float(p.pause_reach_s)))
+        seq.append(("rise front", {}, _dur(p, "rise_front_s")))
+    else:  # front first: reach and push up from lying, sit on the folded hind legs, then rise behind
+        base = rocked(lie) if rock > 0 else dict(lie)
+        if rock > 0:
+            seq.append(("rock back", base, float(p.rock_s)))
+        seq.append(("reach", {**base, **reach_front}, _dur(p, "reach_s")))
+        seq.append(("pause on hooves", {**base, **reach_front}, float(p.pause_reach_s)))
+        seq.append(("rise front", dict(hind_lie), _dur(p, "rise_front_s")))
+        seq.append(("pause", dict(hind_lie), float(p.pause_mid_s)))
+        seq.append(("rise hind", {}, _dur(p, "rise_hind_s")))
+    return [(n, pose, d) for n, pose, d in seq if d > 0.0]
+
+
+def lie_rise_moves(p: Any) -> list[tuple[str, float, float]]:
+    """(move, start s, end s) of the lie/rise, in order. For today's motion the times are today's (``5 d + hold``)."""
+    if lie_rise_is_classic(p):
+        d, h = float(p.phase_s), float(p.hold_s)
+        times = [0.0, d, 2 * d, 2 * d + h, 3 * d + h, 4 * d + h, 5 * d + h]
+        names = ["kneel", "lie", "hold", "rise hind", "reach", "rise front"]
+        return [(n, times[i], times[i + 1]) for i, n in enumerate(names) if times[i + 1] > times[i]]
+    out, t = [], 0.0
+    for name, _pose, d in lie_rise_timeline(p):
+        out.append((name, t, t + d))
+        t += d
+    return out
+
+
+def lie_rise_length_s(p: Any) -> float:
+    """The whole lie/rise (s)."""
+    if lie_rise_is_classic(p):
+        return float(5 * p.phase_s + p.hold_s)
+    return float(sum(d for _n, _p, d in lie_rise_timeline(p)))
+
+
+def lie_rise_pose(p: Any, t: float, ranges: dict[str, tuple[float, float]] | None = None) -> dict[str, float]:
+    """Joint angles (deg, relative to standing) of the per-move lie/rise at ``t`` (s): smooth moves between the
+    timeline's poses, each angle kept ``RANGE_CLEARANCE_DEG`` inside its joint's range when ``ranges`` is given."""
+    frames: list[dict[str, float]] = [{}]
+    times = [0.0]
+    for _name, pose, d in lie_rise_timeline(p):
+        frames.append(pose)
+        times.append(times[-1] + d)
+    if t >= times[-1]:
+        out = dict(frames[-1])
+    else:
+        i = max(k for k in range(len(times)) if times[k] <= t)
+        a, b = frames[i], frames[i + 1]
+        w = smooth((t - times[i]) / (times[i + 1] - times[i]))
+        out = {k: (1 - w) * a.get(k, 0.0) + w * b.get(k, 0.0) for k in set(a) | set(b)}
+    for k, v in out.items():
+        if ranges and k in ranges:
+            lo, hi = ranges[k]
+            out[k] = min(hi - RANGE_CLEARANCE_DEG, max(lo + RANGE_CLEARANCE_DEG, v))
+    return out
+
+
 @register
 class FeralMotionController(Controller):
     """Stand, slow walk, or lie down and rise, for the feral calf's joint layout."""
@@ -98,6 +201,29 @@ class FeralMotionController(Controller):
         reach_carpus: float = P(50.0, unit="deg", ge=0, le=130, step=0.5, desc="Lie/rise: carpus flexion while reaching forward from kneeling.")
         phase_s: float = P(2.0, unit="s", ge=0.5, le=8.0, step=0.1, desc="Lie/rise: time for each move (kneel, lie, rise hind, reach forward, rise front).")
         hold_s: float = P(1.5, unit="s", ge=0.0, le=10.0, step=0.1, desc="Lie/rise: time lying still before rising.")
+        # lie/rise, per move (ADR-107): 0 = phase_s; with every one at its default the motion is today's, bit for bit
+        kneel_s: float = P(0.0, unit="s", ge=0.0, le=8.0, step=0.1, desc="Lie/rise: time to kneel (0 = phase_s).")
+        lie_s: float = P(0.0, unit="s", ge=0.0, le=8.0, step=0.1, desc="Lie/rise: time to lie down from kneeling (0 = phase_s).")
+        rise_hind_s: float = P(0.0, unit="s", ge=0.0, le=8.0, step=0.1, desc="Lie/rise: time to straighten the hind legs (0 = phase_s).")
+        reach_s: float = P(0.0, unit="s", ge=0.0, le=8.0, step=0.1, desc="Lie/rise: time for the front legs to reach forward and plant (0 = phase_s).")
+        rise_front_s: float = P(0.0, unit="s", ge=0.0, le=8.0, step=0.1, desc="Lie/rise: time to push the chest up (0 = phase_s).")
+        front_first: float = P(
+            0.0, ge=0.0, le=1.0, step=0.05,
+            desc="Lie/rise: order of rising. Under 0.5 the hind end first (cattle; today's), 0.5 or more the front first "
+                 "(reach and push up from lying, sitting on the folded hind legs, then the hind). A number so a search "
+                 "can carry it.")
+        rock_back_deg: float = P(
+            0.0, unit="deg", ge=0.0, le=30.0, step=0.5,
+            desc="Lie/rise: before the front rise, the hind stifles and hocks fold this much further (within their "
+                 "ranges), rocking the trunk back over the hind end; held through the reach, released in the front "
+                 "rise. 0 = no rock.")
+        rock_s: float = P(1.0, unit="s", ge=0.2, le=8.0, step=0.1, desc="Lie/rise: time for the rock back (used only with a rock).")
+        pause_mid_s: float = P(
+            0.0, unit="s", ge=0.0, le=5.0, step=0.1,
+            desc="Lie/rise: pause after the first rise (hind first: on the hind hooves and front carpi; front first: "
+                 "sitting on the front hooves).")
+        pause_reach_s: float = P(0.0, unit="s", ge=0.0, le=5.0, step=0.1,
+                                 desc="Lie/rise: pause after the reach, the front hooves planted, before pushing up.")
         speed_fraction: float = P(
             0.9, ge=0.0, le=1.0, step=0.05,
             desc="Commanded joint speed kept under this fraction of each servo's no-load speed at its joint (a 2:1 "
@@ -236,6 +362,23 @@ class FeralMotionController(Controller):
         return out
 
     def _lie_rise(self, t: float) -> dict[str, float]:
+        if not lie_rise_is_classic(self.params):
+            return lie_rise_pose(self.params, t, self._ranges())
+        return self._lie_rise_classic(t)
+
+    def _ranges(self) -> dict[str, tuple[float, float]]:
+        """Joint ranges (deg, relative to standing) by short name, from the control info (``{}`` before reset)."""
+        info = getattr(self, "info", None)
+        lo, hi = getattr(info, "lo", None), getattr(info, "hi", None)
+        if info is None or lo is None or hi is None:
+            return {}
+        out = {}
+        for name, i in getattr(self, "idx", {}).items():
+            out[name] = (u.rad_to_deg(float(lo[i] - info.rest[i])), u.rad_to_deg(float(hi[i] - info.rest[i])))
+        return out
+
+    def _lie_rise_classic(self, t: float) -> dict[str, float]:
+        """Today's lie_rise (ADR-069), unchanged: five moves of ``phase_s`` and a hold."""
         p = self.params
         stand: dict[str, float] = {}
         kneel = {**{f"{k}.shoulder": p.kneel_shoulder for k in FRONT}, **{f"{k}.carpus": p.kneel_carpus for k in FRONT}}  # type: ignore[attr-defined]

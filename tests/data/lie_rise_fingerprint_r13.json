@@ -1,0 +1,14 @@
+{
+ "controller": {
+  "key": "feral_motion",
+  "params": {
+   "mode": "lie_rise",
+   "phase_s": 2.0,
+   "hold_s": 1.5
+  }
+ },
+ "period_s": 11.5,
+ "rollout_sha1": "450c593a3391654bc0d9a4164735c016a878b2e0",
+ "pose_sha1": "fb5a655cf6ce28ac9a2d5a18b57f8d15565cabca",
+ "frames": 646
+}

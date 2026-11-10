@@ -21,7 +21,7 @@ from __future__ import annotations
 
 import functools
 import hashlib
-from typing import Any, Literal
+from typing import Any, ClassVar, Literal
 
 from pydantic import BaseModel
 
@@ -305,8 +305,43 @@ class LieRisePrimitive(MotionPrimitive):
     one_shot = True
 
     class Params(BaseModel):
-        phase_s: float = P(2.0, unit="s", ge=0.5, le=8.0, step=0.1, desc="Time for each move.")
+        phase_s: float = P(2.0, unit="s", ge=0.5, le=8.0, step=0.1,
+                           desc="Time for each move whose own time is not set (0 below).")
         hold_s: float = P(1.5, unit="s", ge=0.0, le=10.0, step=0.1, desc="Time lying still.")
+        # ADR-107: the movement evolves per body. Every default reproduces today's lie_rise exactly.
+        kneel_shoulder: float = P(-20.0, unit="deg", ge=-58.0, le=58.0, step=0.5, desc="Shoulder kneeling on the carpi.")
+        kneel_carpus: float = P(110.0, unit="deg", ge=-8.0, le=128.0, step=0.5, desc="Carpus flexion kneeling.")
+        reach_shoulder: float = P(-45.0, unit="deg", ge=-58.0, le=58.0, step=0.5,
+                                  desc="Shoulder as the front legs reach forward to plant their hooves.")
+        reach_carpus: float = P(50.0, unit="deg", ge=-8.0, le=128.0, step=0.5, desc="Carpus flexion in the reach.")
+        kneel_s: float = P(0.0, unit="s", ge=0.0, le=8.0, step=0.1, desc="Time to kneel (0 = phase_s).")
+        lie_s: float = P(0.0, unit="s", ge=0.0, le=8.0, step=0.1, desc="Time to lie down (0 = phase_s).")
+        rise_hind_s: float = P(0.0, unit="s", ge=0.0, le=8.0, step=0.1, desc="Time to rise behind (0 = phase_s).")
+        reach_s: float = P(0.0, unit="s", ge=0.0, le=8.0, step=0.1, desc="Time to reach forward (0 = phase_s).")
+        rise_front_s: float = P(0.0, unit="s", ge=0.0, le=8.0, step=0.1, desc="Time to rise in front (0 = phase_s).")
+        front_first: float = P(0.0, ge=0.0, le=1.0, step=0.05,
+                               desc="Order of rising: under 0.5 hind end first (today's), else front first.")
+        rock_back_deg: float = P(0.0, unit="deg", ge=0.0, le=30.0, step=0.5,
+                                 desc="Hind legs fold this much further before the front rise (a rock back).")
+        rock_s: float = P(1.0, unit="s", ge=0.2, le=8.0, step=0.1, desc="Time for the rock back.")
+        pause_mid_s: float = P(0.0, unit="s", ge=0.0, le=5.0, step=0.1,
+                               desc="Pause after the first rise, the load on the hooves.")
+        pause_reach_s: float = P(0.0, unit="s", ge=0.0, le=5.0, step=0.1,
+                                 desc="Pause after the reach, the front hooves planted.")
+        # the lying pose: not a vector dim (ADR-107 searches it only as a named extension)
+        lie_stifle: float = P(75.0, unit="deg", ge=-28.0, le=78.0, step=0.5, desc="Stifle flexion lying down.")
+        lie_hock: float = P(75.0, unit="deg", ge=-28.0, le=78.0, step=0.5, desc="Hock flexion lying down.")
+        lie_shoulder: float = P(-40.0, unit="deg", ge=-58.0, le=58.0, step=0.5, desc="Shoulder lying down.")
+        lie_carpus: float = P(125.0, unit="deg", ge=-8.0, le=128.0, step=0.5, desc="Carpus flexion lying down.")
+
+    #: today's lie_rise; ``controller`` sends only what differs from it, so a default play's controller params (and
+    #: every cache key built from them) are today's
+    CLASSIC: ClassVar[dict[str, float]] = {"kneel_shoulder": -20.0, "kneel_carpus": 110.0, "reach_shoulder": -45.0,
+                                           "reach_carpus": 50.0, "kneel_s": 0.0, "lie_s": 0.0, "rise_hind_s": 0.0,
+                                           "reach_s": 0.0, "rise_front_s": 0.0, "front_first": 0.0,
+                                           "rock_back_deg": 0.0, "rock_s": 1.0, "pause_mid_s": 0.0,
+                                           "pause_reach_s": 0.0, "lie_stifle": 75.0, "lie_hock": 75.0,
+                                           "lie_shoulder": -40.0, "lie_carpus": 125.0}
 
     @classmethod
     def fits(cls, spec: Any) -> bool:
@@ -314,15 +349,29 @@ class LieRisePrimitive(MotionPrimitive):
 
     @classmethod
     def vector_dims(cls) -> list[VectorDim]:
-        return [VectorDim("phase_s", 1.0, 6.0), VectorDim("hold_s", 0.0, 5.0)]
+        """15 dims (ADR-107). Angles stay inside the feral calf's joint ranges (shoulder -60..60, carpus -10..130,
+        less 2 deg); each move takes 0.8-6 s (every move's own time, so ``phase_s`` is not searched)."""
+        return [VectorDim("kneel_shoulder", -50.0, 10.0), VectorDim("kneel_carpus", 60.0, 128.0),
+                VectorDim("reach_shoulder", -58.0, -5.0), VectorDim("reach_carpus", 0.0, 110.0),
+                VectorDim("kneel_s", 0.8, 6.0), VectorDim("lie_s", 0.8, 6.0), VectorDim("rise_hind_s", 0.8, 6.0),
+                VectorDim("reach_s", 0.8, 6.0), VectorDim("rise_front_s", 0.8, 6.0), VectorDim("hold_s", 0.0, 5.0),
+                VectorDim("front_first", 0.0, 1.0), VectorDim("rock_back_deg", 0.0, 20.0),
+                VectorDim("rock_s", 0.3, 3.0), VectorDim("pause_mid_s", 0.0, 2.0),
+                VectorDim("pause_reach_s", 0.0, 2.0)]
 
     def controller(self, spec: Any, lib: Any) -> tuple[str, dict[str, Any]]:
         p = self.params
-        return "feral_motion", {"mode": "lie_rise", "phase_s": p.phase_s, "hold_s": p.hold_s}  # type: ignore[attr-defined]
+        out: dict[str, Any] = {"mode": "lie_rise", "phase_s": p.phase_s, "hold_s": p.hold_s}  # type: ignore[attr-defined]
+        for k, v in self.CLASSIC.items():
+            if float(getattr(p, k)) != v:
+                out[k] = float(getattr(p, k))
+        return "feral_motion", out
 
     def period_s(self) -> float:
-        p = self.params
-        return float(5 * p.phase_s + p.hold_s)  # type: ignore[attr-defined]
+        from calflab.control.feral_motion import FeralMotionController, lie_rise_length_s
+
+        _key, params = self.controller(None, None)
+        return lie_rise_length_s(FeralMotionController.Params.model_validate(params))
 
     def safe_phases(self) -> list[tuple[float, float]]:
         return [(0.0, 0.0), (1.0, 1.0)]
