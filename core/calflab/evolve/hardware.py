@@ -125,6 +125,11 @@ class HardwareSettings(BaseModel):
                                                                 "= R11's space (ADR-102).")
     servo_denominator: int | None = Field(None, description="Servo term of the cost index = new servos / this "
                                                             "(None = the budget's total, as R11).")
+    # ---- R13 (ADR-107): lying down and rising as a constraint
+    lie_rise_gate: dict[str, Any] | None = Field(
+        None, description="calflab.evolve.lie_rise.LieRiseSearch: before the screen, each body's lie_rise is "
+                          "optimised (cached per body); a body whose best version does not hold on every seed plays "
+                          "nothing else. None = no gate.")
     # ---- filled when a run starts
     baseline: dict[str, Any] | None = None
     catalog: dict[str, Any] | None = None
@@ -550,6 +555,12 @@ def screen_task(payload: dict[str, Any]) -> dict[str, Any]:
     t = time.perf_counter()
     plays: list[dict[str, Any]] = []
     evals = hits = 0
+    gate = lie_rise_gate(payload, hw, seeds, cache, spec_key, copts) if hw.lie_rise_gate is not None else None
+    if gate is not None and not gate["held"]:  # lies down and rises within limits, or plays nothing else (ADR-107)
+        return {"spec_key": spec_key, "plays": [], "lie_rise": gate, "evals": gate["new_plays"], "cache_hits": 0,
+                "costs": hardware_costs(design.spec, dict(design.genome.values), hw, lib),
+                "drives": drive_rows(design.spec, dict(design.genome.values)),
+                "mass_g": design.spec.total_mass_g(), "seconds": round(time.perf_counter() - t, 1)}
     for play in screen_plays(hw):
         per_seed = []
         for k, seed in enumerate(seeds):
@@ -567,10 +578,35 @@ def screen_task(payload: dict[str, Any]) -> dict[str, Any]:
                 break  # a play that fails on the first seed cannot hold on every seed
         plays.append({"key": play["key"], "primitive": play["primitive"], "params": play["params"],
                       "held": len(per_seed) == len(seeds) and all(p["within"] for p in per_seed), "seeds": per_seed})
-    return {"spec_key": spec_key, "plays": plays, "evals": evals, "cache_hits": hits,
+    out_gate = {} if gate is None else {"lie_rise": gate}
+    evals += 0 if gate is None else int(gate["new_plays"])
+    return {"spec_key": spec_key, "plays": plays, **out_gate, "evals": evals, "cache_hits": hits,
             "costs": hardware_costs(design.spec, dict(design.genome.values), hw, lib),
             "drives": drive_rows(design.spec, dict(design.genome.values)),
             "mass_g": design.spec.total_mass_g(), "seconds": round(time.perf_counter() - t, 1)}
+
+
+def lie_rise_gate(payload: dict[str, Any], hw: HardwareSettings, seeds: list[int], cache: Path | None,
+                  spec_key: str, copts: dict[str, Any]) -> dict[str, Any]:
+    """The body's lie_rise optimised as in session R13 (``calflab.evolve.lie_rise.optimise``, plays run here one
+    after another), cached per body and gate settings. Returns held / worst-seed margin / the best version / plays."""
+    from calflab.evolve.lie_rise import LieRiseSearch, optimise
+
+    s = LieRiseSearch.model_validate(hw.lie_rise_gate or {})
+    key = _digest({"v": CACHE_VERSION, "spec": spec_key, "copts": copts, "margin": hw.margin, "seeds": seeds,
+                   "gate": s.model_dump(mode="json"), "kind": "lie_rise_gate"})
+    rec = _cache_get(cache, key)
+    if rec is not None:
+        return {**rec, "new_plays": 0, "cached": True}
+    r = optimise(payload, seeds, hw.margin, s, cache=str(cache.parent / "lie_rise") if cache else None)
+    best = r["best"]
+    rec = {"held": bool(best["held"]), "worst_margin": best["worst"], "params": best["params"],
+           "start_margin": r["start"]["worst"], "plays": r["plays"], "new_plays": r["new_plays"],
+           "closest": [x.get("closest") for x in best["seeds"]],
+           "moves": [{"move": m["move"], "joint": m["joint"], "limit": m["limit"], "margin": m["margin"]}
+                     for m in (best["seeds"][0].get("moves") or [])] if best["seeds"] else []}
+    _cache_put(cache, key, rec)
+    return {**rec, "cached": False}
 
 
 def perform_task(payload: dict[str, Any]) -> dict[str, Any]:
@@ -623,7 +659,9 @@ def summarise(screen: dict[str, Any], performances: list[dict[str, Any]] | None,
         return min(ms) if ms else None
 
     best = max((m for m in (worst(p) for p in plays) if m is not None), default=None)
-    passed = screen_held >= hw.screen_min_held and best is not None and best >= hw.screen_min_margin
+    gate = screen.get("lie_rise")  # R13 (ADR-107): the body's own evolved lie_rise must hold on every seed
+    passed = (screen_held >= hw.screen_min_held and best is not None and best >= hw.screen_min_margin
+              and (gate is None or bool(gate["held"])))
 
     perf_rows = []
     minutes = 0
@@ -662,7 +700,8 @@ def summarise(screen: dict[str, Any], performances: list[dict[str, Any]] | None,
                            "stopped_by": max(st, key=lambda k: st[k]) if st else None})
     stoppers = sorted(((j["joint"], j["stopped_by"], j["stopped_plays"]) for j in joint_rows if j["stopped_plays"]),
                       key=lambda x: -x[2])
-    head_screen = [_clip(worst(extra[k])) for k in extra] + [_clip(worst(fastest)) if fastest else -1.0]
+    head_screen = ([_clip(worst(extra[k])) for k in extra] + [_clip(worst(fastest)) if fastest else -1.0]
+                   + ([_clip(gate["worst_margin"])] if gate is not None else []))
     head_perf = [_clip(r["worst_margin"]) for r in perf_rows] if played else [-1.0]
     headroom = 0.5 * float(np.mean(head_screen)) + 0.5 * float(np.mean(head_perf))
     cost = screen["costs"]
@@ -693,6 +732,11 @@ def summarise(screen: dict[str, Any], performances: list[dict[str, Any]] | None,
         "fitness": round(fitness, 4), "known_current_peak_a": max(current) if current else None,
         "belt_loads": belt_loads, "spring_peaks_sim_n": spring_sim,
     }
+    if gate is not None:
+        out["screen"]["lie_rise (evolved)"] = {"held": bool(gate["held"]), "worst_margin": gate["worst_margin"],
+                                               "closest": gate.get("closest") or []}
+        out["lie_rise_evolved"] = {k: gate.get(k) for k in ("held", "worst_margin", "params", "start_margin",
+                                                            "moves")}
     out["tables"] = tables(out, hw)
     return out
 

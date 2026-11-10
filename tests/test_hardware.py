@@ -116,6 +116,45 @@ def test_rejected_belt_never_reaches_a_rollout(monkeypatch: pytest.MonkeyPatch) 
     assert out["infeasible"] and out["evals"] == 0 and "plays" not in out
 
 
+# ---------------------------------------------------------------------- R13: lie_rise as a constraint (ADR-107)
+def test_lie_rise_gate_screens_out_a_body_that_does_not_lie_and_rise(monkeypatch: pytest.MonkeyPatch,
+                                                                      tmp_path: Any) -> None:
+    """With a gate, a body whose best lie_rise does not hold plays nothing else and does not pass; one that holds
+    plays the screen and passes on its other plays as before. The gate's search runs once per body (cached)."""
+    import calflab.evolve.hardware as hwmod
+    import calflab.evolve.lie_rise as lr
+    from calflab.evolve.hardware import summarise
+
+    calls: list[int] = []
+    held = {"v": False}
+
+    def fake_optimise(payload: Any, seeds: Any, margin: Any, s: Any, map_fn: Any = None, cache: Any = None,
+                      report: Any = None) -> dict[str, Any]:
+        calls.append(1)
+        best = {"held": held["v"], "worst": 0.1 if held["v"] else -0.5, "params": {"kneel_carpus": 95.0},
+                "seeds": [{"closest": "servo_sustained", "moves": []}]}
+        return {"best": best, "start": {"worst": -3.0}, "plays": 30, "new_plays": 30}
+
+    monkeypatch.setattr(lr, "optimise", fake_optimise)
+    hw = _hw(lie_rise_gate={"popsize": 4, "generations": 1}, cache_dir=str(tmp_path / "hardware"),
+             screen_extra=["walk"], trot_cycles_s=[0.8], trot_strides=[0.5])
+    out = screen_task(_payload(_genome(), hw, [0]))
+    assert out["plays"] == [] and out["lie_rise"]["held"] is False and out["evals"] == 30
+    s = summarise(out, None, hw, 1)
+    assert not s["passed_screen"] and s["screen"]["lie_rise (evolved)"]["worst_margin"] == -0.5
+    again = screen_task(_payload(_genome(), hw, [0]))  # cached per body: no second search
+    assert len(calls) == 1 and again["lie_rise"]["cached"]
+    monkeypatch.setattr(hwmod, "play_primitive_seed", lambda *a, **k: {
+        "within": True, "fell": False, "margin": 0.3, "violations": [], "closest": None, "speed_mm_s": 50.0,
+        "joints": {}, "current": {}, "springs": {}, "controller": {"key": "feral_motion", "params": {}}})
+    held["v"] = True
+    hw2 = hw.model_copy(update={"lie_rise_gate": {"popsize": 4, "generations": 2}})  # other settings: new search
+    out2 = screen_task(_payload(_genome(), hw2, [0]))
+    assert len(calls) == 2 and out2["lie_rise"]["held"] and [p["key"] for p in out2["plays"]] == ["trot 0.8/0.5",
+                                                                                                    "walk"]
+    assert summarise(out2, None, hw2, 1)["passed_screen"]
+
+
 # ---------------------------------------------------------------------- the optimizer, with plays faked
 class _InProcess:
     """A compute backend that runs tasks in this process, in order (records what it was given)."""

@@ -161,6 +161,98 @@ def _slim(e: dict[str, Any]) -> dict[str, Any]:
                                              "moves")} for r in e["seeds"]]}
 
 
+# ---------------------------------------------------------------------------------------------- Stage 3
+STAGE3_SEEDS = ["g012-009", "g020-008-r01", "g009-000"]
+PRESET = Path("config/fitness/hardware_r13.yaml")
+#: gate budgets offered (popsize, generations); each body's search also plays today's motion and the starts
+BUDGETS = {"S": (8, 8), "M": (12, 15), "L": (12, 30)}
+#: measured in Stage 2: about 1070 plays per body in 15-23 min on 7 workers = 7.5 CPU-s per play (whole motion,
+#: three seeds each, while other work shared the machine)
+CPU_S_PER_PLAY = 7.5
+#: Stage B (ADR-104): a generation of 15 bodies took about 34 min (screen + 11 behaviours x 3 seeds for those passing)
+STAGE_B_MIN_PER_15 = 34.0
+
+
+def write_preset(lab: Any, opts: dict[str, str]) -> dict[str, Any]:
+    """config/fitness/hardware_r13.yaml: hardware_r11c (judging, space, budgets) + the lie_rise gate + the three
+    seed bodies; the old lie_rise screen play is dropped (the gate judges lying down and rising)."""
+    import yaml
+    from calflab.design import genome_definition
+
+    d = yaml.safe_load(Path("config/fitness/hardware_r11c.yaml").read_text(encoding="utf-8"))
+    budget = opts.get("budget", "M")
+    pop, gens = BUDGETS[budget]
+    o = json.loads(OUT.read_text(encoding="utf-8"))
+    lying = "lying" in opts
+    section = "bodies_lying" if lying and o.get("bodies_lying") else "bodies"
+    gdef = genome_definition("feral_calf")
+    brun = lab.registry.get_run("20261107-043030-evolve-c02e")
+    base = gdef.complete(brun.genome["values"])  # Stage B started from the working body, as Stage 3 will
+    cands = lab.registry.list_candidates(brun.id)
+    seeds, starts = [], []
+    for body in STAGE3_SEEDS:
+        c = next(x for x in cands if x["id"].endswith(body))
+        vals = gdef.complete(c["genome"]["values"])
+        seeds.append({"label": body, "note": f"Stage B candidate {c['id']} (ADR-104)",
+                      "values": {k: v for k, v in vals.items() if base.get(k) != v}})
+        if body in o.get(section, {}):
+            starts.append(o[section][body]["best"]["params"])
+    hw = d["evaluation"]["hardware"]
+    hw["screen_extra"] = [k for k in hw["screen_extra"] if k != "lie_rise"]
+    hw["seeds_bodies"] = seeds
+    from calflab.evolve.lie_rise import LieRiseSearch
+
+    hw["lie_rise_gate"] = LieRiseSearch(popsize=pop, generations=gens, starts=starts,
+                                        extra_dims=LYING_DIMS if lying else []).model_dump(mode="json")
+    d["name"], d["version"] = "hardware_r13", 1
+    d["description"] = (f"R13 (ADR-107): hardware_r11c with lying down and rising as a constraint: each body's "
+                        f"lie_rise is optimised (CMA-ES {pop} x {gens}, three seeds, whole motion, warm-started from "
+                        f"the seed bodies' R13 versions{', lying pose searched' if lying else ''}); a body passes "
+                        "only if it holds on all three seeds, then the trot grid, walk, turn and the 11 shared "
+                        "behaviours are judged as in Stage B. Seeded with g012-009, g020-008-r01, g009-000.")
+    head = ("# Fitness preset R13 (ADR-107): written by docs/studies/lierise_r13.py preset. Use with the optimizer\n"
+            "# map_elites_hardware. Bump `version` whenever you change it.\n")
+    PRESET.write_bytes((head + yaml.safe_dump(d, sort_keys=False, width=118, allow_unicode=True)).encode("utf-8"))
+    print("wrote", PRESET, "budget", budget, (pop, gens), "starts", len(starts), "seeds", [s["label"] for s in seeds])
+    return d
+
+
+def estimate(opts: dict[str, str]) -> None:
+    """Cost of Stage 3 per generation and for N generations, per gate budget (an upper bound: cached plays and the
+    seed bodies' searches cost less)."""
+    workers, batch = int(opts.get("workers", 7)), int(opts.get("batch", 14))
+    n_starts, n_seeds = 4, 3
+    waves = -(-batch // workers)
+    print(f"| gate budget | plays per body | CPU min per body | wall per generation of {batch} ({workers} workers, "
+          f"{waves} waves) | + judging if all pass | 10 generations | 20 generations |")
+    print("|---|---|---|---|---|---|---|")
+    for name, (pop, gens) in BUDGETS.items():
+        plays = n_seeds * (n_starts + pop * gens)
+        cpu_min = plays * CPU_S_PER_PLAY / 60.0
+        gen_min = waves * cpu_min
+        judge = STAGE_B_MIN_PER_15 * batch / 15.0
+        print(f"| {name} ({pop} x {gens}) | {plays} | {cpu_min:.0f} | {gen_min / 60:.1f} h | +{judge:.0f} min | "
+              f"{10 * gen_min / 60:.0f}-{10 * (gen_min + judge) / 60:.0f} h | "
+              f"{20 * gen_min / 60:.0f}-{20 * (gen_min + judge) / 60:.0f} h |")
+
+
+def stage3(lab: Any, opts: dict[str, str]) -> None:
+    """The body search with lie_rise as a constraint (preset hardware_r13 must exist: run ``preset`` first)."""
+    params: dict[str, Any] = {"generations": int(opts.get("generations", 1)), "batch_size": int(opts.get("batch", 14)),
+                              "vary_geometry": True, "what_if_pulleys": False, "seed_bodies": True,
+                              "sigma_init": 0.1, "sigma_iso": 0.05, "hardware_flip": 0.05,
+                              "seed": int(opts.get("seed", 0))}
+    t0 = time.time()
+    job = lab.run_evolve("map_elites_hardware", params, None, None, None, "hardware_r13")
+    print("run", (job.result or {}).get("run_id"), params, flush=True)
+    while True:
+        j = lab.jobs.get(job.id) if hasattr(lab.jobs, "get") else job
+        if j.status in ("done", "failed", "cancelled"):
+            break
+        time.sleep(30)
+    print(j.status, getattr(j, "error", None), j.result, f"{time.time() - t0:.0f} s", flush=True)
+
+
 # ---------------------------------------------------------------------------------------------- report
 LIM = {"speed": "joint speed", "torque": "sustained torque", "belt": "sustained belt", "envelope": "envelope",
        "stall": "stall"}
@@ -235,6 +327,9 @@ def main() -> None:
     if stage == "report":
         report()
         return
+    if stage == "estimate":
+        estimate(opts)
+        return
     load_plugins()
     lab = Lab.open(proj, create=False)
     try:
@@ -242,6 +337,10 @@ def main() -> None:
             diagnose(lab, args or DIAG_BODIES, opts)
         elif stage == "optimise":
             optimise(lab, args or ALL_BODIES, opts)
+        elif stage == "preset":
+            write_preset(lab, opts)
+        elif stage == "stage3":
+            stage3(lab, opts)
     finally:
         close = getattr(lab, "close", None)
         if close:
