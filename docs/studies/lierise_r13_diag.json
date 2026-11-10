@@ -1,0 +1,6802 @@
+{
+ "settle_s": 1.0,
+ "margin": 0.2,
+ "bodies": {
+  "g020-008-r01": {
+   "stage_c_run": "20261107-205208-evolve-5222",
+   "screen": [
+    {
+     "seed": 0,
+     "margin": -0.16,
+     "within": false,
+     "closest": "servo_sustained"
+    },
+    {
+     "seed": 1,
+     "margin": -0.32,
+     "within": false,
+     "closest": "belt_sustained"
+    },
+    {
+     "seed": 2,
+     "margin": -0.12,
+     "within": false,
+     "closest": "servo_sustained"
+    }
+   ],
+   "full": [
+    {
+     "seed": 0,
+     "within": false,
+     "fell": false,
+     "sim_fell": true,
+     "tipped": false,
+     "risen": true,
+     "lying_height_mm": 267.9,
+     "margin": -3.0,
+     "closest": "servo_sustained",
+     "violations": [
+      "servo_sustained",
+      "belt_sustained"
+     ],
+     "moves": [
+      {
+       "move": "kneel",
+       "t0": 0.0,
+       "t1": 2.0,
+       "joint": "fl.shoulder",
+       "limit": "torque",
+       "use": 1.16,
+       "margin": -0.16,
+       "joints": {
+        "hl.hip_abd": {
+         "speed": 0.046,
+         "torque": 0.0,
+         "stall": 0.088,
+         "envelope": 0.088
+        },
+        "hl.stifle": {
+         "speed": 0.188,
+         "torque": 1.0,
+         "belt": 1.04,
+         "stall": 0.325,
+         "envelope": 0.37
+        },
+        "hl.hock": {
+         "speed": 0.151,
+         "torque": 0.04,
+         "belt": 0.56,
+         "stall": 0.195,
+         "envelope": 0.195
+        },
+        "hr.hip_abd": {
+         "speed": 0.046,
+         "torque": 0.0,
+         "stall": 0.088,
+         "envelope": 0.088
+        },
+        "hr.stifle": {
+         "speed": 0.188,
+         "torque": 1.0,
+         "belt": 1.04,
+         "stall": 0.325,
+         "envelope": 0.37
+        },
+        "hr.hock": {
+         "speed": 0.151,
+         "torque": 0.04,
+         "belt": 0.56,
+         "stall": 0.195,
+         "envelope": 0.195
+        },
+        "fl.shoulder": {
+         "speed": 0.166,
+         "torque": 1.16,
+         "stall": 0.579,
+         "envelope": 0.579
+        },
+        "fl.carpus": {
+         "speed": 0.258,
+         "torque": 0.36,
+         "belt": 0.28,
+         "stall": 0.398,
+         "envelope": 0.398
+        },
+        "fr.shoulder": {
+         "speed": 0.166,
+         "torque": 1.16,
+         "stall": 0.579,
+         "envelope": 0.579
+        },
+        "fr.carpus": {
+         "speed": 0.258,
+         "torque": 0.36,
+         "belt": 0.28,
+         "stall": 0.398,
+         "envelope": 0.398
+        }
+       }
+      },
+      {
+       "move": "lie",
+       "t0": 2.0,
+       "t1": 4.0,
+       "joint": "hl.stifle",
+       "limit": "belt",
+       "use": 2.76,
+       "margin": -1.76,
+       "joints": {
+        "hl.hip_abd": {
+         "speed": 0.015,
+         "torque": 1.0,
+         "stall": 0.227,
+         "envelope": 0.227
+        },
+        "hl.stifle": {
+         "speed": 0.402,
+         "torque": 2.68,
+         "belt": 2.76,
+         "stall": 0.234,
+         "envelope": 0.431
+        },
+        "hl.hock": {
+         "speed": 0.24,
+         "torque": 0.04,
+         "belt": 1.03,
+         "stall": 0.137,
+         "envelope": 0.137
+        },
+        "hr.hip_abd": {
+         "speed": 0.015,
+         "torque": 1.0,
+         "stall": 0.227,
+         "envelope": 0.227
+        },
+        "hr.stifle": {
+         "speed": 0.402,
+         "torque": 2.68,
+         "belt": 2.76,
+         "stall": 0.234,
+         "envelope": 0.431
+        },
+        "hr.hock": {
+         "speed": 0.24,
+         "torque": 0.04,
+         "belt": 1.03,
+         "stall": 0.137,
+         "envelope": 0.137
+        },
+        "fl.shoulder": {
+         "speed": 0.046,
+         "torque": 0.24,
+         "stall": 0.179,
+         "envelope": 0.179
+        },
+        "fl.carpus": {
+         "speed": 0.028,
+         "torque": 0.24,
+         "belt": 0.24,
+         "stall": 0.01,
+         "envelope": 0.025
+        },
+        "fr.shoulder": {
+         "speed": 0.046,
+         "torque": 0.24,
+         "stall": 0.179,
+         "envelope": 0.179
+        },
+        "fr.carpus": {
+         "speed": 0.028,
+         "torque": 0.24,
+         "belt": 0.24,
+         "stall": 0.01,
+         "envelope": 0.025
+        }
+       }
+      },
+      {
+       "move": "hold",
+       "t0": 4.0,
+       "t1": 5.5,
+       "joint": "hl.stifle",
+       "limit": "torque",
+       "use": 4.0,
+       "margin": -3.0,
+       "joints": {
+        "hl.hip_abd": {
+         "speed": 0.008,
+         "torque": 1.0,
+         "stall": 0.196,
+         "envelope": 0.203
+        },
+        "hl.stifle": {
+         "speed": 0.028,
+         "torque": 4.0,
+         "belt": 4.0,
+         "stall": 0.23,
+         "envelope": 0.23
+        },
+        "hl.hock": {
+         "speed": 0.016,
+         "torque": 0.0,
+         "belt": 0.64,
+         "stall": 0.017,
+         "envelope": 0.03
+        },
+        "hr.hip_abd": {
+         "speed": 0.008,
+         "torque": 1.0,
+         "stall": 0.196,
+         "envelope": 0.203
+        },
+        "hr.stifle": {
+         "speed": 0.028,
+         "torque": 4.0,
+         "belt": 4.0,
+         "stall": 0.23,
+         "envelope": 0.23
+        },
+        "hr.hock": {
+         "speed": 0.016,
+         "torque": 0.0,
+         "belt": 0.64,
+         "stall": 0.017,
+         "envelope": 0.03
+        },
+        "fl.shoulder": {
+         "speed": 0.003,
+         "torque": 0.16,
+         "stall": 0.178,
+         "envelope": 0.178
+        },
+        "fl.carpus": {
+         "speed": 0.002,
+         "torque": 0.0,
+         "belt": 0.0,
+         "stall": 0.011,
+         "envelope": 0.013
+        },
+        "fr.shoulder": {
+         "speed": 0.003,
+         "torque": 0.16,
+         "stall": 0.178,
+         "envelope": 0.178
+        },
+        "fr.carpus": {
+         "speed": 0.002,
+         "torque": 0.0,
+         "belt": 0.0,
+         "stall": 0.011,
+         "envelope": 0.013
+        }
+       }
+      },
+      {
+       "move": "rise hind",
+       "t0": 5.5,
+       "t1": 7.5,
+       "joint": "hl.stifle",
+       "limit": "belt",
+       "use": 3.12,
+       "margin": -2.12,
+       "joints": {
+        "hl.hip_abd": {
+         "speed": 0.021,
+         "torque": 0.0,
+         "stall": 0.159,
+         "envelope": 0.173
+        },
+        "hl.stifle": {
+         "speed": 0.424,
+         "torque": 3.0,
+         "belt": 3.12,
+         "stall": 0.33,
+         "envelope": 0.753
+        },
+        "hl.hock": {
+         "speed": 0.237,
+         "torque": 0.0,
+         "belt": 2.4,
+         "stall": 0.186,
+         "envelope": 0.186
+        },
+        "hr.hip_abd": {
+         "speed": 0.021,
+         "torque": 0.0,
+         "stall": 0.159,
+         "envelope": 0.173
+        },
+        "hr.stifle": {
+         "speed": 0.424,
+         "torque": 3.0,
+         "belt": 3.12,
+         "stall": 0.33,
+         "envelope": 0.753
+        },
+        "hr.hock": {
+         "speed": 0.237,
+         "torque": 0.0,
+         "belt": 2.4,
+         "stall": 0.186,
+         "envelope": 0.186
+        },
+        "fl.shoulder": {
+         "speed": 0.047,
+         "torque": 2.4,
+         "stall": 0.297,
+         "envelope": 0.34
+        },
+        "fl.carpus": {
+         "speed": 0.028,
+         "torque": 0.0,
+         "belt": 0.0,
+         "stall": 0.009,
+         "envelope": 0.009
+        },
+        "fr.shoulder": {
+         "speed": 0.047,
+         "torque": 2.4,
+         "stall": 0.297,
+         "envelope": 0.34
+        },
+        "fr.carpus": {
+         "speed": 0.028,
+         "torque": 0.0,
+         "belt": 0.0,
+         "stall": 0.009,
+         "envelope": 0.009
+        }
+       }
+      },
+      {
+       "move": "reach",
+       "t0": 7.5,
+       "t1": 9.5,
+       "joint": "fl.carpus",
+       "limit": "torque",
+       "use": 2.52,
+       "margin": -1.52,
+       "joints": {
+        "hl.hip_abd": {
+         "speed": 0.014,
+         "torque": 0.0,
+         "stall": 0.079,
+         "envelope": 0.079
+        },
+        "hl.stifle": {
+         "speed": 0.179,
+         "torque": 2.455,
+         "belt": 2.495,
+         "stall": 0.309,
+         "envelope": 0.336
+        },
+        "hl.hock": {
+         "speed": 0.175,
+         "torque": 0.0,
+         "belt": 2.178,
+         "stall": 0.186,
+         "envelope": 0.186
+        },
+        "hr.hip_abd": {
+         "speed": 0.014,
+         "torque": 0.0,
+         "stall": 0.079,
+         "envelope": 0.079
+        },
+        "hr.stifle": {
+         "speed": 0.179,
+         "torque": 2.455,
+         "belt": 2.495,
+         "stall": 0.309,
+         "envelope": 0.336
+        },
+        "hr.hock": {
+         "speed": 0.175,
+         "torque": 0.0,
+         "belt": 2.178,
+         "stall": 0.186,
+         "envelope": 0.186
+        },
+        "fl.shoulder": {
+         "speed": 0.09,
+         "torque": 2.32,
+         "stall": 0.469,
+         "envelope": 0.506
+        },
+        "fl.carpus": {
+         "speed": 0.199,
+         "torque": 2.52,
+         "belt": 2.04,
+         "stall": 0.544,
+         "envelope": 0.653
+        },
+        "fr.shoulder": {
+         "speed": 0.09,
+         "torque": 2.32,
+         "stall": 0.469,
+         "envelope": 0.506
+        },
+        "fr.carpus": {
+         "speed": 0.199,
+         "torque": 2.52,
+         "belt": 2.04,
+         "stall": 0.544,
+         "envelope": 0.653
+        }
+       }
+      },
+      {
+       "move": "rise front",
+       "t0": 9.5,
+       "t1": 11.5,
+       "joint": "hl.stifle",
+       "limit": "belt",
+       "use": 4.0,
+       "margin": -3.0,
+       "joints": {
+        "hl.hip_abd": {
+         "speed": 0.003,
+         "torque": 0.0,
+         "stall": 0.067,
+         "envelope": 0.069
+        },
+        "hl.stifle": {
+         "speed": 0.031,
+         "torque": 3.84,
+         "belt": 4.0,
+         "stall": 0.389,
+         "envelope": 0.397
+        },
+        "hl.hock": {
+         "speed": 0.005,
+         "torque": 0.0,
+         "belt": 1.88,
+         "stall": 0.133,
+         "envelope": 0.134
+        },
+        "hr.hip_abd": {
+         "speed": 0.003,
+         "torque": 0.0,
+         "stall": 0.067,
+         "envelope": 0.069
+        },
+        "hr.stifle": {
+         "speed": 0.031,
+         "torque": 3.84,
+         "belt": 4.0,
+         "stall": 0.389,
+         "envelope": 0.397
+        },
+        "hr.hock": {
+         "speed": 0.005,
+         "torque": 0.0,
+         "belt": 1.88,
+         "stall": 0.133,
+         "envelope": 0.134
+        },
+        "fl.shoulder": {
+         "speed": 0.116,
+         "torque": 4.0,
+         "stall": 0.474,
+         "envelope": 0.581
+        },
+        "fl.carpus": {
+         "speed": 0.107,
+         "torque": 2.48,
+         "belt": 2.0,
+         "stall": 0.272,
+         "envelope": 0.283
+        },
+        "fr.shoulder": {
+         "speed": 0.116,
+         "torque": 4.0,
+         "stall": 0.474,
+         "envelope": 0.581
+        },
+        "fr.carpus": {
+         "speed": 0.107,
+         "torque": 2.48,
+         "belt": 2.0,
+         "stall": 0.272,
+         "envelope": 0.283
+        }
+       }
+      },
+      {
+       "move": "standing after",
+       "t0": 11.5,
+       "t1": 12.5,
+       "joint": "fl.shoulder",
+       "limit": "torque",
+       "use": 4.0,
+       "margin": -3.0,
+       "joints": {
+        "hl.hip_abd": {
+         "speed": 0.001,
+         "torque": 0.0,
+         "stall": 0.047,
+         "envelope": 0.047
+        },
+        "hl.stifle": {
+         "speed": 0.017,
+         "torque": 3.44,
+         "belt": 3.6,
+         "stall": 0.332,
+         "envelope": 0.348
+        },
+        "hl.hock": {
+         "speed": 0.004,
+         "torque": 0.0,
+         "belt": 1.88,
+         "stall": 0.114,
+         "envelope": 0.117
+        },
+        "hr.hip_abd": {
+         "speed": 0.001,
+         "torque": 0.0,
+         "stall": 0.047,
+         "envelope": 0.047
+        },
+        "hr.stifle": {
+         "speed": 0.017,
+         "torque": 3.44,
+         "belt": 3.6,
+         "stall": 0.332,
+         "envelope": 0.348
+        },
+        "hr.hock": {
+         "speed": 0.004,
+         "torque": 0.0,
+         "belt": 1.88,
+         "stall": 0.114,
+         "envelope": 0.117
+        },
+        "fl.shoulder": {
+         "speed": 0.014,
+         "torque": 4.0,
+         "stall": 0.407,
+         "envelope": 0.421
+        },
+        "fl.carpus": {
+         "speed": 0.003,
+         "torque": 0.0,
+         "belt": 0.0,
+         "stall": 0.131,
+         "envelope": 0.131
+        },
+        "fr.shoulder": {
+         "speed": 0.014,
+         "torque": 4.0,
+         "stall": 0.407,
+         "envelope": 0.421
+        },
+        "fr.carpus": {
+         "speed": 0.003,
+         "torque": 0.0,
+         "belt": 0.0,
+         "stall": 0.131,
+         "envelope": 0.131
+        }
+       }
+      }
+     ],
+     "length_s": 12.5,
+     "wall_s": 4.51
+    },
+    {
+     "seed": 1,
+     "within": false,
+     "fell": false,
+     "sim_fell": true,
+     "tipped": false,
+     "risen": true,
+     "lying_height_mm": 267.5,
+     "margin": -3.0,
+     "closest": "servo_sustained",
+     "violations": [
+      "servo_sustained",
+      "belt_sustained"
+     ],
+     "moves": [
+      {
+       "move": "kneel",
+       "t0": 0.0,
+       "t1": 2.0,
+       "joint": "fl.shoulder",
+       "limit": "torque",
+       "use": 1.24,
+       "margin": -0.24,
+       "joints": {
+        "hl.hip_abd": {
+         "speed": 0.048,
+         "torque": 0.0,
+         "stall": 0.091,
+         "envelope": 0.091
+        },
+        "hl.stifle": {
+         "speed": 0.206,
+         "torque": 1.04,
+         "belt": 1.08,
+         "stall": 0.332,
+         "envelope": 0.381
+        },
+        "hl.hock": {
+         "speed": 0.12,
+         "torque": 0.04,
+         "belt": 0.76,
+         "stall": 0.197,
+         "envelope": 0.197
+        },
+        "hr.hip_abd": {
+         "speed": 0.048,
+         "torque": 0.0,
+         "stall": 0.091,
+         "envelope": 0.091
+        },
+        "hr.stifle": {
+         "speed": 0.206,
+         "torque": 1.04,
+         "belt": 1.08,
+         "stall": 0.332,
+         "envelope": 0.381
+        },
+        "hr.hock": {
+         "speed": 0.12,
+         "torque": 0.04,
+         "belt": 0.76,
+         "stall": 0.197,
+         "envelope": 0.197
+        },
+        "fl.shoulder": {
+         "speed": 0.174,
+         "torque": 1.24,
+         "stall": 0.587,
+         "envelope": 0.587
+        },
+        "fl.carpus": {
+         "speed": 0.259,
+         "torque": 0.44,
+         "belt": 0.36,
+         "stall": 0.419,
+         "envelope": 0.419
+        },
+        "fr.shoulder": {
+         "speed": 0.174,
+         "torque": 1.24,
+         "stall": 0.587,
+         "envelope": 0.587
+        },
+        "fr.carpus": {
+         "speed": 0.259,
+         "torque": 0.44,
+         "belt": 0.36,
+         "stall": 0.419,
+         "envelope": 0.419
+        }
+       }
+      },
+      {
+       "move": "lie",
+       "t0": 2.0,
+       "t1": 4.0,
+       "joint": "hl.stifle",
+       "limit": "belt",
+       "use": 2.8,
+       "margin": -1.8,
+       "joints": {
+        "hl.hip_abd": {
+         "speed": 0.016,
+         "torque": 1.0,
+         "stall": 0.228,
+         "envelope": 0.228
+        },
+        "hl.stifle": {
+         "speed": 0.404,
+         "torque": 2.76,
+         "belt": 2.8,
+         "stall": 0.245,
+         "envelope": 0.422
+        },
+        "hl.hock": {
+         "speed": 0.244,
+         "torque": 0.04,
+         "belt": 1.32,
+         "stall": 0.142,
+         "envelope": 0.142
+        },
+        "hr.hip_abd": {
+         "speed": 0.016,
+         "torque": 1.0,
+         "stall": 0.228,
+         "envelope": 0.228
+        },
+        "hr.stifle": {
+         "speed": 0.404,
+         "torque": 2.76,
+         "belt": 2.8,
+         "stall": 0.245,
+         "envelope": 0.422
+        },
+        "hr.hock": {
+         "speed": 0.244,
+         "torque": 0.04,
+         "belt": 1.32,
+         "stall": 0.142,
+         "envelope": 0.142
+        },
+        "fl.shoulder": {
+         "speed": 0.046,
+         "torque": 0.28,
+         "stall": 0.189,
+         "envelope": 0.189
+        },
+        "fl.carpus": {
+         "speed": 0.028,
+         "torque": 0.24,
+         "belt": 0.24,
+         "stall": 0.011,
+         "envelope": 0.025
+        },
+        "fr.shoulder": {
+         "speed": 0.046,
+         "torque": 0.28,
+         "stall": 0.189,
+         "envelope": 0.189
+        },
+        "fr.carpus": {
+         "speed": 0.028,
+         "torque": 0.24,
+         "belt": 0.24,
+         "stall": 0.011,
+         "envelope": 0.025
+        }
+       }
+      },
+      {
+       "move": "hold",
+       "t0": 4.0,
+       "t1": 5.5,
+       "joint": "hl.stifle",
+       "limit": "torque",
+       "use": 4.0,
+       "margin": -3.0,
+       "joints": {
+        "hl.hip_abd": {
+         "speed": 0.008,
+         "torque": 1.0,
+         "stall": 0.201,
+         "envelope": 0.208
+        },
+        "hl.stifle": {
+         "speed": 0.028,
+         "torque": 4.0,
+         "belt": 4.0,
+         "stall": 0.242,
+         "envelope": 0.242
+        },
+        "hl.hock": {
+         "speed": 0.015,
+         "torque": 0.0,
+         "belt": 0.72,
+         "stall": 0.016,
+         "envelope": 0.028
+        },
+        "hr.hip_abd": {
+         "speed": 0.008,
+         "torque": 1.0,
+         "stall": 0.201,
+         "envelope": 0.208
+        },
+        "hr.stifle": {
+         "speed": 0.028,
+         "torque": 4.0,
+         "belt": 4.0,
+         "stall": 0.242,
+         "envelope": 0.242
+        },
+        "hr.hock": {
+         "speed": 0.015,
+         "torque": 0.0,
+         "belt": 0.72,
+         "stall": 0.016,
+         "envelope": 0.028
+        },
+        "fl.shoulder": {
+         "speed": 0.003,
+         "torque": 0.2,
+         "stall": 0.189,
+         "envelope": 0.189
+        },
+        "fl.carpus": {
+         "speed": 0.002,
+         "torque": 0.0,
+         "belt": 0.0,
+         "stall": 0.011,
+         "envelope": 0.013
+        },
+        "fr.shoulder": {
+         "speed": 0.003,
+         "torque": 0.2,
+         "stall": 0.189,
+         "envelope": 0.189
+        },
+        "fr.carpus": {
+         "speed": 0.002,
+         "torque": 0.0,
+         "belt": 0.0,
+         "stall": 0.011,
+         "envelope": 0.013
+        }
+       }
+      },
+      {
+       "move": "rise hind",
+       "t0": 5.5,
+       "t1": 7.5,
+       "joint": "hl.stifle",
+       "limit": "belt",
+       "use": 3.4,
+       "margin": -2.4,
+       "joints": {
+        "hl.hip_abd": {
+         "speed": 0.021,
+         "torque": 0.0,
+         "stall": 0.159,
+         "envelope": 0.161
+        },
+        "hl.stifle": {
+         "speed": 0.422,
+         "torque": 3.2,
+         "belt": 3.4,
+         "stall": 0.349,
+         "envelope": 0.771
+        },
+        "hl.hock": {
+         "speed": 0.238,
+         "torque": 0.0,
+         "belt": 2.48,
+         "stall": 0.189,
+         "envelope": 0.189
+        },
+        "hr.hip_abd": {
+         "speed": 0.021,
+         "torque": 0.0,
+         "stall": 0.159,
+         "envelope": 0.161
+        },
+        "hr.stifle": {
+         "speed": 0.422,
+         "torque": 3.2,
+         "belt": 3.4,
+         "stall": 0.349,
+         "envelope": 0.771
+        },
+        "hr.hock": {
+         "speed": 0.238,
+         "torque": 0.0,
+         "belt": 2.48,
+         "stall": 0.189,
+         "envelope": 0.189
+        },
+        "fl.shoulder": {
+         "speed": 0.046,
+         "torque": 2.52,
+         "stall": 0.31,
+         "envelope": 0.355
+        },
+        "fl.carpus": {
+         "speed": 0.028,
+         "torque": 0.0,
+         "belt": 0.0,
+         "stall": 0.01,
+         "envelope": 0.01
+        },
+        "fr.shoulder": {
+         "speed": 0.046,
+         "torque": 2.52,
+         "stall": 0.31,
+         "envelope": 0.355
+        },
+        "fr.carpus": {
+         "speed": 0.028,
+         "torque": 0.0,
+         "belt": 0.0,
+         "stall": 0.01,
+         "envelope": 0.01
+        }
+       }
+      },
+      {
+       "move": "reach",
+       "t0": 7.5,
+       "t1": 9.5,
+       "joint": "hl.stifle",
+       "limit": "belt",
+       "use": 2.574,
+       "margin": -1.574,
+       "joints": {
+        "hl.hip_abd": {
+         "speed": 0.016,
+         "torque": 0.0,
+         "stall": 0.077,
+         "envelope": 0.077
+        },
+        "hl.stifle": {
+         "speed": 0.144,
+         "torque": 2.535,
+         "belt": 2.574,
+         "stall": 0.315,
+         "envelope": 0.354
+        },
+        "hl.hock": {
+         "speed": 0.149,
+         "torque": 0.04,
+         "belt": 2.257,
+         "stall": 0.207,
+         "envelope": 0.207
+        },
+        "hr.hip_abd": {
+         "speed": 0.016,
+         "torque": 0.0,
+         "stall": 0.077,
+         "envelope": 0.077
+        },
+        "hr.stifle": {
+         "speed": 0.144,
+         "torque": 2.535,
+         "belt": 2.574,
+         "stall": 0.315,
+         "envelope": 0.354
+        },
+        "hr.hock": {
+         "speed": 0.149,
+         "torque": 0.04,
+         "belt": 2.257,
+         "stall": 0.207,
+         "envelope": 0.207
+        },
+        "fl.shoulder": {
+         "speed": 0.092,
+         "torque": 2.337,
+         "stall": 0.501,
+         "envelope": 0.539
+        },
+        "fl.carpus": {
+         "speed": 0.21,
+         "torque": 2.56,
+         "belt": 2.24,
+         "stall": 0.582,
+         "envelope": 0.69
+        },
+        "fr.shoulder": {
+         "speed": 0.092,
+         "torque": 2.337,
+         "stall": 0.501,
+         "envelope": 0.539
+        },
+        "fr.carpus": {
+         "speed": 0.21,
+         "torque": 2.56,
+         "belt": 2.24,
+         "stall": 0.582,
+         "envelope": 0.69
+        }
+       }
+      },
+      {
+       "move": "rise front",
+       "t0": 9.5,
+       "t1": 11.5,
+       "joint": "hl.stifle",
+       "limit": "torque",
+       "use": 4.0,
+       "margin": -3.0,
+       "joints": {
+        "hl.hip_abd": {
+         "speed": 0.003,
+         "torque": 0.0,
+         "stall": 0.067,
+         "envelope": 0.069
+        },
+        "hl.stifle": {
+         "speed": 0.031,
+         "torque": 4.0,
+         "belt": 4.0,
+         "stall": 0.406,
+         "envelope": 0.414
+        },
+        "hl.hock": {
+         "speed": 0.005,
+         "torque": 0.04,
+         "belt": 1.92,
+         "stall": 0.135,
+         "envelope": 0.136
+        },
+        "hr.hip_abd": {
+         "speed": 0.003,
+         "torque": 0.0,
+         "stall": 0.067,
+         "envelope": 0.069
+        },
+        "hr.stifle": {
+         "speed": 0.031,
+         "torque": 4.0,
+         "belt": 4.0,
+         "stall": 0.406,
+         "envelope": 0.414
+        },
+        "hr.hock": {
+         "speed": 0.005,
+         "torque": 0.04,
+         "belt": 1.92,
+         "stall": 0.135,
+         "envelope": 0.136
+        },
+        "fl.shoulder": {
+         "speed": 0.105,
+         "torque": 4.0,
+         "stall": 0.49,
+         "envelope": 0.594
+        },
+        "fl.carpus": {
+         "speed": 0.108,
+         "torque": 2.52,
+         "belt": 2.2,
+         "stall": 0.291,
+         "envelope": 0.299
+        },
+        "fr.shoulder": {
+         "speed": 0.105,
+         "torque": 4.0,
+         "stall": 0.49,
+         "envelope": 0.594
+        },
+        "fr.carpus": {
+         "speed": 0.108,
+         "torque": 2.52,
+         "belt": 2.2,
+         "stall": 0.291,
+         "envelope": 0.299
+        }
+       }
+      },
+      {
+       "move": "standing after",
+       "t0": 11.5,
+       "t1": 12.5,
+       "joint": "fl.shoulder",
+       "limit": "torque",
+       "use": 4.0,
+       "margin": -3.0,
+       "joints": {
+        "hl.hip_abd": {
+         "speed": 0.001,
+         "torque": 0.0,
+         "stall": 0.048,
+         "envelope": 0.049
+        },
+        "hl.stifle": {
+         "speed": 0.017,
+         "torque": 3.8,
+         "belt": 3.96,
+         "stall": 0.353,
+         "envelope": 0.367
+        },
+        "hl.hock": {
+         "speed": 0.004,
+         "torque": 0.0,
+         "belt": 1.92,
+         "stall": 0.118,
+         "envelope": 0.121
+        },
+        "hr.hip_abd": {
+         "speed": 0.001,
+         "torque": 0.0,
+         "stall": 0.048,
+         "envelope": 0.049
+        },
+        "hr.stifle": {
+         "speed": 0.017,
+         "torque": 3.8,
+         "belt": 3.96,
+         "stall": 0.353,
+         "envelope": 0.367
+        },
+        "hr.hock": {
+         "speed": 0.004,
+         "torque": 0.0,
+         "belt": 1.92,
+         "stall": 0.118,
+         "envelope": 0.121
+        },
+        "fl.shoulder": {
+         "speed": 0.014,
+         "torque": 4.0,
+         "stall": 0.426,
+         "envelope": 0.439
+        },
+        "fl.carpus": {
+         "speed": 0.004,
+         "torque": 0.0,
+         "belt": 0.0,
+         "stall": 0.137,
+         "envelope": 0.137
+        },
+        "fr.shoulder": {
+         "speed": 0.014,
+         "torque": 4.0,
+         "stall": 0.426,
+         "envelope": 0.439
+        },
+        "fr.carpus": {
+         "speed": 0.004,
+         "torque": 0.0,
+         "belt": 0.0,
+         "stall": 0.137,
+         "envelope": 0.137
+        }
+       }
+      }
+     ],
+     "length_s": 12.5,
+     "wall_s": 4.29
+    },
+    {
+     "seed": 2,
+     "within": false,
+     "fell": false,
+     "sim_fell": true,
+     "tipped": false,
+     "risen": true,
+     "lying_height_mm": 267.9,
+     "margin": -3.0,
+     "closest": "servo_sustained",
+     "violations": [
+      "servo_sustained",
+      "belt_sustained"
+     ],
+     "moves": [
+      {
+       "move": "kneel",
+       "t0": 0.0,
+       "t1": 2.0,
+       "joint": "fl.shoulder",
+       "limit": "torque",
+       "use": 1.12,
+       "margin": -0.12,
+       "joints": {
+        "hl.hip_abd": {
+         "speed": 0.041,
+         "torque": 0.0,
+         "stall": 0.086,
+         "envelope": 0.086
+        },
+        "hl.stifle": {
+         "speed": 0.147,
+         "torque": 0.96,
+         "belt": 1.0,
+         "stall": 0.283,
+         "envelope": 0.326
+        },
+        "hl.hock": {
+         "speed": 0.184,
+         "torque": 0.0,
+         "belt": 0.36,
+         "stall": 0.159,
+         "envelope": 0.159
+        },
+        "hr.hip_abd": {
+         "speed": 0.041,
+         "torque": 0.0,
+         "stall": 0.086,
+         "envelope": 0.086
+        },
+        "hr.stifle": {
+         "speed": 0.147,
+         "torque": 0.96,
+         "belt": 1.0,
+         "stall": 0.283,
+         "envelope": 0.326
+        },
+        "hr.hock": {
+         "speed": 0.184,
+         "torque": 0.0,
+         "belt": 0.36,
+         "stall": 0.159,
+         "envelope": 0.159
+        },
+        "fl.shoulder": {
+         "speed": 0.158,
+         "torque": 1.12,
+         "stall": 0.626,
+         "envelope": 0.626
+        },
+        "fl.carpus": {
+         "speed": 0.26,
+         "torque": 0.44,
+         "belt": 0.28,
+         "stall": 0.412,
+         "envelope": 0.412
+        },
+        "fr.shoulder": {
+         "speed": 0.158,
+         "torque": 1.12,
+         "stall": 0.626,
+         "envelope": 0.626
+        },
+        "fr.carpus": {
+         "speed": 0.26,
+         "torque": 0.44,
+         "belt": 0.28,
+         "stall": 0.412,
+         "envelope": 0.412
+        }
+       }
+      },
+      {
+       "move": "lie",
+       "t0": 2.0,
+       "t1": 4.0,
+       "joint": "hl.stifle",
+       "limit": "belt",
+       "use": 2.8,
+       "margin": -1.8,
+       "joints": {
+        "hl.hip_abd": {
+         "speed": 0.015,
+         "torque": 0.0,
+         "stall": 0.194,
+         "envelope": 0.194
+        },
+        "hl.stifle": {
+         "speed": 0.405,
+         "torque": 2.72,
+         "belt": 2.8,
+         "stall": 0.238,
+         "envelope": 0.4
+        },
+        "hl.hock": {
+         "speed": 0.242,
+         "torque": 0.0,
+         "belt": 0.72,
+         "stall": 0.129,
+         "envelope": 0.129
+        },
+        "hr.hip_abd": {
+         "speed": 0.015,
+         "torque": 0.0,
+         "stall": 0.194,
+         "envelope": 0.194
+        },
+        "hr.stifle": {
+         "speed": 0.405,
+         "torque": 2.72,
+         "belt": 2.8,
+         "stall": 0.238,
+         "envelope": 0.4
+        },
+        "hr.hock": {
+         "speed": 0.242,
+         "torque": 0.0,
+         "belt": 0.72,
+         "stall": 0.129,
+         "envelope": 0.129
+        },
+        "fl.shoulder": {
+         "speed": 0.045,
+         "torque": 0.28,
+         "stall": 0.181,
+         "envelope": 0.181
+        },
+        "fl.carpus": {
+         "speed": 0.028,
+         "torque": 0.24,
+         "belt": 0.24,
+         "stall": 0.01,
+         "envelope": 0.025
+        },
+        "fr.shoulder": {
+         "speed": 0.045,
+         "torque": 0.28,
+         "stall": 0.181,
+         "envelope": 0.181
+        },
+        "fr.carpus": {
+         "speed": 0.028,
+         "torque": 0.24,
+         "belt": 0.24,
+         "stall": 0.01,
+         "envelope": 0.025
+        }
+       }
+      },
+      {
+       "move": "hold",
+       "t0": 4.0,
+       "t1": 5.5,
+       "joint": "hl.stifle",
+       "limit": "torque",
+       "use": 4.0,
+       "margin": -3.0,
+       "joints": {
+        "hl.hip_abd": {
+         "speed": 0.007,
+         "torque": 0.0,
+         "stall": 0.174,
+         "envelope": 0.18
+        },
+        "hl.stifle": {
+         "speed": 0.027,
+         "torque": 4.0,
+         "belt": 4.0,
+         "stall": 0.234,
+         "envelope": 0.234
+        },
+        "hl.hock": {
+         "speed": 0.016,
+         "torque": 0.0,
+         "belt": 0.32,
+         "stall": 0.018,
+         "envelope": 0.031
+        },
+        "hr.hip_abd": {
+         "speed": 0.007,
+         "torque": 0.0,
+         "stall": 0.174,
+         "envelope": 0.18
+        },
+        "hr.stifle": {
+         "speed": 0.027,
+         "torque": 4.0,
+         "belt": 4.0,
+         "stall": 0.234,
+         "envelope": 0.234
+        },
+        "hr.hock": {
+         "speed": 0.016,
+         "torque": 0.0,
+         "belt": 0.32,
+         "stall": 0.018,
+         "envelope": 0.031
+        },
+        "fl.shoulder": {
+         "speed": 0.003,
+         "torque": 0.16,
+         "stall": 0.18,
+         "envelope": 0.18
+        },
+        "fl.carpus": {
+         "speed": 0.002,
+         "torque": 0.0,
+         "belt": 0.0,
+         "stall": 0.011,
+         "envelope": 0.013
+        },
+        "fr.shoulder": {
+         "speed": 0.003,
+         "torque": 0.16,
+         "stall": 0.18,
+         "envelope": 0.18
+        },
+        "fr.carpus": {
+         "speed": 0.002,
+         "torque": 0.0,
+         "belt": 0.0,
+         "stall": 0.011,
+         "envelope": 0.013
+        }
+       }
+      },
+      {
+       "move": "rise hind",
+       "t0": 5.5,
+       "t1": 7.5,
+       "joint": "hl.stifle",
+       "limit": "belt",
+       "use": 3.12,
+       "margin": -2.12,
+       "joints": {
+        "hl.hip_abd": {
+         "speed": 0.021,
+         "torque": 0.0,
+         "stall": 0.15,
+         "envelope": 0.162
+        },
+        "hl.stifle": {
+         "speed": 0.424,
+         "torque": 2.92,
+         "belt": 3.12,
+         "stall": 0.303,
+         "envelope": 0.727
+        },
+        "hl.hock": {
+         "speed": 0.236,
+         "torque": 0.0,
+         "belt": 2.36,
+         "stall": 0.173,
+         "envelope": 0.173
+        },
+        "hr.hip_abd": {
+         "speed": 0.021,
+         "torque": 0.0,
+         "stall": 0.15,
+         "envelope": 0.162
+        },
+        "hr.stifle": {
+         "speed": 0.424,
+         "torque": 2.92,
+         "belt": 3.12,
+         "stall": 0.303,
+         "envelope": 0.727
+        },
+        "hr.hock": {
+         "speed": 0.236,
+         "torque": 0.0,
+         "belt": 2.36,
+         "stall": 0.173,
+         "envelope": 0.173
+        },
+        "fl.shoulder": {
+         "speed": 0.046,
+         "torque": 2.36,
+         "stall": 0.273,
+         "envelope": 0.317
+        },
+        "fl.carpus": {
+         "speed": 0.029,
+         "torque": 0.04,
+         "belt": 0.04,
+         "stall": 0.009,
+         "envelope": 0.009
+        },
+        "fr.shoulder": {
+         "speed": 0.046,
+         "torque": 2.36,
+         "stall": 0.273,
+         "envelope": 0.317
+        },
+        "fr.carpus": {
+         "speed": 0.029,
+         "torque": 0.04,
+         "belt": 0.04,
+         "stall": 0.009,
+         "envelope": 0.009
+        }
+       }
+      },
+      {
+       "move": "reach",
+       "t0": 7.5,
+       "t1": 9.5,
+       "joint": "fl.carpus",
+       "limit": "torque",
+       "use": 2.48,
+       "margin": -1.48,
+       "joints": {
+        "hl.hip_abd": {
+         "speed": 0.027,
+         "torque": 0.0,
+         "stall": 0.073,
+         "envelope": 0.073
+        },
+        "hl.stifle": {
+         "speed": 0.105,
+         "torque": 2.416,
+         "belt": 2.455,
+         "stall": 0.28,
+         "envelope": 0.317
+        },
+        "hl.hock": {
+         "speed": 0.163,
+         "torque": 0.0,
+         "belt": 2.139,
+         "stall": 0.187,
+         "envelope": 0.187
+        },
+        "hr.hip_abd": {
+         "speed": 0.027,
+         "torque": 0.0,
+         "stall": 0.073,
+         "envelope": 0.073
+        },
+        "hr.stifle": {
+         "speed": 0.105,
+         "torque": 2.416,
+         "belt": 2.455,
+         "stall": 0.28,
+         "envelope": 0.317
+        },
+        "hr.hock": {
+         "speed": 0.163,
+         "torque": 0.0,
+         "belt": 2.139,
+         "stall": 0.187,
+         "envelope": 0.187
+        },
+        "fl.shoulder": {
+         "speed": 0.092,
+         "torque": 2.218,
+         "stall": 0.465,
+         "envelope": 0.503
+        },
+        "fl.carpus": {
+         "speed": 0.229,
+         "torque": 2.48,
+         "belt": 1.92,
+         "stall": 0.537,
+         "envelope": 0.649
+        },
+        "fr.shoulder": {
+         "speed": 0.092,
+         "torque": 2.218,
+         "stall": 0.465,
+         "envelope": 0.503
+        },
+        "fr.carpus": {
+         "speed": 0.229,
+         "torque": 2.48,
+         "belt": 1.92,
+         "stall": 0.537,
+         "envelope": 0.649
+        }
+       }
+      },
+      {
+       "move": "rise front",
+       "t0": 9.5,
+       "t1": 11.5,
+       "joint": "fl.shoulder",
+       "limit": "torque",
+       "use": 4.0,
+       "margin": -3.0,
+       "joints": {
+        "hl.hip_abd": {
+         "speed": 0.003,
+         "torque": 0.0,
+         "stall": 0.055,
+         "envelope": 0.057
+        },
+        "hl.stifle": {
+         "speed": 0.031,
+         "torque": 3.52,
+         "belt": 3.76,
+         "stall": 0.352,
+         "envelope": 0.362
+        },
+        "hl.hock": {
+         "speed": 0.005,
+         "torque": 0.0,
+         "belt": 1.08,
+         "stall": 0.12,
+         "envelope": 0.122
+        },
+        "hr.hip_abd": {
+         "speed": 0.003,
+         "torque": 0.0,
+         "stall": 0.055,
+         "envelope": 0.057
+        },
+        "hr.stifle": {
+         "speed": 0.031,
+         "torque": 3.52,
+         "belt": 3.76,
+         "stall": 0.352,
+         "envelope": 0.362
+        },
+        "hr.hock": {
+         "speed": 0.005,
+         "torque": 0.0,
+         "belt": 1.08,
+         "stall": 0.12,
+         "envelope": 0.122
+        },
+        "fl.shoulder": {
+         "speed": 0.111,
+         "torque": 4.0,
+         "stall": 0.431,
+         "envelope": 0.533
+        },
+        "fl.carpus": {
+         "speed": 0.107,
+         "torque": 2.4,
+         "belt": 1.84,
+         "stall": 0.261,
+         "envelope": 0.27
+        },
+        "fr.shoulder": {
+         "speed": 0.111,
+         "torque": 4.0,
+         "stall": 0.431,
+         "envelope": 0.533
+        },
+        "fr.carpus": {
+         "speed": 0.107,
+         "torque": 2.4,
+         "belt": 1.84,
+         "stall": 0.261,
+         "envelope": 0.27
+        }
+       }
+      },
+      {
+       "move": "standing after",
+       "t0": 11.5,
+       "t1": 12.5,
+       "joint": "fl.shoulder",
+       "limit": "torque",
+       "use": 4.0,
+       "margin": -3.0,
+       "joints": {
+        "hl.hip_abd": {
+         "speed": 0.001,
+         "torque": 0.0,
+         "stall": 0.043,
+         "envelope": 0.043
+        },
+        "hl.stifle": {
+         "speed": 0.015,
+         "torque": 3.12,
+         "belt": 3.32,
+         "stall": 0.303,
+         "envelope": 0.314
+        },
+        "hl.hock": {
+         "speed": 0.003,
+         "torque": 0.0,
+         "belt": 1.04,
+         "stall": 0.104,
+         "envelope": 0.106
+        },
+        "hr.hip_abd": {
+         "speed": 0.001,
+         "torque": 0.0,
+         "stall": 0.043,
+         "envelope": 0.043
+        },
+        "hr.stifle": {
+         "speed": 0.015,
+         "torque": 3.12,
+         "belt": 3.32,
+         "stall": 0.303,
+         "envelope": 0.314
+        },
+        "hr.hock": {
+         "speed": 0.003,
+         "torque": 0.0,
+         "belt": 1.04,
+         "stall": 0.104,
+         "envelope": 0.106
+        },
+        "fl.shoulder": {
+         "speed": 0.013,
+         "torque": 4.0,
+         "stall": 0.371,
+         "envelope": 0.384
+        },
+        "fl.carpus": {
+         "speed": 0.004,
+         "torque": 0.0,
+         "belt": 0.0,
+         "stall": 0.114,
+         "envelope": 0.114
+        },
+        "fr.shoulder": {
+         "speed": 0.013,
+         "torque": 4.0,
+         "stall": 0.371,
+         "envelope": 0.384
+        },
+        "fr.carpus": {
+         "speed": 0.004,
+         "torque": 0.0,
+         "belt": 0.0,
+         "stall": 0.114,
+         "envelope": 0.114
+        }
+       }
+      }
+     ],
+     "length_s": 12.5,
+     "wall_s": 4.79
+    }
+   ]
+  },
+  "g012-009": {
+   "stage_c_run": "20261107-205228-evolve-15de",
+   "screen": [
+    {
+     "seed": 0,
+     "margin": -0.24,
+     "within": false,
+     "closest": "servo_sustained"
+    },
+    {
+     "seed": 1,
+     "margin": -0.24,
+     "within": false,
+     "closest": "servo_sustained"
+    },
+    {
+     "seed": 2,
+     "margin": -0.16,
+     "within": false,
+     "closest": "servo_sustained"
+    }
+   ],
+   "full": [
+    {
+     "seed": 0,
+     "within": false,
+     "fell": false,
+     "sim_fell": true,
+     "tipped": false,
+     "risen": true,
+     "lying_height_mm": 269.6,
+     "margin": -3.0,
+     "closest": "servo_sustained",
+     "violations": [
+      "servo_sustained",
+      "belt_sustained"
+     ],
+     "moves": [
+      {
+       "move": "kneel",
+       "t0": 0.0,
+       "t1": 2.0,
+       "joint": "fl.shoulder",
+       "limit": "torque",
+       "use": 1.24,
+       "margin": -0.24,
+       "joints": {
+        "hl.hip_abd": {
+         "speed": 0.043,
+         "torque": 0.0,
+         "stall": 0.086,
+         "envelope": 0.086
+        },
+        "hl.stifle": {
+         "speed": 0.181,
+         "torque": 1.04,
+         "belt": 1.04,
+         "stall": 0.33,
+         "envelope": 0.359
+        },
+        "hl.hock": {
+         "speed": 0.192,
+         "torque": 0.0,
+         "belt": 0.08,
+         "stall": 0.14,
+         "envelope": 0.14
+        },
+        "hr.hip_abd": {
+         "speed": 0.043,
+         "torque": 0.0,
+         "stall": 0.086,
+         "envelope": 0.086
+        },
+        "hr.stifle": {
+         "speed": 0.181,
+         "torque": 1.04,
+         "belt": 1.04,
+         "stall": 0.33,
+         "envelope": 0.359
+        },
+        "hr.hock": {
+         "speed": 0.192,
+         "torque": 0.0,
+         "belt": 0.08,
+         "stall": 0.14,
+         "envelope": 0.14
+        },
+        "fl.shoulder": {
+         "speed": 0.164,
+         "torque": 1.24,
+         "stall": 0.599,
+         "envelope": 0.599
+        },
+        "fl.carpus": {
+         "speed": 0.257,
+         "torque": 0.44,
+         "belt": 0.36,
+         "stall": 0.428,
+         "envelope": 0.428
+        },
+        "fr.shoulder": {
+         "speed": 0.164,
+         "torque": 1.24,
+         "stall": 0.599,
+         "envelope": 0.599
+        },
+        "fr.carpus": {
+         "speed": 0.257,
+         "torque": 0.44,
+         "belt": 0.36,
+         "stall": 0.428,
+         "envelope": 0.428
+        }
+       }
+      },
+      {
+       "move": "lie",
+       "t0": 2.0,
+       "t1": 4.0,
+       "joint": "hl.stifle",
+       "limit": "belt",
+       "use": 2.76,
+       "margin": -1.76,
+       "joints": {
+        "hl.hip_abd": {
+         "speed": 0.016,
+         "torque": 0.72,
+         "stall": 0.215,
+         "envelope": 0.215
+        },
+        "hl.stifle": {
+         "speed": 0.404,
+         "torque": 2.72,
+         "belt": 2.76,
+         "stall": 0.239,
+         "envelope": 0.43
+        },
+        "hl.hock": {
+         "speed": 0.318,
+         "torque": 0.0,
+         "belt": 0.28,
+         "stall": 0.12,
+         "envelope": 0.12
+        },
+        "hr.hip_abd": {
+         "speed": 0.016,
+         "torque": 0.72,
+         "stall": 0.215,
+         "envelope": 0.215
+        },
+        "hr.stifle": {
+         "speed": 0.404,
+         "torque": 2.72,
+         "belt": 2.76,
+         "stall": 0.239,
+         "envelope": 0.43
+        },
+        "hr.hock": {
+         "speed": 0.318,
+         "torque": 0.0,
+         "belt": 0.28,
+         "stall": 0.12,
+         "envelope": 0.12
+        },
+        "fl.shoulder": {
+         "speed": 0.046,
+         "torque": 0.28,
+         "stall": 0.179,
+         "envelope": 0.185
+        },
+        "fl.carpus": {
+         "speed": 0.028,
+         "torque": 0.28,
+         "belt": 0.28,
+         "stall": 0.042,
+         "envelope": 0.042
+        },
+        "fr.shoulder": {
+         "speed": 0.046,
+         "torque": 0.28,
+         "stall": 0.179,
+         "envelope": 0.185
+        },
+        "fr.carpus": {
+         "speed": 0.028,
+         "torque": 0.28,
+         "belt": 0.28,
+         "stall": 0.042,
+         "envelope": 0.042
+        }
+       }
+      },
+      {
+       "move": "hold",
+       "t0": 4.0,
+       "t1": 5.5,
+       "joint": "hl.stifle",
+       "limit": "torque",
+       "use": 4.0,
+       "margin": -3.0,
+       "joints": {
+        "hl.hip_abd": {
+         "speed": 0.008,
+         "torque": 0.72,
+         "stall": 0.186,
+         "envelope": 0.193
+        },
+        "hl.stifle": {
+         "speed": 0.028,
+         "torque": 4.0,
+         "belt": 4.0,
+         "stall": 0.236,
+         "envelope": 0.236
+        },
+        "hl.hock": {
+         "speed": 0.021,
+         "torque": 0.0,
+         "belt": 0.2,
+         "stall": 0.011,
+         "envelope": 0.028
+        },
+        "hr.hip_abd": {
+         "speed": 0.008,
+         "torque": 0.72,
+         "stall": 0.186,
+         "envelope": 0.193
+        },
+        "hr.stifle": {
+         "speed": 0.028,
+         "torque": 4.0,
+         "belt": 4.0,
+         "stall": 0.236,
+         "envelope": 0.236
+        },
+        "hr.hock": {
+         "speed": 0.021,
+         "torque": 0.0,
+         "belt": 0.2,
+         "stall": 0.011,
+         "envelope": 0.028
+        },
+        "fl.shoulder": {
+         "speed": 0.003,
+         "torque": 0.2,
+         "stall": 0.178,
+         "envelope": 0.178
+        },
+        "fl.carpus": {
+         "speed": 0.002,
+         "torque": 0.0,
+         "belt": 0.0,
+         "stall": 0.026,
+         "envelope": 0.026
+        },
+        "fr.shoulder": {
+         "speed": 0.003,
+         "torque": 0.2,
+         "stall": 0.178,
+         "envelope": 0.178
+        },
+        "fr.carpus": {
+         "speed": 0.002,
+         "torque": 0.0,
+         "belt": 0.0,
+         "stall": 0.026,
+         "envelope": 0.026
+        }
+       }
+      },
+      {
+       "move": "rise hind",
+       "t0": 5.5,
+       "t1": 7.5,
+       "joint": "hl.stifle",
+       "limit": "belt",
+       "use": 3.32,
+       "margin": -2.32,
+       "joints": {
+        "hl.hip_abd": {
+         "speed": 0.021,
+         "torque": 0.0,
+         "stall": 0.161,
+         "envelope": 0.175
+        },
+        "hl.stifle": {
+         "speed": 0.431,
+         "torque": 3.12,
+         "belt": 3.32,
+         "stall": 0.335,
+         "envelope": 0.765
+        },
+        "hl.hock": {
+         "speed": 0.314,
+         "torque": 0.0,
+         "belt": 1.92,
+         "stall": 0.154,
+         "envelope": 0.154
+        },
+        "hr.hip_abd": {
+         "speed": 0.021,
+         "torque": 0.0,
+         "stall": 0.161,
+         "envelope": 0.175
+        },
+        "hr.stifle": {
+         "speed": 0.431,
+         "torque": 3.12,
+         "belt": 3.32,
+         "stall": 0.335,
+         "envelope": 0.765
+        },
+        "hr.hock": {
+         "speed": 0.314,
+         "torque": 0.0,
+         "belt": 1.92,
+         "stall": 0.154,
+         "envelope": 0.154
+        },
+        "fl.shoulder": {
+         "speed": 0.048,
+         "torque": 2.4,
+         "stall": 0.299,
+         "envelope": 0.343
+        },
+        "fl.carpus": {
+         "speed": 0.028,
+         "torque": 0.04,
+         "belt": 0.04,
+         "stall": 0.038,
+         "envelope": 0.056
+        },
+        "fr.shoulder": {
+         "speed": 0.048,
+         "torque": 2.4,
+         "stall": 0.299,
+         "envelope": 0.343
+        },
+        "fr.carpus": {
+         "speed": 0.028,
+         "torque": 0.04,
+         "belt": 0.04,
+         "stall": 0.038,
+         "envelope": 0.056
+        }
+       }
+      },
+      {
+       "move": "reach",
+       "t0": 7.5,
+       "t1": 9.5,
+       "joint": "fl.carpus",
+       "limit": "torque",
+       "use": 2.64,
+       "margin": -1.64,
+       "joints": {
+        "hl.hip_abd": {
+         "speed": 0.014,
+         "torque": 0.0,
+         "stall": 0.078,
+         "envelope": 0.078
+        },
+        "hl.stifle": {
+         "speed": 0.185,
+         "torque": 2.455,
+         "belt": 2.495,
+         "stall": 0.309,
+         "envelope": 0.341
+        },
+        "hl.hock": {
+         "speed": 0.187,
+         "torque": 0.0,
+         "belt": 1.743,
+         "stall": 0.135,
+         "envelope": 0.135
+        },
+        "hr.hip_abd": {
+         "speed": 0.014,
+         "torque": 0.0,
+         "stall": 0.078,
+         "envelope": 0.078
+        },
+        "hr.stifle": {
+         "speed": 0.185,
+         "torque": 2.455,
+         "belt": 2.495,
+         "stall": 0.309,
+         "envelope": 0.341
+        },
+        "hr.hock": {
+         "speed": 0.187,
+         "torque": 0.0,
+         "belt": 1.743,
+         "stall": 0.135,
+         "envelope": 0.135
+        },
+        "fl.shoulder": {
+         "speed": 0.091,
+         "torque": 2.44,
+         "stall": 0.479,
+         "envelope": 0.517
+        },
+        "fl.carpus": {
+         "speed": 0.199,
+         "torque": 2.64,
+         "belt": 2.24,
+         "stall": 0.577,
+         "envelope": 0.686
+        },
+        "fr.shoulder": {
+         "speed": 0.091,
+         "torque": 2.44,
+         "stall": 0.479,
+         "envelope": 0.517
+        },
+        "fr.carpus": {
+         "speed": 0.199,
+         "torque": 2.64,
+         "belt": 2.24,
+         "stall": 0.577,
+         "envelope": 0.686
+        }
+       }
+      },
+      {
+       "move": "rise front",
+       "t0": 9.5,
+       "t1": 11.5,
+       "joint": "hl.stifle",
+       "limit": "belt",
+       "use": 4.0,
+       "margin": -3.0,
+       "joints": {
+        "hl.hip_abd": {
+         "speed": 0.003,
+         "torque": 0.0,
+         "stall": 0.068,
+         "envelope": 0.069
+        },
+        "hl.stifle": {
+         "speed": 0.031,
+         "torque": 3.92,
+         "belt": 4.0,
+         "stall": 0.398,
+         "envelope": 0.405
+        },
+        "hl.hock": {
+         "speed": 0.007,
+         "torque": 0.0,
+         "belt": 0.08,
+         "stall": 0.099,
+         "envelope": 0.1
+        },
+        "hr.hip_abd": {
+         "speed": 0.003,
+         "torque": 0.0,
+         "stall": 0.068,
+         "envelope": 0.069
+        },
+        "hr.stifle": {
+         "speed": 0.031,
+         "torque": 3.92,
+         "belt": 4.0,
+         "stall": 0.398,
+         "envelope": 0.405
+        },
+        "hr.hock": {
+         "speed": 0.007,
+         "torque": 0.0,
+         "belt": 0.08,
+         "stall": 0.099,
+         "envelope": 0.1
+        },
+        "fl.shoulder": {
+         "speed": 0.116,
+         "torque": 4.0,
+         "stall": 0.479,
+         "envelope": 0.587
+        },
+        "fl.carpus": {
+         "speed": 0.107,
+         "torque": 2.56,
+         "belt": 2.16,
+         "stall": 0.287,
+         "envelope": 0.303
+        },
+        "fr.shoulder": {
+         "speed": 0.116,
+         "torque": 4.0,
+         "stall": 0.479,
+         "envelope": 0.587
+        },
+        "fr.carpus": {
+         "speed": 0.107,
+         "torque": 2.56,
+         "belt": 2.16,
+         "stall": 0.287,
+         "envelope": 0.303
+        }
+       }
+      },
+      {
+       "move": "standing after",
+       "t0": 11.5,
+       "t1": 12.5,
+       "joint": "fl.shoulder",
+       "limit": "torque",
+       "use": 4.0,
+       "margin": -3.0,
+       "joints": {
+        "hl.hip_abd": {
+         "speed": 0.001,
+         "torque": 0.0,
+         "stall": 0.048,
+         "envelope": 0.048
+        },
+        "hl.stifle": {
+         "speed": 0.018,
+         "torque": 3.52,
+         "belt": 3.68,
+         "stall": 0.341,
+         "envelope": 0.357
+        },
+        "hl.hock": {
+         "speed": 0.004,
+         "torque": 0.0,
+         "belt": 0.0,
+         "stall": 0.086,
+         "envelope": 0.089
+        },
+        "hr.hip_abd": {
+         "speed": 0.001,
+         "torque": 0.0,
+         "stall": 0.048,
+         "envelope": 0.048
+        },
+        "hr.stifle": {
+         "speed": 0.018,
+         "torque": 3.52,
+         "belt": 3.68,
+         "stall": 0.341,
+         "envelope": 0.357
+        },
+        "hr.hock": {
+         "speed": 0.004,
+         "torque": 0.0,
+         "belt": 0.0,
+         "stall": 0.086,
+         "envelope": 0.089
+        },
+        "fl.shoulder": {
+         "speed": 0.014,
+         "torque": 4.0,
+         "stall": 0.409,
+         "envelope": 0.423
+        },
+        "fl.carpus": {
+         "speed": 0.003,
+         "torque": 1.0,
+         "belt": 0.0,
+         "stall": 0.17,
+         "envelope": 0.17
+        },
+        "fr.shoulder": {
+         "speed": 0.014,
+         "torque": 4.0,
+         "stall": 0.409,
+         "envelope": 0.423
+        },
+        "fr.carpus": {
+         "speed": 0.003,
+         "torque": 1.0,
+         "belt": 0.0,
+         "stall": 0.17,
+         "envelope": 0.17
+        }
+       }
+      }
+     ],
+     "length_s": 12.5,
+     "wall_s": 6.69
+    },
+    {
+     "seed": 1,
+     "within": false,
+     "fell": false,
+     "sim_fell": true,
+     "tipped": false,
+     "risen": true,
+     "lying_height_mm": 269.2,
+     "margin": -3.0,
+     "closest": "servo_sustained",
+     "violations": [
+      "servo_sustained",
+      "belt_sustained"
+     ],
+     "moves": [
+      {
+       "move": "kneel",
+       "t0": 0.0,
+       "t1": 2.0,
+       "joint": "fl.shoulder",
+       "limit": "torque",
+       "use": 1.24,
+       "margin": -0.24,
+       "joints": {
+        "hl.hip_abd": {
+         "speed": 0.05,
+         "torque": 0.0,
+         "stall": 0.092,
+         "envelope": 0.092
+        },
+        "hl.stifle": {
+         "speed": 0.2,
+         "torque": 1.12,
+         "belt": 1.16,
+         "stall": 0.341,
+         "envelope": 0.341
+        },
+        "hl.hock": {
+         "speed": 0.167,
+         "torque": 0.0,
+         "belt": 0.2,
+         "stall": 0.159,
+         "envelope": 0.159
+        },
+        "hr.hip_abd": {
+         "speed": 0.05,
+         "torque": 0.0,
+         "stall": 0.092,
+         "envelope": 0.092
+        },
+        "hr.stifle": {
+         "speed": 0.2,
+         "torque": 1.12,
+         "belt": 1.16,
+         "stall": 0.341,
+         "envelope": 0.341
+        },
+        "hr.hock": {
+         "speed": 0.167,
+         "torque": 0.0,
+         "belt": 0.2,
+         "stall": 0.159,
+         "envelope": 0.159
+        },
+        "fl.shoulder": {
+         "speed": 0.167,
+         "torque": 1.24,
+         "stall": 0.629,
+         "envelope": 0.629
+        },
+        "fl.carpus": {
+         "speed": 0.262,
+         "torque": 0.44,
+         "belt": 0.4,
+         "stall": 0.446,
+         "envelope": 0.446
+        },
+        "fr.shoulder": {
+         "speed": 0.167,
+         "torque": 1.24,
+         "stall": 0.629,
+         "envelope": 0.629
+        },
+        "fr.carpus": {
+         "speed": 0.262,
+         "torque": 0.44,
+         "belt": 0.4,
+         "stall": 0.446,
+         "envelope": 0.446
+        }
+       }
+      },
+      {
+       "move": "lie",
+       "t0": 2.0,
+       "t1": 4.0,
+       "joint": "hl.stifle",
+       "limit": "belt",
+       "use": 2.84,
+       "margin": -1.84,
+       "joints": {
+        "hl.hip_abd": {
+         "speed": 0.016,
+         "torque": 0.72,
+         "stall": 0.215,
+         "envelope": 0.215
+        },
+        "hl.stifle": {
+         "speed": 0.406,
+         "torque": 2.76,
+         "belt": 2.84,
+         "stall": 0.251,
+         "envelope": 0.433
+        },
+        "hl.hock": {
+         "speed": 0.323,
+         "torque": 0.0,
+         "belt": 0.52,
+         "stall": 0.125,
+         "envelope": 0.125
+        },
+        "hr.hip_abd": {
+         "speed": 0.016,
+         "torque": 0.72,
+         "stall": 0.215,
+         "envelope": 0.215
+        },
+        "hr.stifle": {
+         "speed": 0.406,
+         "torque": 2.76,
+         "belt": 2.84,
+         "stall": 0.251,
+         "envelope": 0.433
+        },
+        "hr.hock": {
+         "speed": 0.323,
+         "torque": 0.0,
+         "belt": 0.52,
+         "stall": 0.125,
+         "envelope": 0.125
+        },
+        "fl.shoulder": {
+         "speed": 0.047,
+         "torque": 0.28,
+         "stall": 0.189,
+         "envelope": 0.191
+        },
+        "fl.carpus": {
+         "speed": 0.028,
+         "torque": 0.28,
+         "belt": 0.28,
+         "stall": 0.042,
+         "envelope": 0.042
+        },
+        "fr.shoulder": {
+         "speed": 0.047,
+         "torque": 0.28,
+         "stall": 0.189,
+         "envelope": 0.191
+        },
+        "fr.carpus": {
+         "speed": 0.028,
+         "torque": 0.28,
+         "belt": 0.28,
+         "stall": 0.042,
+         "envelope": 0.042
+        }
+       }
+      },
+      {
+       "move": "hold",
+       "t0": 4.0,
+       "t1": 5.5,
+       "joint": "hl.stifle",
+       "limit": "torque",
+       "use": 4.0,
+       "margin": -3.0,
+       "joints": {
+        "hl.hip_abd": {
+         "speed": 0.007,
+         "torque": 0.72,
+         "stall": 0.189,
+         "envelope": 0.196
+        },
+        "hl.stifle": {
+         "speed": 0.028,
+         "torque": 4.0,
+         "belt": 4.0,
+         "stall": 0.248,
+         "envelope": 0.248
+        },
+        "hl.hock": {
+         "speed": 0.021,
+         "torque": 0.0,
+         "belt": 0.28,
+         "stall": 0.01,
+         "envelope": 0.027
+        },
+        "hr.hip_abd": {
+         "speed": 0.007,
+         "torque": 0.72,
+         "stall": 0.189,
+         "envelope": 0.196
+        },
+        "hr.stifle": {
+         "speed": 0.028,
+         "torque": 4.0,
+         "belt": 4.0,
+         "stall": 0.248,
+         "envelope": 0.248
+        },
+        "hr.hock": {
+         "speed": 0.021,
+         "torque": 0.0,
+         "belt": 0.28,
+         "stall": 0.01,
+         "envelope": 0.027
+        },
+        "fl.shoulder": {
+         "speed": 0.003,
+         "torque": 0.24,
+         "stall": 0.189,
+         "envelope": 0.189
+        },
+        "fl.carpus": {
+         "speed": 0.002,
+         "torque": 0.0,
+         "belt": 0.0,
+         "stall": 0.026,
+         "envelope": 0.026
+        },
+        "fr.shoulder": {
+         "speed": 0.003,
+         "torque": 0.24,
+         "stall": 0.189,
+         "envelope": 0.189
+        },
+        "fr.carpus": {
+         "speed": 0.002,
+         "torque": 0.0,
+         "belt": 0.0,
+         "stall": 0.026,
+         "envelope": 0.026
+        }
+       }
+      },
+      {
+       "move": "rise hind",
+       "t0": 5.5,
+       "t1": 7.5,
+       "joint": "hl.stifle",
+       "limit": "belt",
+       "use": 3.68,
+       "margin": -2.68,
+       "joints": {
+        "hl.hip_abd": {
+         "speed": 0.02,
+         "torque": 0.0,
+         "stall": 0.161,
+         "envelope": 0.171
+        },
+        "hl.stifle": {
+         "speed": 0.431,
+         "torque": 3.36,
+         "belt": 3.68,
+         "stall": 0.355,
+         "envelope": 0.785
+        },
+        "hl.hock": {
+         "speed": 0.315,
+         "torque": 0.0,
+         "belt": 2.0,
+         "stall": 0.156,
+         "envelope": 0.156
+        },
+        "hr.hip_abd": {
+         "speed": 0.02,
+         "torque": 0.0,
+         "stall": 0.161,
+         "envelope": 0.171
+        },
+        "hr.stifle": {
+         "speed": 0.431,
+         "torque": 3.36,
+         "belt": 3.68,
+         "stall": 0.355,
+         "envelope": 0.785
+        },
+        "hr.hock": {
+         "speed": 0.315,
+         "torque": 0.0,
+         "belt": 2.0,
+         "stall": 0.156,
+         "envelope": 0.156
+        },
+        "fl.shoulder": {
+         "speed": 0.046,
+         "torque": 2.52,
+         "stall": 0.312,
+         "envelope": 0.359
+        },
+        "fl.carpus": {
+         "speed": 0.028,
+         "torque": 0.04,
+         "belt": 0.04,
+         "stall": 0.038,
+         "envelope": 0.055
+        },
+        "fr.shoulder": {
+         "speed": 0.046,
+         "torque": 2.52,
+         "stall": 0.312,
+         "envelope": 0.359
+        },
+        "fr.carpus": {
+         "speed": 0.028,
+         "torque": 0.04,
+         "belt": 0.04,
+         "stall": 0.038,
+         "envelope": 0.055
+        }
+       }
+      },
+      {
+       "move": "reach",
+       "t0": 7.5,
+       "t1": 9.5,
+       "joint": "fl.carpus",
+       "limit": "torque",
+       "use": 2.68,
+       "margin": -1.68,
+       "joints": {
+        "hl.hip_abd": {
+         "speed": 0.017,
+         "torque": 0.0,
+         "stall": 0.077,
+         "envelope": 0.077
+        },
+        "hl.stifle": {
+         "speed": 0.156,
+         "torque": 2.535,
+         "belt": 2.574,
+         "stall": 0.316,
+         "envelope": 0.356
+        },
+        "hl.hock": {
+         "speed": 0.181,
+         "torque": 0.0,
+         "belt": 1.822,
+         "stall": 0.169,
+         "envelope": 0.169
+        },
+        "hr.hip_abd": {
+         "speed": 0.017,
+         "torque": 0.0,
+         "stall": 0.077,
+         "envelope": 0.077
+        },
+        "hr.stifle": {
+         "speed": 0.156,
+         "torque": 2.535,
+         "belt": 2.574,
+         "stall": 0.316,
+         "envelope": 0.356
+        },
+        "hr.hock": {
+         "speed": 0.181,
+         "torque": 0.0,
+         "belt": 1.822,
+         "stall": 0.169,
+         "envelope": 0.169
+        },
+        "fl.shoulder": {
+         "speed": 0.092,
+         "torque": 2.4,
+         "stall": 0.513,
+         "envelope": 0.551
+        },
+        "fl.carpus": {
+         "speed": 0.239,
+         "torque": 2.68,
+         "belt": 2.36,
+         "stall": 0.613,
+         "envelope": 0.722
+        },
+        "fr.shoulder": {
+         "speed": 0.092,
+         "torque": 2.4,
+         "stall": 0.513,
+         "envelope": 0.551
+        },
+        "fr.carpus": {
+         "speed": 0.239,
+         "torque": 2.68,
+         "belt": 2.36,
+         "stall": 0.613,
+         "envelope": 0.722
+        }
+       }
+      },
+      {
+       "move": "rise front",
+       "t0": 9.5,
+       "t1": 11.5,
+       "joint": "hl.stifle",
+       "limit": "torque",
+       "use": 4.0,
+       "margin": -3.0,
+       "joints": {
+        "hl.hip_abd": {
+         "speed": 0.003,
+         "torque": 0.0,
+         "stall": 0.066,
+         "envelope": 0.068
+        },
+        "hl.stifle": {
+         "speed": 0.032,
+         "torque": 4.0,
+         "belt": 4.0,
+         "stall": 0.414,
+         "envelope": 0.422
+        },
+        "hl.hock": {
+         "speed": 0.006,
+         "torque": 0.0,
+         "belt": 0.12,
+         "stall": 0.101,
+         "envelope": 0.102
+        },
+        "hr.hip_abd": {
+         "speed": 0.003,
+         "torque": 0.0,
+         "stall": 0.066,
+         "envelope": 0.068
+        },
+        "hr.stifle": {
+         "speed": 0.032,
+         "torque": 4.0,
+         "belt": 4.0,
+         "stall": 0.414,
+         "envelope": 0.422
+        },
+        "hr.hock": {
+         "speed": 0.006,
+         "torque": 0.0,
+         "belt": 0.12,
+         "stall": 0.101,
+         "envelope": 0.102
+        },
+        "fl.shoulder": {
+         "speed": 0.114,
+         "torque": 4.0,
+         "stall": 0.495,
+         "envelope": 0.601
+        },
+        "fl.carpus": {
+         "speed": 0.108,
+         "torque": 2.6,
+         "belt": 2.28,
+         "stall": 0.307,
+         "envelope": 0.318
+        },
+        "fr.shoulder": {
+         "speed": 0.114,
+         "torque": 4.0,
+         "stall": 0.495,
+         "envelope": 0.601
+        },
+        "fr.carpus": {
+         "speed": 0.108,
+         "torque": 2.6,
+         "belt": 2.28,
+         "stall": 0.307,
+         "envelope": 0.318
+        }
+       }
+      },
+      {
+       "move": "standing after",
+       "t0": 11.5,
+       "t1": 12.5,
+       "joint": "hl.stifle",
+       "limit": "belt",
+       "use": 4.0,
+       "margin": -3.0,
+       "joints": {
+        "hl.hip_abd": {
+         "speed": 0.001,
+         "torque": 0.0,
+         "stall": 0.049,
+         "envelope": 0.05
+        },
+        "hl.stifle": {
+         "speed": 0.018,
+         "torque": 3.88,
+         "belt": 4.0,
+         "stall": 0.363,
+         "envelope": 0.378
+        },
+        "hl.hock": {
+         "speed": 0.004,
+         "torque": 0.0,
+         "belt": 0.0,
+         "stall": 0.089,
+         "envelope": 0.092
+        },
+        "hr.hip_abd": {
+         "speed": 0.001,
+         "torque": 0.0,
+         "stall": 0.049,
+         "envelope": 0.05
+        },
+        "hr.stifle": {
+         "speed": 0.018,
+         "torque": 3.88,
+         "belt": 4.0,
+         "stall": 0.363,
+         "envelope": 0.378
+        },
+        "hr.hock": {
+         "speed": 0.004,
+         "torque": 0.0,
+         "belt": 0.0,
+         "stall": 0.089,
+         "envelope": 0.092
+        },
+        "fl.shoulder": {
+         "speed": 0.014,
+         "torque": 4.0,
+         "stall": 0.43,
+         "envelope": 0.444
+        },
+        "fl.carpus": {
+         "speed": 0.004,
+         "torque": 1.24,
+         "belt": 0.0,
+         "stall": 0.176,
+         "envelope": 0.176
+        },
+        "fr.shoulder": {
+         "speed": 0.014,
+         "torque": 4.0,
+         "stall": 0.43,
+         "envelope": 0.444
+        },
+        "fr.carpus": {
+         "speed": 0.004,
+         "torque": 1.24,
+         "belt": 0.0,
+         "stall": 0.176,
+         "envelope": 0.176
+        }
+       }
+      }
+     ],
+     "length_s": 12.5,
+     "wall_s": 6.25
+    },
+    {
+     "seed": 2,
+     "within": false,
+     "fell": false,
+     "sim_fell": true,
+     "tipped": false,
+     "risen": true,
+     "lying_height_mm": 269.7,
+     "margin": -3.0,
+     "closest": "servo_sustained",
+     "violations": [
+      "servo_sustained",
+      "belt_sustained"
+     ],
+     "moves": [
+      {
+       "move": "kneel",
+       "t0": 0.0,
+       "t1": 2.0,
+       "joint": "fl.shoulder",
+       "limit": "torque",
+       "use": 1.16,
+       "margin": -0.16,
+       "joints": {
+        "hl.hip_abd": {
+         "speed": 0.046,
+         "torque": 0.0,
+         "stall": 0.09,
+         "envelope": 0.09
+        },
+        "hl.stifle": {
+         "speed": 0.159,
+         "torque": 1.0,
+         "belt": 1.0,
+         "stall": 0.287,
+         "envelope": 0.324
+        },
+        "hl.hock": {
+         "speed": 0.125,
+         "torque": 0.0,
+         "belt": 0.04,
+         "stall": 0.146,
+         "envelope": 0.146
+        },
+        "hr.hip_abd": {
+         "speed": 0.046,
+         "torque": 0.0,
+         "stall": 0.09,
+         "envelope": 0.09
+        },
+        "hr.stifle": {
+         "speed": 0.159,
+         "torque": 1.0,
+         "belt": 1.0,
+         "stall": 0.287,
+         "envelope": 0.324
+        },
+        "hr.hock": {
+         "speed": 0.125,
+         "torque": 0.0,
+         "belt": 0.04,
+         "stall": 0.146,
+         "envelope": 0.146
+        },
+        "fl.shoulder": {
+         "speed": 0.126,
+         "torque": 1.16,
+         "stall": 0.639,
+         "envelope": 0.639
+        },
+        "fl.carpus": {
+         "speed": 0.262,
+         "torque": 0.44,
+         "belt": 0.28,
+         "stall": 0.44,
+         "envelope": 0.44
+        },
+        "fr.shoulder": {
+         "speed": 0.126,
+         "torque": 1.16,
+         "stall": 0.639,
+         "envelope": 0.639
+        },
+        "fr.carpus": {
+         "speed": 0.262,
+         "torque": 0.44,
+         "belt": 0.28,
+         "stall": 0.44,
+         "envelope": 0.44
+        }
+       }
+      },
+      {
+       "move": "lie",
+       "t0": 2.0,
+       "t1": 4.0,
+       "joint": "hl.stifle",
+       "limit": "belt",
+       "use": 2.84,
+       "margin": -1.84,
+       "joints": {
+        "hl.hip_abd": {
+         "speed": 0.016,
+         "torque": 0.0,
+         "stall": 0.184,
+         "envelope": 0.184
+        },
+        "hl.stifle": {
+         "speed": 0.405,
+         "torque": 2.76,
+         "belt": 2.84,
+         "stall": 0.243,
+         "envelope": 0.4
+        },
+        "hl.hock": {
+         "speed": 0.32,
+         "torque": 0.0,
+         "belt": 0.04,
+         "stall": 0.111,
+         "envelope": 0.111
+        },
+        "hr.hip_abd": {
+         "speed": 0.016,
+         "torque": 0.0,
+         "stall": 0.184,
+         "envelope": 0.184
+        },
+        "hr.stifle": {
+         "speed": 0.405,
+         "torque": 2.76,
+         "belt": 2.84,
+         "stall": 0.243,
+         "envelope": 0.4
+        },
+        "hr.hock": {
+         "speed": 0.32,
+         "torque": 0.0,
+         "belt": 0.04,
+         "stall": 0.111,
+         "envelope": 0.111
+        },
+        "fl.shoulder": {
+         "speed": 0.046,
+         "torque": 0.32,
+         "stall": 0.181,
+         "envelope": 0.181
+        },
+        "fl.carpus": {
+         "speed": 0.028,
+         "torque": 0.28,
+         "belt": 0.28,
+         "stall": 0.041,
+         "envelope": 0.041
+        },
+        "fr.shoulder": {
+         "speed": 0.046,
+         "torque": 0.32,
+         "stall": 0.181,
+         "envelope": 0.181
+        },
+        "fr.carpus": {
+         "speed": 0.028,
+         "torque": 0.28,
+         "belt": 0.28,
+         "stall": 0.041,
+         "envelope": 0.041
+        }
+       }
+      },
+      {
+       "move": "hold",
+       "t0": 4.0,
+       "t1": 5.5,
+       "joint": "hl.stifle",
+       "limit": "torque",
+       "use": 4.0,
+       "margin": -3.0,
+       "joints": {
+        "hl.hip_abd": {
+         "speed": 0.006,
+         "torque": 0.0,
+         "stall": 0.165,
+         "envelope": 0.17
+        },
+        "hl.stifle": {
+         "speed": 0.027,
+         "torque": 4.0,
+         "belt": 4.0,
+         "stall": 0.239,
+         "envelope": 0.239
+        },
+        "hl.hock": {
+         "speed": 0.021,
+         "torque": 0.0,
+         "belt": 0.08,
+         "stall": 0.012,
+         "envelope": 0.029
+        },
+        "hr.hip_abd": {
+         "speed": 0.006,
+         "torque": 0.0,
+         "stall": 0.165,
+         "envelope": 0.17
+        },
+        "hr.stifle": {
+         "speed": 0.027,
+         "torque": 4.0,
+         "belt": 4.0,
+         "stall": 0.239,
+         "envelope": 0.239
+        },
+        "hr.hock": {
+         "speed": 0.021,
+         "torque": 0.0,
+         "belt": 0.08,
+         "stall": 0.012,
+         "envelope": 0.029
+        },
+        "fl.shoulder": {
+         "speed": 0.003,
+         "torque": 0.2,
+         "stall": 0.18,
+         "envelope": 0.18
+        },
+        "fl.carpus": {
+         "speed": 0.002,
+         "torque": 0.0,
+         "belt": 0.0,
+         "stall": 0.026,
+         "envelope": 0.026
+        },
+        "fr.shoulder": {
+         "speed": 0.003,
+         "torque": 0.2,
+         "stall": 0.18,
+         "envelope": 0.18
+        },
+        "fr.carpus": {
+         "speed": 0.002,
+         "torque": 0.0,
+         "belt": 0.0,
+         "stall": 0.026,
+         "envelope": 0.026
+        }
+       }
+      },
+      {
+       "move": "rise hind",
+       "t0": 5.5,
+       "t1": 7.5,
+       "joint": "hl.stifle",
+       "limit": "belt",
+       "use": 3.24,
+       "margin": -2.24,
+       "joints": {
+        "hl.hip_abd": {
+         "speed": 0.022,
+         "torque": 0.0,
+         "stall": 0.151,
+         "envelope": 0.162
+        },
+        "hl.stifle": {
+         "speed": 0.429,
+         "torque": 3.08,
+         "belt": 3.24,
+         "stall": 0.309,
+         "envelope": 0.738
+        },
+        "hl.hock": {
+         "speed": 0.312,
+         "torque": 0.0,
+         "belt": 1.68,
+         "stall": 0.144,
+         "envelope": 0.144
+        },
+        "hr.hip_abd": {
+         "speed": 0.022,
+         "torque": 0.0,
+         "stall": 0.151,
+         "envelope": 0.162
+        },
+        "hr.stifle": {
+         "speed": 0.429,
+         "torque": 3.08,
+         "belt": 3.24,
+         "stall": 0.309,
+         "envelope": 0.738
+        },
+        "hr.hock": {
+         "speed": 0.312,
+         "torque": 0.0,
+         "belt": 1.68,
+         "stall": 0.144,
+         "envelope": 0.144
+        },
+        "fl.shoulder": {
+         "speed": 0.048,
+         "torque": 2.36,
+         "stall": 0.275,
+         "envelope": 0.32
+        },
+        "fl.carpus": {
+         "speed": 0.028,
+         "torque": 0.08,
+         "belt": 0.08,
+         "stall": 0.039,
+         "envelope": 0.056
+        },
+        "fr.shoulder": {
+         "speed": 0.048,
+         "torque": 2.36,
+         "stall": 0.275,
+         "envelope": 0.32
+        },
+        "fr.carpus": {
+         "speed": 0.028,
+         "torque": 0.08,
+         "belt": 0.08,
+         "stall": 0.039,
+         "envelope": 0.056
+        }
+       }
+      },
+      {
+       "move": "reach",
+       "t0": 7.5,
+       "t1": 9.5,
+       "joint": "fl.carpus",
+       "limit": "torque",
+       "use": 2.6,
+       "margin": -1.6,
+       "joints": {
+        "hl.hip_abd": {
+         "speed": 0.031,
+         "torque": 0.0,
+         "stall": 0.075,
+         "envelope": 0.075
+        },
+        "hl.stifle": {
+         "speed": 0.137,
+         "torque": 2.416,
+         "belt": 2.455,
+         "stall": 0.281,
+         "envelope": 0.318
+        },
+        "hl.hock": {
+         "speed": 0.175,
+         "torque": 0.0,
+         "belt": 1.545,
+         "stall": 0.151,
+         "envelope": 0.151
+        },
+        "hr.hip_abd": {
+         "speed": 0.031,
+         "torque": 0.0,
+         "stall": 0.075,
+         "envelope": 0.075
+        },
+        "hr.stifle": {
+         "speed": 0.137,
+         "torque": 2.416,
+         "belt": 2.455,
+         "stall": 0.281,
+         "envelope": 0.318
+        },
+        "hr.hock": {
+         "speed": 0.175,
+         "torque": 0.0,
+         "belt": 1.545,
+         "stall": 0.151,
+         "envelope": 0.151
+        },
+        "fl.shoulder": {
+         "speed": 0.09,
+         "torque": 2.218,
+         "stall": 0.474,
+         "envelope": 0.512
+        },
+        "fl.carpus": {
+         "speed": 0.226,
+         "torque": 2.6,
+         "belt": 2.08,
+         "stall": 0.57,
+         "envelope": 0.682
+        },
+        "fr.shoulder": {
+         "speed": 0.09,
+         "torque": 2.218,
+         "stall": 0.474,
+         "envelope": 0.512
+        },
+        "fr.carpus": {
+         "speed": 0.226,
+         "torque": 2.6,
+         "belt": 2.08,
+         "stall": 0.57,
+         "envelope": 0.682
+        }
+       }
+      },
+      {
+       "move": "rise front",
+       "t0": 9.5,
+       "t1": 11.5,
+       "joint": "fl.shoulder",
+       "limit": "torque",
+       "use": 4.0,
+       "margin": -3.0,
+       "joints": {
+        "hl.hip_abd": {
+         "speed": 0.003,
+         "torque": 0.0,
+         "stall": 0.054,
+         "envelope": 0.055
+        },
+        "hl.stifle": {
+         "speed": 0.031,
+         "torque": 3.68,
+         "belt": 3.92,
+         "stall": 0.363,
+         "envelope": 0.372
+        },
+        "hl.hock": {
+         "speed": 0.006,
+         "torque": 0.0,
+         "belt": 0.08,
+         "stall": 0.091,
+         "envelope": 0.092
+        },
+        "hr.hip_abd": {
+         "speed": 0.003,
+         "torque": 0.0,
+         "stall": 0.054,
+         "envelope": 0.055
+        },
+        "hr.stifle": {
+         "speed": 0.031,
+         "torque": 3.68,
+         "belt": 3.92,
+         "stall": 0.363,
+         "envelope": 0.372
+        },
+        "hr.hock": {
+         "speed": 0.006,
+         "torque": 0.0,
+         "belt": 0.08,
+         "stall": 0.091,
+         "envelope": 0.092
+        },
+        "fl.shoulder": {
+         "speed": 0.103,
+         "torque": 4.0,
+         "stall": 0.437,
+         "envelope": 0.54
+        },
+        "fl.carpus": {
+         "speed": 0.108,
+         "torque": 2.48,
+         "belt": 1.96,
+         "stall": 0.271,
+         "envelope": 0.28
+        },
+        "fr.shoulder": {
+         "speed": 0.103,
+         "torque": 4.0,
+         "stall": 0.437,
+         "envelope": 0.54
+        },
+        "fr.carpus": {
+         "speed": 0.108,
+         "torque": 2.48,
+         "belt": 1.96,
+         "stall": 0.271,
+         "envelope": 0.28
+        }
+       }
+      },
+      {
+       "move": "standing after",
+       "t0": 11.5,
+       "t1": 12.5,
+       "joint": "fl.shoulder",
+       "limit": "torque",
+       "use": 4.0,
+       "margin": -3.0,
+       "joints": {
+        "hl.hip_abd": {
+         "speed": 0.001,
+         "torque": 0.0,
+         "stall": 0.045,
+         "envelope": 0.045
+        },
+        "hl.stifle": {
+         "speed": 0.015,
+         "torque": 3.24,
+         "belt": 3.44,
+         "stall": 0.312,
+         "envelope": 0.324
+        },
+        "hl.hock": {
+         "speed": 0.003,
+         "torque": 0.0,
+         "belt": 0.0,
+         "stall": 0.078,
+         "envelope": 0.08
+        },
+        "hr.hip_abd": {
+         "speed": 0.001,
+         "torque": 0.0,
+         "stall": 0.045,
+         "envelope": 0.045
+        },
+        "hr.stifle": {
+         "speed": 0.015,
+         "torque": 3.24,
+         "belt": 3.44,
+         "stall": 0.312,
+         "envelope": 0.324
+        },
+        "hr.hock": {
+         "speed": 0.003,
+         "torque": 0.0,
+         "belt": 0.0,
+         "stall": 0.078,
+         "envelope": 0.08
+        },
+        "fl.shoulder": {
+         "speed": 0.013,
+         "torque": 4.0,
+         "stall": 0.373,
+         "envelope": 0.386
+        },
+        "fl.carpus": {
+         "speed": 0.004,
+         "torque": 0.0,
+         "belt": 0.0,
+         "stall": 0.152,
+         "envelope": 0.152
+        },
+        "fr.shoulder": {
+         "speed": 0.013,
+         "torque": 4.0,
+         "stall": 0.373,
+         "envelope": 0.386
+        },
+        "fr.carpus": {
+         "speed": 0.004,
+         "torque": 0.0,
+         "belt": 0.0,
+         "stall": 0.152,
+         "envelope": 0.152
+        }
+       }
+      }
+     ],
+     "length_s": 12.5,
+     "wall_s": 6.56
+    }
+   ]
+  },
+  "g009-000": {
+   "stage_c_run": "20261107-225659-evolve-5994",
+   "screen": [
+    {
+     "seed": 0,
+     "margin": -3.0,
+     "within": false,
+     "closest": "servo_sustained"
+    },
+    {
+     "seed": 1,
+     "margin": -3.0,
+     "within": false,
+     "closest": "servo_sustained"
+    },
+    {
+     "seed": 2,
+     "margin": -3.0,
+     "within": false,
+     "closest": "servo_sustained"
+    }
+   ],
+   "full": [
+    {
+     "seed": 0,
+     "within": false,
+     "fell": false,
+     "sim_fell": false,
+     "tipped": false,
+     "risen": true,
+     "lying_height_mm": 275.5,
+     "margin": -3.0,
+     "closest": "servo_sustained",
+     "violations": [
+      "servo_sustained",
+      "belt_sustained"
+     ],
+     "moves": [
+      {
+       "move": "kneel",
+       "t0": 0.0,
+       "t1": 2.0,
+       "joint": "fl.shoulder",
+       "limit": "torque",
+       "use": 3.248,
+       "margin": -2.248,
+       "joints": {
+        "hl.hip_abd": {
+         "speed": 0.039,
+         "torque": 0.0,
+         "stall": 0.104,
+         "envelope": 0.104
+        },
+        "hl.stifle": {
+         "speed": 0.211,
+         "torque": 0.88,
+         "belt": 0.92,
+         "stall": 0.261,
+         "envelope": 0.275
+        },
+        "hl.hock": {
+         "speed": 0.19,
+         "torque": 0.0,
+         "belt": 0.2,
+         "stall": 0.137,
+         "envelope": 0.137
+        },
+        "hr.hip_abd": {
+         "speed": 0.039,
+         "torque": 0.0,
+         "stall": 0.104,
+         "envelope": 0.104
+        },
+        "hr.stifle": {
+         "speed": 0.211,
+         "torque": 0.88,
+         "belt": 0.92,
+         "stall": 0.261,
+         "envelope": 0.275
+        },
+        "hr.hock": {
+         "speed": 0.19,
+         "torque": 0.0,
+         "belt": 0.2,
+         "stall": 0.137,
+         "envelope": 0.137
+        },
+        "fl.shoulder": {
+         "speed": 0.335,
+         "torque": 3.248,
+         "stall": 0.779,
+         "envelope": 0.779
+        },
+        "fl.carpus": {
+         "speed": 0.396,
+         "torque": 0.24,
+         "belt": 0.44,
+         "stall": 0.248,
+         "envelope": 0.248
+        },
+        "fr.shoulder": {
+         "speed": 0.335,
+         "torque": 3.248,
+         "stall": 0.779,
+         "envelope": 0.779
+        },
+        "fr.carpus": {
+         "speed": 0.396,
+         "torque": 0.24,
+         "belt": 0.44,
+         "stall": 0.248,
+         "envelope": 0.248
+        }
+       }
+      },
+      {
+       "move": "lie",
+       "t0": 2.0,
+       "t1": 4.0,
+       "joint": "fl.shoulder",
+       "limit": "torque",
+       "use": 3.24,
+       "margin": -2.24,
+       "joints": {
+        "hl.hip_abd": {
+         "speed": 0.014,
+         "torque": 0.0,
+         "stall": 0.158,
+         "envelope": 0.158
+        },
+        "hl.stifle": {
+         "speed": 0.531,
+         "torque": 0.08,
+         "belt": 0.08,
+         "stall": 0.144,
+         "envelope": 0.518
+        },
+        "hl.hock": {
+         "speed": 0.321,
+         "torque": 0.0,
+         "belt": 0.64,
+         "stall": 0.121,
+         "envelope": 0.121
+        },
+        "hr.hip_abd": {
+         "speed": 0.014,
+         "torque": 0.0,
+         "stall": 0.158,
+         "envelope": 0.158
+        },
+        "hr.stifle": {
+         "speed": 0.531,
+         "torque": 0.08,
+         "belt": 0.08,
+         "stall": 0.144,
+         "envelope": 0.518
+        },
+        "hr.hock": {
+         "speed": 0.321,
+         "torque": 0.0,
+         "belt": 0.64,
+         "stall": 0.121,
+         "envelope": 0.121
+        },
+        "fl.shoulder": {
+         "speed": 0.083,
+         "torque": 3.24,
+         "stall": 0.309,
+         "envelope": 0.351
+        },
+        "fl.carpus": {
+         "speed": 0.049,
+         "torque": 0.24,
+         "belt": 0.4,
+         "stall": 0.007,
+         "envelope": 0.026
+        },
+        "fr.shoulder": {
+         "speed": 0.083,
+         "torque": 3.24,
+         "stall": 0.309,
+         "envelope": 0.351
+        },
+        "fr.carpus": {
+         "speed": 0.049,
+         "torque": 0.24,
+         "belt": 0.4,
+         "stall": 0.007,
+         "envelope": 0.026
+        }
+       }
+      },
+      {
+       "move": "hold",
+       "t0": 4.0,
+       "t1": 5.5,
+       "joint": "fl.shoulder",
+       "limit": "torque",
+       "use": 4.0,
+       "margin": -3.0,
+       "joints": {
+        "hl.hip_abd": {
+         "speed": 0.006,
+         "torque": 0.0,
+         "stall": 0.138,
+         "envelope": 0.143
+        },
+        "hl.stifle": {
+         "speed": 0.038,
+         "torque": 0.0,
+         "belt": 0.0,
+         "stall": 0.146,
+         "envelope": 0.146
+        },
+        "hl.hock": {
+         "speed": 0.019,
+         "torque": 0.0,
+         "belt": 0.4,
+         "stall": 0.009,
+         "envelope": 0.009
+        },
+        "hr.hip_abd": {
+         "speed": 0.006,
+         "torque": 0.0,
+         "stall": 0.138,
+         "envelope": 0.143
+        },
+        "hr.stifle": {
+         "speed": 0.038,
+         "torque": 0.0,
+         "belt": 0.0,
+         "stall": 0.146,
+         "envelope": 0.146
+        },
+        "hr.hock": {
+         "speed": 0.019,
+         "torque": 0.0,
+         "belt": 0.4,
+         "stall": 0.009,
+         "envelope": 0.009
+        },
+        "fl.shoulder": {
+         "speed": 0.01,
+         "torque": 4.0,
+         "stall": 0.245,
+         "envelope": 0.245
+        },
+        "fl.carpus": {
+         "speed": 0.003,
+         "torque": 0.0,
+         "belt": 0.0,
+         "stall": 0.006,
+         "envelope": 0.009
+        },
+        "fr.shoulder": {
+         "speed": 0.01,
+         "torque": 4.0,
+         "stall": 0.245,
+         "envelope": 0.245
+        },
+        "fr.carpus": {
+         "speed": 0.003,
+         "torque": 0.0,
+         "belt": 0.0,
+         "stall": 0.006,
+         "envelope": 0.009
+        }
+       }
+      },
+      {
+       "move": "rise hind",
+       "t0": 5.5,
+       "t1": 7.5,
+       "joint": "fl.shoulder",
+       "limit": "torque",
+       "use": 3.44,
+       "margin": -2.44,
+       "joints": {
+        "hl.hip_abd": {
+         "speed": 0.024,
+         "torque": 0.0,
+         "stall": 0.19,
+         "envelope": 0.197
+        },
+        "hl.stifle": {
+         "speed": 0.539,
+         "torque": 2.32,
+         "belt": 2.44,
+         "stall": 0.253,
+         "envelope": 0.776
+        },
+        "hl.hock": {
+         "speed": 0.314,
+         "torque": 0.0,
+         "belt": 1.88,
+         "stall": 0.154,
+         "envelope": 0.154
+        },
+        "hr.hip_abd": {
+         "speed": 0.024,
+         "torque": 0.0,
+         "stall": 0.19,
+         "envelope": 0.197
+        },
+        "hr.stifle": {
+         "speed": 0.539,
+         "torque": 2.32,
+         "belt": 2.44,
+         "stall": 0.253,
+         "envelope": 0.776
+        },
+        "hr.hock": {
+         "speed": 0.314,
+         "torque": 0.0,
+         "belt": 1.88,
+         "stall": 0.154,
+         "envelope": 0.154
+        },
+        "fl.shoulder": {
+         "speed": 0.092,
+         "torque": 3.44,
+         "stall": 0.486,
+         "envelope": 0.563
+        },
+        "fl.carpus": {
+         "speed": 0.049,
+         "torque": 0.12,
+         "belt": 0.12,
+         "stall": 0.011,
+         "envelope": 0.011
+        },
+        "fr.shoulder": {
+         "speed": 0.092,
+         "torque": 3.44,
+         "stall": 0.486,
+         "envelope": 0.563
+        },
+        "fr.carpus": {
+         "speed": 0.049,
+         "torque": 0.12,
+         "belt": 0.12,
+         "stall": 0.011,
+         "envelope": 0.011
+        }
+       }
+      },
+      {
+       "move": "reach",
+       "t0": 7.5,
+       "t1": 9.5,
+       "joint": "fl.shoulder",
+       "limit": "torque",
+       "use": 3.08,
+       "margin": -2.08,
+       "joints": {
+        "hl.hip_abd": {
+         "speed": 0.018,
+         "torque": 0.0,
+         "stall": 0.105,
+         "envelope": 0.105
+        },
+        "hl.stifle": {
+         "speed": 0.232,
+         "torque": 2.32,
+         "belt": 2.416,
+         "stall": 0.243,
+         "envelope": 0.29
+        },
+        "hl.hock": {
+         "speed": 0.175,
+         "torque": 0.0,
+         "belt": 1.743,
+         "stall": 0.19,
+         "envelope": 0.19
+        },
+        "hr.hip_abd": {
+         "speed": 0.018,
+         "torque": 0.0,
+         "stall": 0.105,
+         "envelope": 0.105
+        },
+        "hr.stifle": {
+         "speed": 0.232,
+         "torque": 2.32,
+         "belt": 2.416,
+         "stall": 0.243,
+         "envelope": 0.29
+        },
+        "hr.hock": {
+         "speed": 0.175,
+         "torque": 0.0,
+         "belt": 1.743,
+         "stall": 0.19,
+         "envelope": 0.19
+        },
+        "fl.shoulder": {
+         "speed": 0.279,
+         "torque": 3.08,
+         "stall": 0.792,
+         "envelope": 0.87
+        },
+        "fl.carpus": {
+         "speed": 0.338,
+         "torque": 0.72,
+         "belt": 1.96,
+         "stall": 0.272,
+         "envelope": 0.469
+        },
+        "fr.shoulder": {
+         "speed": 0.279,
+         "torque": 3.08,
+         "stall": 0.792,
+         "envelope": 0.87
+        },
+        "fr.carpus": {
+         "speed": 0.338,
+         "torque": 0.72,
+         "belt": 1.96,
+         "stall": 0.272,
+         "envelope": 0.469
+        }
+       }
+      },
+      {
+       "move": "rise front",
+       "t0": 9.5,
+       "t1": 11.5,
+       "joint": "fl.shoulder",
+       "limit": "torque",
+       "use": 4.0,
+       "margin": -3.0,
+       "joints": {
+        "hl.hip_abd": {
+         "speed": 0.003,
+         "torque": 0.0,
+         "stall": 0.094,
+         "envelope": 0.095
+        },
+        "hl.stifle": {
+         "speed": 0.03,
+         "torque": 3.24,
+         "belt": 3.52,
+         "stall": 0.309,
+         "envelope": 0.318
+        },
+        "hl.hock": {
+         "speed": 0.007,
+         "torque": 0.0,
+         "belt": 0.16,
+         "stall": 0.093,
+         "envelope": 0.095
+        },
+        "hr.hip_abd": {
+         "speed": 0.003,
+         "torque": 0.0,
+         "stall": 0.094,
+         "envelope": 0.095
+        },
+        "hr.stifle": {
+         "speed": 0.03,
+         "torque": 3.24,
+         "belt": 3.52,
+         "stall": 0.309,
+         "envelope": 0.318
+        },
+        "hr.hock": {
+         "speed": 0.007,
+         "torque": 0.0,
+         "belt": 0.16,
+         "stall": 0.093,
+         "envelope": 0.095
+        },
+        "fl.shoulder": {
+         "speed": 0.174,
+         "torque": 4.0,
+         "stall": 0.789,
+         "envelope": 0.963
+        },
+        "fl.carpus": {
+         "speed": 0.175,
+         "torque": 0.56,
+         "belt": 1.8,
+         "stall": 0.151,
+         "envelope": 0.188
+        },
+        "fr.shoulder": {
+         "speed": 0.174,
+         "torque": 4.0,
+         "stall": 0.789,
+         "envelope": 0.963
+        },
+        "fr.carpus": {
+         "speed": 0.175,
+         "torque": 0.56,
+         "belt": 1.8,
+         "stall": 0.151,
+         "envelope": 0.188
+        }
+       }
+      },
+      {
+       "move": "standing after",
+       "t0": 11.5,
+       "t1": 12.5,
+       "joint": "fl.shoulder",
+       "limit": "torque",
+       "use": 4.0,
+       "margin": -3.0,
+       "joints": {
+        "hl.hip_abd": {
+         "speed": 0.0,
+         "torque": 0.0,
+         "stall": 0.007,
+         "envelope": 0.007
+        },
+        "hl.stifle": {
+         "speed": 0.014,
+         "torque": 3.16,
+         "belt": 3.4,
+         "stall": 0.28,
+         "envelope": 0.292
+        },
+        "hl.hock": {
+         "speed": 0.003,
+         "torque": 0.0,
+         "belt": 0.0,
+         "stall": 0.085,
+         "envelope": 0.088
+        },
+        "hr.hip_abd": {
+         "speed": 0.0,
+         "torque": 0.0,
+         "stall": 0.007,
+         "envelope": 0.007
+        },
+        "hr.stifle": {
+         "speed": 0.014,
+         "torque": 3.16,
+         "belt": 3.4,
+         "stall": 0.28,
+         "envelope": 0.292
+        },
+        "hr.hock": {
+         "speed": 0.003,
+         "torque": 0.0,
+         "belt": 0.0,
+         "stall": 0.085,
+         "envelope": 0.088
+        },
+        "fl.shoulder": {
+         "speed": 0.028,
+         "torque": 4.0,
+         "stall": 0.694,
+         "envelope": 0.721
+        },
+        "fl.carpus": {
+         "speed": 0.009,
+         "torque": 0.0,
+         "belt": 0.0,
+         "stall": 0.093,
+         "envelope": 0.093
+        },
+        "fr.shoulder": {
+         "speed": 0.028,
+         "torque": 4.0,
+         "stall": 0.694,
+         "envelope": 0.721
+        },
+        "fr.carpus": {
+         "speed": 0.009,
+         "torque": 0.0,
+         "belt": 0.0,
+         "stall": 0.093,
+         "envelope": 0.093
+        }
+       }
+      }
+     ],
+     "length_s": 12.5,
+     "wall_s": 5.38
+    },
+    {
+     "seed": 1,
+     "within": false,
+     "fell": false,
+     "sim_fell": false,
+     "tipped": false,
+     "risen": true,
+     "lying_height_mm": 275.1,
+     "margin": -3.0,
+     "closest": "servo_sustained",
+     "violations": [
+      "servo_sustained",
+      "belt_sustained"
+     ],
+     "moves": [
+      {
+       "move": "kneel",
+       "t0": 0.0,
+       "t1": 2.0,
+       "joint": "fl.shoulder",
+       "limit": "torque",
+       "use": 3.327,
+       "margin": -2.327,
+       "joints": {
+        "hl.hip_abd": {
+         "speed": 0.042,
+         "torque": 0.0,
+         "stall": 0.103,
+         "envelope": 0.103
+        },
+        "hl.stifle": {
+         "speed": 0.195,
+         "torque": 0.96,
+         "belt": 1.0,
+         "stall": 0.265,
+         "envelope": 0.303
+        },
+        "hl.hock": {
+         "speed": 0.173,
+         "torque": 0.0,
+         "belt": 0.08,
+         "stall": 0.147,
+         "envelope": 0.147
+        },
+        "hr.hip_abd": {
+         "speed": 0.042,
+         "torque": 0.0,
+         "stall": 0.103,
+         "envelope": 0.103
+        },
+        "hr.stifle": {
+         "speed": 0.195,
+         "torque": 0.96,
+         "belt": 1.0,
+         "stall": 0.265,
+         "envelope": 0.303
+        },
+        "hr.hock": {
+         "speed": 0.173,
+         "torque": 0.0,
+         "belt": 0.08,
+         "stall": 0.147,
+         "envelope": 0.147
+        },
+        "fl.shoulder": {
+         "speed": 0.338,
+         "torque": 3.327,
+         "stall": 0.791,
+         "envelope": 0.791
+        },
+        "fl.carpus": {
+         "speed": 0.403,
+         "torque": 0.28,
+         "belt": 0.48,
+         "stall": 0.26,
+         "envelope": 0.26
+        },
+        "fr.shoulder": {
+         "speed": 0.338,
+         "torque": 3.327,
+         "stall": 0.791,
+         "envelope": 0.791
+        },
+        "fr.carpus": {
+         "speed": 0.403,
+         "torque": 0.28,
+         "belt": 0.48,
+         "stall": 0.26,
+         "envelope": 0.26
+        }
+       }
+      },
+      {
+       "move": "lie",
+       "t0": 2.0,
+       "t1": 4.0,
+       "joint": "fl.shoulder",
+       "limit": "torque",
+       "use": 3.28,
+       "margin": -2.28,
+       "joints": {
+        "hl.hip_abd": {
+         "speed": 0.015,
+         "torque": 0.0,
+         "stall": 0.156,
+         "envelope": 0.156
+        },
+        "hl.stifle": {
+         "speed": 0.531,
+         "torque": 0.12,
+         "belt": 0.12,
+         "stall": 0.152,
+         "envelope": 0.514
+        },
+        "hl.hock": {
+         "speed": 0.325,
+         "torque": 0.0,
+         "belt": 0.6,
+         "stall": 0.127,
+         "envelope": 0.127
+        },
+        "hr.hip_abd": {
+         "speed": 0.015,
+         "torque": 0.0,
+         "stall": 0.156,
+         "envelope": 0.156
+        },
+        "hr.stifle": {
+         "speed": 0.531,
+         "torque": 0.12,
+         "belt": 0.12,
+         "stall": 0.152,
+         "envelope": 0.514
+        },
+        "hr.hock": {
+         "speed": 0.325,
+         "torque": 0.0,
+         "belt": 0.6,
+         "stall": 0.127,
+         "envelope": 0.127
+        },
+        "fl.shoulder": {
+         "speed": 0.082,
+         "torque": 3.28,
+         "stall": 0.317,
+         "envelope": 0.359
+        },
+        "fl.carpus": {
+         "speed": 0.049,
+         "torque": 0.28,
+         "belt": 0.4,
+         "stall": 0.007,
+         "envelope": 0.027
+        },
+        "fr.shoulder": {
+         "speed": 0.082,
+         "torque": 3.28,
+         "stall": 0.317,
+         "envelope": 0.359
+        },
+        "fr.carpus": {
+         "speed": 0.049,
+         "torque": 0.28,
+         "belt": 0.4,
+         "stall": 0.007,
+         "envelope": 0.027
+        }
+       }
+      },
+      {
+       "move": "hold",
+       "t0": 4.0,
+       "t1": 5.5,
+       "joint": "fl.shoulder",
+       "limit": "torque",
+       "use": 4.0,
+       "margin": -3.0,
+       "joints": {
+        "hl.hip_abd": {
+         "speed": 0.006,
+         "torque": 0.0,
+         "stall": 0.139,
+         "envelope": 0.144
+        },
+        "hl.stifle": {
+         "speed": 0.038,
+         "torque": 0.0,
+         "belt": 0.0,
+         "stall": 0.155,
+         "envelope": 0.155
+        },
+        "hl.hock": {
+         "speed": 0.019,
+         "torque": 0.0,
+         "belt": 0.48,
+         "stall": 0.012,
+         "envelope": 0.012
+        },
+        "hr.hip_abd": {
+         "speed": 0.006,
+         "torque": 0.0,
+         "stall": 0.139,
+         "envelope": 0.144
+        },
+        "hr.stifle": {
+         "speed": 0.038,
+         "torque": 0.0,
+         "belt": 0.0,
+         "stall": 0.155,
+         "envelope": 0.155
+        },
+        "hr.hock": {
+         "speed": 0.019,
+         "torque": 0.0,
+         "belt": 0.48,
+         "stall": 0.012,
+         "envelope": 0.012
+        },
+        "fl.shoulder": {
+         "speed": 0.01,
+         "torque": 4.0,
+         "stall": 0.262,
+         "envelope": 0.262
+        },
+        "fl.carpus": {
+         "speed": 0.003,
+         "torque": 0.0,
+         "belt": 0.0,
+         "stall": 0.006,
+         "envelope": 0.009
+        },
+        "fr.shoulder": {
+         "speed": 0.01,
+         "torque": 4.0,
+         "stall": 0.262,
+         "envelope": 0.262
+        },
+        "fr.carpus": {
+         "speed": 0.003,
+         "torque": 0.0,
+         "belt": 0.0,
+         "stall": 0.006,
+         "envelope": 0.009
+        }
+       }
+      },
+      {
+       "move": "rise hind",
+       "t0": 5.5,
+       "t1": 7.5,
+       "joint": "fl.shoulder",
+       "limit": "torque",
+       "use": 3.84,
+       "margin": -2.84,
+       "joints": {
+        "hl.hip_abd": {
+         "speed": 0.029,
+         "torque": 0.0,
+         "stall": 0.19,
+         "envelope": 0.201
+        },
+        "hl.stifle": {
+         "speed": 0.568,
+         "torque": 2.48,
+         "belt": 2.56,
+         "stall": 0.264,
+         "envelope": 0.796
+        },
+        "hl.hock": {
+         "speed": 0.315,
+         "torque": 0.0,
+         "belt": 1.96,
+         "stall": 0.155,
+         "envelope": 0.155
+        },
+        "hr.hip_abd": {
+         "speed": 0.029,
+         "torque": 0.0,
+         "stall": 0.19,
+         "envelope": 0.201
+        },
+        "hr.stifle": {
+         "speed": 0.568,
+         "torque": 2.48,
+         "belt": 2.56,
+         "stall": 0.264,
+         "envelope": 0.796
+        },
+        "hr.hock": {
+         "speed": 0.315,
+         "torque": 0.0,
+         "belt": 1.96,
+         "stall": 0.155,
+         "envelope": 0.155
+        },
+        "fl.shoulder": {
+         "speed": 0.098,
+         "torque": 3.84,
+         "stall": 0.506,
+         "envelope": 0.576
+        },
+        "fl.carpus": {
+         "speed": 0.049,
+         "torque": 0.12,
+         "belt": 0.12,
+         "stall": 0.011,
+         "envelope": 0.011
+        },
+        "fr.shoulder": {
+         "speed": 0.098,
+         "torque": 3.84,
+         "stall": 0.506,
+         "envelope": 0.576
+        },
+        "fr.carpus": {
+         "speed": 0.049,
+         "torque": 0.12,
+         "belt": 0.12,
+         "stall": 0.011,
+         "envelope": 0.011
+        }
+       }
+      },
+      {
+       "move": "reach",
+       "t0": 7.5,
+       "t1": 9.5,
+       "joint": "fl.shoulder",
+       "limit": "torque",
+       "use": 3.16,
+       "margin": -2.16,
+       "joints": {
+        "hl.hip_abd": {
+         "speed": 0.02,
+         "torque": 0.0,
+         "stall": 0.105,
+         "envelope": 0.105
+        },
+        "hl.stifle": {
+         "speed": 0.241,
+         "torque": 2.455,
+         "belt": 2.495,
+         "stall": 0.258,
+         "envelope": 0.304
+        },
+        "hl.hock": {
+         "speed": 0.21,
+         "torque": 0.0,
+         "belt": 1.822,
+         "stall": 0.19,
+         "envelope": 0.19
+        },
+        "hr.hip_abd": {
+         "speed": 0.02,
+         "torque": 0.0,
+         "stall": 0.105,
+         "envelope": 0.105
+        },
+        "hr.stifle": {
+         "speed": 0.241,
+         "torque": 2.455,
+         "belt": 2.495,
+         "stall": 0.258,
+         "envelope": 0.304
+        },
+        "hr.hock": {
+         "speed": 0.21,
+         "torque": 0.0,
+         "belt": 1.822,
+         "stall": 0.19,
+         "envelope": 0.19
+        },
+        "fl.shoulder": {
+         "speed": 0.286,
+         "torque": 3.16,
+         "stall": 0.837,
+         "envelope": 0.914
+        },
+        "fl.carpus": {
+         "speed": 0.329,
+         "torque": 0.88,
+         "belt": 2.0,
+         "stall": 0.288,
+         "envelope": 0.487
+        },
+        "fr.shoulder": {
+         "speed": 0.286,
+         "torque": 3.16,
+         "stall": 0.837,
+         "envelope": 0.914
+        },
+        "fr.carpus": {
+         "speed": 0.329,
+         "torque": 0.88,
+         "belt": 2.0,
+         "stall": 0.288,
+         "envelope": 0.487
+        }
+       }
+      },
+      {
+       "move": "rise front",
+       "t0": 9.5,
+       "t1": 11.5,
+       "joint": "fl.shoulder",
+       "limit": "torque",
+       "use": 4.0,
+       "margin": -3.0,
+       "joints": {
+        "hl.hip_abd": {
+         "speed": 0.003,
+         "torque": 0.0,
+         "stall": 0.091,
+         "envelope": 0.091
+        },
+        "hl.stifle": {
+         "speed": 0.03,
+         "torque": 3.6,
+         "belt": 3.92,
+         "stall": 0.321,
+         "envelope": 0.328
+        },
+        "hl.hock": {
+         "speed": 0.006,
+         "torque": 0.0,
+         "belt": 0.16,
+         "stall": 0.095,
+         "envelope": 0.096
+        },
+        "hr.hip_abd": {
+         "speed": 0.003,
+         "torque": 0.0,
+         "stall": 0.091,
+         "envelope": 0.091
+        },
+        "hr.stifle": {
+         "speed": 0.03,
+         "torque": 3.6,
+         "belt": 3.92,
+         "stall": 0.321,
+         "envelope": 0.328
+        },
+        "hr.hock": {
+         "speed": 0.006,
+         "torque": 0.0,
+         "belt": 0.16,
+         "stall": 0.095,
+         "envelope": 0.096
+        },
+        "fl.shoulder": {
+         "speed": 0.185,
+         "torque": 4.0,
+         "stall": 0.814,
+         "envelope": 0.988
+        },
+        "fl.carpus": {
+         "speed": 0.175,
+         "torque": 0.72,
+         "belt": 1.84,
+         "stall": 0.154,
+         "envelope": 0.192
+        },
+        "fr.shoulder": {
+         "speed": 0.185,
+         "torque": 4.0,
+         "stall": 0.814,
+         "envelope": 0.988
+        },
+        "fr.carpus": {
+         "speed": 0.175,
+         "torque": 0.72,
+         "belt": 1.84,
+         "stall": 0.154,
+         "envelope": 0.192
+        }
+       }
+      },
+      {
+       "move": "standing after",
+       "t0": 11.5,
+       "t1": 12.5,
+       "joint": "fl.shoulder",
+       "limit": "torque",
+       "use": 4.0,
+       "margin": -3.0,
+       "joints": {
+        "hl.hip_abd": {
+         "speed": 0.0,
+         "torque": 0.0,
+         "stall": 0.009,
+         "envelope": 0.009
+        },
+        "hl.stifle": {
+         "speed": 0.013,
+         "torque": 3.48,
+         "belt": 3.76,
+         "stall": 0.291,
+         "envelope": 0.302
+        },
+        "hl.hock": {
+         "speed": 0.003,
+         "torque": 0.0,
+         "belt": 0.0,
+         "stall": 0.087,
+         "envelope": 0.089
+        },
+        "hr.hip_abd": {
+         "speed": 0.0,
+         "torque": 0.0,
+         "stall": 0.009,
+         "envelope": 0.009
+        },
+        "hr.stifle": {
+         "speed": 0.013,
+         "torque": 3.48,
+         "belt": 3.76,
+         "stall": 0.291,
+         "envelope": 0.302
+        },
+        "hr.hock": {
+         "speed": 0.003,
+         "torque": 0.0,
+         "belt": 0.0,
+         "stall": 0.087,
+         "envelope": 0.089
+        },
+        "fl.shoulder": {
+         "speed": 0.027,
+         "torque": 4.0,
+         "stall": 0.718,
+         "envelope": 0.745
+        },
+        "fl.carpus": {
+         "speed": 0.009,
+         "torque": 0.0,
+         "belt": 0.0,
+         "stall": 0.096,
+         "envelope": 0.096
+        },
+        "fr.shoulder": {
+         "speed": 0.027,
+         "torque": 4.0,
+         "stall": 0.718,
+         "envelope": 0.745
+        },
+        "fr.carpus": {
+         "speed": 0.009,
+         "torque": 0.0,
+         "belt": 0.0,
+         "stall": 0.096,
+         "envelope": 0.096
+        }
+       }
+      }
+     ],
+     "length_s": 12.5,
+     "wall_s": 5.42
+    },
+    {
+     "seed": 2,
+     "within": false,
+     "fell": false,
+     "sim_fell": false,
+     "tipped": false,
+     "risen": true,
+     "lying_height_mm": 275.6,
+     "margin": -3.0,
+     "closest": "servo_sustained",
+     "violations": [
+      "servo_sustained",
+      "belt_sustained"
+     ],
+     "moves": [
+      {
+       "move": "kneel",
+       "t0": 0.0,
+       "t1": 2.0,
+       "joint": "fl.shoulder",
+       "limit": "torque",
+       "use": 3.0,
+       "margin": -2.0,
+       "joints": {
+        "hl.hip_abd": {
+         "speed": 0.037,
+         "torque": 0.0,
+         "stall": 0.103,
+         "envelope": 0.103
+        },
+        "hl.stifle": {
+         "speed": 0.17,
+         "torque": 0.76,
+         "belt": 0.8,
+         "stall": 0.231,
+         "envelope": 0.242
+        },
+        "hl.hock": {
+         "speed": 0.196,
+         "torque": 0.0,
+         "belt": 0.08,
+         "stall": 0.141,
+         "envelope": 0.141
+        },
+        "hr.hip_abd": {
+         "speed": 0.037,
+         "torque": 0.0,
+         "stall": 0.103,
+         "envelope": 0.103
+        },
+        "hr.stifle": {
+         "speed": 0.17,
+         "torque": 0.76,
+         "belt": 0.8,
+         "stall": 0.231,
+         "envelope": 0.242
+        },
+        "hr.hock": {
+         "speed": 0.196,
+         "torque": 0.0,
+         "belt": 0.08,
+         "stall": 0.141,
+         "envelope": 0.141
+        },
+        "fl.shoulder": {
+         "speed": 0.327,
+         "torque": 3.0,
+         "stall": 0.811,
+         "envelope": 0.811
+        },
+        "fl.carpus": {
+         "speed": 0.403,
+         "torque": 0.24,
+         "belt": 0.52,
+         "stall": 0.251,
+         "envelope": 0.251
+        },
+        "fr.shoulder": {
+         "speed": 0.327,
+         "torque": 3.0,
+         "stall": 0.811,
+         "envelope": 0.811
+        },
+        "fr.carpus": {
+         "speed": 0.403,
+         "torque": 0.24,
+         "belt": 0.52,
+         "stall": 0.251,
+         "envelope": 0.251
+        }
+       }
+      },
+      {
+       "move": "lie",
+       "t0": 2.0,
+       "t1": 4.0,
+       "joint": "fl.shoulder",
+       "limit": "torque",
+       "use": 2.6,
+       "margin": -1.6,
+       "joints": {
+        "hl.hip_abd": {
+         "speed": 0.014,
+         "torque": 0.0,
+         "stall": 0.131,
+         "envelope": 0.131
+        },
+        "hl.stifle": {
+         "speed": 0.533,
+         "torque": 0.0,
+         "belt": 0.0,
+         "stall": 0.147,
+         "envelope": 0.485
+        },
+        "hl.hock": {
+         "speed": 0.325,
+         "torque": 0.0,
+         "belt": 0.12,
+         "stall": 0.116,
+         "envelope": 0.116
+        },
+        "hr.hip_abd": {
+         "speed": 0.014,
+         "torque": 0.0,
+         "stall": 0.131,
+         "envelope": 0.131
+        },
+        "hr.stifle": {
+         "speed": 0.533,
+         "torque": 0.0,
+         "belt": 0.0,
+         "stall": 0.147,
+         "envelope": 0.485
+        },
+        "hr.hock": {
+         "speed": 0.325,
+         "torque": 0.0,
+         "belt": 0.12,
+         "stall": 0.116,
+         "envelope": 0.116
+        },
+        "fl.shoulder": {
+         "speed": 0.092,
+         "torque": 2.6,
+         "stall": 0.27,
+         "envelope": 0.308
+        },
+        "fl.carpus": {
+         "speed": 0.049,
+         "torque": 0.24,
+         "belt": 0.4,
+         "stall": 0.006,
+         "envelope": 0.026
+        },
+        "fr.shoulder": {
+         "speed": 0.092,
+         "torque": 2.6,
+         "stall": 0.27,
+         "envelope": 0.308
+        },
+        "fr.carpus": {
+         "speed": 0.049,
+         "torque": 0.24,
+         "belt": 0.4,
+         "stall": 0.006,
+         "envelope": 0.026
+        }
+       }
+      },
+      {
+       "move": "hold",
+       "t0": 4.0,
+       "t1": 5.5,
+       "joint": "fl.shoulder",
+       "limit": "torque",
+       "use": 4.0,
+       "margin": -3.0,
+       "joints": {
+        "hl.hip_abd": {
+         "speed": 0.005,
+         "torque": 0.0,
+         "stall": 0.119,
+         "envelope": 0.123
+        },
+        "hl.stifle": {
+         "speed": 0.038,
+         "torque": 0.0,
+         "belt": 0.0,
+         "stall": 0.147,
+         "envelope": 0.147
+        },
+        "hl.hock": {
+         "speed": 0.019,
+         "torque": 0.0,
+         "belt": 0.08,
+         "stall": 0.008,
+         "envelope": 0.008
+        },
+        "hr.hip_abd": {
+         "speed": 0.005,
+         "torque": 0.0,
+         "stall": 0.119,
+         "envelope": 0.123
+        },
+        "hr.stifle": {
+         "speed": 0.038,
+         "torque": 0.0,
+         "belt": 0.0,
+         "stall": 0.147,
+         "envelope": 0.147
+        },
+        "hr.hock": {
+         "speed": 0.019,
+         "torque": 0.0,
+         "belt": 0.08,
+         "stall": 0.008,
+         "envelope": 0.008
+        },
+        "fl.shoulder": {
+         "speed": 0.01,
+         "torque": 4.0,
+         "stall": 0.246,
+         "envelope": 0.246
+        },
+        "fl.carpus": {
+         "speed": 0.003,
+         "torque": 0.0,
+         "belt": 0.0,
+         "stall": 0.006,
+         "envelope": 0.009
+        },
+        "fr.shoulder": {
+         "speed": 0.01,
+         "torque": 4.0,
+         "stall": 0.246,
+         "envelope": 0.246
+        },
+        "fr.carpus": {
+         "speed": 0.003,
+         "torque": 0.0,
+         "belt": 0.0,
+         "stall": 0.006,
+         "envelope": 0.009
+        }
+       }
+      },
+      {
+       "move": "rise hind",
+       "t0": 5.5,
+       "t1": 7.5,
+       "joint": "fl.shoulder",
+       "limit": "torque",
+       "use": 3.36,
+       "margin": -2.36,
+       "joints": {
+        "hl.hip_abd": {
+         "speed": 0.022,
+         "torque": 0.0,
+         "stall": 0.179,
+         "envelope": 0.179
+        },
+        "hl.stifle": {
+         "speed": 0.543,
+         "torque": 1.84,
+         "belt": 2.32,
+         "stall": 0.234,
+         "envelope": 0.758
+        },
+        "hl.hock": {
+         "speed": 0.312,
+         "torque": 0.0,
+         "belt": 1.72,
+         "stall": 0.142,
+         "envelope": 0.142
+        },
+        "hr.hip_abd": {
+         "speed": 0.022,
+         "torque": 0.0,
+         "stall": 0.179,
+         "envelope": 0.179
+        },
+        "hr.stifle": {
+         "speed": 0.543,
+         "torque": 1.84,
+         "belt": 2.32,
+         "stall": 0.234,
+         "envelope": 0.758
+        },
+        "hr.hock": {
+         "speed": 0.312,
+         "torque": 0.0,
+         "belt": 1.72,
+         "stall": 0.142,
+         "envelope": 0.142
+        },
+        "fl.shoulder": {
+         "speed": 0.083,
+         "torque": 3.36,
+         "stall": 0.447,
+         "envelope": 0.523
+        },
+        "fl.carpus": {
+         "speed": 0.049,
+         "torque": 0.12,
+         "belt": 0.16,
+         "stall": 0.011,
+         "envelope": 0.011
+        },
+        "fr.shoulder": {
+         "speed": 0.083,
+         "torque": 3.36,
+         "stall": 0.447,
+         "envelope": 0.523
+        },
+        "fr.carpus": {
+         "speed": 0.049,
+         "torque": 0.12,
+         "belt": 0.16,
+         "stall": 0.011,
+         "envelope": 0.011
+        }
+       }
+      },
+      {
+       "move": "reach",
+       "t0": 7.5,
+       "t1": 9.5,
+       "joint": "fl.shoulder",
+       "limit": "torque",
+       "use": 3.16,
+       "margin": -2.16,
+       "joints": {
+        "hl.hip_abd": {
+         "speed": 0.022,
+         "torque": 0.0,
+         "stall": 0.094,
+         "envelope": 0.095
+        },
+        "hl.stifle": {
+         "speed": 0.201,
+         "torque": 1.84,
+         "belt": 2.297,
+         "stall": 0.23,
+         "envelope": 0.274
+        },
+        "hl.hock": {
+         "speed": 0.135,
+         "torque": 0.0,
+         "belt": 1.584,
+         "stall": 0.161,
+         "envelope": 0.161
+        },
+        "hr.hip_abd": {
+         "speed": 0.022,
+         "torque": 0.0,
+         "stall": 0.094,
+         "envelope": 0.095
+        },
+        "hr.stifle": {
+         "speed": 0.201,
+         "torque": 1.84,
+         "belt": 2.297,
+         "stall": 0.23,
+         "envelope": 0.274
+        },
+        "hr.hock": {
+         "speed": 0.135,
+         "torque": 0.0,
+         "belt": 1.584,
+         "stall": 0.161,
+         "envelope": 0.161
+        },
+        "fl.shoulder": {
+         "speed": 0.227,
+         "torque": 3.16,
+         "stall": 0.764,
+         "envelope": 0.842
+        },
+        "fl.carpus": {
+         "speed": 0.311,
+         "torque": 0.6,
+         "belt": 1.64,
+         "stall": 0.261,
+         "envelope": 0.461
+        },
+        "fr.shoulder": {
+         "speed": 0.227,
+         "torque": 3.16,
+         "stall": 0.764,
+         "envelope": 0.842
+        },
+        "fr.carpus": {
+         "speed": 0.311,
+         "torque": 0.6,
+         "belt": 1.64,
+         "stall": 0.261,
+         "envelope": 0.461
+        }
+       }
+      },
+      {
+       "move": "rise front",
+       "t0": 9.5,
+       "t1": 11.5,
+       "joint": "fl.shoulder",
+       "limit": "torque",
+       "use": 4.0,
+       "margin": -3.0,
+       "joints": {
+        "hl.hip_abd": {
+         "speed": 0.003,
+         "torque": 0.0,
+         "stall": 0.072,
+         "envelope": 0.073
+        },
+        "hl.stifle": {
+         "speed": 0.03,
+         "torque": 2.92,
+         "belt": 3.2,
+         "stall": 0.285,
+         "envelope": 0.293
+        },
+        "hl.hock": {
+         "speed": 0.006,
+         "torque": 0.0,
+         "belt": 0.08,
+         "stall": 0.085,
+         "envelope": 0.087
+        },
+        "hr.hip_abd": {
+         "speed": 0.003,
+         "torque": 0.0,
+         "stall": 0.072,
+         "envelope": 0.073
+        },
+        "hr.stifle": {
+         "speed": 0.03,
+         "torque": 2.92,
+         "belt": 3.2,
+         "stall": 0.285,
+         "envelope": 0.293
+        },
+        "hr.hock": {
+         "speed": 0.006,
+         "torque": 0.0,
+         "belt": 0.08,
+         "stall": 0.085,
+         "envelope": 0.087
+        },
+        "fl.shoulder": {
+         "speed": 0.177,
+         "torque": 4.0,
+         "stall": 0.718,
+         "envelope": 0.895
+        },
+        "fl.carpus": {
+         "speed": 0.174,
+         "torque": 0.44,
+         "belt": 1.44,
+         "stall": 0.144,
+         "envelope": 0.182
+        },
+        "fr.shoulder": {
+         "speed": 0.177,
+         "torque": 4.0,
+         "stall": 0.718,
+         "envelope": 0.895
+        },
+        "fr.carpus": {
+         "speed": 0.174,
+         "torque": 0.44,
+         "belt": 1.44,
+         "stall": 0.144,
+         "envelope": 0.182
+        }
+       }
+      },
+      {
+       "move": "standing after",
+       "t0": 11.5,
+       "t1": 12.5,
+       "joint": "fl.shoulder",
+       "limit": "torque",
+       "use": 4.0,
+       "margin": -3.0,
+       "joints": {
+        "hl.hip_abd": {
+         "speed": 0.0,
+         "torque": 0.0,
+         "stall": 0.009,
+         "envelope": 0.009
+        },
+        "hl.stifle": {
+         "speed": 0.012,
+         "torque": 2.8,
+         "belt": 3.04,
+         "stall": 0.254,
+         "envelope": 0.261
+        },
+        "hl.hock": {
+         "speed": 0.003,
+         "torque": 0.0,
+         "belt": 0.0,
+         "stall": 0.076,
+         "envelope": 0.076
+        },
+        "hr.hip_abd": {
+         "speed": 0.0,
+         "torque": 0.0,
+         "stall": 0.009,
+         "envelope": 0.009
+        },
+        "hr.stifle": {
+         "speed": 0.012,
+         "torque": 2.8,
+         "belt": 3.04,
+         "stall": 0.254,
+         "envelope": 0.261
+        },
+        "hr.hock": {
+         "speed": 0.003,
+         "torque": 0.0,
+         "belt": 0.0,
+         "stall": 0.076,
+         "envelope": 0.076
+        },
+        "fl.shoulder": {
+         "speed": 0.025,
+         "torque": 4.0,
+         "stall": 0.621,
+         "envelope": 0.646
+        },
+        "fl.carpus": {
+         "speed": 0.009,
+         "torque": 0.0,
+         "belt": 0.0,
+         "stall": 0.081,
+         "envelope": 0.081
+        },
+        "fr.shoulder": {
+         "speed": 0.025,
+         "torque": 4.0,
+         "stall": 0.621,
+         "envelope": 0.646
+        },
+        "fr.carpus": {
+         "speed": 0.009,
+         "torque": 0.0,
+         "belt": 0.0,
+         "stall": 0.081,
+         "envelope": 0.081
+        }
+       }
+      }
+     ],
+     "length_s": 12.5,
+     "wall_s": 6.14
+    }
+   ]
+  },
+  "working": {
+   "stage_c_run": "20261108-000329-evolve-19d0",
+   "screen": [
+    {
+     "seed": 0,
+     "margin": -3.0,
+     "within": false,
+     "closest": "belt_sustained"
+    },
+    {
+     "seed": 1,
+     "margin": -3.0,
+     "within": false,
+     "closest": "belt_sustained"
+    },
+    {
+     "seed": 2,
+     "margin": -3.0,
+     "within": false,
+     "closest": "belt_sustained"
+    }
+   ],
+   "full": [
+    {
+     "seed": 0,
+     "within": false,
+     "fell": false,
+     "sim_fell": false,
+     "tipped": false,
+     "risen": true,
+     "lying_height_mm": 281.8,
+     "margin": -3.0,
+     "closest": "servo_sustained",
+     "violations": [
+      "servo_sustained",
+      "belt_sustained"
+     ],
+     "moves": [
+      {
+       "move": "kneel",
+       "t0": 0.0,
+       "t1": 2.0,
+       "joint": "fl.shoulder",
+       "limit": "torque",
+       "use": 2.96,
+       "margin": -1.96,
+       "joints": {
+        "hl.hip_abd": {
+         "speed": 0.035,
+         "torque": 0.0,
+         "stall": 0.097,
+         "envelope": 0.097
+        },
+        "hl.stifle": {
+         "speed": 0.187,
+         "torque": 0.36,
+         "belt": 1.04,
+         "stall": 0.222,
+         "envelope": 0.235
+        },
+        "hl.hock": {
+         "speed": 0.381,
+         "torque": 0.0,
+         "belt": 0.12,
+         "stall": 0.183,
+         "envelope": 0.183
+        },
+        "hr.hip_abd": {
+         "speed": 0.035,
+         "torque": 0.0,
+         "stall": 0.097,
+         "envelope": 0.097
+        },
+        "hr.stifle": {
+         "speed": 0.187,
+         "torque": 0.36,
+         "belt": 1.04,
+         "stall": 0.222,
+         "envelope": 0.235
+        },
+        "hr.hock": {
+         "speed": 0.381,
+         "torque": 0.0,
+         "belt": 0.12,
+         "stall": 0.183,
+         "envelope": 0.183
+        },
+        "fl.shoulder": {
+         "speed": 0.344,
+         "torque": 2.96,
+         "stall": 0.806,
+         "envelope": 0.806
+        },
+        "fl.carpus": {
+         "speed": 0.827,
+         "torque": 0.32,
+         "belt": 0.52,
+         "stall": 0.294,
+         "envelope": 0.294
+        },
+        "fr.shoulder": {
+         "speed": 0.344,
+         "torque": 2.96,
+         "stall": 0.806,
+         "envelope": 0.806
+        },
+        "fr.carpus": {
+         "speed": 0.827,
+         "torque": 0.32,
+         "belt": 0.52,
+         "stall": 0.294,
+         "envelope": 0.294
+        }
+       }
+      },
+      {
+       "move": "lie",
+       "t0": 2.0,
+       "t1": 4.0,
+       "joint": "fl.shoulder",
+       "limit": "torque",
+       "use": 2.92,
+       "margin": -1.92,
+       "joints": {
+        "hl.hip_abd": {
+         "speed": 0.014,
+         "torque": 0.0,
+         "stall": 0.147,
+         "envelope": 0.147
+        },
+        "hl.stifle": {
+         "speed": 0.533,
+         "torque": 0.0,
+         "belt": 2.56,
+         "stall": 0.155,
+         "envelope": 0.537
+        },
+        "hl.hock": {
+         "speed": 0.551,
+         "torque": 0.0,
+         "belt": 0.84,
+         "stall": 0.156,
+         "envelope": 0.156
+        },
+        "hr.hip_abd": {
+         "speed": 0.014,
+         "torque": 0.0,
+         "stall": 0.147,
+         "envelope": 0.147
+        },
+        "hr.stifle": {
+         "speed": 0.533,
+         "torque": 0.0,
+         "belt": 2.56,
+         "stall": 0.155,
+         "envelope": 0.537
+        },
+        "hr.hock": {
+         "speed": 0.551,
+         "torque": 0.0,
+         "belt": 0.84,
+         "stall": 0.156,
+         "envelope": 0.156
+        },
+        "fl.shoulder": {
+         "speed": 0.082,
+         "torque": 2.92,
+         "stall": 0.303,
+         "envelope": 0.344
+        },
+        "fl.carpus": {
+         "speed": 0.103,
+         "torque": 0.32,
+         "belt": 0.44,
+         "stall": 0.008,
+         "envelope": 0.066
+        },
+        "fr.shoulder": {
+         "speed": 0.082,
+         "torque": 2.92,
+         "stall": 0.303,
+         "envelope": 0.344
+        },
+        "fr.carpus": {
+         "speed": 0.103,
+         "torque": 0.32,
+         "belt": 0.44,
+         "stall": 0.008,
+         "envelope": 0.066
+        }
+       }
+      },
+      {
+       "move": "hold",
+       "t0": 4.0,
+       "t1": 5.5,
+       "joint": "hl.stifle",
+       "limit": "belt",
+       "use": 4.0,
+       "margin": -3.0,
+       "joints": {
+        "hl.hip_abd": {
+         "speed": 0.006,
+         "torque": 0.0,
+         "stall": 0.127,
+         "envelope": 0.133
+        },
+        "hl.stifle": {
+         "speed": 0.039,
+         "torque": 0.0,
+         "belt": 4.0,
+         "stall": 0.161,
+         "envelope": 0.161
+        },
+        "hl.hock": {
+         "speed": 0.031,
+         "torque": 0.0,
+         "belt": 0.68,
+         "stall": 0.02,
+         "envelope": 0.02
+        },
+        "hr.hip_abd": {
+         "speed": 0.006,
+         "torque": 0.0,
+         "stall": 0.127,
+         "envelope": 0.133
+        },
+        "hr.stifle": {
+         "speed": 0.039,
+         "torque": 0.0,
+         "belt": 4.0,
+         "stall": 0.161,
+         "envelope": 0.161
+        },
+        "hr.hock": {
+         "speed": 0.031,
+         "torque": 0.0,
+         "belt": 0.68,
+         "stall": 0.02,
+         "envelope": 0.02
+        },
+        "fl.shoulder": {
+         "speed": 0.011,
+         "torque": 3.56,
+         "stall": 0.228,
+         "envelope": 0.228
+        },
+        "fl.carpus": {
+         "speed": 0.007,
+         "torque": 0.0,
+         "belt": 0.0,
+         "stall": 0.009,
+         "envelope": 0.015
+        },
+        "fr.shoulder": {
+         "speed": 0.011,
+         "torque": 3.56,
+         "stall": 0.228,
+         "envelope": 0.228
+        },
+        "fr.carpus": {
+         "speed": 0.007,
+         "torque": 0.0,
+         "belt": 0.0,
+         "stall": 0.009,
+         "envelope": 0.015
+        }
+       }
+      },
+      {
+       "move": "rise hind",
+       "t0": 5.5,
+       "t1": 7.5,
+       "joint": "fl.shoulder",
+       "limit": "torque",
+       "use": 3.24,
+       "margin": -2.24,
+       "joints": {
+        "hl.hip_abd": {
+         "speed": 0.023,
+         "torque": 0.0,
+         "stall": 0.186,
+         "envelope": 0.188
+        },
+        "hl.stifle": {
+         "speed": 0.548,
+         "torque": 1.44,
+         "belt": 2.84,
+         "stall": 0.212,
+         "envelope": 0.755
+        },
+        "hl.hock": {
+         "speed": 0.548,
+         "torque": 1.16,
+         "belt": 2.32,
+         "stall": 0.214,
+         "envelope": 0.214
+        },
+        "hr.hip_abd": {
+         "speed": 0.023,
+         "torque": 0.0,
+         "stall": 0.186,
+         "envelope": 0.188
+        },
+        "hr.stifle": {
+         "speed": 0.548,
+         "torque": 1.44,
+         "belt": 2.84,
+         "stall": 0.212,
+         "envelope": 0.755
+        },
+        "hr.hock": {
+         "speed": 0.548,
+         "torque": 1.16,
+         "belt": 2.32,
+         "stall": 0.214,
+         "envelope": 0.214
+        },
+        "fl.shoulder": {
+         "speed": 0.094,
+         "torque": 3.24,
+         "stall": 0.448,
+         "envelope": 0.525
+        },
+        "fl.carpus": {
+         "speed": 0.104,
+         "torque": 0.16,
+         "belt": 0.16,
+         "stall": 0.013,
+         "envelope": 0.013
+        },
+        "fr.shoulder": {
+         "speed": 0.094,
+         "torque": 3.24,
+         "stall": 0.448,
+         "envelope": 0.525
+        },
+        "fr.carpus": {
+         "speed": 0.104,
+         "torque": 0.16,
+         "belt": 0.16,
+         "stall": 0.013,
+         "envelope": 0.013
+        }
+       }
+      },
+      {
+       "move": "reach",
+       "t0": 7.5,
+       "t1": 9.5,
+       "joint": "fl.shoulder",
+       "limit": "torque",
+       "use": 2.97,
+       "margin": -1.97,
+       "joints": {
+        "hl.hip_abd": {
+         "speed": 0.02,
+         "torque": 0.0,
+         "stall": 0.106,
+         "envelope": 0.106
+        },
+        "hl.stifle": {
+         "speed": 0.2,
+         "torque": 1.44,
+         "belt": 2.455,
+         "stall": 0.238,
+         "envelope": 0.246
+        },
+        "hl.hock": {
+         "speed": 0.473,
+         "torque": 1.16,
+         "belt": 2.139,
+         "stall": 0.308,
+         "envelope": 0.308
+        },
+        "hr.hip_abd": {
+         "speed": 0.02,
+         "torque": 0.0,
+         "stall": 0.106,
+         "envelope": 0.106
+        },
+        "hr.stifle": {
+         "speed": 0.2,
+         "torque": 1.44,
+         "belt": 2.455,
+         "stall": 0.238,
+         "envelope": 0.246
+        },
+        "hr.hock": {
+         "speed": 0.473,
+         "torque": 1.16,
+         "belt": 2.139,
+         "stall": 0.308,
+         "envelope": 0.308
+        },
+        "fl.shoulder": {
+         "speed": 0.298,
+         "torque": 2.97,
+         "stall": 0.832,
+         "envelope": 0.904
+        },
+        "fl.carpus": {
+         "speed": 0.702,
+         "torque": 1.28,
+         "belt": 2.24,
+         "stall": 0.408,
+         "envelope": 0.828
+        },
+        "fr.shoulder": {
+         "speed": 0.298,
+         "torque": 2.97,
+         "stall": 0.832,
+         "envelope": 0.904
+        },
+        "fr.carpus": {
+         "speed": 0.702,
+         "torque": 1.28,
+         "belt": 2.24,
+         "stall": 0.408,
+         "envelope": 0.828
+        }
+       }
+      },
+      {
+       "move": "rise front",
+       "t0": 9.5,
+       "t1": 11.5,
+       "joint": "hl.stifle",
+       "limit": "belt",
+       "use": 4.0,
+       "margin": -3.0,
+       "joints": {
+        "hl.hip_abd": {
+         "speed": 0.003,
+         "torque": 0.0,
+         "stall": 0.083,
+         "envelope": 0.085
+        },
+        "hl.stifle": {
+         "speed": 0.028,
+         "torque": 2.44,
+         "belt": 4.0,
+         "stall": 0.273,
+         "envelope": 0.274
+        },
+        "hl.hock": {
+         "speed": 0.02,
+         "torque": 0.12,
+         "belt": 1.44,
+         "stall": 0.152,
+         "envelope": 0.152
+        },
+        "hr.hip_abd": {
+         "speed": 0.003,
+         "torque": 0.0,
+         "stall": 0.083,
+         "envelope": 0.085
+        },
+        "hr.stifle": {
+         "speed": 0.028,
+         "torque": 2.44,
+         "belt": 4.0,
+         "stall": 0.273,
+         "envelope": 0.274
+        },
+        "hr.hock": {
+         "speed": 0.02,
+         "torque": 0.12,
+         "belt": 1.44,
+         "stall": 0.152,
+         "envelope": 0.152
+        },
+        "fl.shoulder": {
+         "speed": 0.189,
+         "torque": 4.0,
+         "stall": 0.761,
+         "envelope": 0.913
+        },
+        "fl.carpus": {
+         "speed": 0.367,
+         "torque": 1.08,
+         "belt": 2.2,
+         "stall": 0.184,
+         "envelope": 0.336
+        },
+        "fr.shoulder": {
+         "speed": 0.189,
+         "torque": 4.0,
+         "stall": 0.761,
+         "envelope": 0.913
+        },
+        "fr.carpus": {
+         "speed": 0.367,
+         "torque": 1.08,
+         "belt": 2.2,
+         "stall": 0.184,
+         "envelope": 0.336
+        }
+       }
+      },
+      {
+       "move": "standing after",
+       "t0": 11.5,
+       "t1": 12.5,
+       "joint": "fl.shoulder",
+       "limit": "torque",
+       "use": 4.0,
+       "margin": -3.0,
+       "joints": {
+        "hl.hip_abd": {
+         "speed": 0.0,
+         "torque": 0.0,
+         "stall": 0.014,
+         "envelope": 0.014
+        },
+        "hl.stifle": {
+         "speed": 0.014,
+         "torque": 2.44,
+         "belt": 3.88,
+         "stall": 0.246,
+         "envelope": 0.257
+        },
+        "hl.hock": {
+         "speed": 0.008,
+         "torque": 0.0,
+         "belt": 1.44,
+         "stall": 0.14,
+         "envelope": 0.147
+        },
+        "hr.hip_abd": {
+         "speed": 0.0,
+         "torque": 0.0,
+         "stall": 0.014,
+         "envelope": 0.014
+        },
+        "hr.stifle": {
+         "speed": 0.014,
+         "torque": 2.44,
+         "belt": 3.88,
+         "stall": 0.246,
+         "envelope": 0.257
+        },
+        "hr.hock": {
+         "speed": 0.008,
+         "torque": 0.0,
+         "belt": 1.44,
+         "stall": 0.14,
+         "envelope": 0.147
+        },
+        "fl.shoulder": {
+         "speed": 0.027,
+         "torque": 4.0,
+         "stall": 0.664,
+         "envelope": 0.692
+        },
+        "fl.carpus": {
+         "speed": 0.016,
+         "torque": 0.0,
+         "belt": 1.48,
+         "stall": 0.133,
+         "envelope": 0.133
+        },
+        "fr.shoulder": {
+         "speed": 0.027,
+         "torque": 4.0,
+         "stall": 0.664,
+         "envelope": 0.692
+        },
+        "fr.carpus": {
+         "speed": 0.016,
+         "torque": 0.0,
+         "belt": 1.48,
+         "stall": 0.133,
+         "envelope": 0.133
+        }
+       }
+      }
+     ],
+     "length_s": 12.5,
+     "wall_s": 5.94
+    },
+    {
+     "seed": 1,
+     "within": false,
+     "fell": false,
+     "sim_fell": false,
+     "tipped": false,
+     "risen": true,
+     "lying_height_mm": 281.5,
+     "margin": -3.0,
+     "closest": "servo_sustained",
+     "violations": [
+      "servo_sustained",
+      "belt_sustained"
+     ],
+     "moves": [
+      {
+       "move": "kneel",
+       "t0": 0.0,
+       "t1": 2.0,
+       "joint": "fl.shoulder",
+       "limit": "torque",
+       "use": 3.208,
+       "margin": -2.208,
+       "joints": {
+        "hl.hip_abd": {
+         "speed": 0.04,
+         "torque": 0.0,
+         "stall": 0.104,
+         "envelope": 0.104
+        },
+        "hl.stifle": {
+         "speed": 0.195,
+         "torque": 0.6,
+         "belt": 1.16,
+         "stall": 0.229,
+         "envelope": 0.261
+        },
+        "hl.hock": {
+         "speed": 0.386,
+         "torque": 0.04,
+         "belt": 0.36,
+         "stall": 0.201,
+         "envelope": 0.201
+        },
+        "hr.hip_abd": {
+         "speed": 0.04,
+         "torque": 0.0,
+         "stall": 0.104,
+         "envelope": 0.104
+        },
+        "hr.stifle": {
+         "speed": 0.195,
+         "torque": 0.6,
+         "belt": 1.16,
+         "stall": 0.229,
+         "envelope": 0.261
+        },
+        "hr.hock": {
+         "speed": 0.386,
+         "torque": 0.04,
+         "belt": 0.36,
+         "stall": 0.201,
+         "envelope": 0.201
+        },
+        "fl.shoulder": {
+         "speed": 0.392,
+         "torque": 3.208,
+         "stall": 0.867,
+         "envelope": 0.867
+        },
+        "fl.carpus": {
+         "speed": 0.828,
+         "torque": 0.36,
+         "belt": 0.52,
+         "stall": 0.308,
+         "envelope": 0.308
+        },
+        "fr.shoulder": {
+         "speed": 0.392,
+         "torque": 3.208,
+         "stall": 0.867,
+         "envelope": 0.867
+        },
+        "fr.carpus": {
+         "speed": 0.828,
+         "torque": 0.36,
+         "belt": 0.52,
+         "stall": 0.308,
+         "envelope": 0.308
+        }
+       }
+      },
+      {
+       "move": "lie",
+       "t0": 2.0,
+       "t1": 4.0,
+       "joint": "fl.shoulder",
+       "limit": "torque",
+       "use": 3.16,
+       "margin": -2.16,
+       "joints": {
+        "hl.hip_abd": {
+         "speed": 0.014,
+         "torque": 0.0,
+         "stall": 0.146,
+         "envelope": 0.146
+        },
+        "hl.stifle": {
+         "speed": 0.535,
+         "torque": 0.0,
+         "belt": 2.64,
+         "stall": 0.162,
+         "envelope": 0.527
+        },
+        "hl.hock": {
+         "speed": 0.558,
+         "torque": 0.04,
+         "belt": 1.16,
+         "stall": 0.161,
+         "envelope": 0.161
+        },
+        "hr.hip_abd": {
+         "speed": 0.014,
+         "torque": 0.0,
+         "stall": 0.146,
+         "envelope": 0.146
+        },
+        "hr.stifle": {
+         "speed": 0.535,
+         "torque": 0.0,
+         "belt": 2.64,
+         "stall": 0.162,
+         "envelope": 0.527
+        },
+        "hr.hock": {
+         "speed": 0.558,
+         "torque": 0.04,
+         "belt": 1.16,
+         "stall": 0.161,
+         "envelope": 0.161
+        },
+        "fl.shoulder": {
+         "speed": 0.082,
+         "torque": 3.16,
+         "stall": 0.31,
+         "envelope": 0.352
+        },
+        "fl.carpus": {
+         "speed": 0.103,
+         "torque": 0.36,
+         "belt": 0.44,
+         "stall": 0.008,
+         "envelope": 0.068
+        },
+        "fr.shoulder": {
+         "speed": 0.082,
+         "torque": 3.16,
+         "stall": 0.31,
+         "envelope": 0.352
+        },
+        "fr.carpus": {
+         "speed": 0.103,
+         "torque": 0.36,
+         "belt": 0.44,
+         "stall": 0.008,
+         "envelope": 0.068
+        }
+       }
+      },
+      {
+       "move": "hold",
+       "t0": 4.0,
+       "t1": 5.5,
+       "joint": "hl.stifle",
+       "limit": "belt",
+       "use": 4.0,
+       "margin": -3.0,
+       "joints": {
+        "hl.hip_abd": {
+         "speed": 0.006,
+         "torque": 0.0,
+         "stall": 0.129,
+         "envelope": 0.134
+        },
+        "hl.stifle": {
+         "speed": 0.039,
+         "torque": 0.0,
+         "belt": 4.0,
+         "stall": 0.169,
+         "envelope": 0.169
+        },
+        "hl.hock": {
+         "speed": 0.03,
+         "torque": 0.0,
+         "belt": 0.8,
+         "stall": 0.025,
+         "envelope": 0.025
+        },
+        "hr.hip_abd": {
+         "speed": 0.006,
+         "torque": 0.0,
+         "stall": 0.129,
+         "envelope": 0.134
+        },
+        "hr.stifle": {
+         "speed": 0.039,
+         "torque": 0.0,
+         "belt": 4.0,
+         "stall": 0.169,
+         "envelope": 0.169
+        },
+        "hr.hock": {
+         "speed": 0.03,
+         "torque": 0.0,
+         "belt": 0.8,
+         "stall": 0.025,
+         "envelope": 0.025
+        },
+        "fl.shoulder": {
+         "speed": 0.011,
+         "torque": 3.92,
+         "stall": 0.243,
+         "envelope": 0.243
+        },
+        "fl.carpus": {
+         "speed": 0.007,
+         "torque": 0.0,
+         "belt": 0.0,
+         "stall": 0.009,
+         "envelope": 0.015
+        },
+        "fr.shoulder": {
+         "speed": 0.011,
+         "torque": 3.92,
+         "stall": 0.243,
+         "envelope": 0.243
+        },
+        "fr.carpus": {
+         "speed": 0.007,
+         "torque": 0.0,
+         "belt": 0.0,
+         "stall": 0.009,
+         "envelope": 0.015
+        }
+       }
+      },
+      {
+       "move": "rise hind",
+       "t0": 5.5,
+       "t1": 7.5,
+       "joint": "fl.shoulder",
+       "limit": "torque",
+       "use": 3.52,
+       "margin": -2.52,
+       "joints": {
+        "hl.hip_abd": {
+         "speed": 0.022,
+         "torque": 0.0,
+         "stall": 0.187,
+         "envelope": 0.189
+        },
+        "hl.stifle": {
+         "speed": 0.545,
+         "torque": 1.76,
+         "belt": 3.04,
+         "stall": 0.225,
+         "envelope": 0.769
+        },
+        "hl.hock": {
+         "speed": 0.549,
+         "torque": 1.2,
+         "belt": 2.4,
+         "stall": 0.217,
+         "envelope": 0.219
+        },
+        "hr.hip_abd": {
+         "speed": 0.022,
+         "torque": 0.0,
+         "stall": 0.187,
+         "envelope": 0.189
+        },
+        "hr.stifle": {
+         "speed": 0.545,
+         "torque": 1.76,
+         "belt": 3.04,
+         "stall": 0.225,
+         "envelope": 0.769
+        },
+        "hr.hock": {
+         "speed": 0.549,
+         "torque": 1.2,
+         "belt": 2.4,
+         "stall": 0.217,
+         "envelope": 0.219
+        },
+        "fl.shoulder": {
+         "speed": 0.085,
+         "torque": 3.52,
+         "stall": 0.468,
+         "envelope": 0.544
+        },
+        "fl.carpus": {
+         "speed": 0.104,
+         "torque": 0.16,
+         "belt": 0.16,
+         "stall": 0.013,
+         "envelope": 0.013
+        },
+        "fr.shoulder": {
+         "speed": 0.085,
+         "torque": 3.52,
+         "stall": 0.468,
+         "envelope": 0.544
+        },
+        "fr.carpus": {
+         "speed": 0.104,
+         "torque": 0.16,
+         "belt": 0.16,
+         "stall": 0.013,
+         "envelope": 0.013
+        }
+       }
+      },
+      {
+       "move": "reach",
+       "t0": 7.5,
+       "t1": 9.5,
+       "joint": "fl.shoulder",
+       "limit": "torque",
+       "use": 3.01,
+       "margin": -2.01,
+       "joints": {
+        "hl.hip_abd": {
+         "speed": 0.024,
+         "torque": 0.0,
+         "stall": 0.11,
+         "envelope": 0.11
+        },
+        "hl.stifle": {
+         "speed": 0.211,
+         "torque": 1.76,
+         "belt": 2.535,
+         "stall": 0.255,
+         "envelope": 0.258
+        },
+        "hl.hock": {
+         "speed": 0.522,
+         "torque": 1.2,
+         "belt": 2.218,
+         "stall": 0.333,
+         "envelope": 0.333
+        },
+        "hr.hip_abd": {
+         "speed": 0.024,
+         "torque": 0.0,
+         "stall": 0.11,
+         "envelope": 0.11
+        },
+        "hr.stifle": {
+         "speed": 0.211,
+         "torque": 1.76,
+         "belt": 2.535,
+         "stall": 0.255,
+         "envelope": 0.258
+        },
+        "hr.hock": {
+         "speed": 0.522,
+         "torque": 1.2,
+         "belt": 2.218,
+         "stall": 0.333,
+         "envelope": 0.333
+        },
+        "fl.shoulder": {
+         "speed": 0.306,
+         "torque": 3.01,
+         "stall": 0.884,
+         "envelope": 0.958
+        },
+        "fl.carpus": {
+         "speed": 0.714,
+         "torque": 1.36,
+         "belt": 2.24,
+         "stall": 0.432,
+         "envelope": 0.851
+        },
+        "fr.shoulder": {
+         "speed": 0.306,
+         "torque": 3.01,
+         "stall": 0.884,
+         "envelope": 0.958
+        },
+        "fr.carpus": {
+         "speed": 0.714,
+         "torque": 1.36,
+         "belt": 2.24,
+         "stall": 0.432,
+         "envelope": 0.851
+        }
+       }
+      },
+      {
+       "move": "rise front",
+       "t0": 9.5,
+       "t1": 11.5,
+       "joint": "hl.stifle",
+       "limit": "belt",
+       "use": 4.0,
+       "margin": -3.0,
+       "joints": {
+        "hl.hip_abd": {
+         "speed": 0.003,
+         "torque": 0.0,
+         "stall": 0.084,
+         "envelope": 0.086
+        },
+        "hl.stifle": {
+         "speed": 0.029,
+         "torque": 2.76,
+         "belt": 4.0,
+         "stall": 0.286,
+         "envelope": 0.295
+        },
+        "hl.hock": {
+         "speed": 0.026,
+         "torque": 0.12,
+         "belt": 1.56,
+         "stall": 0.155,
+         "envelope": 0.158
+        },
+        "hr.hip_abd": {
+         "speed": 0.003,
+         "torque": 0.0,
+         "stall": 0.084,
+         "envelope": 0.086
+        },
+        "hr.stifle": {
+         "speed": 0.029,
+         "torque": 2.76,
+         "belt": 4.0,
+         "stall": 0.286,
+         "envelope": 0.295
+        },
+        "hr.hock": {
+         "speed": 0.026,
+         "torque": 0.12,
+         "belt": 1.56,
+         "stall": 0.155,
+         "envelope": 0.158
+        },
+        "fl.shoulder": {
+         "speed": 0.162,
+         "torque": 4.0,
+         "stall": 0.786,
+         "envelope": 0.948
+        },
+        "fl.carpus": {
+         "speed": 0.368,
+         "torque": 1.16,
+         "belt": 2.24,
+         "stall": 0.191,
+         "envelope": 0.341
+        },
+        "fr.shoulder": {
+         "speed": 0.162,
+         "torque": 4.0,
+         "stall": 0.786,
+         "envelope": 0.948
+        },
+        "fr.carpus": {
+         "speed": 0.368,
+         "torque": 1.16,
+         "belt": 2.24,
+         "stall": 0.191,
+         "envelope": 0.341
+        }
+       }
+      },
+      {
+       "move": "standing after",
+       "t0": 11.5,
+       "t1": 12.5,
+       "joint": "hl.stifle",
+       "limit": "belt",
+       "use": 4.0,
+       "margin": -3.0,
+       "joints": {
+        "hl.hip_abd": {
+         "speed": 0.0,
+         "torque": 0.0,
+         "stall": 0.015,
+         "envelope": 0.015
+        },
+        "hl.stifle": {
+         "speed": 0.014,
+         "torque": 2.76,
+         "belt": 4.0,
+         "stall": 0.259,
+         "envelope": 0.27
+        },
+        "hl.hock": {
+         "speed": 0.008,
+         "torque": 0.0,
+         "belt": 1.56,
+         "stall": 0.144,
+         "envelope": 0.15
+        },
+        "hr.hip_abd": {
+         "speed": 0.0,
+         "torque": 0.0,
+         "stall": 0.015,
+         "envelope": 0.015
+        },
+        "hr.stifle": {
+         "speed": 0.014,
+         "torque": 2.76,
+         "belt": 4.0,
+         "stall": 0.259,
+         "envelope": 0.27
+        },
+        "hr.hock": {
+         "speed": 0.008,
+         "torque": 0.0,
+         "belt": 1.56,
+         "stall": 0.144,
+         "envelope": 0.15
+        },
+        "fl.shoulder": {
+         "speed": 0.027,
+         "torque": 4.0,
+         "stall": 0.693,
+         "envelope": 0.72
+        },
+        "fl.carpus": {
+         "speed": 0.016,
+         "torque": 0.0,
+         "belt": 1.6,
+         "stall": 0.138,
+         "envelope": 0.138
+        },
+        "fr.shoulder": {
+         "speed": 0.027,
+         "torque": 4.0,
+         "stall": 0.693,
+         "envelope": 0.72
+        },
+        "fr.carpus": {
+         "speed": 0.016,
+         "torque": 0.0,
+         "belt": 1.6,
+         "stall": 0.138,
+         "envelope": 0.138
+        }
+       }
+      }
+     ],
+     "length_s": 12.5,
+     "wall_s": 5.78
+    },
+    {
+     "seed": 2,
+     "within": false,
+     "fell": false,
+     "sim_fell": false,
+     "tipped": false,
+     "risen": true,
+     "lying_height_mm": 281.9,
+     "margin": -3.0,
+     "closest": "servo_sustained",
+     "violations": [
+      "servo_sustained",
+      "belt_sustained"
+     ],
+     "moves": [
+      {
+       "move": "kneel",
+       "t0": 0.0,
+       "t1": 2.0,
+       "joint": "fl.shoulder",
+       "limit": "torque",
+       "use": 2.76,
+       "margin": -1.76,
+       "joints": {
+        "hl.hip_abd": {
+         "speed": 0.034,
+         "torque": 0.0,
+         "stall": 0.101,
+         "envelope": 0.101
+        },
+        "hl.stifle": {
+         "speed": 0.166,
+         "torque": 0.0,
+         "belt": 0.92,
+         "stall": 0.2,
+         "envelope": 0.231
+        },
+        "hl.hock": {
+         "speed": 0.379,
+         "torque": 0.04,
+         "belt": 0.08,
+         "stall": 0.204,
+         "envelope": 0.204
+        },
+        "hr.hip_abd": {
+         "speed": 0.034,
+         "torque": 0.0,
+         "stall": 0.101,
+         "envelope": 0.101
+        },
+        "hr.stifle": {
+         "speed": 0.166,
+         "torque": 0.0,
+         "belt": 0.92,
+         "stall": 0.2,
+         "envelope": 0.231
+        },
+        "hr.hock": {
+         "speed": 0.379,
+         "torque": 0.04,
+         "belt": 0.08,
+         "stall": 0.204,
+         "envelope": 0.204
+        },
+        "fl.shoulder": {
+         "speed": 0.376,
+         "torque": 2.76,
+         "stall": 0.871,
+         "envelope": 0.871
+        },
+        "fl.carpus": {
+         "speed": 0.831,
+         "torque": 0.32,
+         "belt": 0.56,
+         "stall": 0.307,
+         "envelope": 0.307
+        },
+        "fr.shoulder": {
+         "speed": 0.376,
+         "torque": 2.76,
+         "stall": 0.871,
+         "envelope": 0.871
+        },
+        "fr.carpus": {
+         "speed": 0.831,
+         "torque": 0.32,
+         "belt": 0.56,
+         "stall": 0.307,
+         "envelope": 0.307
+        }
+       }
+      },
+      {
+       "move": "lie",
+       "t0": 2.0,
+       "t1": 4.0,
+       "joint": "hl.stifle",
+       "limit": "belt",
+       "use": 2.64,
+       "margin": -1.64,
+       "joints": {
+        "hl.hip_abd": {
+         "speed": 0.013,
+         "torque": 0.0,
+         "stall": 0.12,
+         "envelope": 0.12
+        },
+        "hl.stifle": {
+         "speed": 0.536,
+         "torque": 0.0,
+         "belt": 2.64,
+         "stall": 0.158,
+         "envelope": 0.51
+        },
+        "hl.hock": {
+         "speed": 0.556,
+         "torque": 0.04,
+         "belt": 0.16,
+         "stall": 0.144,
+         "envelope": 0.144
+        },
+        "hr.hip_abd": {
+         "speed": 0.013,
+         "torque": 0.0,
+         "stall": 0.12,
+         "envelope": 0.12
+        },
+        "hr.stifle": {
+         "speed": 0.536,
+         "torque": 0.0,
+         "belt": 2.64,
+         "stall": 0.158,
+         "envelope": 0.51
+        },
+        "hr.hock": {
+         "speed": 0.556,
+         "torque": 0.04,
+         "belt": 0.16,
+         "stall": 0.144,
+         "envelope": 0.144
+        },
+        "fl.shoulder": {
+         "speed": 0.083,
+         "torque": 2.36,
+         "stall": 0.266,
+         "envelope": 0.305
+        },
+        "fl.carpus": {
+         "speed": 0.103,
+         "torque": 0.32,
+         "belt": 0.44,
+         "stall": 0.008,
+         "envelope": 0.068
+        },
+        "fr.shoulder": {
+         "speed": 0.083,
+         "torque": 2.36,
+         "stall": 0.266,
+         "envelope": 0.305
+        },
+        "fr.carpus": {
+         "speed": 0.103,
+         "torque": 0.32,
+         "belt": 0.44,
+         "stall": 0.008,
+         "envelope": 0.068
+        }
+       }
+      },
+      {
+       "move": "hold",
+       "t0": 4.0,
+       "t1": 5.5,
+       "joint": "hl.stifle",
+       "limit": "belt",
+       "use": 4.0,
+       "margin": -3.0,
+       "joints": {
+        "hl.hip_abd": {
+         "speed": 0.005,
+         "torque": 0.0,
+         "stall": 0.108,
+         "envelope": 0.112
+        },
+        "hl.stifle": {
+         "speed": 0.038,
+         "torque": 0.0,
+         "belt": 4.0,
+         "stall": 0.161,
+         "envelope": 0.161
+        },
+        "hl.hock": {
+         "speed": 0.031,
+         "torque": 0.0,
+         "belt": 0.12,
+         "stall": 0.019,
+         "envelope": 0.019
+        },
+        "hr.hip_abd": {
+         "speed": 0.005,
+         "torque": 0.0,
+         "stall": 0.108,
+         "envelope": 0.112
+        },
+        "hr.stifle": {
+         "speed": 0.038,
+         "torque": 0.0,
+         "belt": 4.0,
+         "stall": 0.161,
+         "envelope": 0.161
+        },
+        "hr.hock": {
+         "speed": 0.031,
+         "torque": 0.0,
+         "belt": 0.12,
+         "stall": 0.019,
+         "envelope": 0.019
+        },
+        "fl.shoulder": {
+         "speed": 0.01,
+         "torque": 3.6,
+         "stall": 0.228,
+         "envelope": 0.228
+        },
+        "fl.carpus": {
+         "speed": 0.007,
+         "torque": 0.0,
+         "belt": 0.0,
+         "stall": 0.009,
+         "envelope": 0.015
+        },
+        "fr.shoulder": {
+         "speed": 0.01,
+         "torque": 3.6,
+         "stall": 0.228,
+         "envelope": 0.228
+        },
+        "fr.carpus": {
+         "speed": 0.007,
+         "torque": 0.0,
+         "belt": 0.0,
+         "stall": 0.009,
+         "envelope": 0.015
+        }
+       }
+      },
+      {
+       "move": "rise hind",
+       "t0": 5.5,
+       "t1": 7.5,
+       "joint": "fl.shoulder",
+       "limit": "torque",
+       "use": 3.2,
+       "margin": -2.2,
+       "joints": {
+        "hl.hip_abd": {
+         "speed": 0.022,
+         "torque": 0.0,
+         "stall": 0.177,
+         "envelope": 0.177
+        },
+        "hl.stifle": {
+         "speed": 0.55,
+         "torque": 0.0,
+         "belt": 2.84,
+         "stall": 0.192,
+         "envelope": 0.741
+        },
+        "hl.hock": {
+         "speed": 0.544,
+         "torque": 0.0,
+         "belt": 2.24,
+         "stall": 0.2,
+         "envelope": 0.2
+        },
+        "hr.hip_abd": {
+         "speed": 0.022,
+         "torque": 0.0,
+         "stall": 0.177,
+         "envelope": 0.177
+        },
+        "hr.stifle": {
+         "speed": 0.55,
+         "torque": 0.0,
+         "belt": 2.84,
+         "stall": 0.192,
+         "envelope": 0.741
+        },
+        "hr.hock": {
+         "speed": 0.544,
+         "torque": 0.0,
+         "belt": 2.24,
+         "stall": 0.2,
+         "envelope": 0.2
+        },
+        "fl.shoulder": {
+         "speed": 0.087,
+         "torque": 3.2,
+         "stall": 0.41,
+         "envelope": 0.49
+        },
+        "fl.carpus": {
+         "speed": 0.104,
+         "torque": 0.16,
+         "belt": 0.2,
+         "stall": 0.013,
+         "envelope": 0.013
+        },
+        "fr.shoulder": {
+         "speed": 0.087,
+         "torque": 3.2,
+         "stall": 0.41,
+         "envelope": 0.49
+        },
+        "fr.carpus": {
+         "speed": 0.104,
+         "torque": 0.16,
+         "belt": 0.2,
+         "stall": 0.013,
+         "envelope": 0.013
+        }
+       }
+      },
+      {
+       "move": "reach",
+       "t0": 7.5,
+       "t1": 9.5,
+       "joint": "fl.shoulder",
+       "limit": "torque",
+       "use": 2.931,
+       "margin": -1.931,
+       "joints": {
+        "hl.hip_abd": {
+         "speed": 0.028,
+         "torque": 0.0,
+         "stall": 0.101,
+         "envelope": 0.101
+        },
+        "hl.stifle": {
+         "speed": 0.186,
+         "torque": 0.08,
+         "belt": 2.416,
+         "stall": 0.22,
+         "envelope": 0.23
+        },
+        "hl.hock": {
+         "speed": 0.452,
+         "torque": 0.08,
+         "belt": 2.059,
+         "stall": 0.303,
+         "envelope": 0.303
+        },
+        "hr.hip_abd": {
+         "speed": 0.028,
+         "torque": 0.0,
+         "stall": 0.101,
+         "envelope": 0.101
+        },
+        "hr.stifle": {
+         "speed": 0.186,
+         "torque": 0.08,
+         "belt": 2.416,
+         "stall": 0.22,
+         "envelope": 0.23
+        },
+        "hr.hock": {
+         "speed": 0.452,
+         "torque": 0.08,
+         "belt": 2.059,
+         "stall": 0.303,
+         "envelope": 0.303
+        },
+        "fl.shoulder": {
+         "speed": 0.29,
+         "torque": 2.931,
+         "stall": 0.815,
+         "envelope": 0.889
+        },
+        "fl.carpus": {
+         "speed": 0.695,
+         "torque": 1.32,
+         "belt": 2.48,
+         "stall": 0.396,
+         "envelope": 0.816
+        },
+        "fr.shoulder": {
+         "speed": 0.29,
+         "torque": 2.931,
+         "stall": 0.815,
+         "envelope": 0.889
+        },
+        "fr.carpus": {
+         "speed": 0.695,
+         "torque": 1.32,
+         "belt": 2.48,
+         "stall": 0.396,
+         "envelope": 0.816
+        }
+       }
+      },
+      {
+       "move": "rise front",
+       "t0": 9.5,
+       "t1": 11.5,
+       "joint": "fl.shoulder",
+       "limit": "torque",
+       "use": 4.0,
+       "margin": -3.0,
+       "joints": {
+        "hl.hip_abd": {
+         "speed": 0.003,
+         "torque": 0.0,
+         "stall": 0.073,
+         "envelope": 0.074
+        },
+        "hl.stifle": {
+         "speed": 0.029,
+         "torque": 2.12,
+         "belt": 3.68,
+         "stall": 0.249,
+         "envelope": 0.258
+        },
+        "hl.hock": {
+         "speed": 0.017,
+         "torque": 0.08,
+         "belt": 0.2,
+         "stall": 0.139,
+         "envelope": 0.142
+        },
+        "hr.hip_abd": {
+         "speed": 0.003,
+         "torque": 0.0,
+         "stall": 0.073,
+         "envelope": 0.074
+        },
+        "hr.stifle": {
+         "speed": 0.029,
+         "torque": 2.12,
+         "belt": 3.68,
+         "stall": 0.249,
+         "envelope": 0.258
+        },
+        "hr.hock": {
+         "speed": 0.017,
+         "torque": 0.08,
+         "belt": 0.2,
+         "stall": 0.139,
+         "envelope": 0.142
+        },
+        "fl.shoulder": {
+         "speed": 0.184,
+         "torque": 4.0,
+         "stall": 0.687,
+         "envelope": 0.866
+        },
+        "fl.carpus": {
+         "speed": 0.368,
+         "torque": 1.12,
+         "belt": 2.24,
+         "stall": 0.189,
+         "envelope": 0.341
+        },
+        "fr.shoulder": {
+         "speed": 0.184,
+         "torque": 4.0,
+         "stall": 0.687,
+         "envelope": 0.866
+        },
+        "fr.carpus": {
+         "speed": 0.368,
+         "torque": 1.12,
+         "belt": 2.24,
+         "stall": 0.189,
+         "envelope": 0.341
+        }
+       }
+      },
+      {
+       "move": "standing after",
+       "t0": 11.5,
+       "t1": 12.5,
+       "joint": "fl.shoulder",
+       "limit": "torque",
+       "use": 4.0,
+       "margin": -3.0,
+       "joints": {
+        "hl.hip_abd": {
+         "speed": 0.0,
+         "torque": 0.0,
+         "stall": 0.011,
+         "envelope": 0.011
+        },
+        "hl.stifle": {
+         "speed": 0.012,
+         "torque": 2.12,
+         "belt": 3.48,
+         "stall": 0.219,
+         "envelope": 0.226
+        },
+        "hl.hock": {
+         "speed": 0.007,
+         "torque": 0.0,
+         "belt": 0.0,
+         "stall": 0.125,
+         "envelope": 0.127
+        },
+        "hr.hip_abd": {
+         "speed": 0.0,
+         "torque": 0.0,
+         "stall": 0.011,
+         "envelope": 0.011
+        },
+        "hr.stifle": {
+         "speed": 0.012,
+         "torque": 2.12,
+         "belt": 3.48,
+         "stall": 0.219,
+         "envelope": 0.226
+        },
+        "hr.hock": {
+         "speed": 0.007,
+         "torque": 0.0,
+         "belt": 0.0,
+         "stall": 0.125,
+         "envelope": 0.127
+        },
+        "fl.shoulder": {
+         "speed": 0.025,
+         "torque": 4.0,
+         "stall": 0.592,
+         "envelope": 0.617
+        },
+        "fl.carpus": {
+         "speed": 0.017,
+         "torque": 0.0,
+         "belt": 0.84,
+         "stall": 0.116,
+         "envelope": 0.116
+        },
+        "fr.shoulder": {
+         "speed": 0.025,
+         "torque": 4.0,
+         "stall": 0.592,
+         "envelope": 0.617
+        },
+        "fr.carpus": {
+         "speed": 0.017,
+         "torque": 0.0,
+         "belt": 0.84,
+         "stall": 0.116,
+         "envelope": 0.116
+        }
+       }
+      }
+     ],
+     "length_s": 12.5,
+     "wall_s": 4.96
+    }
+   ]
+  }
+ }
+}

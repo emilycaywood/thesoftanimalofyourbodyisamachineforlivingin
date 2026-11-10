@@ -69,6 +69,27 @@ def test_screen_names_and_the_body_line():
     assert cmp.play_key("r12", "g", "run", "screen:walk", 0) != cmp.play_key("r12", "g", "run", "screen:walk", 1)
 
 
+def test_evolved_lie_rise_versions_per_body(tmp_path):
+    """ADR-107: each body's evolved version is read from the study JSON; the play name changes with the version;
+    the body line shows its whole-motion margin."""
+    f = tmp_path / "lr.json"
+    f.write_text(json.dumps({"bodies": {
+        "g1": {"search": {"settle_s": 1.0}, "best": {"params": {"kneel_carpus": 90.0}, "worst": -0.4, "held": False}},
+        "g2": {"search": {"settle_s": 1.0}, "best": {}}}}), encoding="utf-8")
+    spec = cmp.CompareSet(key="t", title="t", stage_b_run=B, r7_run=R7, bodies=["g1", "g2"],
+                          evolved={"lie_rise (evolved)": str(f)})
+    ev = cmp.evolved_versions(spec)["lie_rise (evolved)"]
+    assert ev["settle_s"] == 1.0 and list(ev["bodies"]) == ["g1"]  # g2 has no version yet
+    a = cmp.evolved_play("lie_rise (evolved)", {"kneel_carpus": 90.0})
+    assert a.startswith("evolved:lie_rise (evolved):") and a != cmp.evolved_play("lie_rise (evolved)",
+                                                                                 {"kneel_carpus": 91.0})
+    line = cmp.body_line({"held": 14, "trot_mm_s": 414.0, "lie_rise": -0.24, "cost": 2.37, "lie_rise_evolved": -0.4})
+    assert line == "14 held · trot 414 mm/s · lie_rise -0.24 (evolved, whole: -0.40) · cost 2.37"
+    missing = cmp.CompareSet(key="t", title="t", stage_b_run=B, r7_run=R7, bodies=["g1"],
+                             evolved={"x": str(tmp_path / "none.json")})
+    assert cmp.evolved_versions(missing) == {"x": {"settle_s": 1.0, "bodies": {}}}
+
+
 # ---------------------------------------------------------------------------------------------- the manifest
 class FakeRegistry:
     """Just what ``calflab.app.compare`` reads: two Stage C runs seeded with three R7 generators."""
@@ -191,7 +212,11 @@ def test_r12_manifest_on_the_project():
         assert [b["key"] for b in m["bodies"]] == cmp.SETS["r12"].bodies
         assert all(b["stage_c_run"] for b in m["bodies"])
         groups = {g["key"]: g for g in m["groups"]}
-        assert len(groups["screen"]["items"]) == 5 and len(groups["shared"]["items"]) == 11
+        assert len(groups["screen"]["items"]) == 6 and len(groups["shared"]["items"]) == 11
+        evolved = groups["screen"]["items"][-1]  # ADR-107: each body its own version, or "not evolved yet"
+        assert evolved["label"] == "lie_rise (evolved)"
+        for c in evolved["cells"]:
+            assert (c["play"] or "").startswith("evolved:lie_rise (evolved):") or c["message"] == "not evolved yet"
         assert groups["own"]["items"]
         p = cmp.plan(lab, cmp.SETS["r12"])
         for it in groups["own"]["items"]:

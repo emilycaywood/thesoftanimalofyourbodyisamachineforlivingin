@@ -60,6 +60,11 @@ class CompareSet(BaseModel):
     near: float = Field(0.1, description="A play within this of the margin is 'near' (orange).")
     max_cell_distance: int = Field(2, description="Farthest archive cell (Chebyshev, in cells) an own behaviour may "
                                                   "be matched to when no behaviour shares its R7 generator.")
+    evolved: dict[str, str] = Field(
+        default_factory=dict,
+        description="Screen plays evolved per body (ADR-107): label -> repo-relative JSON with "
+                    "bodies.<body>.best.params (lie_rise primitive params) and search.settle_s. Each body plays its "
+                    "own version, judged over the whole motion (calflab.evolve.lie_rise.play_seed).")
     title_prefix: str = "R12 compare"
 
 
@@ -68,7 +73,8 @@ SETS: dict[str, CompareSet] = {
         key="r12", title="R12 / Stage C bodies (ADR-105)",
         stage_b_run="20261107-043030-evolve-c02e", r7_run="20261105-232649-evolve-4237",
         bodies=["working", "g007-002", "g009-000", "g012-009", "g011-003", "g020-008-r01"],
-        labels={"working": "working body"}, study="docs/studies/stagec_r12.json"),
+        labels={"working": "working body"}, study="docs/studies/stagec_r12.json",
+        evolved={"lie_rise (evolved)": "docs/studies/lierise_r13.json"}),
 }
 
 
@@ -176,11 +182,35 @@ def _num(v: float | None, fmt: str, none: str = "-") -> str:
 
 
 def body_line(numbers: dict[str, Any]) -> str:
-    """'23 held · trot - · lie_rise -1.44 · cost 1.58' (trot '-' = no trot within limits)."""
+    """'23 held · trot - · lie_rise -1.44 · cost 1.58' (trot '-' = no trot within limits); with an evolved lie_rise
+    (ADR-107) its worst-seed margin over the whole motion follows: 'lie_rise -1.44 (evolved, whole: -0.40)'."""
     held = numbers.get("held")
     trot = numbers.get("trot_mm_s")
+    ev = numbers.get("lie_rise_evolved")
+    evolved = "" if ev is None else f" (evolved, whole: {ev:+.2f})"
     return (f"{'?' if held is None else held} held · trot {_num(trot or None, '.0f')} mm/s · "
-            f"lie_rise {_num(numbers.get('lie_rise'), '+.2f')} · cost {_num(numbers.get('cost'), '.2f')}")
+            f"lie_rise {_num(numbers.get('lie_rise'), '+.2f')}{evolved} · cost {_num(numbers.get('cost'), '.2f')}")
+
+
+def evolved_versions(spec: CompareSet) -> dict[str, dict[str, Any]]:
+    """Per evolved label: ``{"settle_s": s, "bodies": {body: {"params", "worst", "held"}}}`` from its JSON (missing
+    file or body = not evolved yet)."""
+    from calflab.paths import repo_root
+
+    out: dict[str, dict[str, Any]] = {}
+    for label, rel in spec.evolved.items():
+        f = repo_root() / rel
+        data = json.loads(f.read_text(encoding="utf-8")) if f.is_file() else {}
+        bodies = {b: {"params": v["best"]["params"], "worst": v["best"].get("worst"), "held": v["best"].get("held")}
+                  for b, v in (data.get("bodies") or {}).items() if (v.get("best") or {}).get("params")}
+        first: dict[str, Any] = next(iter((data.get("bodies") or {}).values()), {})
+        out[label] = {"settle_s": float((first.get("search") or {}).get("settle_s", 1.0)), "bodies": bodies}
+    return out
+
+
+def evolved_play(label: str, params: dict[str, Any]) -> str:
+    """A cell's play name for a body's evolved version (changes when the version does)."""
+    return f"evolved:{label}:{digest(params)[:12]}"
 
 
 def item_key(origin: int | None, cell: list[int]) -> str:
@@ -238,7 +268,8 @@ def plan(lab: Any, spec: CompareSet) -> dict[str, Any]:
     from calflab.evolve.hardware import HardwareSettings
 
     runs = stage_c_runs(lab, spec)
-    sig = digest({"spec": spec.model_dump(), "runs": runs})
+    evolved = evolved_versions(spec)
+    sig = digest({"spec": spec.model_dump(), "runs": runs, "evolved": evolved})
     hit = _PLAN_CACHE.get(spec.key)
     if hit is not None and hit[0] == sig:
         return hit[1]
@@ -261,6 +292,9 @@ def plan(lab: Any, spec: CompareSet) -> dict[str, Any]:
     for body in spec.bodies:
         rid = runs.get(body)
         nums = body_numbers(study.get(body))
+        for ev in evolved.values():
+            if body in ev["bodies"]:
+                nums["lie_rise_evolved"] = ev["bodies"][body]["worst"]
         row = {"key": body, "label": spec.labels.get(body, body), "stage_c_run": rid, "numbers": nums,
                "line": body_line(nums), "candidate": (study.get(body) or {}).get("candidate")}
         bodies.append(row)
@@ -296,6 +330,18 @@ def plan(lab: Any, spec: CompareSet) -> dict[str, Any]:
         screen_items.append({"key": f"screen:{key}", "label": label, "kind": "screen", "play": key,
                              "cells": [{"body": b["key"], "play": f"screen:{key}", "playing": label,
                                         "match": None} for b in bodies]})
+    for label, ev in evolved.items():  # each body its own version (ADR-107)
+        cells = []
+        for b in bodies:
+            got = ev["bodies"].get(b["key"])
+            if got is None:
+                cells.append({"body": b["key"], "play": None, "playing": None, "match": "not evolved yet"})
+                continue
+            cells.append({"body": b["key"], "play": evolved_play(label, got["params"]), "match": None,
+                          "playing": f"{label}: this body's version (worst-seed margin {got['worst']:+.2f}, whole "
+                                     f"motion)"})
+        screen_items.append({"key": f"screen:{label}", "label": label, "kind": "screen", "play": label,
+                             "cells": cells})
     groups.append({"key": "screen", "title": "Screen plays (every body)", "items": screen_items})
     # ---- shared behaviours
     shared_items = [{"key": f"shared:{p.label}", "label": p.label, "kind": "shared", "ref": p.ref,
@@ -364,7 +410,8 @@ def manifest(lab: Any, set_key: str) -> dict[str, Any]:
                         seeds.append({"seed": seed, "run": rec.id, "badge": b, "margin": mg,
                                       "limit": m.get("stopped_by"), "text": text, "href": f"/?replay={rec.id}"})
                 cells.append({**c, "empty": c["play"] is None,
-                              "message": "no matching behaviour" if c["play"] is None else None, "seeds": seeds})
+                              "message": (c.get("match") or "no matching behaviour") if c["play"] is None else None,
+                              "seeds": seeds})
             items.append({**{k: v for k, v in it.items() if k != "cells"}, "cells": cells})
         groups.append({**g, "items": items})
     return {"set": spec.key, "title": spec.title, "seeds": list(spec.seeds), "near": spec.near,
@@ -402,6 +449,7 @@ def todo(lab: Any, set_key: str, seeds: list[int] | None = None) -> list[dict[st
     perfs = {x["label"]: x for x in preset["evaluation"]["hardware"]["performances"]}
     screens = {x["key"]: x for x in screen_plays(hw)}
     own = {f"own:{c['candidate']}": c for cs in p["_cells"].values() for c in cs}
+    evolved = evolved_versions(spec)
     gp = _generator_params(lab, brun)
     gdef = genome_definition("feral_calf")
     bodies: dict[str, dict[str, Any]] = {}
@@ -424,6 +472,11 @@ def todo(lab: Any, set_key: str, seeds: list[int] | None = None) -> list[dict[st
             item = {"kind": "screen", "label": name, **screens[name]}
         elif kind == "shared":
             item = {"kind": "performance", "label": name, "controller": perfs[name]["controller"]}
+        elif kind == "evolved":
+            label = name.rsplit(":", 1)[0]
+            ev = evolved[label]
+            item = {"kind": "lie_rise", "label": label, "params": ev["bodies"][body]["params"],
+                    "settle_s": ev["settle_s"]}
         else:
             c = own[play]
             item = {"kind": "performance", "label": f"{c['short']} q{c['qom']:.1f}", "controller": c["controller"],
@@ -447,10 +500,18 @@ def play_task(payload: dict[str, Any]) -> dict[str, Any]:
     from calflab.sim import CompileOptions, SimSettings, compile_mjcf, run_rollout
 
     load_plugins()
+    seed, margin, item = int(payload["seed"]), float(payload["margin"]), payload["item"]
+    if item["kind"] == "lie_rise":  # a body's own evolved version, judged over the whole motion (ADR-107)
+        from calflab.evolve.lie_rise import play_seed
+
+        t = time.perf_counter()
+        path = Path(tempfile.mkdtemp(prefix="calflab-compare-")) / "rollout.npz"
+        rec = play_seed(payload, item["params"], seed, margin, float(item["settle_s"]), rollout_path=str(path))
+        return {"report": rec, "rollout": str(path), "compile": rec.pop("compile"), "controller": rec["controller"],
+                "wall_s": round(time.perf_counter() - t, 1)}
     design, lib = _build(payload)
     ev = EvaluationSettings.model_validate(payload["evaluation"])
     copts = compile_options(payload.get("compile", {}), ev)
-    seed, margin, item = int(payload["seed"]), float(payload["margin"]), payload["item"]
     t = time.perf_counter()
     cm = compile_mjcf(design.spec, lib, CompileOptions.model_validate(copts), seed)
     if item["kind"] == "screen":
