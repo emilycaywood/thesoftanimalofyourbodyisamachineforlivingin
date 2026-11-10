@@ -371,8 +371,8 @@ def optimise(payload: dict[str, Any], seeds: list[int], margin: float, s: LieRis
              map_fn: MapFn | None = None, cache: str | None = None,
              report: Callable[[str], None] | None = None) -> dict[str, Any]:
     """CMA-ES (maximising the worst-seed margin) over the lie_rise dims for one body. Today's motion and
-    ``s.starts`` are played first; the search starts from today's. Deterministic for a given seed (results do not
-    depend on the worker count)."""
+    ``s.starts`` are played first; the search starts from the best of them. Deterministic for a given seed (results
+    do not depend on the worker count)."""
     import cma
 
     map_fn = map_fn or _serial
@@ -387,7 +387,9 @@ def optimise(payload: dict[str, Any], seeds: list[int], margin: float, s: LieRis
         e["generation"] = -1
     history += evals
     best = max(evals, key=_key)
-    es = cma.CMAEvolutionStrategy(list(np.clip(x_of(start, ds), 0.02, 0.98)), s.sigma,
+    # the search starts from the best of what was played first (today's motion unless a start beats it)
+    x0 = x_of({**start, **{k: v for k, v in best["params"].items() if k in start}}, ds)
+    es = cma.CMAEvolutionStrategy(list(np.clip(x0, 0.02, 0.98)), s.sigma,
                                   {"bounds": [0.0, 1.0], "popsize": s.popsize, "seed": s.seed + 7919, "verbose": -9})
     for g in range(s.generations):
         xs = es.ask()

@@ -758,6 +758,28 @@ motions*: mode
 servo's speed (*speed fraction*; a 2:1 belt halves that speed). For a mix of
 behaviors, see the Behave workspace.
 
+**Lying down and rising, move by move (ADR-107).** `lie_rise` is five moves
+and a hold: kneel on the carpi, lie down, hold, rise behind, reach forward
+with both front legs, rise in front. Besides *phase s* (each move's time) and
+*hold s*, the Lie/rise fields now set: the kneel and reach angles; a time per
+move (*kneel s*, *lie s*, *rise hind s*, *reach s*, *rise front s*; 0 = *phase
+s*); *front first* (0.5 or more: reach and push up from lying first, sitting
+on the folded hind legs, then rise behind, as a horse does; under 0.5 the
+hind end first, as cattle do); *rock back deg* and *rock s* (before the front
+rise the hind legs fold a little further, moving the weight back; held
+through the reach, released as the chest comes up); *pause mid s* (after the
+first rise) and *pause reach s* (after the reach, front hooves planted). The
+angles you type are kept 2 deg inside each joint's range. With every new
+field at its default the motion is exactly the one before.
+
+To find a version for a body without changing the document:
+`python docs/studies/lierise_r13.py projects/robot-calf-final optimise
+<body> ...` (bodies of the R12 compare set; `--generations=30 --popsize=12`;
+`--lying` also searches the lying pose) runs CMA-ES on the worst margin over
+the three seeds of the R11c suite, and `... diagnose <body>` prints, per move,
+which joint and limit come closest. `... report` makes the tables. Plays are
+cached in `<project>/.cache/lie_rise`.
+
 **Turning the legs out (ADR-072).** Form > Rear legs and Front legs have
 *toe-out* (hooves pointing outward) and *splay* (lower end of the leg
 outward) for each pair. They are fixed mount angles of the leg's servo seat,
@@ -1202,7 +1224,15 @@ and starts them together; every few seconds a cell that has drifted is put
 back in step. Its three sections:
 
 * **Screen plays (every body):** lie_rise, walk, turn, the quick trot (0.4 s,
-  stride 2.0) and the slowest trot of the grid (0.8 s, stride 0.5).
+  stride 2.0), the slowest trot of the grid (0.8 s, stride 0.5) and
+  **lie_rise (evolved)**: each body plays its own version of lying down and
+  rising, found by session R13's search (ADR-107,
+  `docs/studies/lierise_r13.md`), judged over the whole motion and one second
+  of standing after it. The plain `lie_rise` item is the screen's play, which
+  stops at 10 s (before the front rise ends) and, on bodies that lie lower
+  than 45 % of their standing height, at the moment they lie down; its badge
+  is therefore not the whole motion's. The cell line adds the evolved
+  version's worst-seed margin: `lie_rise -0.16 (evolved, whole: ...)`.
 * **Shared behaviours:** R6c's and R7's 11, the ones Stage B judged every body
   on.
 * **Own behaviours (Stage C):** each body's own safe cells, matched across

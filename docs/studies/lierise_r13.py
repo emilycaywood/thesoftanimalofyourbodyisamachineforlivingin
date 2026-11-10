@@ -126,7 +126,10 @@ def optimise(lab: Any, bodies: list[str], opts: dict[str, str]) -> None:
         for body in bodies:
             t0 = time.time()
             print(time.strftime("%H:%M:%S"), body, flush=True)
-            r = opt(pays[body], list(ev["seeds"]), _margin(ev), s, pmap, cache,
+            sb = s
+            if lying and (data.get("bodies") or {}).get(body):  # warm start: this body's Stage 2 best
+                sb = s.model_copy(update={"starts": [data["bodies"][body]["best"]["params"]]})
+            r = opt(pays[body], list(ev["seeds"]), _margin(ev), sb, pmap, cache,
                     lambda m, b=body: print(time.strftime("%H:%M:%S"), b, m, flush=True))
             best = r["best"]
             # the best version, played again with stop_on_fall off and per-move detail (as stored runs play it)
@@ -194,22 +197,30 @@ def report() -> None:
         for body, b in d["bodies"].items():
             print(f"\n### {body}\n")
             print("\n".join(move_table(b["full"])))
-    if OUT.is_file():
-        o = json.loads(OUT.read_text(encoding="utf-8"))
-        print("\n## Stage 2: evolved per body\n")
+    if not OUT.is_file():
+        return
+    o = json.loads(OUT.read_text(encoding="utf-8"))
+    for section, title in (("bodies", "Stage 2: the primitive's dims, per body"),
+                           ("bodies_lying", "Extension: the lying pose searched too (--lying)")):
+        if not o.get(section):
+            continue
+        print(f"\n## {title}\n")
         print("| body | today (whole) worst | best worst-seed | holds 3/3 | plays (new) | wall min | best version |")
         print("|---|---|---|---|---|---|---|")
-        for body, b in o["bodies"].items():
+        for body, b in o[section].items():
             p = b["best"]["params"]
             order = "front first" if p["front_first"] >= 0.5 else "hind first"
             desc = (f"{order}; kneel {p['kneel_shoulder']:.0f}/{p['kneel_carpus']:.0f}, reach {p['reach_shoulder']:.0f}/"
                     f"{p['reach_carpus']:.0f}; moves {p['kneel_s']:.1f}/{p['lie_s']:.1f}/{p['rise_hind_s']:.1f}/"
                     f"{p['reach_s']:.1f}/{p['rise_front_s']:.1f} s; hold {p['hold_s']:.1f}; rock {p['rock_back_deg']:.0f} "
                     f"deg/{p['rock_s']:.1f} s; pauses {p['pause_mid_s']:.1f}/{p['pause_reach_s']:.1f} s")
+            if "lie_stifle" in p:
+                desc += (f"; lying stifle/hock {p['lie_stifle']:.0f}/{p['lie_hock']:.0f}, shoulder/carpus "
+                         f"{p['lie_shoulder']:.0f}/{p['lie_carpus']:.0f}")
             print(f"| {body} | {b['start']['worst']:+.3f} | {b['best']['worst']:+.3f} | "
                   f"{'yes' if b['best']['held'] else 'no'} | {b['plays']} ({b['new_plays']}) | {b['wall_s'] / 60:.0f} | "
                   f"{desc} |")
-        for body, b in o["bodies"].items():
+        for body, b in o[section].items():
             print(f"\n### {body}: best version, per move\n")
             print("\n".join(move_table(b["best_seeds"])))
 
