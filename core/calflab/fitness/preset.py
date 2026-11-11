@@ -53,6 +53,8 @@ class FitnessPreset(BaseModel):
     description: str = ""
     terms: list[TermRef]
     evaluation: EvaluationSettings | None = None
+    #: behaviours judged by their outcome (calflab.evolve.outcomes.OutcomeSettings; ADR-110); None = not used
+    outcomes: dict[str, Any] | None = None
 
     @property
     def ref(self) -> str:

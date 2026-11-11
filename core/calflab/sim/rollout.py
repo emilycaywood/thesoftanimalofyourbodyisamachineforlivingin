@@ -67,6 +67,9 @@ class Rollout:
     spring_ids: list[str] = field(default_factory=list)
     spring_force: np.ndarray | None = None
     spring_torque: np.ndarray | None = None
+    #: contact probes (ADR-110): ids and the force on the probe's robot geoms from its other geoms [T, P, 3] N, world
+    probe_ids: list[str] = field(default_factory=list)
+    probe_force: np.ndarray | None = None
 
     @property
     def n_frames(self) -> int:
@@ -86,6 +89,9 @@ class Rollout:
         extra = {}
         if self.spring_force is not None and self.spring_torque is not None:
             extra = {"spring_force": self.spring_force, "spring_torque": self.spring_torque}
+        if self.probe_force is not None and self.probe_ids:
+            meta["probe_ids"] = self.probe_ids
+            extra["probe_force"] = self.probe_force
         np.savez_compressed(
             path,
             t=self.t,
@@ -126,6 +132,8 @@ class Rollout:
                 spring_ids=list(meta.get("spring_ids", [])),
                 spring_force=z["spring_force"] if "spring_force" in z.files else None,
                 spring_torque=z["spring_torque"] if "spring_torque" in z.files else None,
+                probe_ids=list(meta.get("probe_ids", [])),
+                probe_force=z["probe_force"] if "probe_force" in z.files else None,
             )
 
 
@@ -266,8 +274,32 @@ def run_rollout(
             sp_force[i] = f
             sp_torque[i] = f * float(np.dot(np.cross(pb - jp, unit), ax))
 
+    # contact probes (ADR-110): geom id -> probe index (robot side) and the geoms they are measured against
+    nP = len(cm.probes)
+    probe_own: list[set[int]] = [{model.geom(g).id for g in pr["geoms"]} for pr in cm.probes]
+    probe_other: list[set[int]] = [{model.geom(g).id for g in pr["other"]} for pr in cm.probes]
+    frame_buf = np.zeros(6)
+
+    def probe_forces() -> np.ndarray:
+        """Per probe, the summed contact force (world frame, N) on its robot geoms from its other geoms."""
+        out = np.zeros((nP, 3))
+        for i in range(data.ncon):
+            c = data.contact[i]
+            g1, g2 = int(c.geom1), int(c.geom2)
+            for k in range(nP):
+                if g1 in probe_own[k] and g2 in probe_other[k]:
+                    sign = -1.0  # contact force acts on geom2 along +normal: on geom1 it is the opposite
+                elif g2 in probe_own[k] and g1 in probe_other[k]:
+                    sign = 1.0
+                else:
+                    continue
+                mujoco.mj_contactForce(model, data, i, frame_buf)
+                frame = np.asarray(c.frame, dtype=float).reshape(3, 3)  # rows: normal, two tangents (world)
+                out[k] += sign * (frame.T @ frame_buf[:3])
+        return out
+
     rec: dict[str, list[Any]] = {
-        k: [] for k in ("t", "pos", "quat", "q", "ctrl", "torque", "dq", "ff", "com", "temp", "sf", "st")
+        k: [] for k in ("t", "pos", "quat", "q", "ctrl", "torque", "dq", "ff", "com", "temp", "sf", "st", "pf")
     }
     impacts: list[tuple[float, int, float]] = []
     prev_contact = np.zeros(nF, dtype=bool)
@@ -351,6 +383,8 @@ def run_rollout(
             rec["temp"].append(temp.astype(np.float32))
             rec["sf"].append(sp_force.astype(np.float32))
             rec["st"].append(sp_torque.astype(np.float32))
+            if nP:
+                rec["pf"].append(probe_forces().astype(np.float32))
             n = len(rec["t"])
             if on_frames and (n - pending_from >= chunk_frames):
                 on_frames(_chunk(rec, pending_from, n))
@@ -418,6 +452,8 @@ def run_rollout(
         spring_ids=[sp["id"] for sp in cm.springs],
         spring_force=arr("sf", (nS,)) if nS else None,
         spring_torque=arr("st", (nS,)) if nS else None,
+        probe_ids=[pr["id"] for pr in cm.probes],
+        probe_force=arr("pf", (nP, 3)) if nP else None,
         meta={
             # what the controller says it did (e.g. the behaviors it chose, ADR-073)
             "controller_log": controller.log() if hasattr(controller, "log") else None,

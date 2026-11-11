@@ -115,6 +115,9 @@ class CompiledModel:
     springs: list[dict[str, Any]] = field(default_factory=list)
     #: "torque" or "torque_speed" (ADR-084)
     servo_model: str = "torque"
+    #: contact probes (ADR-110): ``{"id", "geoms": [robot geom names], "other": [geom names]}``; the runner records
+    #: the summed contact force on ``geoms`` from ``other`` per frame (world frame, N). Empty = nothing recorded.
+    probes: list[dict[str, Any]] = field(default_factory=list)
 
 
 def _f(x: float) -> str:
