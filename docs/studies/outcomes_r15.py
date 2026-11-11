@@ -118,6 +118,79 @@ def pilot(lab: Any, opts: dict[str, str]) -> None:
     print("pilot wall", data["pilot_wall_s"], "s", flush=True)
 
 
+#: suckling variants asked for after the pilot (Emily, 2026-11-11: "a little less subtle? or shorter?"): the press
+#: window (s, after the 6 s approach) and the press floor (N, 20th percentile)
+SUCKLE_VARIANTS = {"A-short": {"press_s": 10.0, "min_n": 0.25}, "B-short-firm": {"press_s": 10.0, "min_n": 1.0}}
+
+
+def suckle_variants(lab: Any, opts: dict[str, str]) -> None:
+    """Suckling searched again per variant (``SUCKLE_VARIANTS``), both bodies side by side; results in
+    ``suckle_variants`` of the JSON, the best of each stored as a run ``R15 <body> suckle <variant>: seed 0``."""
+    from calflab.evolve.outcomes import (
+        BehaviourSpace,
+        OutcomeSearch,
+        controller_params,
+        default_spaces,
+        optimise,
+        play_length,
+        play_seed,
+        warm_starts,
+    )
+
+    bodies = (opts.get("bodies") or ",".join(BODIES)).split(",")
+    model = opts.get("model", "explicit_v2")
+    workers = int(opts.get("workers", 14))
+    s = OutcomeSearch(popsize=int(opts.get("pop", 12)), generations=int(opts.get("gens", 20)))
+    pl, ev = payloads(lab, bodies, model)
+    margin = float(ev["hardware"]["margin"])
+    cache = str(Path(sys.argv[1]) / ".cache" / "outcomes")
+    base = default_spaces()["suckle"]
+    data = _load(OUT)
+    out = data.setdefault("suckle_variants", {})
+    t0 = time.time()
+    with ProcessPoolExecutor(max_workers=workers) as pool:
+        def map_fn(fn: Any, jobs: list[dict[str, Any]]) -> list[dict[str, Any]]:
+            return list(pool.map(fn, jobs))
+
+        def space_of(v: dict[str, float]) -> BehaviourSpace:
+            length = 6.0 + v["press_s"]
+            dims = [(n, lo, min(hi, length)) if n == "p3_s" else (n, lo, hi) for n, lo, hi in base.dims]
+            return base.model_copy(update={"dims": dims, "search_s": length, "judge_s": length,
+                                           "task": {**base.task, "contact_n": v["min_n"]}})
+
+        def one(tag: str, body: str) -> tuple[str, str, dict[str, Any]]:
+            r = optimise(pl[body], space_of(SUCKLE_VARIANTS[tag]), margin, s, warm_starts("suckle"), map_fn, cache,
+                         report=lambda m: print(f"[{tag} {body}] {m} ({time.time() - t0:.0f} s)", flush=True))
+            return tag, body, r
+
+        with ThreadPoolExecutor(max_workers=len(bodies) * len(SUCKLE_VARIANTS)) as th:
+            futs = {th.submit(one, tag, b): (tag, b) for tag in SUCKLE_VARIANTS for b in bodies}
+            for f in as_completed(futs):
+                tag, body, r = f.result()
+                out.setdefault(tag, {"variant": SUCKLE_VARIANTS[tag]})[body] = r
+                print(f"DONE {tag} {body}: holds {r['best']['holds']} rank {r['best']['rank']} wall {r['wall_s']} s",
+                      flush=True)
+                OUT.write_bytes(json.dumps(data, indent=1, default=float).encode())
+    data["suckle_variants_wall_s"] = round(time.time() - t0, 1)
+    tmp = Path(sys.argv[1]) / ".cache" / "outcomes_rollouts"
+    stored = data.setdefault("stored", {})
+    for tag in SUCKLE_VARIANTS:
+        for body in bodies:
+            r = out[tag][body]
+            space = BehaviourSpace.model_validate(r["space"])
+            params = r["best"]["params"]
+            path = tmp / f"{body}_suckle_{tag}.npz"
+            rec = play_seed(pl[body], space, params, 0, margin, judging=True, rollout_path=str(path))
+            run_id = _store_run(lab, pl[body], f"R15 {body} suckle {tag}: seed 0", path,
+                                {"key": "outcome_motion", "params": controller_params(space, params)},
+                                play_length(space, params, True), rec)
+            stored.setdefault(body, {})[f"suckle {tag}"] = run_id
+            o = rec["outcome"]
+            print("STORED", tag, body, run_id, "holds", rec["holds"], "p20", o.get("push_p20_n"), "slip",
+                  o.get("slip_max_mm"), [k for k, v in o["gates"].items() if not v], rec["binding"], flush=True)
+    OUT.write_bytes(json.dumps(data, indent=1, default=float).encode())
+
+
 def _mass(payload: dict[str, Any]) -> float:
     from calflab.evolve.hardware import _build
 
@@ -351,6 +424,8 @@ def main() -> None:
             pilot(lab, opts)
         elif stage == "store":
             store(lab, opts)
+        elif stage == "suckle_variants":
+            suckle_variants(lab, opts)
     finally:
         close = getattr(lab, "close", None)
         if close:
