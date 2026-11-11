@@ -1845,6 +1845,7 @@ Journal, Rhino bridge):**
 | `docs/proposals/anatomical-leg.md` | Proposal for a three-segment leg (set aside 2026-10-04; not built) |
 | `docs/USER_GUIDE.md` | How to use the lab |
 | `docs/CHAT_GUIDE_PROMPT.md` | Prompt that makes a chat assistant a guide to the whole lab |
+| `docs/CHAT_GUIDE_BATTERY.md` | Prompt for a chat that sizes and sources the battery from the simulated servo loads (as of R13; the 2200 vs 5000 mAh question, the C018's unknown stall current) |
 | `docs/CHAT_GUIDE_HARDWARE.md` | Prompt for a chat about the feral calf's hardware, behaviour loads and the R11 search (as of R11) |
 | `docs/CHAT_GUIDE_CHASSIS.md` | The same for one workflow: chassis parts from Rhino, real mass, own components, the small calf |
 | `docs/CHAT_GUIDE_PROTOTYPE.md` | The same for one job: a small prototype already modelled in Rhino (PLA and steel rods) into the simulator; covers ADR-053 and the infill estimate of ADR-054, which `CHAT_GUIDE_CHASSIS.md` only points to |
