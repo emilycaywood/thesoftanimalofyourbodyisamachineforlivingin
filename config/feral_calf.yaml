@@ -51,6 +51,14 @@ mass_models:
     leg_tube: cf_leg_tube_16x12       # config/components/materials.yaml; replaces the tube-gene leg tube masses
     battery_total_g: 270              # both packs together, split evenly over the packs at their placement
     headroom_g: 300                   # PROVISIONAL headroom at the trunk's centre of mass: not a part
+  # explicit_v2 (ADR-109): explicit_v1 with the researcher's chosen pack in place of the two 135 g packs, 2026-11-11
+  explicit_v2:
+    pulley_axle: pulley_axle
+    servo_horn: servo_horn
+    leg_tube: cf_leg_tube_16x12
+    battery: flywoo_p45b_3s1p_4500    # config/components/electronics.yaml; its mass from the library
+    battery_packs: 1                  # on the centre line at the packs' place (battery_forward, battery_drop)
+    headroom_g: 300
 
 # Design dimensions (mm). PROVISIONAL (ADR-067): chosen to make the checks
 # computable, not supplied.

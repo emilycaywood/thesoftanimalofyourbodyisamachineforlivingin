@@ -52,9 +52,9 @@ genes:
   # was evolved and judged with. explicit_v1 = the researcher's masses of 2026-11-11 added: pulley axles, servo
   # horns, 16 x 12 mm CF leg tubes at 1.65 g/cm3 (replacing the tube-gene estimate), the packs at 270 g in total and
   # 300 g of PROVISIONAL headroom at the trunk's centre of mass (values in config/feral_calf.yaml mass_models).
-  - {id: mass_model, type: enum, default: as_entered, absent: as_entered, choices: [as_entered, explicit_v1], group: Body,
+  - {id: mass_model, type: enum, default: as_entered, absent: as_entered, choices: [as_entered, explicit_v1, explicit_v2], group: Body,
      evolvable: false, label: "Mass model",
-     description: "as_entered: parts not entered weigh 0 g (ADR-068). explicit_v1: pulley axles, servo horns, 16 x 12 mm CF leg tubes, 270 g of packs and 300 g of PROVISIONAL headroom (ADR-108)."}
+     description: "as_entered: parts not entered weigh 0 g (ADR-068). explicit_v1: pulley axles, servo horns, 16 x 12 mm CF leg tubes, 270 g of packs and 300 g of PROVISIONAL headroom (ADR-108). explicit_v2: the same with one Flywoo P45B 3S1P 4500 mAh pack (224.3 g) in place of the two packs (ADR-109)."}
   # Wider blocks (ADR-089): the hooves stand wider with the legs straight under their hip ab/ad axes, so the
   # weight does not twist those servos. The rails keep their spacing; a block grows outward on both sides.
   - {id: hip_block_widen, default: 0, absent: 0, min: 0, max: 150, step: 1, unit: mm, group: Body, provisional: true, evolvable: true,

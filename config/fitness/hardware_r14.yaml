@@ -1,7 +1,9 @@
 # Fitness preset R14 (ADR-108): written by docs/studies/mass_r14.py preset. Use with the optimizer
 # map_elites_hardware. Bump `version` whenever you change it.
+# v2 (ADR-109): mass_model explicit_v2, the Flywoo P45B 3S1P 4500 mAh pack in place of the two
+# 135 g packs. Runs made with earlier versions carry their own copy.
 name: hardware_r14
-version: 1
+version: 2
 description: 'R14 (ADR-108): hardware_r11c v2 (bodies at their real weight, mass_model explicit_v1) seeded with the bodies
   that hold best at that weight: g007-002, working, g012-009, each with its shoulder spring switched, its shoulder belted
   and its carpus spring on.'
@@ -24,7 +26,7 @@ evaluation:
   torque_derating: 1.0
   servo_model: torque_speed
   hardware:
-    mass_model: explicit_v1
+    mass_model: explicit_v2
     margin: 0.2
     servo_choices:
     - sts3215_c018

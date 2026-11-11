@@ -1456,15 +1456,18 @@ catalog and library values and `verified` flags were not changed; nothing instal
   their spring / belted-shoulder variants (11 seeds). Estimate: ~34 min per generation of 15 (hardware_r14), ~54 min
   (hardware_r13 v2). **Not started: Emily chooses the budget** (section 7, R14-search). If `lierise_r13.py preset`
   is run again it rewrites hardware_r13 without the mass model.
-* **Battery option raised by Emily:** Flywoo Explorer Molicel P45B 21700 3S1P 4500 mAh. Retailer listings give
-  224.3 g, 11.1 V, 45 A continuous; the discharge plug is listed as XT30UP by one seller and XT60 by another. Not
-  entered: it waits for her approval (section 7, R14-battery).
+* **The battery is now the Flywoo pack (Emily, 2026-11-11; ADR-109):** library entry `flywoo_p45b_3s1p_4500`
+  (224.3 g, 11.1 V, 4500 mAh, 45 A; values from retailer listings via search, the pages refused automated reading;
+  plug XT30UP or XT60, check). Mass model **`explicit_v2`** = explicit_v1 with this one pack on the centre line in
+  place of the two 135 g packs (-45.7 g: working 1960 g, others 2034-2076 g). Presets hardware_r11c and hardware_r13
+  are now version 3, hardware_r14 version 2, all explicit_v2. The bodies were not re-judged at explicit_v2.
 * Tests: new `tests/test_mass_model.py` (11) and a test in `test_hardware.py` (the preset's mass model reaches every
   body). Web: `Mass.tsx` / `types.ts` know the `tube`, `specified` and `headroom` sources; `web/dist` rebuilt. The
   component audit classifies the new kind and tube fields; `mass_breakdown` returns a copy of its source labels
   (a caller editing them had changed the module's own dict). The servo fingerprints leave out R14's empty additions.
 * `calflab test`: ruff, mypy, web typecheck and eslint, 19 Vitest, 14 Playwright pass; pytest 585 passed, 7 failed in
-  the full run, 6 of them fixed and re-run (audit, fingerprints, `test_mass`). Still failing, as before R14:
+  the full run, 6 of them fixed; the affected files (`test_mass_model`, `test_component_audit`, `test_mass`,
+  `test_feral_calf`) re-run after the battery change. Still failing, as before R14:
   `test_the_projects_bodies_are_bit_identical_through_the_pair_genes` (`project_document`, the web-lab save of
   2026-11-10; its mass hash now matches, spec and MJCF differ as in R13). The full suite was not re-run after the
   fixes. The Mass panel at explicit_v1 was not looked at in the browser (the document was not switched).
@@ -1895,7 +1898,53 @@ Journal, Rhino bridge):**
 
 Prefix each with the opening message from section 1.
 
-**R14-search. The body search at the real weight** (recommended next; written after R14, ADR-108.)
+**R15. Behaviour from outcomes, body and behaviour together** (recommended next; Emily, 2026-11-11: the
+prescriptive behaviours got stuck. Supersedes R14-search, R14-servo and the lying-down sessions.)
+> In projects/robot-calf-final we have been stuck on prescriptive behaviour: primitives and generators written for
+> the light working body, then bodies judged on whether they can play them. R14 (ADR-108) showed this breaks as soon
+> as the body changes: at its real weight almost nothing holds. I want to start again from what the calf should do,
+> and search the body and its behaviour together.
+>
+> The four behaviours, defined by outcome, not by motion:
+> 1. Suckling: push the head into an object (a fixed block at a calf's udder height, ahead of the body) and keep
+>    pressing with a steady force for a while, without slipping or falling. How it braces, shifts weight or roots is
+>    for the search to find.
+> 2. Trotting: travel forward on flat ground at a useful speed, steadily, for a minute. The gait is not prescribed. A
+>    diagonal trot may emerge; record the footfall pattern, but don't require it.
+> 3. Standing: stand for minutes with the least sustained servo effort, using springs and posture. This is what the
+>    robot does most of the time.
+> 4. Lying down: get the trunk down to a lying height under control, with no hard impacts and no tipping over.
+>    Getting back up is a bonus, not a requirement.
+>
+> Working from both ends:
+> * Behaviour for a body: for each behaviour, an objective (a score) and hard limits, using the existing limits at
+>   margin 0.2 (servo torque-speed, sustained torque, belt checks, joint ranges). Optimise a controller per body per
+>   behaviour against that objective. Choose the controller family yourself: open-loop keyframes, a CPG, simple
+>   feedback on trunk attitude and foot contact, or a small policy. Say why, and keep it cheap enough to run inside a
+>   body search. Reuse the existing primitives, R6c/R7 generators and lie_rise versions as starting points if they
+>   help, but don't let them define the behaviour.
+> * Body for behaviours: search what can really change: segment lengths, block widths, where hardware sits (servos,
+>   the battery, head mass), which servo model goes on which joint (C002 budget), springs, belted or direct drives.
+>   Masses always come from mass_model explicit_v2 (ADR-109: the real parts, the Flywoo pack, 300 g PROVISIONAL
+>   headroom). A body is judged by how well its own best version of each behaviour does, not by behaviours written
+>   for another body.
+> * How the two loops nest: propose the structure (for example, the body outside and a short per-behaviour
+>   controller search inside, with warm starts from the parent body) and estimate its cost before running it.
+>
+> First session, a design study, not a big run:
+> 1. Write the four objectives and their limits as fitness terms or a preset; show what each measures and how it
+>    could be cheated (a crouch counted as lying, a lunge counted as pushing).
+> 2. Say what the model lacks for suckling. The head is a lumped mass with no neck joint: can the body push with its
+>    head as it is, or does it need a neck DOF? If it needs hardware, say what and ask me before adding anything.
+>    Never invent specs.
+> 3. Run a pilot: optimise all four behaviours on two bodies (g007-002 and g012-009 at explicit_v2). Report what
+>    each finds, what binds, and how long it took.
+> 4. From the pilot, estimate a joint body-and-behaviour search at three budgets and let me choose. Don't start it.
+>
+> Log assumptions as ADRs. Don't change the working body, catalog values or `verified` flags. Ask before adding
+> library entries.
+
+**R14-search. The body search at the real weight** (written after R14, ADR-108; likely superseded by R15.)
 > In projects/robot-calf-final, R14 (`docs/studies/mass_r14.md`) found that at mass_model explicit_v1 (about 2.0-2.1
 > kg) almost no Stage C behaviour holds; sustained servo torque binds at the hip ab/ad, shoulders and carpi. Run the
 > seeded search with preset hardware_r14 for <N> generations of 15
@@ -1904,7 +1953,7 @@ Prefix each with the opening message from section 1.
 > explicit_v1, where the C002s go, springs, what binds, and rejection reasons. Do not change the working body,
 > catalog values or `verified` flags.
 
-**R14-battery. The Flywoo P45B pack in the mass model** (when Emily approves the entry.)
+**R14-battery** (done 2026-11-11 as ADR-109: explicit_v2; kept for reference.)
 > In projects/robot-calf-final, add the Flywoo Explorer Molicel P45B 21700 3S1P 4500 mAh pack to
 > config/components/electronics.yaml (kind battery, values from the product listing with source, verified: false;
 > ask before adding). Add a mass model `explicit_v2` = explicit_v1 with one pack of this mass in place of the two

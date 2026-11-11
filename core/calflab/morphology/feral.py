@@ -234,6 +234,8 @@ class FeralCalfGenerator(PartGenerator):
         leg_tube = lib.material(str(mm["leg_tube"])) if mm else None
         axle_part = lib.part(str(mm["pulley_axle"])) if mm else None
         horn_part = lib.part(str(mm["servo_horn"])) if mm else None
+        # explicit_v2 (ADR-109): a library battery in place of the supplied packs
+        bat_part = lib.battery(str(mm["battery"])) if mm and mm.get("battery") else None
 
         def val(el: str, name: str) -> float:
             return params[el][name].value
@@ -479,9 +481,17 @@ class FeralCalfGenerator(PartGenerator):
                                 label="Head + neck (lumped mass, PROVISIONAL)"))
         trunk.geoms += ph_geom("head.neck_rods", "neck_rods_g", "Neck rods", (sx + overhang + 20.0, 0.0, 30.0), "trunk")
         bat = cfg.get("battery", {})
-        packs = int(bat.get("packs", 0))
+        packs = int(bat.get("packs", 0)) if bat_part is None else int(mm.get("battery_packs", 1))  # type: ignore[union-attr]
         for n in range(packs):
             y = rs / 2.0 if n % 2 == 0 else -rs / 2.0
+            if bat_part is not None:  # explicit_v2: the library pack(s); one sits on the centre line (ADR-109)
+                y = 0.0 if packs == 1 else y
+                trunk.geoms.append(Geom(
+                    id=f"elec.battery{n + 1}", shape="sphere", size=(12.0, 0.0, 0.0),
+                    pos=(hx + _num(genes, "battery_forward"), y, -_num(genes, "battery_drop")), layer="Electronics",
+                    role="visual", mass_g=bat_part.mass_g, mass_source="component", component=bat_part.key,
+                    label=f"{bat_part.name} ({bat_part.mass_g:g} g, library; size not entered)"))
+                continue
             if mm is not None:  # explicit_v1: the researcher's total for both packs, split evenly (ADR-108)
                 pack_g = float(mm["battery_total_g"]) / packs
                 pack_label = (f"{bat.get('description', 'Battery')} ({pack_g:g} g: {float(mm['battery_total_g']):g} g "
@@ -763,7 +773,9 @@ class FeralCalfGenerator(PartGenerator):
                     mass_note=f"{head_g:g} g reserved at the trunk's centre of mass for what is not modelled yet. Not a "
                               "part: lower it as real parts are entered (ADR-108)."))
             mass_meta.update({"headroom_g": head_g, "headroom_at_mm": [round(v, 2) for v in com],
-                              "battery_total_g": float(mm["battery_total_g"]),
+                              "battery_total_g": (bat_part.mass_g * packs if bat_part is not None
+                                                  else float(mm["battery_total_g"])),
+                              "battery": bat_part.key if bat_part is not None else None,
                               "leg_tube": leg_tube.key if leg_tube else None,
                               "pulley_axle": axle_part.key if axle_part else None,
                               "servo_horn": horn_part.key if horn_part else None})

@@ -4210,3 +4210,29 @@ g012-009 414, g009-000 394) on fewer grid points; walk, turn and every lie_rise 
 -3.0). What binds is sustained servo torque on the weight-bearing joints: the C018 hip ab/ad servos, the shoulders,
 the carpi (torque, or belt tension on the 1:1 carpus). Next search estimated at about 34 min per generation of 15
 (hardware_r14) or 54 min (hardware_r13 v2); not started: the researcher chooses the budget.
+
+## ADR-109 — The Flywoo P45B pack replaces the two packs: mass model explicit_v2 (**VERIFY**)
+
+*Requested 2026-11-11 (session R14):* "replace the original batteries with the new one", the Flywoo Explorer Molicel
+P45B 21700 3S1P 4500 mAh Li-ion pack the researcher proposed earlier the same day.
+
+*Decisions.*
+1. **Library entry** `flywoo_p45b_3s1p_4500` (kind battery, `verified: false`): 224.3 g, 11.1 V, 4500 mAh, 45 A
+   continuous; dimensions and cost not entered. Source: the retailer listings as returned by a web search; the
+   product pages refused automated reading (HTTP 429), so **the values were not read on the page itself**. One seller
+   lists an XT30UP plug, another XT60 (in `notes`).
+2. **A new mass model `explicit_v2`**, not a change to explicit_v1: R14's results (ADR-108) were judged with
+   explicit_v1 and must stay reproducible. explicit_v2 = explicit_v1 with one library pack (`mass_source:
+   component`, so it is also in the BOM) in place of the two 135 g packs. ADR-068's `as_entered` is unchanged.
+3. **Placement** (ASSUMPTION): one pack on the centre line at the old packs' place (`battery_forward`,
+   `battery_drop`), between where the two packs hung. The headroom stays 300 g at the trunk's centre of mass, which
+   moves slightly with the pack.
+4. **Searches:** `hardware_r11c` and `hardware_r13` go to version 3, `hardware_r14` to version 2, all with
+   `mass_model: explicit_v2`; runs made with earlier versions carry their own copy. `mass_r14.py preset` now writes
+   explicit_v2 (`--model=` to choose).
+5. The power budget still counts the current of this pack only where the servos' currents are known (the C018's is
+   not), as before.
+
+*Result.* Every body is 45.7 g lighter than at explicit_v1: working 1960 g, g007-002 2040, g009-000 2034, g012-009
+2076, g020-008-r01 2074. The bodies were not re-judged at explicit_v2: 2 % lighter than explicit_v1, at which almost
+nothing held (ADR-108).

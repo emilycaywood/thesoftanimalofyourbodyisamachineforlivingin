@@ -777,11 +777,17 @@ feral calf is weighed:
   entered (bearings, collars, plugs, blocks, electronics, skin, hoof pads,
   belts, pulleys, springs) are still listed as missing.
 
+* **explicit_v2** (ADR-109): explicit_v1 with one **Flywoo Explorer Molicel
+  P45B 21700 3S1P 4500 mAh** pack (`flywoo_p45b_3s1p_4500`, 224.3 g, in
+  `config/components/electronics.yaml`) in place of the two 135 g packs, on
+  the centre line where they hung. It is in the BOM. The working body weighs
+  1960 g this way.
+
 Switching the gene is an ordinary, undoable edit; the presets
-**hardware_r11c** and **hardware_r13** (version 2) build every body of a
-search with explicit_v1 whatever the start genome says (`mass_model` under
-`evaluation.hardware`). Runs made with version 1 keep their own copy and
-reload as they were.
+**hardware_r11c**, **hardware_r13** (version 3) and **hardware_r14**
+(version 2) build every body of a search with explicit_v2 whatever the start
+genome says (`mass_model` under `evaluation.hardware`). Runs made with earlier
+versions keep their own copy and reload as they were.
 
 **Gaits.** Simulate > Controller has a *Controller* list. It greys out a
 controller that cannot drive this body. Switching keeps each controller's

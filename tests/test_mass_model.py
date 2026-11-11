@@ -165,8 +165,30 @@ def test_the_hardware_presets_build_with_the_explicit_model():
     from calflab.fitness.preset import FitnessPreset
     from calflab.paths import config_dir
 
-    for name in ("hardware_r11c", "hardware_r13"):
+    for name, version in (("hardware_r11c", 3), ("hardware_r13", 3), ("hardware_r14", 2)):
         p = FitnessPreset.model_validate(yaml.safe_load((config_dir() / "fitness" / f"{name}.yaml").read_text()))
-        assert p.version == 2
-        assert HardwareSettings.model_validate(p.evaluation.hardware).mass_model == "explicit_v1"
+        assert p.version == version
+        assert HardwareSettings.model_validate(p.evaluation.hardware).mass_model == "explicit_v2"  # ADR-109
     assert HardwareSettings().mass_model is None  # a stored v1 run's settings: each genome's own model
+
+
+def test_explicit_v2_carries_the_flywoo_pack_in_place_of_the_two_packs(new):
+    """ADR-109: one library pack on the centre line at the packs' place; everything else as explicit_v1."""
+    lib = library()
+    pack = lib.battery("flywoo_p45b_3s1p_4500")
+    assert (pack.mass_g, pack.voltage_v, pack.capacity_mah, pack.verified) == (224.3, 11.1, 4500, False)
+    v2 = design({"mass_model": "explicit_v2"}).spec
+    items = _items(v2)
+    packs = [g for g in items.values() if g.id.startswith("elec.battery")]
+    assert len(packs) == 1
+    (g,) = packs
+    assert g.component == pack.key and g.mass_source == "component" and g.mass_g == pytest.approx(224.3)
+    old_packs = [x for x in _items(new.spec).values() if x.id.startswith("elec.battery")]
+    assert g.pos[1] == 0.0 and g.pos[0] == old_packs[0].pos[0] and g.pos[2] == old_packs[0].pos[2]
+    assert v2.total_mass_g() == pytest.approx(new.spec.total_mass_g() - 270 + 224.3, abs=0.2)  # headroom moves a little
+    mb = mass_breakdown(v2, library())
+    assert mb["total_g"] == pytest.approx(v2.total_mass_g(), abs=0.01) and mb["headroom_g"] == 300
+    assert v2.metadata["feral"]["mass_model"]["battery"] == pack.key
+    from calflab.wiring.budget import bill_of_materials
+
+    assert any(line["key"] == pack.key and line["qty"] == 1 for line in bill_of_materials(v2, lib)["lines"])

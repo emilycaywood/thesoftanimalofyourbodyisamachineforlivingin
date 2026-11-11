@@ -323,9 +323,10 @@ def write_preset(lab: Any, opts: dict[str, str]) -> dict[str, Any]:
                           "values": {**own, **extra}})
     hw = d["evaluation"]["hardware"]
     hw["seeds_bodies"] = seeds
-    hw["mass_model"] = MODEL
-    d["name"], d["version"] = "hardware_r14", 1
-    d["description"] = (f"R14 (ADR-108): hardware_r11c v2 (bodies at their real weight, mass_model {MODEL}) seeded "
+    model = opts.get("model", "explicit_v2")  # ADR-109: the Flywoo pack
+    hw["mass_model"] = model
+    d["name"], d["version"] = "hardware_r14", int(opts.get("version", 2))
+    d["description"] = (f"R14 (ADR-108): hardware_r11c v2 (bodies at their real weight, mass_model {model}) seeded "
                         f"with the bodies that hold best at that weight: {', '.join(top)}, each with its shoulder "
                         "spring switched, its shoulder belted and its carpus spring on.")
     head = ("# Fitness preset R14 (ADR-108): written by docs/studies/mass_r14.py preset. Use with the optimizer\n"

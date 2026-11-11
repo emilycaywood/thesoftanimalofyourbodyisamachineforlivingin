@@ -32,7 +32,9 @@ def test_every_spec_field_is_classified():
 def test_worksheet_has_one_row_per_value_and_blank_researcher_columns():
     lib = library()
     rows = component_worksheet(lib)
-    assert len(rows) == sum(len(FIELD_USES[c.kind]) for c in lib.all())
+    tube = ("tube_od_mm", "tube_id_mm")  # only a tube entry records these (ADR-108)
+    assert len(rows) == sum(len([f for f in FIELD_USES[c.kind] if f not in tube or getattr(c, f) is not None])
+                            for c in lib.all())
     row = next(r for r in rows if r["component"] == "xh540_w270" and r["field"] == "stall_torque_nm")
     assert row["recorded_value"] == "10.6" and row["unit"] == "N*m" and "Torque margins" in row["used_for"]
     assert all(r["datasheet_value"] == r["ok"] == "" for r in rows)

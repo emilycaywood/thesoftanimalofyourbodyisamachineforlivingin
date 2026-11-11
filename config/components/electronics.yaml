@@ -154,6 +154,22 @@
   verified: false    # set to true yourself once every value is checked
   notes: Deans-style T-plug discharge connector, JST-XH balance connector, 18 AWG leads. Weight and dimensions are given as approximate.
 
+- key: flywoo_p45b_3s1p_4500
+  kind: battery
+  name: "Flywoo Explorer Molicel P45B 21700 3S1P 4500 mAh Li-ion pack"
+  manufacturer: Flywoo
+  mass_g: 224.3                   # g; "Weight: 224.3g" in the retailer listings
+  dims_mm: null                   # mm; not found (blank = default assumed, and reported)
+  voltage_v: 11.1                 # V nominal (3S, 3.7 V per cell)
+  capacity_mah: 4500              # mAh
+  max_current_a: 45               # A continuous (the P45B cell rating, as listed)
+  cost_usd: null                  # USD; not entered (blank = default assumed, and reported)
+  url: "https://www.unmannedtechshop.co.uk/products/flywoo-explorer-molicell-p45b-21700-3s1p-4500mah-lionpack-battery"
+  source: "Retailer listings (Unmanned Tech, Defiance RC) as returned by a web search on 2026-11-11 (session R14); the product pages refused automated reading (HTTP 429), so the values were not read on the page itself. Chosen by the researcher on 2026-11-11 to replace the two 135 g 3S 2200 mAh packs."
+  guessed: []                     # names of fields whose value is your guess, not a datasheet value
+  verified: false                 # set to true yourself once every value is checked
+  notes: "One seller lists the discharge plug as XT30UP, another as XT60: check before buying. Cells: 3 x Molicel P45B 21700 in series."
+
 - key: esp_wroom_32
   kind: board
   name: "ESP-WROOM-32"
