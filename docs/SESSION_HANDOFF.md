@@ -1,8 +1,10 @@
 # CALFLAB session handoff
 
 Everything a new Claude Code session (or a new collaborator) needs to pick up
-CALFLAB. Last updated 2026-11-08 on branch `robot-calf-final` (cut from
-`chassis-mass`), after session R12-view (one behaviour picker for the six R12 bodies on `compare.html?set=r12`;
+CALFLAB. Last updated 2026-11-10 on branch `robot-calf-final` (cut from
+`chassis-mass`), after session R13 (lying down and rising, diagnosed and evolved per body; no body holds; the body
+search with lie_rise as a constraint is built and waits for Emily's budget; ADR-107), section 4 "Session R13"; before
+it session R12-view (one behaviour picker for the six R12 bodies on `compare.html?set=r12`;
 ADR-106), section 4 "Session R12-view"; before it session R12 / Stage C (every front body gets behaviours evolved for
 it; ADR-105), section 4 "Session R12"; before it session R11c-B (reading Stage B's 20 generations; new best body g020-008-r01, ADR-104), section 4
 "Session R11c-B"; before it session R11c (toward a production body: sourced pulleys, bounded geometry, springs and the
@@ -1391,6 +1393,37 @@ component values and `verified` flags were not changed; nothing installed.
   status line hid the expected "loaded design" one. It passed when re-run with `compare.spec.ts`, so it is a flaky
   timing race in the status bar, not this change; worth a look if it recurs.
 
+**Session R13 (2026-11-10; ADR-107): lying down and rising, evolved per body.** The working body, catalogs,
+component values and `verified` flags were not changed; nothing installed. Study `docs/studies/lierise_r13.md`
+(script `lierise_r13.py`: diagnose / optimise / report / estimate / preset / stage3).
+
+* **The earlier lie_rise numbers were not the whole motion.** The hardware screen plays a primitive for at most 10 s
+  (today's lie_rise is 11.5 s), and the simulator's fall check (trunk under 45 % of standing height) fires as
+  g020-008-r01 and g012-009 lie down, so their -0.16 / -0.24 were the kneel only. Over the whole motion plus 1 s
+  standing every body is at -3.00. ADR-104's "lie_rise comes near only with direct C002 shoulders" was this artifact.
+  The screen itself was not changed.
+* **Primitive:** `lie_rise` has 15 vector dims (kneel and reach angles, a time per move, the order of rising, a rock
+  back, two pauses); `feral_motion` gains the matching Lie/rise fields. With the defaults it plays the old code path:
+  bit for bit today's motion (fingerprint from 3d7c690). Angles 2 deg inside the joint ranges.
+* **`calflab.evolve.lie_rise`:** play over the whole motion + settle, per-move attribution of every limit, a lying fall
+  test (tipped, or not standing at the end), a lying depth (trunk down to 0.5 of standing), CMA-ES per body on the
+  worst-seed margin, play cache `<project>/.cache/lie_rise`.
+* **Result: no body holds.** Worst-seed margins, every version lying down and standing up on all seeds: g007-002
+  -0.25, g012-009 -0.96, working -1.20, g011-003 -1.32, g009-000 -1.36, g020-008-r01 -1.40. With the lying pose
+  searched too (an extension): g012-009 -0.44, g020-008-r01 -0.84. Binding: hind hock belt (g012-009, g020-008-r01),
+  front shoulders on the C018-shoulder bodies, the hind stifle's envelope on g007-002.
+* **A correction in the session:** the first search let a somersault (fall penalty 1) and a crouch (no lying depth)
+  win; superseded, kept labelled in the JSON. The 18 compare plays of that run (`20261110-192253-sim-502e` ..
+  `20261110-192352-sim-bbd3`) are still in Journal > Runs under the same titles; the page no longer uses them.
+* **compare.html?set=r12** has a screen item **lie_rise (evolved)**: each body its own version (18 runs `R12 compare
+  <body> lie_rise (evolved): seed N`, reproducing the study's margins). Seen in the lab's browser pane (port 8021;
+  8020 was busy).
+* **Stage 3 built, not run:** `HardwareSettings.lie_rise_gate`, preset `config/fitness/hardware_r13.yaml` (budget S
+  written; Emily chooses S/M/L and the generations). Estimate: S ~0.8 h, M ~2.3 h, L ~4.5 h per generation of 14, plus
+  up to ~32 min judging.
+* Tests: new `tests/test_lie_rise.py` (7; one `slow`), a gate test in `test_hardware.py`, two in `test_compare.py`.
+* The computer slept for about 3 h during the lying search (16:56-19:48); it only delayed the run.
+
 **Scaffolded only (interfaces + tests, no behaviour):** PPO training, MJX
 simulator, RemoteSSH and CloudNotebook transports (job bundling is real),
 imitation reward, interactive selection, molds, skin patterns, nesting,
@@ -1428,6 +1461,18 @@ Journal, Rhino bridge):**
   Properties, entry in Overrides).
 * `doctor` warned "uv not found" on top of the three expected warnings:
   false alarm, fixed (see Tests above).
+
+**The researcher must verify (new in session R13, ADR-107):**
+
+* **Choose Stage 3's budget** (gate S / M / L and generations; section 7, R13-S3), or decide not to run it.
+* **Watch lie_rise (evolved)** on `compare.html?set=r12` (restart the lab on 8020 first: the running server has the old
+  code): do the evolved versions look like lying down and rising? g007-002 (-0.25) and g012-009 are the closest.
+* **The judging choices:** whole motion + 1 s standing; fall = tipped or not standing again at 85 % height; lying =
+  trunk down to 0.5 of standing; angles 2 deg inside the ranges; my reading of "rock back" and "front first".
+* **Whether the hardware screen's lie_rise should be fixed** (whole motion, no false fall): it would change every
+  stored Stage B / Stage C score (a cache version bump and re-judging).
+* Whether the lying pose may change (the extension): it helps the hind-belt-limited bodies.
+* The 18 superseded compare runs: delete or keep.
 
 **The researcher must verify (new in session R12-view, ADR-106):**
 
@@ -1786,7 +1831,7 @@ Journal, Rhino bridge):**
 |---|---|
 | `CLAUDE.md` | Conventions for every session (loaded automatically) |
 | `PLAN.md` | Architecture, module boundaries, data flow, phases, risks, status |
-| `DECISIONS.md` | ADR log: every assumption (106 so far) |
+| `DECISIONS.md` | ADR log: every assumption (107 so far) |
 | `docs/proposals/anatomical-leg.md` | Proposal for a three-segment leg (set aside 2026-10-04; not built) |
 | `docs/USER_GUIDE.md` | How to use the lab |
 | `docs/CHAT_GUIDE_PROMPT.md` | Prompt that makes a chat assistant a guide to the whole lab |
@@ -1803,14 +1848,37 @@ Journal, Rhino bridge):**
 
 Prefix each with the opening message from section 1.
 
-**R12b. A second seed for the Stage C top three** (recommended next; written after R12, ADR-105.)
+**R13-S3. The body search with lie_rise as a constraint** (recommended next, once Emily has chosen the budget; ADR-107.)
+> In projects/robot-calf-final, R13 (`docs/studies/lierise_r13.md`, ADR-107) evolved lie_rise per body and no body
+> holds (best g007-002 -0.25; g012-009 -0.44 with the lying pose). Run Stage 3 with gate budget <S|M|L> for <N>
+> generations of 14: `python docs/studies/lierise_r13.py projects/robot-calf-final preset --lying --budget=<S|M|L>`, then
+> `... stage3 --generations=<N> --batch=14`. Report after every five generations: bodies whose lie_rise holds on all
+> three seeds, their trot and minutes held against Stage B, what binds in lie_rise on the rest, which genes moved
+> (hock belt, shoulder servo and springs especially), and write production sheets for any body that passes. Do not
+> change the working body, catalog values or `verified` flags.
+
+**R13b. Judge lie_rise over the whole motion in the hardware screen** (after Emily decides; it changes stored scores.)
+> In projects/robot-calf-final, the hardware screen judges lie_rise for 10 s and stops at the simulator's fall check,
+> which fires as some bodies lie down (ADR-107, facts 1-2). Make the screen play a one-shot primitive for its whole
+> length plus settle and use the lying fall test for lie_rise, bump the screen cache version, re-judge Stage B's front
+> and the Stage C bodies' screens, and report how the rankings move. Do not change the working body, catalog values or
+> `verified` flags.
+
+**R13c. What would let a C018-shoulder body lie down and rise** (in memory; after R13.)
+> In projects/robot-calf-final, R13 found the front shoulders' sustained torque binds lie_rise on the working body,
+> g009-000 and g011-003 (-1.20 to -1.36). With each body's evolved version from `docs/studies/lierise_r13.json`, try
+> in memory the shoulder spring (rate, preload, anchors from the hardware_r11c steps) and a C002 shoulder, re-run
+> `calflab.evolve.lie_rise.optimise` per variant, and report the margin, what binds per move, and whether the Stage C
+> behaviours and trot still hold. Do not change the working body, catalog values or `verified` flags.
+
+**R12b. A second seed for the Stage C top three** (written after R12, ADR-105.)
 > In projects/robot-calf-final, R12 (`docs/studies/stagec_r12.md`, ADR-105) gave each front body its own behaviours.
 > Re-run the diversity runs for g007-002, g009-000 and g012-009 with seed 1 (`python docs/studies/stagec_r12.py
 > projects/robot-calf-final evolve g007-002 g009-000 g012-009 --seed=1 --prefix="R12b seed1"`, then `judge` and
 > `report` with the same prefix), and report how much the counts of behaviours held (at margin 0.2 and at +0.1) move
 > between seeds, and whether the ranking holds. Do not change the working body, catalog values or `verified` flags.
 
-**R12c. lie_rise and the carpus belt on g009-000 / g012-009** (after R12.)
+**R12c. lie_rise and the carpus belt on g009-000 / g012-009** (the lie_rise part was done in R13, ADR-107; the carpus belt part is still open.)
 > In projects/robot-calf-final, R12 recommends g009-000 or g012-009 for a build. In memory only, find what brings
 > lie_rise within limits on g012-009 (-0.24) and g009-000 (-3.00), and what relieves the front-left carpus belt's
 > sustained tension that stops g009-000's plays: the lie_rise primitive's timing and depth, the shoulder spring's
@@ -1845,7 +1913,7 @@ below.)*
 > body. Write production sheets for the winner and runners-up. Do not change the working body, catalog values or
 > `verified` flags.
 
-**R11b-3. Bring lie_rise within limits on g020-008-r01** (it is at -0.16, the closest yet.)
+**R11b-3. Bring lie_rise within limits on g020-008-r01** (superseded by R13, ADR-107: its -0.16 was the kneel only; over the whole motion it is at -1.40, -0.84 with the lying pose.)
 > In projects/robot-calf-final, g020-008-r01 of run 20261107-043030-evolve-c02e misses lie_rise by -0.16 on sustained
 > servo torque. In memory only (no document change), find what brings it within on all three seeds: the primitive's
 > timing and depth, a kneel that moves load off the shoulders, the shoulder spring back on with other rates/anchors

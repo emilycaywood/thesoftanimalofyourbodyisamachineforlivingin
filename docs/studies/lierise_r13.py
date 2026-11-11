@@ -138,7 +138,9 @@ def optimise(lab: Any, bodies: list[str], opts: dict[str, str]) -> None:
             data[section][body] = {"stage_c_run": pays[body]["stage_c_run"], "search": r["search"],
                                     "plays": r["plays"], "new_plays": r["new_plays"], "wall_s": r["wall_s"],
                                     "start": _slim(r["start"]), "best": _slim(best), "best_seeds": again,
-                                    "history": r["history"]}
+                                    "history": [{k: h.get(k) for k in ("generation", "worst", "rank", "held",
+                                                                       "fell_any", "lay_down")}
+                                                for h in r["history"]]}
             OUT.write_bytes(json.dumps(data, indent=1, default=float).encode())
             print(time.strftime("%H:%M:%S"), body, f"best {best['worst']:+.3f} held={best['held']}",
                   f"{time.time() - t0:.0f} s", flush=True)
@@ -150,16 +152,17 @@ def _full(job: dict[str, Any]) -> dict[str, Any]:
     from calflab.evolve.lie_rise import play_seed
 
     rec = play_seed(job["payload"], job["params"], job["seed"], job["margin"], job["settle_s"])
-    return {"seed": job["seed"], **{k: rec.get(k) for k in ("within", "fell", "sim_fell", "tipped", "risen", "lying_height_mm", "lying_fraction", "margin", "closest", "violations",
-                                                              "moves", "length_s", "controller")}}
+    out = {k: rec.get(k) for k in ("within", "fell", "sim_fell", "tipped", "risen", "lying_height_mm",
+                                   "lying_fraction", "margin", "closest", "violations", "length_s", "controller")}
+    out["moves"] = [{k: v for k, v in m.items() if k != "joints"} for m in rec.get("moves") or []]
+    return {"seed": job["seed"], **out}
 
 
 def _slim(e: dict[str, Any]) -> dict[str, Any]:
     return {"params": e["params"], "worst": e["worst"], "rank": e["rank"], "held": e["held"],
-            "fell_any": e.get("fell_any"), "lay_down": e.get("lay_down"),
-            "complete": e["complete"],
-            "seeds": [{k: r.get(k) for k in ("seed", "within", "fell", "lying_fraction", "margin", "excess", "closest", "violations",
-                                             "moves")} for r in e["seeds"]]}
+            "fell_any": e.get("fell_any"), "lay_down": e.get("lay_down"), "complete": e["complete"],
+            "seeds": [{k: r.get(k) for k in ("seed", "within", "fell", "lying_fraction", "margin", "excess", "closest",
+                                             "violations")} for r in e["seeds"]]}
 
 
 # ---------------------------------------------------------------------------------------------- Stage 3

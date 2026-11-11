@@ -778,7 +778,18 @@ To find a version for a body without changing the document:
 `--lying` also searches the lying pose) runs CMA-ES on the worst margin over
 the three seeds of the R11c suite, and `... diagnose <body>` prints, per move,
 which joint and limit come closest. `... report` makes the tables. Plays are
-cached in `<project>/.cache/lie_rise`.
+cached in `<project>/.cache/lie_rise`. A version counts only if it lies down
+(the trunk gets to half its standing height or lower) and stands up again on
+every seed.
+
+**A body search with lying down and rising as a constraint.** The preset
+`hardware_r13` (for *MAP-Elites: hardware by behaviour loads*) first evolves
+each body's lie_rise; a body whose best version does not hold on all three
+seeds is not judged further. Write it with your budget for that inner search
+(`S` 8 x 8, `M` 12 x 15, `L` 12 x 30) and start it:
+`python docs/studies/lierise_r13.py projects/robot-calf-final preset --lying
+--budget=S`, then `... stage3 --generations=<N> --batch=14`; `... estimate`
+prints the time per generation (about 0.8 / 2.3 / 4.5 h for S / M / L).
 
 **Turning the legs out (ADR-072).** Form > Rear legs and Front legs have
 *toe-out* (hooves pointing outward) and *splay* (lower end of the leg

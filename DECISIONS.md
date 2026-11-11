@@ -4069,3 +4069,78 @@ rollout. Badges over the 1236 cell-seeds: own 706 green / 215 orange / 27 red; s
 (the quick trot and lie_rise go over on most bodies, as Stage B found). Own items: 53; matches 93 same generator and
 cell, 143 same generator in another cell, 43 same cell, 37 nearest cell, 2 none. Seen in the lab's browser pane: one
 key press switched all six cells, which then played in step.
+
+## ADR-107 — Lying down and rising, evolved per body (**VERIFY**)
+
+*Context.* Session R13. In `projects/robot-calf-final` no body lay down and rose within limits; Stage C (ADR-105)
+reported the front shoulders' sustained torque, nearest on g020-008-r01 (-0.16) and g012-009 (-0.24). Every body was
+judged on one hand-written `lie_rise` (ADR-069): only `phase_s` and `hold_s` were vector dims. Asked: (1) per move,
+which joint and limit bind on g020-008-r01, g012-009, g009-000 and the working body; (2) the movement's own
+parameters as vector dims of the primitive (kneel and reach angles, a time per move, the order of rising, a rock back,
+pauses with the load on the hooves), angles within the joint ranges, a default that is today's bit for bit, CMA-ES per
+body on the worst-seed margin, stored runs and a screen play `lie_rise (evolved)` on `compare.html?set=r12`; (3) only
+if no body holds, a body search with lie_rise as a constraint, cost estimated first and the budget left to Emily. The
+working body, catalogs, component values and `verified` flags were not changed. Study: `docs/studies/lierise_r13.md`.
+
+*Facts found.*
+1. **The screen's lie_rise was not the whole motion.** `hardware.play_primitive_seed` plays a primitive for at most
+   `InterpretSettings.max_play_s` = 10 s; today's lie_rise lasts 11.5 s, so the front rise was judged for 0.8 s.
+2. **Lying down counted as a fall on g020-008-r01 and g012-009.** The simulator's fall check (trunk under 45 % of its
+   standing height) fires as these bodies lie at 268-270 mm (standing 596 mm); the play stopped at t = 3.9 s, so their
+   -0.16 / -0.24 were the kneel's front-shoulder torque. They lie down and stand up again on every seed. ADR-104's
+   "lie_rise comes near only with C002 shoulders driven directly" was this artifact.
+3. **Judged over the whole motion plus 1 s standing, every body is at -3.00 on every seed** (sustained limits saturate
+   at -3). The front shoulders bind kneeling (close on C002 shoulders, far on C018); the hind stifle (servo and belt)
+   while lying and rising behind on every body; the front rise and the stance after it at -3.
+
+*Decisions / ASSUMPTIONS.*
+1. **The primitive's vector dims (15):** kneel shoulder -50..10 and carpus 60..128 deg; reach shoulder -58..-5 and
+   carpus 0..110 deg; kneel, lie, rise-hind, reach and rise-front times 0.8..6 s; hold 0..5 s; `front_first` 0..1
+   (under 0.5 hind end first, today's; a number so CMA-ES can carry it); `rock_back_deg` 0..20 and `rock_s` 0.3..3 s;
+   `pause_mid_s` (after the first rise) and `pause_reach_s` (after the reach) 0..2 s. `phase_s` is no longer searched;
+   it stays the time of a move whose own time is 0. The lying pose (`lie_*`) is a Params field, not a dim.
+2. **Angles within the joint ranges:** dims inside `config/feral_calf.yaml` ranges less 2 deg; the controller clips
+   every commanded per-move lie/rise angle 2 deg inside the body's own range (the joint-limit check counts 1 deg).
+3. **Rock back** = hind stifles and hocks fold a further `rock_back_deg` before the front rise (weight back over the
+   hind end), held through the reach, released in the front rise. **Front first** = from lying, the front legs reach
+   and push the chest up while the hind legs stay folded (sitting), then the hind end rises. My reading of the request.
+4. **Today's motion, bit for bit:** with every new parameter at its default (or every move's time equal to `phase_s`)
+   `feral_motion` plays the old code path; the primitive sends only what differs from today, so default controller
+   params, screen cache keys and stored runs are unchanged. Checked against a fingerprint written from commit 3d7c690
+   (`tests/data/lie_rise_fingerprint_r13.json`). No migration: no stored params change meaning.
+5. **Judging a version (`calflab.evolve.lie_rise`):** the whole motion plus `settle_s` = 1 s standing (PROVISIONAL),
+   the R11c suite, `hardware.judge_play`. **Fall** = trunk tipped (up z < 0.4) or not standing at the end (under 85 % of
+   its start height, or up z < 0.9); lying low is not a fall. **Lying down** = the trunk gets to 0.5 of its standing
+   height or lower (today's lie: 0.45-0.47; PROVISIONAL). The hardware screen is not changed (it would change every
+   stored Stage B / C score); its lie_rise numbers should be read with facts 1-2 in mind.
+6. **The search:** CMA-ES per body (popsize 12, 30 generations, sigma 0.25, seed 0), today's motion played first and
+   used as the start; every candidate on all three seeds. Ranking: complete, holds (within, lay down, stood up on every
+   seed), stood up on every seed, lay down on every seed, then the rank = worst over seeds of margin - 0.1 x mean
+   excess per move - 10 if it fell - (5 + 10 x excess share) if it did not lie down. The excess term is 0 within
+   limits; it gives a slope where the margin saturates at -3. Plays cached in `<project>/.cache/lie_rise`.
+7. **Per-move attribution:** peak limits per frame; sustained limits per 2 s window, counted in the move that holds
+   the window's middle.
+8. **A correction made during the session:** the first run used a fall penalty of 1 and no lying depth; on three
+   bodies it chose versions that somersaulted onto their back (low loads), and the lying-pose search on g020-008-r01
+   "held" (+0.13) by crouching at 0.59 of standing height. Both superseded (kept, labelled, in `lierise_r13.json`).
+9. **Extension, not asked for (`--lying`):** the lying stifle 30..78, hock 30..78, shoulder -58..0 and carpus 60..128
+   deg searched too, warm-started from each body's Stage 2 best (the search starts from the best version played
+   first).
+10. **Stage 3 mechanism:** `HardwareSettings.lie_rise_gate` (a `LieRiseSearch`): before the screen, each body's
+    lie_rise is optimised inside its task (cached per body and gate settings); a body that does not hold on every
+    seed plays nothing else and does not pass; passing bodies are judged as Stage B. Preset `hardware_r13`
+    (`lierise_r13.py preset`): hardware_r11c + the gate (with the lying pose, warm-started from the three seed
+    bodies' best versions) + seed bodies g012-009, g020-008-r01, g009-000; the old lie_rise screen play is dropped.
+    **Not run: Emily chooses the budget** (S 8 x 8: ~0.8 h per generation of 14; M 12 x 15: ~2.3 h; L 12 x 30: ~4.5 h;
+    plus up to ~32 min judging per generation; 7.5 CPU-s per play as measured).
+11. `compare.html?set=r12` gains the screen item **lie_rise (evolved)**: each body plays its own version
+    (`CompareSet.evolved` -> `docs/studies/lierise_r13.json`), judged over the whole motion; the body line adds
+    "(evolved, whole: <margin>)".
+
+*Results (simulated, unverified parts).* Worst-seed margins over the whole motion, every version lying down to
+0.45-0.46 of standing and standing up on all three seeds: **g007-002 -0.25**, g012-009 -0.96, working -1.20, g011-003
+-1.32, g009-000 -1.36, g020-008-r01 -1.40. **No body holds.** With the lying pose searched: g012-009 -0.44,
+g020-008-r01 -0.84, the others unchanged. Binding: hind hock belt (g012-009, g020-008-r01), front shoulders' sustained
+torque on the C018-shoulder bodies (working, g009-000, g011-003), the hind stifle's envelope (g007-002). The bodies are
+unchanged, so their Stage C behaviours and trot are unchanged. 18 plays stored (`R12 compare <body> lie_rise (evolved):
+seed N`), reproducing the study's margins on every seed.
