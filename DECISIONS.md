@@ -4236,3 +4236,70 @@ P45B 21700 3S1P 4500 mAh Li-ion pack the researcher proposed earlier the same da
 *Result.* Every body is 45.7 g lighter than at explicit_v1: working 1960 g, g007-002 2040, g009-000 2034, g012-009
 2076, g020-008-r01 2074. The bodies were not re-judged at explicit_v2: 2 % lighter than explicit_v1, at which almost
 nothing held (ADR-108).
+
+
+## ADR-110 — Behaviours defined by their outcome, searched per body (**VERIFY**)
+
+*Requested 2026-11-11 (session R15).* The behaviours so far were motions written for the light working body (the
+primitives, R6c/R7 generators, lie_rise) and bodies were judged on whether they could play them; at the real weight
+almost none held (ADR-108). Asked: define suckling, trotting, standing and lying down by outcome; for each a score
+and hard limits (the existing ones at margin 0.2); a controller optimised per body per behaviour; say what the model
+lacks for suckling (ask before any hardware); a pilot on g007-002 and g012-009; three budgets for a joint body and
+behaviour search, not started. Emily corrected the mass model to **explicit_v2** during the session, and said
+suckling can be very subtle: **a forward lean is enough**. The working body, catalogs, library entries and `verified`
+flags were not changed. Study: `docs/studies/outcomes_r15.md`.
+
+*Decisions / ASSUMPTIONS (all thresholds PROVISIONAL).*
+1. **Two judgements per play.** Limits exactly as the R11c suite (`hardware.judge_play`, margin 0.2, seeds 0-2,
+   friction 0.7-1.1, mass x0.95-1.05, torque-speed servos). Outcome: a score and named gates
+   (`calflab.fitness.outcomes`). A version **holds** when every gate and every limit pass on all three judging seeds.
+2. **Suckle** (after Emily's note): the least servo effort, -(mean + worst)/2 of each servo's mean |torque| / rated
+   torque over the press window (from 6 s), while pressing: forward head force >= 0.25 N at its 20th percentile and
+   in contact >= 90 % of the window, std/mean <= 0.3, no loaded hoof travelling more than 10 mm net, centre of mass
+   >= 10 mm inside the loaded hooves' support polygon (not propped by the block), the head not leaning down on the
+   block (<= 0.1 body weight), nothing else touching it (<= 1 N), tilt <= 30 deg. First version (superseded the same
+   day): the 20th-percentile force as a share of body weight, maximised.
+3. **The suckling scene** (`calflab.sim.scene`): the head lump (a 25 mm sphere, visual only in the body) is made solid
+   for this scene only; a rigid 40 x 120 x 80 mm block with the model's default friction, its face 10 mm ahead of the
+   head's front, centred at the head's standing height (the udder height relative to this body is not known).
+4. **Trot**: the slowest 5 s window's forward speed less 0.5 x sideways drift; gates: slowest window >= 100 mm/s,
+   trunk never under 0.8 of standing, heading within 30 deg, hoof sliding <= 150 mm per metre, tilt <= 30 deg. The
+   footfall is recorded and labelled by the diagonal lag (trot <= 0.18, walk <= 0.32, else pace; bound), not required.
+5. **Stand**: -(mean + worst)/2 servo effort over the window; gates: mean height >= 0.85 of standing, no non-hoof
+   floor contact, trunk travel <= 20 mm, tilt <= 10 deg. Judged 120 s (plays may run past `SimSettings`' 60 s slider
+   bound: the runner has no limit).
+6. **Lie**: trunk <= 0.5 of standing for >= 2 s, **resting** (the floor carries >= 0.25 body weight through parts
+   other than the hooves while low; added after the pilot found a held crouch), tilt <= 30 deg at all times, peak
+   trunk descent <= 300 mm/s (over 0.1 s), peak non-hoof floor force <= 2 body weights; score 1 - the two peaks
+   against their limits, + 0.5 if it stands again (a bonus).
+7. **Effort** uses the rated torque of each servo from the spec (library values, unverified) and the belt ratio x
+   efficiency; current and heat are not used (the C018's stall current is unknown).
+8. **Controller family `outcome_motion`**: up to three posture keyframes (five angles, the same on both sides; a time
+   each, keyframe 3 up to 40 s for a slow continuing lean), an optional rhythm with free leg phases, IMU reflexes
+   (roll -> hind ab/ad, pitch -> shoulders and stifles, heading -> stride difference). No foot-contact reflex (needs a
+   phase-reset rule and foot sensors the harness lacks). Chosen because it is a few dozen numbers, searchable per body
+   on a CPU; a policy would need training per body. `from_feral_trot` plays today's trot exactly (tested); old
+   motions are starting points only.
+9. **Search** (`calflab.evolve.outcomes`): CMA-ES on each behaviour's own dims scaled 0..1, popsize 12, 20
+   generations, every candidate on seeds 0-2 (stopped after the first below -6), worst seed ranks; best three
+   distinct versions re-judged long. Rank: normalised score (250 mm/s; effort x 2; lie as is); a failed gate **or a
+   limit** costs 2 and caps the score at half of min(score, 1); -5 for a fall; + the margin when negative; - 0.1 x
+   the summed excess past the limits (margins saturate at -3). Best = lexicographic (holds, within, rank). Plays
+   cached in `<project>/.cache/outcomes`; the rank is recomputed, never cached.
+10. **Search and judging lengths:** stand 12 / 120 s, trot 12 / 60 s, suckle 30 / 30 s (first 14 / 30 s; a lean that
+    holds 14 s creeps off the block by 30 s), lie its own length + 3.5 s.
+11. **Contact probes** are recorded only when a model asks (`CompiledModel.probes`); every other rollout is
+    unchanged. `FitnessPreset.outcomes` is a new optional block (None for every existing preset).
+
+*Facts found.*
+1. **Hoof creep under a steady push.** A light lean (shoulders, stifles, hocks 4 deg) presses 0.30-0.38 N within every
+   limit for 14 s, then the hooves creep back 12-13 mm and contact is lost (in contact a third of a 24 s window).
+   Standing with no push does not drift (0.1-0.3 mm). With MuJoCo's `impratio` 10 the creep falls to 8-9 mm; part of
+   it is the soft contact model (a real hoof at 0.3 N against about 14 N of friction would not slide). Not changed:
+   the suite's contact model stays as every earlier result used it.
+2. **"Lying" was a held crouch.** Both bodies' best lying versions of the first pilot got the trunk to 0.48-0.49 of
+   standing with nothing but the hooves on the floor (body-floor force 0) and saturated the sustained stifle / hip
+   ab/ad torque. R13's lie_rise (0.45-0.47) was the same. With the PROVISIONAL joint ranges (stifle and hock to 80
+   deg) the folded legs may not let the trunk reach the floor.
+3. **The search chased trots over a limit.** With a limit counted only by its (saturating) margin, g007-002's search
+   led with a 733 mm/s trot over the hock belt's sustained limit (1.56) instead of slower trots that hold.
