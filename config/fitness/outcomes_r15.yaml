@@ -8,7 +8,7 @@ name: outcomes_r15
 version: 1
 description: 'R15 (ADR-110): suckle (steady head push into a fixed block), trot (forward travel, any gait), stand (least
   sustained servo effort) and lie (down to lying height under control), each optimised per body with the outcome_motion
-  controller; limits as the R11c suite at margin 0.2; masses from mass_model explicit_v1.'
+  controller; limits as the R11c suite at margin 0.2; masses from mass_model explicit_v2.'
 terms:
 - term: outcome_suckle
   weight: 1.0
@@ -32,7 +32,7 @@ evaluation:
   servo_model: torque_speed
 outcomes:
   behaviours: [stand, suckle, trot, lie]
-  mass_model: explicit_v1
+  mass_model: explicit_v2
   margin: 0.2
   search:
     popsize: 12

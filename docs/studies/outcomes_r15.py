@@ -4,7 +4,7 @@ Stages:
 
 * ``pilot``: for each body (``--bodies``, default g007-002 and g012-009) and behaviour (``--behaviours``, default
   stand, suckle, trot, lie), ``calflab.evolve.outcomes.optimise`` with the pilot's spaces and warm starts, at
-  ``mass_model`` = ``--model`` (default explicit_v1). The searches run side by side, sharing one process pool
+  ``mass_model`` = ``--model`` (default explicit_v2). The searches run side by side, sharing one process pool
   (``--workers``). Writes ``docs/studies/outcomes_r15.json``; the plays are cached in
   ``<project>/.cache/outcomes``.
 * ``store``: each body's best version of each behaviour played once more on seed 0 at the judging length and saved as
@@ -13,7 +13,7 @@ Stages:
 * ``estimate``: the joint body-and-behaviour search at three budgets, from the measured play times.
 
 Run:  python docs/studies/outcomes_r15.py <project dir> pilot|store|report|estimate [--workers=14] [--pop=12]
-      [--gens=20] [--model=explicit_v1] [--bodies=g007-002,g012-009] [--behaviours=stand,suckle,trot,lie]
+      [--gens=20] [--model=explicit_v2] [--bodies=g007-002,g012-009] [--behaviours=stand,suckle,trot,lie]
 """
 from __future__ import annotations
 
@@ -31,6 +31,8 @@ TABLES = Path("docs/studies/outcomes_r15_tables.md")
 LIERISE = Path("docs/studies/lierise_r13.json")
 BODIES = ["g007-002", "g012-009"]
 BEHAVIOURS = ["stand", "suckle", "trot", "lie"]
+#: a gate only that behaviour's records carry (to sort cached plays by behaviour)
+GATE_OF = {"suckle": "pressing", "trot": "useful_speed", "stand": "standing", "lie": "lay_down"}
 
 
 def _load(path: Path) -> dict[str, Any]:
@@ -72,7 +74,7 @@ def pilot(lab: Any, opts: dict[str, str]) -> None:
 
     bodies = (opts.get("bodies") or ",".join(BODIES)).split(",")
     behaviours = (opts.get("behaviours") or ",".join(BEHAVIOURS)).split(",")
-    model = opts.get("model", "explicit_v1")
+    model = opts.get("model", "explicit_v2")
     workers = int(opts.get("workers", 14))
     s = OutcomeSearch(popsize=int(opts.get("pop", 12)), generations=int(opts.get("gens", 20)))
     pl, ev = payloads(lab, bodies, model)
@@ -233,23 +235,94 @@ def report() -> None:
 
 
 # ---------------------------------------------------------------------------------------------------- estimate
-def estimate(opts: dict[str, str]) -> None:
-    """Joint search cost at three budgets from the pilot's measured CPU-seconds per play."""
+#: the three budgets offered (ADR-110): inner search per behaviour (popsize, generations after the parent's best,
+#: search seeds, versions judged long on three seeds) and the outer body search (bodies per generation, generations)
+BUDGETS = {
+    "S": {"pop": 8, "gens": 6, "seeds": 1, "judge_top": 1, "bodies": 12, "outer_gens": 10},
+    "M": {"pop": 10, "gens": 10, "seeds": 2, "judge_top": 2, "bodies": 15, "outer_gens": 20},
+    "L": {"pop": 12, "gens": 20, "seeds": 3, "judge_top": 3, "bodies": 15, "outer_gens": 30},
+}
+
+
+def measured() -> dict[str, Any]:
+    """From the pilot: per behaviour the mean CPU-s of a search play and of a judging play, the share of candidates
+    played on more than the first seed, and the pool's efficiency (CPU-s used / (wall x workers))."""
     data = _load(OUT)
+    workers = int(data["settings"]["workers"])
+    out: dict[str, Any] = {"behaviours": {}, "workers": workers}
+    cpu_total = 0.0
+    for beh in BEHAVIOURS:
+        search, judge, cont, cands = [], [], 0, 0
+        for body in data["pilot"]:
+            r = data["pilot"][body].get(beh)
+            if not r:
+                continue
+            n_search = r["plays"] - sum(len(e["seeds"]) for e in r["judged"])
+            cands += len(r["progress"])
+            cont += n_search - len(r["progress"])
+            for e in r["judged"]:
+                judge += [float(x.get("wall_s") or 0) for x in e["seeds"] if "wall_s" in x]
+            search.append(r)
+        out["behaviours"][beh] = {"continue_share": cont / max(1, cands * (len(data["settings"]["search"]["search_seeds"]) - 1)),
+                                  "search_runs": len(search)}
+    # CPU-s per play from the cache (records carry their own wall time and length)
     cache = Path(sys.argv[1]) / ".cache" / "outcomes"
-    per: dict[str, list[float]] = {}
+    per: dict[str, dict[str, list[float]]] = {}
     for f in cache.glob("*.json"):
         try:
             r = json.loads(f.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError):
             continue
-        beh = "lie" if "lying_min" in r.get("outcome", {}) else (
-            "suckle" if "push_p20_n" in r.get("outcome", {}) else (
-                "trot" if "speed_mm_s" in r.get("outcome", {}) else "stand"))
-        per.setdefault(f"{beh}@{r['length_s']}", []).append(float(r["wall_s"]))
-    for k, v in sorted(per.items()):
-        print(k, len(v), "plays, mean", round(sum(v) / len(v), 2), "s")
-    print(json.dumps(data.get("pilot_wall_s")))
+        o = r.get("outcome", {})
+        gates = o.get("gates") or {}
+        beh = next((k for k, g in GATE_OF.items() if g in gates), None)
+        if beh is None:
+            continue
+        long = float(r["length_s"]) > 20.0 and beh != "lie"
+        per.setdefault(beh, {"search": [], "judge": []})["judge" if long else "search"].append(float(r["wall_s"]))
+        cpu_total += float(r["wall_s"])
+    for beh, v in per.items():
+        b = out["behaviours"].setdefault(beh, {})
+        b["cpu_search_s"] = round(sum(v["search"]) / max(1, len(v["search"])), 2)
+        b["cpu_judge_s"] = round(sum(v["judge"]) / max(1, len(v["judge"])), 2) if v["judge"] else b["cpu_search_s"]
+        b["n_search"], b["n_judge"] = len(v["search"]), len(v["judge"])
+    wall = float(data.get("pilot_wall_s") or 0.0)
+    out["cpu_total_s"] = round(cpu_total, 1)
+    out["efficiency"] = round(cpu_total / max(1e-6, wall * workers), 3) if wall else None
+    return out
+
+
+def estimate(opts: dict[str, str]) -> None:
+    """Joint body-and-behaviour search at three budgets (``BUDGETS``) from the pilot's measurements."""
+    m = measured()
+    eff = float(m["efficiency"] or 0.7)
+    workers = int(opts.get("workers", m["workers"]))
+    lines = [f"Measured: {json.dumps(m)}", "",
+             "| budget | inner per behaviour | plays per body | CPU-min per body | bodies | wall per outer generation | "
+             "wall total |", "|---|---|---|---|---|---|---|"]
+    rows = {}
+    for name, b in BUDGETS.items():
+        plays = cpu = 0.0
+        for beh in BEHAVIOURS:
+            mb = m["behaviours"].get(beh) or {}
+            cont = float(mb.get("continue_share", 1.0))
+            cands = 2 + b["pop"] * b["gens"]  # the parent's best + the behaviour's own default, then CMA-ES
+            n_search = cands * (1 + (b["seeds"] - 1) * cont)
+            n_judge = b["judge_top"] * 3
+            plays += n_search + n_judge
+            cpu += n_search * float(mb.get("cpu_search_s", 4.0)) + n_judge * float(mb.get("cpu_judge_s", 15.0))
+        per_gen_wall = cpu * b["bodies"] / (workers * eff)
+        total = per_gen_wall * b["outer_gens"]
+        rows[name] = {"plays_per_body": round(plays), "cpu_min_per_body": round(cpu / 60, 1),
+                      "bodies": b["bodies"] * b["outer_gens"], "wall_per_gen_min": round(per_gen_wall / 60, 1),
+                      "wall_total_h": round(total / 3600, 1)}
+        lines.append(f"| {name} | pop {b['pop']} x {b['gens']} gens, {b['seeds']} seed(s), top {b['judge_top']} "
+                     f"judged | {plays:.0f} | {cpu / 60:.1f} | {b['bodies']} x {b['outer_gens']} = "
+                     f"{b['bodies'] * b['outer_gens']} | {per_gen_wall / 60:.0f} min | {total / 3600:.1f} h |")
+    data = _load(OUT)
+    data["estimate"] = {"measured": m, "budgets": BUDGETS, "rows": rows, "workers": workers}
+    OUT.write_bytes(json.dumps(data, indent=1, default=float).encode())
+    print("\n".join(lines))
 
 
 def main() -> None:

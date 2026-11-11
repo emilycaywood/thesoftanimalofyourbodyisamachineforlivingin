@@ -113,7 +113,7 @@ class OutcomeSettings(BaseModel):
     not given), and the per-behaviour search."""
 
     behaviours: list[str] = Field(default_factory=lambda: ["stand", "suckle", "trot", "lie"])
-    mass_model: str = "explicit_v1"
+    mass_model: str = "explicit_v2"
     margin: float = 0.2
     search: OutcomeSearch = Field(default_factory=OutcomeSearch)
     tasks: dict[str, dict[str, Any]] = Field(default_factory=dict)

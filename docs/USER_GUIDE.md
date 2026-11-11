@@ -1308,6 +1308,51 @@ The plays are stored runs (`R12 compare <body> <behaviour>: seed N` in Journal
 `python docs/studies/compare_r12.py projects/robot-calf-final` (`--dry` lists
 what would be played; `--workers=7`). The page says how many are missing.
 
+#### Behaviours by their outcome (R15, ADR-110)
+
+The behaviours above are motions written for one body and then played on
+others. R15 starts from what the calf should do instead. Four behaviours are
+**scores with gates**, not motions (`calflab.fitness.outcomes`; preset
+`outcomes_r15`):
+
+* **Suckle**: push the head into a fixed block ahead of it (at the head's
+  standing height) and keep pressing. Score: the steady forward force (20th
+  percentile over the press) as a share of body weight.
+* **Trot**: travel forward for a minute, any gait. Score: the slowest 5 s
+  window's speed less sideways drift. The footfall (phases, duty factors,
+  *trot / walk / pace / bound*) is recorded, not required.
+* **Stand**: hold a standing posture with the least sustained servo effort.
+  Score: minus the mean and worst servo |torque| / rated torque.
+* **Lie**: get the trunk down to half its standing height, slowly, landing
+  softly and without tipping. Rising again is a bonus.
+
+Each has named **gates** that stop the obvious ways of scoring without doing
+the behaviour (leaning on the block, a lunge, a crouch counted as lying, a
+shuffle counted as travel, kneeling counted as standing); the full table is in
+`docs/studies/outcomes_r15.md`. Every play is also judged against the R11c
+suite's limits at margin 0.2. A version **holds** when every gate and every
+limit pass on all three seeds.
+
+For each body and behaviour a search (CMA-ES) tunes one controller family,
+**Outcome motion** (`outcome_motion`): up to three posture keyframes, an
+optional rhythm whose leg phases are free, and reflexes on trunk roll, pitch
+and heading. Old motions (today's trot, R13's lie_rise) are only starting
+points.
+
+There is no panel for this yet. From a terminal:
+
+```powershell
+python docs/studies/outcomes_r15.py projects/robot-calf-final pilot --workers=14
+python docs/studies/outcomes_r15.py projects/robot-calf-final report
+python docs/studies/outcomes_r15.py projects/robot-calf-final store
+python docs/studies/outcomes_r15.py projects/robot-calf-final estimate
+```
+
+`store` saves each body's best version of each behaviour as a run titled
+`R15 <body> <behaviour>: seed 0` (Journal > Runs, replay in the viewport). The
+suckling block is not drawn in the lab's viewport; the replay shows the body
+pressing against nothing.
+
 #### Proportions: comparing bodies instead of finding one
 
 The lab has three ways to look for a better body or gait:

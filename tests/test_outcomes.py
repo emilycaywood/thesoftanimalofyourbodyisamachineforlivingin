@@ -196,7 +196,7 @@ def test_preset_terms_and_settings() -> None:
     from calflab.fitness.preset import preset
 
     s = settings_from_preset("outcomes_r15")
-    assert s.mass_model == "explicit_v1" and s.margin == 0.2
+    assert s.mass_model == "explicit_v2" and s.margin == 0.2
     assert s.space("suckle").task["press_from_s"] == 6.0
     p = preset("outcomes_r15")
     out = {"suckle": {"holds": True, "within": True, "score": 0.3}, "trot": {"holds": False, "score": 900.0},
