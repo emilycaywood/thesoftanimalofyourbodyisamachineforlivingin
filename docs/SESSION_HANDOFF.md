@@ -1422,6 +1422,12 @@ component values and `verified` flags were not changed; nothing installed. Study
   written; Emily chooses S/M/L and the generations). Estimate: S ~0.8 h, M ~2.3 h, L ~4.5 h per generation of 14, plus
   up to ~32 min judging.
 * Tests: new `tests/test_lie_rise.py` (7; one `slow`), a gate test in `test_hardware.py`, two in `test_compare.py`.
+  `calflab test`: ruff, mypy, 19 Vitest pass; **579 pytest passed, 1 failed**:
+  `test_the_projects_bodies_are_bit_identical_through_the_pair_genes` (`project_document`). The project document was
+  saved at 11:31 on 2026-11-10 by a `set_layer` from the web lab (before this session's first command); the test fails
+  the same way on the pre-session code (3d7c690), so it is that save, not R13. Check the document, then re-write the
+  fingerprint (`tests/data/make_servo_fingerprints.py`) if the body is as intended. Playwright: 13/14 in the full run
+  (the known flaky "evolve from a baked design"), 14/14 on re-run.
 * The computer slept for about 3 h during the lying search (16:56-19:48); it only delayed the run.
 
 **Scaffolded only (interfaces + tests, no behaviour):** PPO training, MJX
