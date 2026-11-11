@@ -119,7 +119,8 @@ def judge(lab: Any, opts: dict[str, str]) -> None:
     from calflab.evolve.lie_rise import LieRiseSearch, body_keys, job_key, lay_down
     from stagec_r12 import B_RUN, perform, screen
 
-    pls, ev = payloads(lab, MODEL)
+    model = opts.get("model", MODEL)
+    pls, ev = payloads(lab, model)
     stagec = _load(STAGEC)["bodies"]
     lr = _load(LIERISE)
     brun = lab.registry.get_run(B_RUN)
@@ -127,7 +128,7 @@ def judge(lab: Any, opts: dict[str, str]) -> None:
     hw0 = HardwareSettings.model_validate(ev["hardware"])
     hw0.cache_dir = str(Path(lab.project.path) / ".cache" / "hardware")
     # the cost baseline: Stage B's start (the working body) at the same mass model, as the optimizer would set it
-    start = {**gdef.complete(brun.genome["values"]), "mass_model": MODEL}
+    start = {**gdef.complete(brun.genome["values"]), "mass_model": model}
     base_payload = {**next(iter(pls.values())), "genome": {"definition": gdef.name, "version": gdef.version,
                                                            "values": start}}
     from calflab.evolve.hardware import _build
@@ -197,7 +198,7 @@ def judge(lab: Any, opts: dict[str, str]) -> None:
                          | {"qom": y["movement"].get("quantity_of_motion_deg_s")} for y in x["seeds"]]}
                          for x in mine]}
     data = _load(OUT) if OUT.is_file() else {}
-    data["judge"] = {"model": MODEL, "stage_b_run": B_RUN, "wall_s": round(time.time() - t0, 1), "bodies": out}
+    data["judge" if model == MODEL else f"judge_{model}"] = {"model": model, "stage_b_run": B_RUN, "wall_s": round(time.time() - t0, 1), "bodies": out}
     OUT.write_bytes(json.dumps(data, indent=1, default=float).encode())
     print("wrote", OUT, flush=True)
 

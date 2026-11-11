@@ -4156,3 +4156,57 @@ g020-008-r01 -0.84, the others unchanged. Binding: hind hock belt (g012-009, g02
 torque on the C018-shoulder bodies (working, g009-000, g011-003), the hind stifle's envelope (g007-002). The bodies are
 unchanged, so their Stage C behaviours and trot are unchanged. 18 plays stored (`R12 compare <body> lie_rise (evolved):
 seed N`), reproducing the study's margins on every seed.
+
+## ADR-108 — The feral calf at its real weight: an explicit mass model (**VERIFY**)
+
+*Requested 2026-11-11 (session R14).* Every body so far was evolved and judged with ADR-068's counting (unentered
+parts 0 g), 1.30-1.42 kg as simulated. The researcher gave masses to add, and approved the three new library entries
+before they were written.
+
+*Decisions.*
+1. **A gene, not a setting:** `mass_model` (enum `as_entered` | `explicit_v1`, `absent: as_entered`, default
+   `as_entered`, not evolvable). Bodies are built from genes alone (evolution workers build from a JSON payload), so the
+   model travels with the genome and every play cache (keyed by the built spec) separates the two. No genome version
+   bump: a stored genome builds bit for bit as before. ASSUMPTION: new documents also start `as_entered`, so the
+   working body and every test fingerprint are unchanged until the researcher switches it.
+2. **Library entries:** a new component kind `part` (mass required; `config/components/parts.yaml`): `pulley_axle`
+   24 g and `servo_horn` 14 g. The tube is a material entry `cf_leg_tube_16x12` with new optional fields
+   `tube_od_mm`, `tube_id_mm` (16, 12) and `density_g_cm3` 1.65; `MaterialSpec.tube_mass_g(length)` = pi/4 x
+   (OD^2 - ID^2) x length x density. All `verified: false`; source "the researcher's measurement / request,
+   2026-11-11". The older `carbon_fibre_leg_tube` (15 x 12, 1.55) is unchanged. Materials that are not tubes do not
+   list the tube fields as unknown. The numbers of the model (which entries, 270 g, 300 g) are in
+   `config/feral_calf.yaml` `mass_models.explicit_v1`.
+3. **Where:** one axle per belt-driven joint and side at the joint axis (the driven body's origin): stifle, hock,
+   carpus when belted, shoulder when belted. One horn per motor where ADR-068's horn placeholder was (the driver
+   pulley of a belted joint; the joint side of the case for a direct one). ASSUMPTION: the axle is one part per joint,
+   none at the driver pulley.
+4. **Leg tubes:** the five leg segments (femur, tibia, rear cannon, upper leg, front cannon) take their mass from the
+   tube entry and each segment's own length, along the segment, with `mass_source: component` and the material key;
+   this replaces the tube-gene mass (not added). ASSUMPTION: the drawn tube, its collision radius and the leg's
+   lateral offset stay the tube genes (15 mm OD), so geometry and contact do not change with the mass model; the
+   difference is 0.5 mm of radius. The rails are not leg tubes and keep their mass.
+5. **Servos:** both library entries have a mass (C018 55 g, C002 74.5 g); they were already counted per joint, so
+   nothing changed and nothing had to stop.
+6. **Batteries:** 270 g in total for both packs, split evenly, at the placement already in the layout. This equals
+   ADR-068's 2 x 135 g, so no change in mass. ASSUMPTION: the packs keep `mass_source: specified` (supplied, not a
+   library entry): no library entry describes these packs (the generic `lipo_3s_5000` differs).
+7. **Headroom:** 300 g at the trunk's centre of mass (computed from every trunk geom before it is added), on the
+   Annotations layer, label "headroom (PROVISIONAL)", a new mass source `headroom`. It has no component or material,
+   is excluded from the BOM's material lines, and the breakdown reports it apart (`headroom_g`, `parts_g`,
+   `headroom_items`, item `provisional: true`); the Mass panel badges it PROVISIONAL and says "includes 300 g headroom
+   (PROVISIONAL), not a part". ASSUMPTION: it is a lump, a 6 mm sphere, so it adds mass but almost no rotational
+   inertia to the trunk.
+8. **Searches:** `HardwareSettings.mass_model` sets the gene on the start, every seed body and every draw (and so the
+   cost baseline). `hardware_r11c` and `hardware_r13` are version 2 with `mass_model: explicit_v1`; a run stores its
+   preset, so version-1 runs reload as they were. `lierise_r13.py preset` would rewrite hardware_r13 as version 1
+   without the mass model: re-add it if that script is run again. New `hardware_r14` (version 1): hardware_r11c v2
+   seeded with the three bodies that hold best at explicit_v1 (`mass_r14.py preset`).
+
+*Results (simulated; masses unverified; `docs/studies/mass_r14.md`).* Each body gains 700-702 g: working 1304 -> 2005
+g, g007-002 1383 -> 2085, g009-000 1380 -> 2080, g012-009 1421 -> 2122, g020-008-r01 1419 -> 2120. Re-judged with the
+R11c suite (control at as_entered reproduces R12 and R13 exactly): own behaviours held on all seeds g007-002 23 -> 4,
+working 11 -> 1, g009-000 16 -> 0, g012-009 14 -> 0, g020-008-r01 8 -> 0; trots still hold (g020-008-r01 543 mm/s,
+g012-009 414, g009-000 394) on fewer grid points; walk, turn and every lie_rise version fail (lie_rise -2.3 to
+-3.0). What binds is sustained servo torque on the weight-bearing joints: the C018 hip ab/ad servos, the shoulders,
+the carpi (torque, or belt tension on the 1:1 carpus). Next search estimated at about 34 min per generation of 15
+(hardware_r14) or 54 min (hardware_r13 v2); not started: the researcher chooses the budget.
