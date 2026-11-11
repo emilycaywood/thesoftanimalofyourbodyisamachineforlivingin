@@ -1418,9 +1418,12 @@ component values and `verified` flags were not changed; nothing installed. Study
 * **compare.html?set=r12** has a screen item **lie_rise (evolved)**: each body its own version (18 runs `R12 compare
   <body> lie_rise (evolved): seed N`, reproducing the study's margins). Seen in the lab's browser pane (port 8021;
   8020 was busy).
-* **Stage 3 built, not run:** `HardwareSettings.lie_rise_gate`, preset `config/fitness/hardware_r13.yaml` (budget S
-  written; Emily chooses S/M/L and the generations). Estimate: S ~0.8 h, M ~2.3 h, L ~4.5 h per generation of 14, plus
-  up to ~32 min judging.
+* **Stage 3** (`HardwareSettings.lie_rise_gate`, preset `config/fitness/hardware_r13.yaml`): Emily chose budget S, 10
+  generations. Run `20261111-032455-evolve-0908` (after two failed starts, labelled in Journal > Runs, each fixed:
+  seed-body variants for generation 0; bodies failing the gate ranked by their lie_rise margin): **no body passed in
+  generations 0-4** (70 bodies); best lie_rise -0.25 (`g004-010`, from g012-009; C002 shoulders + carpi, cost 1.83),
+  bound by the C018 hind stifle's envelope while rising behind. Generation 5 stopped itself (74 % of draws rejected:
+  one elite, near the spring and ratio bounds). About 50 min per generation.
 * Tests: new `tests/test_lie_rise.py` (7; one `slow`), a gate test in `test_hardware.py`, two in `test_compare.py`.
   `calflab test`: ruff, mypy, 19 Vitest pass; **579 pytest passed, 1 failed**:
   `test_the_projects_bodies_are_bit_identical_through_the_pair_genes` (`project_document`). The project document was
@@ -1470,7 +1473,8 @@ Journal, Rhino bridge):**
 
 **The researcher must verify (new in session R13, ADR-107):**
 
-* **Choose Stage 3's budget** (gate S / M / L and generations; section 7, R13-S3), or decide not to run it.
+* **What next for Stage 3** (it ran with budget S and stopped at generation 5, no body passing; section 7): a larger
+  inner budget on the best body, a C002 stifle, or keeping diversity while no body passes.
 * **Watch lie_rise (evolved)** on `compare.html?set=r12` (restart the lab on 8020 first: the running server has the old
   code): do the evolved versions look like lying down and rising? g007-002 (-0.25) and g012-009 are the closest.
 * **The judging choices:** whole motion + 1 s standing; fall = tipped or not standing again at 85 % height; lying =
@@ -1854,14 +1858,14 @@ Journal, Rhino bridge):**
 
 Prefix each with the opening message from section 1.
 
-**R13-S3. The body search with lie_rise as a constraint** (recommended next, once Emily has chosen the budget; ADR-107.)
-> In projects/robot-calf-final, R13 (`docs/studies/lierise_r13.md`, ADR-107) evolved lie_rise per body and no body
-> holds (best g007-002 -0.25; g012-009 -0.44 with the lying pose). Run Stage 3 with gate budget <S|M|L> for <N>
-> generations of 14: `python docs/studies/lierise_r13.py projects/robot-calf-final preset --lying --budget=<S|M|L>`, then
-> `... stage3 --generations=<N> --batch=14`. Report after every five generations: bodies whose lie_rise holds on all
-> three seeds, their trot and minutes held against Stage B, what binds in lie_rise on the rest, which genes moved
-> (hock belt, shoulder servo and springs especially), and write production sheets for any body that passes. Do not
-> change the working body, catalog values or `verified` flags.
+**R13-S3b. The hind stifle in lying down and rising** (recommended next; after R13's Stage 3, ADR-107.)
+> In projects/robot-calf-final, R13's Stage 3 (run 20261111-032455-evolve-0908, `docs/studies/lierise_r13.md`) found
+> no body that lies down and rises within limits; the best, `g004-010` (-0.25), and g007-002 (-0.25) bind on the C018
+> hind stifle's torque-speed envelope while rising behind. In memory: re-optimise lie_rise on those two bodies with
+> budget L (`calflab.evolve.lie_rise.optimise`, the lying pose included) to see whether a slower rise behind clears
+> it; then try a C002 stifle (in place of another pair, within six) and the stifle belt pairs and spring steps of
+> hardware_r11c. Report the margin and what binds per move, and for any variant that holds, the Stage B judging (trot
+> grid, walk, turn, the 11 shared behaviours). Do not change the working body, catalog values or `verified` flags.
 
 **R13b. Judge lie_rise over the whole motion in the hardware screen** (after Emily decides; it changes stored scores.)
 > In projects/robot-calf-final, the hardware screen judges lie_rise for 10 s and stops at the simulator's fall check,

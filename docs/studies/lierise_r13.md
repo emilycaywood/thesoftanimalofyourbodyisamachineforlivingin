@@ -369,6 +369,37 @@ bound: cached plays cost nothing):
 Start it with `python docs/studies/lierise_r13.py projects/robot-calf-final preset --lying --budget=<S|M|L>`, then
 `... stage3 --generations=<N> --batch=14`. The researcher chooses the budget.
 
+### Stage 3 run (budget S, 10 generations asked; run `20261111-032455-evolve-0908`)
+
+Two attempts before it ran properly: `...-022538-evolve-6b3f` (generation 0 with 3 seed bodies: 65 % of draws rejected,
+the R11c stop rule fired, and its code path crashed; fixed, and generation 0 is now 11 seed-body variants + the working
+body) and `...-022820-evolve-cd0e` (stopped after generation 0: every body failed the gate, so all sat in the
+(0 minutes, no trot) cell, where the cheapest, the working body, was the only elite; a body that fails the gate now
+scores -3 + 0.5 x its lie_rise margin - 0.1 x cost).
+
+| generation | bodies | rejected draws | passed the gate | best lie_rise worst-seed |
+|---|---|---|---|---|
+| 0 (seed bodies, from cache) | 14 | 5 | 0 | -0.40 (g012-009) |
+| 1 | 14 | 0 | 0 | about -0.3 |
+| 2 | 14 | 5 | 0 | -0.25 |
+| 3 | 14 | 5 | 0 | -0.25 |
+| 4 | 14 | 4 | 0 | -0.25 |
+| 5 | 0 | 39 of 53 (74 %): **stopped** by the 50 % rule | - | - |
+
+**No body passed the gate in 70 bodies.** The best (`g004-010`, cost 1.83, 1381 g) descends from g012-009: C002 on
+the shoulders and carpi only (the hocks back to C018), carpus 80T/80T, hock 40T/80T on 444 mm, stifle 40T/60T, belted
+shoulder 30T/45T, carpus spring on, a softer stifle spring, spring anchors moved, rear cannon -12 mm, femur +4, tibia
+-4, upper leg +4. Its lie_rise binds on the **hind stifle's torque-speed envelope while rising behind** (-0.25, a
+0.84 s rise; C018 stifle), with the stifle torque while lying (-0.08) and the front carpi (-0.04) just over: the
+same limit as g007-002's (-0.2513). The six-C002 budget is spent on shoulders, hocks and carpi in the seed bodies, so
+the stifle never gets a C002.
+
+Why it stopped: with every body failing the gate there is one archive cell and one elite, so every draw mutates the
+same body; it sits near the bounds (shoulder-spring free length under 10 mm, segment ratios at -5 %), and most
+mutations were rejected. Not decided here: whether to give the gate's inner search more budget (the stifle envelope
+might give way to a slower rise behind), allow a C002 stifle, or change how a search with no passing body keeps
+diversity.
+
 Caveats: settle 1 s, lying depth 0.5 and the fall test (tipped, or not standing again at 85 % height) are my choices
 (PROVISIONAL). Every search used one CMA-ES seed per body; the lying-pose search started from the Stage 2 best, so its
 "nothing better" on four bodies is one run, not a proof. The excess term (0.1 x mean excess per move) only shapes the

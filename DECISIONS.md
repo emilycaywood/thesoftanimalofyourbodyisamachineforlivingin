@@ -4141,6 +4141,10 @@ working body, catalogs, component values and `verified` flags were not changed. 
     and ordered by how close it comes: without this every failing body sat in the (0 minutes, no trot) cell, where
     the cheapest (the working body, -1.68) was the only elite (run `20261111-022820-evolve-cd0e`, stopped after
     generation 0). Until a body passes, the search climbs from the closest body.
+    *Stage 3 result (run `20261111-032455-evolve-0908`):* generations 0-4 (70 bodies), **none passes the gate**; best
+    lie_rise -0.25 (a g012-009 descendant, 4 new C002 on shoulders and carpi, cost 1.83), bound by the C018 hind
+    stifle's torque-speed envelope while rising behind. Generation 5 stopped by the R11c 50 % rule (74 % rejected:
+    with a single elite every draw mutates one body that sits near the spring and ratio bounds).
 11. `compare.html?set=r12` gains the screen item **lie_rise (evolved)**: each body plays its own version
     (`CompareSet.evolved` -> `docs/studies/lierise_r13.json`), judged over the whole motion; the body line adds
     "(evolved, whole: <margin>)".
