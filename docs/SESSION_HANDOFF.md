@@ -1858,7 +1858,8 @@ Journal, Rhino bridge):**
 
 Prefix each with the opening message from section 1.
 
-**R13-S3b. The hind stifle in lying down and rising** (recommended next; after R13's Stage 3, ADR-107.)
+**R13-S3b. The hind stifle in lying down and rising** (ON HOLD: on 2026-11-11 Emily paused the lying-down work; it
+is not the priority now. Do not start it unless she asks.)
 > In projects/robot-calf-final, R13's Stage 3 (run 20261111-032455-evolve-0908, `docs/studies/lierise_r13.md`) found
 > no body that lies down and rises within limits; the best, `g004-010` (-0.25), and g007-002 (-0.25) bind on the C018
 > hind stifle's torque-speed envelope while rising behind. In memory: re-optimise lie_rise on those two bodies with
