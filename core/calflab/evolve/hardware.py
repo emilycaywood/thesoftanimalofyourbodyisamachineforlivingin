@@ -130,6 +130,10 @@ class HardwareSettings(BaseModel):
         None, description="calflab.evolve.lie_rise.LieRiseSearch: before the screen, each body's lie_rise is "
                           "optimised (cached per body); a body whose best version does not hold on every seed plays "
                           "nothing else. None = no gate.")
+    # ---- R14 (ADR-108): the mass model every body is built with
+    mass_model: str | None = Field(None, description="Gene mass_model set on every body of the run (the start, the "
+                                                     "seed bodies, every draw), e.g. explicit_v1. None = each "
+                                                     "genome's own value (as_entered for every stored body).")
     # ---- filled when a run starts
     baseline: dict[str, Any] | None = None
     catalog: dict[str, Any] | None = None
@@ -939,6 +943,10 @@ class MapElitesHardware(Optimizer):
         catalog = BeltCatalog.from_dict(gen_params["belt_catalog"], origin="inlined")
         gdef = genome_definition(problem.genome["definition"])
         base_values = gdef.complete(problem.genome["values"])
+        if hw.mass_model:  # R14 (ADR-108): every body of the run, and the cost baseline, at this mass model
+            if hw.mass_model not in (gdef.gene("mass_model").choices or []):
+                raise ValueError(f"mass_model {hw.mass_model!r} is not a choice of the gene mass_model")
+            base_values = {**base_values, "mass_model": hw.mass_model}
         overrides = [Override.model_validate(o) for o in problem.overrides]
 
         def build(values: dict[str, Any]) -> Any:

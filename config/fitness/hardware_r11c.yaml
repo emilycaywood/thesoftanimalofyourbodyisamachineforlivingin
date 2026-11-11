@@ -1,8 +1,10 @@
 # Fitness preset R11c (ADR-103): written by docs/studies/preset_r11c.py from hardware.yaml. Use with the
 # optimizer map_elites_hardware. Bump `version` whenever you change it.
+# v2 (R14, ADR-108): every body is built with mass_model explicit_v1 (the researcher's masses of 2026-11-11, about
+# +0.7 kg). v1 judged bodies with ADR-068's counting; runs made with v1 carry their own copy and reload as they were.
 name: hardware_r11c
-version: 1
-description: 'R11c (ADR-103): R11''s judging (ADR-102) over a bounded production space: segment lengths +-10% on 2 mm steps
+version: 2
+description: 'v2 (ADR-108): bodies at their real weight (mass_model explicit_v1). R11c (ADR-103): R11''s judging (ADR-102) over a bounded production space: segment lengths +-10% on 2 mm steps
   with ratios +-5%, driver and driven pulleys chosen separately from listed pulleys, belt lengths feasible by construction,
   springs and the shoulder drive as genes, at most six STS3250 C002. Fitness within a cell = headroom minus 0.1 x a hardware
   cost index.'
@@ -25,6 +27,7 @@ evaluation:
   torque_derating: 1.0
   servo_model: torque_speed
   hardware:
+    mass_model: explicit_v1
     margin: 0.2
     servo_choices:
     - sts3215_c018

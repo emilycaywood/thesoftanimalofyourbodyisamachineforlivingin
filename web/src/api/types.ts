@@ -69,7 +69,9 @@ export interface ComponentInfo {
 }
 
 /** Where a mass comes from: pushed solid x material, such a solid estimated as printed with infill, weighed, library entry, or the envelope estimate. */
-export type MassSource = "infill" | "geometry" | "measured" | "component" | "parametric";
+/** tube: diameters x length x density; specified: supplied by the researcher, not weighed here (ADR-068);
+ * headroom: mass reserved for what is not modelled yet, never a part (ADR-108). */
+export type MassSource = "infill" | "geometry" | "measured" | "component" | "parametric" | "tube" | "specified" | "headroom";
 
 /** What an infill estimate was made from (computed and worded by the server). */
 export interface InfillEstimate {
@@ -133,6 +135,8 @@ export interface MassItem {
   replaced_g: number | null;
   note: string;
   infill: InfillEstimate | null;
+  /** reserved mass, not a part (ADR-108) */
+  provisional?: boolean;
 }
 
 export interface MassBodyRow {
@@ -156,6 +160,10 @@ export interface MassBreakdown {
   not_counted: { component: string; name: string; qty: number; mass_g: number }[];
   /** parts whose mass is a required value not entered yet: counted as 0 g (ADR-068) */
   missing?: { item: string; label: string; qty: number; where: string[]; enter_in: string }[];
+  /** mass reserved for what is not modelled yet, in the total but not a part (ADR-108) */
+  headroom_g?: number;
+  /** the total without the headroom */
+  parts_g?: number;
 }
 
 export interface MaterialChoice {

@@ -112,3 +112,22 @@
   source: "Researcher's request, 2026-11-04 (session R): carbon fibre leg tubes are a commitment; 15 x 12 mm at 1.55 g/cm3 confirmed by the researcher the same day (\"The leg tube is correct\")"
   guessed: []                     # names of fields whose value is your guess, not a datasheet value
   verified: false                 # set to true yourself once every value is checked
+
+- key: cf_leg_tube_16x12
+  kind: material
+  name: "Carbon fibre leg tube, 16 mm OD x 12 mm ID"
+  manufacturer: ""
+  # Session R14 (2026-11-11, ADR-108): the researcher's request gives the leg tubes as 12 mm ID / 16 mm OD at
+  # 1.65 g/cm3, mass per segment = pi/4 x (16^2 - 12^2) mm^2 x length x density. Used by the feral calf's
+  # mass model "explicit_v1" for the leg tube masses only (the drawn tube and its collision radius stay the
+  # tube genes). The older entry carbon_fibre_leg_tube (15 x 12 mm, 1.55 g/cm3) is unchanged.
+  role: structure  # structure | skin
+  color: "#c9c4b9"
+  density_g_cm3: 1.65             # g/cm^3; from the researcher's request (not a weighed value)
+  tube_od_mm: 16                  # mm
+  tube_id_mm: 12                  # mm
+  cost_usd_per_kg: null           # USD per kg; optional (blank = default assumed, and reported)
+  url: ""                         # datasheet or product page
+  source: "Researcher's request, 2026-11-11 (session R14): carbon fibre leg tubes 12 mm ID / 16 mm OD, density 1.65 g/cm3; addition approved by the researcher the same day"
+  guessed: []                     # names of fields whose value is your guess, not a datasheet value
+  verified: false                 # set to true yourself once every value is checked

@@ -45,8 +45,9 @@ GeomShape = Literal["box", "capsule", "cylinder", "sphere", "ellipsoid", "mesh"]
 #: estimate of ADR-017; ``geometry`` is a pushed closed solid x material density;
 #: ``infill`` is such a solid weighed as printed, shell + infilled core (ADR-054).
 #: ``tube`` is a tube or rod from its diameters, length and density; ``specified`` a mass the researcher
-#: supplied without weighing it here (ADR-068).
-MassSource = Literal["parametric", "component", "geometry", "infill", "measured", "tube", "specified"]
+#: supplied without weighing it here (ADR-068). ``headroom`` is mass reserved for what is not modelled yet: never a
+#: part, always labelled PROVISIONAL (ADR-108).
+MassSource = Literal["parametric", "component", "geometry", "infill", "measured", "tube", "specified", "headroom"]
 #: (ixx, iyy, izz, ixy, ixz, iyz)
 Inertia6 = tuple[float, float, float, float, float, float]
 

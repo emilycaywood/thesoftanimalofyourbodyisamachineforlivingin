@@ -188,7 +188,8 @@ def _fake(spec: Any, key: str, seed: int) -> dict[str, Any]:
             "controller": {"key": "feral_motion", "params": {}}}
 
 
-def _run(monkeypatch: pytest.MonkeyPatch, **params: Any) -> tuple[Any, _InProcess]:
+def _run(monkeypatch: pytest.MonkeyPatch, hw_extra: dict[str, Any] | None = None,
+         **params: Any) -> tuple[Any, _InProcess]:
     import calflab.evolve.hardware as hwmod
     from calflab.evolve import EvolveProblem
 
@@ -199,7 +200,7 @@ def _run(monkeypatch: pytest.MonkeyPatch, **params: Any) -> tuple[Any, _InProces
     hw = pre["evaluation"]["hardware"]
     hw.update({"trot_cycles_s": [0.5], "trot_strides": [1.0], "screen_extra": ["walk"], "cache_dir": "",
                "performances": [{**p, "controller": {"key": "feral_motion", "params": {}}}
-                                for p in hw["performances"][:2]]})
+                                for p in hw["performances"][:2]], **(hw_extra or {})})
     g = genome_definition("feral_calf").default_genome()
     problem = EvolveProblem(genome=g.model_dump(mode="json"), overrides=[], generator="feral_calf",
                             generator_params={"belt_catalog": catalog_files(None)}, compile={}, sim={},
@@ -227,6 +228,16 @@ def test_optimizer_is_deterministic_and_respects_constraints(monkeypatch: pytest
     assert a.archive["tables"][0]["candidates"]  # the Pareto front
     labels = {c.metrics["hardware"].get("label") for c in judged}
     assert "R10 40T/80T" in labels
+
+
+def test_the_presets_mass_model_reaches_every_body(monkeypatch: pytest.MonkeyPatch) -> None:
+    """R14 (ADR-108): with ``mass_model`` in the preset, the start, the seed bodies and every draw are built with it."""
+    load_plugins()
+    res, be = _run(monkeypatch, hw_extra={"mass_model": "explicit_v1"}, hardware_flip=1.0)
+    assert be.given and all(t.payload["genome"]["values"]["mass_model"] == "explicit_v1" for t in be.given)
+    assert res.candidates and all(c.genome["values"]["mass_model"] == "explicit_v1" for c in res.candidates)
+    plain, be0 = _run(monkeypatch, hardware_flip=1.0)
+    assert all(t.payload["genome"]["values"]["mass_model"] == "as_entered" for t in be0.given)
 
 
 def test_pareto_front() -> None:

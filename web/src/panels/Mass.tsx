@@ -15,6 +15,9 @@ const TONE: Record<MassSource, "ok" | "info" | "neutral" | "warn"> = {
   measured: "info",
   component: "neutral",
   parametric: "warn",
+  tube: "neutral",
+  specified: "info",
+  headroom: "warn",
 };
 const SHORT: Record<MassSource, string> = {
   infill: "infill est.",
@@ -22,6 +25,9 @@ const SHORT: Record<MassSource, string> = {
   measured: "measured",
   component: "component",
   parametric: "estimate",
+  tube: "tube",
+  specified: "supplied",
+  headroom: "PROVISIONAL",
 };
 
 export function SourceBadge({ source, label }: { source: MassSource; label: string }) {
@@ -89,6 +95,11 @@ export function MassPanel() {
           <b className={scene.mass.over_budget ? "text-err" : ""} data-testid="mass-breakdown-total">{fmt(b.total_g, 1)} g</b>
           <span className="text-[10px] text-dim">{fmt(b.unverified_g, 0)} g rests on unverified library entries (*)</span>
         </div>
+        {(b.headroom_g ?? 0) > 0 && (
+          <div className="text-[10px] text-warn" data-testid="mass-headroom">
+            includes {fmt(b.headroom_g ?? 0, 0)} g headroom (PROVISIONAL), not a part; parts {fmt(b.parts_g ?? 0, 1)} g
+          </div>
+        )}
         <table className="mt-1 w-full">
           <tbody>
             {sources.map((k) => (

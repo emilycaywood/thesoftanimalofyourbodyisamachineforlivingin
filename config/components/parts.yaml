@@ -1,0 +1,26 @@
+# Mechanical parts counted by their mass alone (kind: part, ADR-108). Every value
+# needs a source; only the researcher sets `verified: true`.
+
+- key: pulley_axle
+  kind: part
+  name: "Pulley axle (one per belt-driven joint)"
+  manufacturer: ""
+  mass_g: 24                      # g; the researcher's measurement
+  dims_mm: null                   # mm; optional (blank = default assumed, and reported)
+  cost_usd: null                  # USD; optional (blank = default assumed, and reported)
+  url: ""
+  source: "Researcher's measurement, given in the request of 2026-11-11 (session R14): 24 g per pulley axle; addition approved by the researcher the same day"
+  guessed: []                     # names of fields whose value is your guess, not a datasheet value
+  verified: false                 # set to true yourself once every value is checked
+
+- key: servo_horn
+  kind: part
+  name: "Servo horn (one per motor)"
+  manufacturer: ""
+  mass_g: 14                      # g; the researcher's measurement
+  dims_mm: null                   # mm; optional (blank = default assumed, and reported)
+  cost_usd: null                  # USD; optional (blank = default assumed, and reported)
+  url: ""
+  source: "Researcher's measurement, given in the request of 2026-11-11 (session R14): 14 g per servo horn; addition approved by the researcher the same day"
+  guessed: []                     # names of fields whose value is your guess, not a datasheet value
+  verified: false                 # set to true yourself once every value is checked

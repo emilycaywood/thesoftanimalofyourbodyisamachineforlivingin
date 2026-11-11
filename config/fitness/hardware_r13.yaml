@@ -1,8 +1,10 @@
 # Fitness preset R13 (ADR-107): written by docs/studies/lierise_r13.py preset. Use with the optimizer
 # map_elites_hardware. Bump `version` whenever you change it.
+# v2 (R14, ADR-108): every body is built with mass_model explicit_v1 (the researcher's masses of 2026-11-11, about
+# +0.7 kg). v1 judged bodies with ADR-068's counting; runs made with v1 carry their own copy and reload as they were.
 name: hardware_r13
-version: 1
-description: 'R13 (ADR-107): hardware_r11c with lying down and rising as a constraint: each body''s lie_rise is optimised
+version: 2
+description: 'v2 (ADR-108): bodies at their real weight (mass_model explicit_v1). R13 (ADR-107): hardware_r11c with lying down and rising as a constraint: each body''s lie_rise is optimised
   (CMA-ES 8 x 8, three seeds, whole motion, warm-started from the seed bodies'' R13 versions, lying pose searched); a body
   passes only if it holds on all three seeds, then the trot grid, walk, turn and the 11 shared behaviours are judged as
   in Stage B. Seeded with g012-009, g020-008-r01, g009-000.'
@@ -25,6 +27,7 @@ evaluation:
   torque_derating: 1.0
   servo_model: torque_speed
   hardware:
+    mass_model: explicit_v1
     margin: 0.2
     servo_choices:
     - sts3215_c018

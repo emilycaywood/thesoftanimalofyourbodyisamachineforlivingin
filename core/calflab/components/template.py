@@ -23,6 +23,7 @@ FILES: dict[str, str] = {
     "board": "electronics.yaml",
     "battery": "electronics.yaml",
     "material": "materials.yaml",
+    "part": "parts.yaml",
 }
 
 #: unit and meaning of each spec field, written beside the blank value
@@ -52,6 +53,8 @@ HINTS: dict[str, str] = {
     "joint_stiffness_nm_per_rad_per_mm": "N*m/rad per mm of thickness",
     "joint_damping_nms_per_rad_per_mm": "N*m*s/rad per mm of thickness",
     "cost_usd_per_kg": "USD per kg",
+    "tube_od_mm": "mm, outer diameter of a tube sold in this material; optional",
+    "tube_id_mm": "mm, inner diameter of that tube; optional",
 }
 
 _EXTRA: dict[str, list[tuple[str, str]]] = {
@@ -60,6 +63,7 @@ _EXTRA: dict[str, list[tuple[str, str]]] = {
     "board": [("role", '""')],
     "battery": [],
     "material": [("role", "structure  # structure | skin"), ("color", '"#c9c4b9"')],
+    "part": [],
 }
 
 

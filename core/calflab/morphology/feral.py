@@ -87,6 +87,8 @@ SPRINGS = {"stifle": ("femur", "tibia"), "hock": ("tibia", "cannon"), "shoulder"
 OPTIONAL_SITES = {"spring_carpus": "spring_carpus", "belt_shoulder": "shoulder_belt", "shoulder_belt": "shoulder_belt"}
 #: rail cross-sections (mm): (outer diameter, inner diameter, density gene or None if not entered)
 RAILS = {"cf_rod_8mm": (8.0, 0.0, "tube_density"), "al_tube_half_inch": (12.7, 12.7 - 2 * 1.2446, None)}
+#: the label of the explicit mass model's headroom (ADR-108): never shown as a real part
+HEADROOM_LABEL = "headroom (PROVISIONAL)"
 RAIL_LABELS = {"cf_rod_8mm": "8 mm solid carbon fibre rod", "al_tube_half_inch": "1/2 in aluminium tube, 0.049 in wall"}
 
 
@@ -222,6 +224,16 @@ class FeralCalfGenerator(PartGenerator):
         jd = float(ctx.defaults.get("structure", {}).get("joint_damping_nms_per_rad", 0.05))
         jf = float(ctx.defaults.get("structure", {}).get("joint_friction_nm", 0.02))
         density = u.g_cm3_to_g_mm3(_num(genes, "tube_density"))
+        # the mass model (ADR-108): as_entered = ADR-068's counting; explicit_v1 = the researcher's masses of 2026-11-11
+        mass_model = str(genes.get("mass_model", "as_entered") or "as_entered")
+        mm: dict[str, Any] | None = None
+        if mass_model != "as_entered":
+            mm = (cfg.get("mass_models") or {}).get(mass_model)
+            if mm is None:
+                raise ValueError(f"Mass model {mass_model!r} is not in config/feral_calf.yaml mass_models")
+        leg_tube = lib.material(str(mm["leg_tube"])) if mm else None
+        axle_part = lib.part(str(mm["pulley_axle"])) if mm else None
+        horn_part = lib.part(str(mm["servo_horn"])) if mm else None
 
         def val(el: str, name: str) -> float:
             return params[el][name].value
@@ -251,9 +263,32 @@ class FeralCalfGenerator(PartGenerator):
             if idd >= od:
                 raise ValueError(f"{label}: inner diameter {idd:g} mm must be smaller than the outer diameter {od:g} mm")
             area = math.pi / 4.0 * (od * od - idd * idd)
+            if leg_tube is not None:  # explicit_v1: the library tube's mass along the segment; the drawn tube stays
+                return Geom(id=gid, shape="cylinder", size=(od / 2.0, length, 0.0), pos=(0.0, 0.0, -length / 2.0),
+                            layer="Structure", role="both", mass_g=leg_tube.tube_mass_g(length),
+                            mass_source="component", material=leg_tube.key,
+                            label=f"{label} ({leg_tube.tube_od_mm:g} x {leg_tube.tube_id_mm:g} mm CF tube, "
+                                  f"{leg_tube.density_g_cm3:g} g/cm3, {length:.1f} mm)")
             return Geom(id=gid, shape="cylinder", size=(od / 2.0, length, 0.0), pos=(0.0, 0.0, -length / 2.0),
                         layer="Structure", role="both", mass_g=area * length * density, mass_source="tube",
                         material="carbon_fibre_tube", label=f"{label} ({od:g} x {idd:g} mm CF tube)")
+
+        def horn(gid: str, pos: Vec3, where: str) -> list[Geom]:
+            """A servo horn at a servo's output: the library part (explicit_v1) or ADR-068's placeholder."""
+            if horn_part is None:
+                return ph_geom(gid, "servo_horn_g", "Servo horn", pos, where, layer="Actuators")
+            return [Geom(id=gid, shape="sphere", size=(5.0, 0.0, 0.0), pos=pos, layer="Actuators", role="visual",
+                         mass_g=horn_part.mass_g, mass_source="component", component=horn_part.key,
+                         label=f"Servo horn ({horn_part.mass_g:g} g, library)")]
+
+        def axle(body: Body, k: str, drive: str) -> None:
+            """A belt-driven joint's pulley axle at the joint axis (the driven body's origin), explicit_v1 only."""
+            if axle_part is None:
+                return
+            body.geoms.append(Geom(id=f"belt.{k}.{drive}.axle", shape="sphere", size=(4.0, 0.0, 0.0),
+                                   pos=(0.0, 0.0, 0.0), layer="Transmission", role="visual", mass_g=axle_part.mass_g,
+                                   mass_source="component", component=axle_part.key,
+                                   label=f"Pulley axle ({axle_part.mass_g:g} g, library)"))
 
         def servo_geom(gid: str, pos: Vec3, size: Vec3, label: str) -> Geom:
             pair = gid.split(".")[2]  # act.<leg>.<joint>.motor
@@ -444,13 +479,20 @@ class FeralCalfGenerator(PartGenerator):
                                 label="Head + neck (lumped mass, PROVISIONAL)"))
         trunk.geoms += ph_geom("head.neck_rods", "neck_rods_g", "Neck rods", (sx + overhang + 20.0, 0.0, 30.0), "trunk")
         bat = cfg.get("battery", {})
-        for n in range(int(bat.get("packs", 0))):
+        packs = int(bat.get("packs", 0))
+        for n in range(packs):
             y = rs / 2.0 if n % 2 == 0 else -rs / 2.0
+            if mm is not None:  # explicit_v1: the researcher's total for both packs, split evenly (ADR-108)
+                pack_g = float(mm["battery_total_g"]) / packs
+                pack_label = (f"{bat.get('description', 'Battery')} ({pack_g:g} g: {float(mm['battery_total_g']):g} g "
+                              "for all packs as supplied 2026-11-11; size not entered)")
+            else:
+                pack_g = float(bat.get("pack_mass_g", 0.0))
+                pack_label = f"{bat.get('description', 'Battery')} ({bat.get('pack_mass_g')} g as supplied; size not entered)"
             trunk.geoms.append(Geom(
                 id=f"elec.battery{n + 1}", shape="sphere", size=(12.0, 0.0, 0.0),
                 pos=(hx + _num(genes, "battery_forward"), y, -_num(genes, "battery_drop")), layer="Electronics",
-                role="visual", mass_g=float(bat.get("pack_mass_g", 0.0)), mass_source="specified",
-                label=f"{bat.get('description', 'Battery')} ({bat.get('pack_mass_g')} g as supplied; size not entered)"))
+                role="visual", mass_g=pack_g, mass_source="specified", label=pack_label))
         trunk.geoms += ph_geom("elec.boards", "electronics_g", "Electronics", (0.0, 0.0, block_h / 2.0), "trunk",
                                layer="Electronics")
         trunk.geoms += ph_geom("skin.all", "skin_g", "Skin", (0.0, 0.0, 0.0), "trunk", layer="Skin")
@@ -500,8 +542,8 @@ class FeralCalfGenerator(PartGenerator):
                     label=f"{rep.choice.system} belt, {rep.length_mm:g} mm ({rep.belt_teeth} teeth)"))
             upper.geoms += ph_geom(f"belt.{k}.{drive}.belt_mass", "belt_g", "Belt", (0.0, y_belt, z_joint + c / 2.0),
                                    upper.id, layer="Transmission")
-            upper.geoms += ph_geom(f"act.{k}.{drive}.horn", "servo_horn_g", "Servo horn", (0.0, y_servo, z_joint + c),
-                                   upper.id, layer="Actuators")
+            upper.geoms += horn(f"act.{k}.{drive}.horn", (0.0, y_servo, z_joint + c), upper.id)
+            axle(lower, k, drive)
             if drive in ("hock", "carpus"):
                 upper.geoms += ph_geom(f"act.{k}.{drive}.collar", "clamp_collar_g", "Clamp collar",
                                        (0.0, 0.0, z_joint + c), upper.id)
@@ -550,8 +592,8 @@ class FeralCalfGenerator(PartGenerator):
                     label=f"{rep.choice.system} belt, {rep.length_mm:g} mm ({rep.belt_teeth} teeth)"))
             trunk.geoms += ph_geom(f"belt.{k}.shoulder.belt_mass", "belt_g", "Belt", (x_axle - c / 2.0, y_belt, 0.0),
                                    "trunk", layer="Transmission")
-            trunk.geoms += ph_geom(f"act.{k}.shoulder.horn", "servo_horn_g", "Servo horn", (x_axle - c, y_servo, 0.0),
-                                   "trunk", layer="Actuators")
+            trunk.geoms += horn(f"act.{k}.shoulder.horn", (x_axle - c, y_servo, 0.0), "trunk")
+            axle(upper, k, "shoulder")
 
         def plugs(body: Body, length: float) -> None:
             for n, z in ((1, 0.0), (2, -length)):
@@ -590,8 +632,7 @@ class FeralCalfGenerator(PartGenerator):
             trunk.geoms.append(servo_geom(f"act.{k}.hip_abd.motor", (hx, sy * (block_wh / 2.0 - s_wid / 2.0 - 2.0), 0.0),
                                           (s_dep, s_wid, s_len), f"{servos['hip_abd'].name} (hip ab/ad, direct)").model_copy(
                 update={"quat": m_h}))  # the servo seat turns with the leg's mount
-            trunk.geoms += ph_geom(f"act.{k}.hip_abd.horn", "servo_horn_g", "Servo horn", (hx, sy * block_wh / 2.0, 0.0), "trunk",
-                                   layer="Actuators")
+            trunk.geoms += horn(f"act.{k}.hip_abd.horn", (hx, sy * block_wh / 2.0, 0.0), "trunk")
             tibia = Body(id=f"leg.{k}.tibia", name=f"{name} tibia", parent=femur.id, pos=(0.0, 0.0, -Lf_k), quat=ry(af + at))
             tibia.geoms.append(tube(f"leg.{k}.tibia.tube", "Tibia", Lt_k, "tibia_od", "tibia_id"))
             plugs(tibia, Lt_k)
@@ -633,8 +674,7 @@ class FeralCalfGenerator(PartGenerator):
                                               (sx, sy * (block_wc / 2.0 - s_dep / 2.0 - 2.0), 0.0),
                                               (s_wid, s_dep, s_len), f"{servos['shoulder'].name} (shoulder, direct)"
                                               ).model_copy(update={"quat": m_f}))
-                trunk.geoms += ph_geom(f"act.{k}.shoulder.horn", "servo_horn_g", "Servo horn",
-                                       (sx, sy * block_wc / 2.0, 0.0), "trunk", layer="Actuators")
+                trunk.geoms += horn(f"act.{k}.shoulder.horn", (sx, sy * block_wc / 2.0, 0.0), "trunk")
             cannon = Body(id=f"leg.{k}.cannon", name=f"{name} cannon", parent=upper.id, pos=(0.0, 0.0, -Lu_k),
                           quat=ry(2.0 * theta))
             cannon.geoms.append(tube(f"leg.{k}.cannon.tube", "Cannon", Lfc_k, "front_cannon_od", "front_cannon_id"))
@@ -650,8 +690,7 @@ class FeralCalfGenerator(PartGenerator):
                 od = _num(genes, "upper_leg_od")
                 upper.geoms.append(servo_geom(f"act.{k}.carpus.motor", (0.0, sy * (od / 2.0 + 2.0 + s_dep / 2.0), -Lu_k),
                                               (s_wid, s_dep, s_len), f"{servos['carpus'].name} (carpus, direct)"))
-                upper.geoms += ph_geom(f"act.{k}.carpus.horn", "servo_horn_g", "Servo horn", (0.0, sy * od / 2.0, -Lu_k),
-                                       upper.id, layer="Actuators")
+                upper.geoms += horn(f"act.{k}.carpus.horn", (0.0, sy * od / 2.0, -Lu_k), upper.id)
             bodies += [upper, cannon]
 
         # ------------------------------------------------------------ springs (ADR-065)
@@ -709,6 +748,26 @@ class FeralCalfGenerator(PartGenerator):
                                               pos=(0.0, 0.0, -hg["lower_along"]), role="visual",
                                               mass_g=spring_mass, mass_source="specified", label="Spring (entered)"))
 
+        # ------------------------------------------------------------ headroom (explicit_v1, ADR-108)
+        mass_meta: dict[str, Any] = {"model": mass_model}
+        if mm is not None:
+            head_g = float(mm.get("headroom_g") or 0.0)
+            weighed = [(g.mass_g, g.mass_center()) for g in trunk.geoms if g.mass_g > 0]
+            tm = sum(m for m, _ in weighed)
+            com: Vec3 = ((sum(m * c[0] for m, c in weighed) / tm, sum(m * c[1] for m, c in weighed) / tm,
+                          sum(m * c[2] for m, c in weighed) / tm) if tm > 0 else (0.0, 0.0, 0.0))
+            if head_g > 0:
+                trunk.geoms.append(Geom(
+                    id="trunk.headroom", shape="sphere", size=(6.0, 0.0, 0.0), pos=com, layer="Annotations",
+                    role="visual", mass_g=head_g, mass_source="headroom", label=HEADROOM_LABEL,
+                    mass_note=f"{head_g:g} g reserved at the trunk's centre of mass for what is not modelled yet. Not a "
+                              "part: lower it as real parts are entered (ADR-108)."))
+            mass_meta.update({"headroom_g": head_g, "headroom_at_mm": [round(v, 2) for v in com],
+                              "battery_total_g": float(mm["battery_total_g"]),
+                              "leg_tube": leg_tube.key if leg_tube else None,
+                              "pulley_axle": axle_part.key if axle_part else None,
+                              "servo_horn": horn_part.key if horn_part else None})
+
         # ------------------------------------------------------------ record
         provisional = provisional_values(genes, gp, cfg)
         res = 360.0 / float(servo.encoder_steps_per_rev) if servo.encoder_steps_per_rev else None
@@ -744,6 +803,7 @@ class FeralCalfGenerator(PartGenerator):
                     "belted": belted,
                     "springs": spring_meta,
                     "provisional": provisional,
+                    "mass_model": mass_meta,
                     "servo": {"component": servo_key, "name": servo.name, "stall_nm": servo.stall_torque_nm,
                               "rated_nm": servo.rated_torque_nm, "encoder_steps": servo.encoder_steps_per_rev,
                               "servo_resolution_deg": res, "output_axis_offset_mm": offset,

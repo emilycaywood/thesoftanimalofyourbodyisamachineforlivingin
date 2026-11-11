@@ -749,6 +749,40 @@ and joint ranges.
   it lives, and every part mass not entered yet (counted as 0 g; the Mass
   tab lists them too).
 
+**Mass model (R14, ADR-108).** Form > Body > *Mass model* chooses how the
+feral calf is weighed:
+
+* **as_entered** (every stored body, and new documents): ADR-068's counting.
+  Servos, tubes from the tube genes, the packs and the head + neck lump;
+  everything not entered weighs 0 g. The working body is 1304 g this way.
+* **explicit_v1**: your masses of 2026-11-11 added as library parts, each in
+  the Mass tab with its source:
+  * a 24 g **pulley axle** (`pulley_axle`, `config/components/parts.yaml`) at
+    every belt-driven joint's axis (stifle, hock, carpus, and the shoulder
+    when belted);
+  * a 14 g **servo horn** (`servo_horn`) at every motor's output (10);
+  * the **leg tubes** from `cf_leg_tube_16x12` (16 x 12 mm, 1.65 g/cm3):
+    pi/4 x (16^2 - 12^2) x the segment's own length x density, along the
+    segment, in place of the tube-gene estimate. The drawn tube and its
+    collision radius stay the tube genes (15 mm);
+  * the two packs at **270 g** in total, where they were;
+  * **300 g headroom** at the trunk's centre of mass, shown as
+    *headroom (PROVISIONAL)* on the Annotations layer with its own badge, and
+    named under the total ("includes 300 g headroom (PROVISIONAL), not a
+    part"). It is mass kept free for what is not modelled yet, not a part.
+
+  The working body weighs 2005 g this way (1705 g of parts + 300 g
+  headroom). The servos' own masses come from their library entries
+  (STS3215 C018 55 g, STS3250 C002 74.5 g) in both models. Parts still not
+  entered (bearings, collars, plugs, blocks, electronics, skin, hoof pads,
+  belts, pulleys, springs) are still listed as missing.
+
+Switching the gene is an ordinary, undoable edit; the presets
+**hardware_r11c** and **hardware_r13** (version 2) build every body of a
+search with explicit_v1 whatever the start genome says (`mass_model` under
+`evaluation.hardware`). Runs made with version 1 keep their own copy and
+reload as they were.
+
 **Gaits.** Simulate > Controller has a *Controller* list. It greys out a
 controller that cannot drive this body. Switching keeps each controller's
 settings for when you come back (ADR-075). For gaits, use *Feral calf

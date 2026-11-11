@@ -26,6 +26,7 @@ SOURCES: dict[str, str] = {
     "tube": "Tube or rod: diameters x length x density",
     "specified": "Mass supplied by the researcher (not weighed here)",
     "parametric": "Parametric estimate (envelope)",
+    "headroom": "Headroom (PROVISIONAL): mass reserved for what is not modelled yet, not a part",
 }
 
 #: shown wherever a structure mass rests on an infill estimate
@@ -86,6 +87,8 @@ def mass_breakdown(spec: RobotSpec, lib: Any) -> dict[str, Any]:
                     "note": g.mass_note,
                     #: settings and volumes behind an infill estimate (None = not one)
                     "infill": g.infill,
+                    #: reserved mass, not a part (ADR-108)
+                    "provisional": g.mass_source == "headroom",
                 }
             )
             if in_structure:
@@ -158,4 +161,8 @@ def mass_breakdown(spec: RobotSpec, lib: Any) -> dict[str, Any]:
         "not_counted": list(not_counted.values()),
         #: parts whose mass is a required value not entered yet: counted as 0 g (ADR-068)
         "missing": list(spec.metadata.get("missing_masses", [])),
+        #: mass reserved for what is not modelled yet (ADR-108): in the total, never a part
+        "headroom_g": round(by_source["headroom"], 2),
+        "parts_g": round(total - by_source["headroom"], 2),
+        "headroom_items": [i for r in bodies for i in r["items"] if i["source"] == "headroom"],
     }

@@ -1,4 +1,4 @@
-"""Component library: actuators, sensors, boards, batteries, materials.
+"""Component library: actuators, sensors, boards, batteries, materials, parts.
 
 Data lives in ``config/components/*.yaml`` (and may be extended by
 ``ComponentProvider`` plugins). Every entry carries ``source`` and
@@ -20,6 +20,7 @@ No value is filled in silently (ADR-051):
 
 from __future__ import annotations
 
+import math
 from functools import lru_cache
 from pathlib import Path
 from typing import Any, Literal
@@ -29,7 +30,7 @@ from pydantic import BaseModel, ConfigDict
 
 from calflab.paths import config_dir
 
-Kind = Literal["actuator", "sensor", "board", "battery", "material"]
+Kind = Literal["actuator", "sensor", "board", "battery", "material", "part"]
 
 
 class Component(BaseModel):
@@ -63,6 +64,8 @@ META_FIELDS = frozenset({
 })
 _NOT_FOR_MATERIAL = frozenset({"mass_g", "dims_mm", "cost_usd"})  # a material is bought by the kg
 _SKIN_ONLY = frozenset({"areal_density_g_cm2", "joint_stiffness_nm_per_rad_per_mm", "joint_damping_nms_per_rad_per_mm"})
+#: fields only a tube entry gives: absent from any other material, they are neither defaulted nor unknown (ADR-108)
+_TUBE_ONLY = frozenset({"tube_od_mm", "tube_id_mm"})
 
 
 class ActuatorSpec(Component):
@@ -130,6 +133,26 @@ class MaterialSpec(Component):
     joint_damping_nms_per_rad_per_mm: float = 0.0
     cost_usd_per_kg: float = 0.0
     color: str = "#cccccc"
+    #: a tube sold in this material: outer and inner diameter (mm); None = not a tube entry (ADR-108)
+    tube_od_mm: float | None = None
+    tube_id_mm: float | None = None
+
+    def tube_mass_g(self, length_mm: float) -> float:
+        """Mass (g) of ``length_mm`` of this tube: pi/4 x (OD^2 - ID^2) x length x density (ADR-108)."""
+        if self.tube_od_mm is None or self.tube_id_mm is None:
+            raise ValueError(f"{self.key!r} gives no tube_od_mm / tube_id_mm: it is not a tube entry")
+        if self.tube_id_mm >= self.tube_od_mm:
+            raise ValueError(f"{self.key!r}: inner diameter {self.tube_id_mm:g} mm must be smaller than the outer "
+                             f"diameter {self.tube_od_mm:g} mm")
+        area = math.pi / 4.0 * (self.tube_od_mm ** 2 - self.tube_id_mm ** 2)  # mm^2
+        return area * length_mm * self.density_g_cm3 / 1000.0  # g/cm3 -> g/mm3
+
+
+class PartSpec(Component):
+    """A bought or made mechanical part counted by its mass alone (an axle, a servo horn; ADR-108).
+    ``mass_g`` is required."""
+
+    kind: Literal["part"] = "part"
 
 
 _MODELS: dict[str, type[Component]] = {
@@ -138,6 +161,7 @@ _MODELS: dict[str, type[Component]] = {
     "board": BoardSpec,
     "battery": BatterySpec,
     "material": MaterialSpec,
+    "part": PartSpec,
 }
 
 
@@ -179,6 +203,12 @@ class Library:
         c = self.get(key)
         if not isinstance(c, MaterialSpec):
             raise TypeError(f"{key!r} is a {c.kind}, not a material")
+        return c
+
+    def part(self, key: str) -> PartSpec:
+        c = self.get(key)
+        if not isinstance(c, PartSpec):
+            raise TypeError(f"{key!r} is a {c.kind}, not a part")
         return c
 
     def battery(self, key: str) -> BatterySpec:
@@ -241,6 +271,7 @@ def parse_component(data: dict[str, Any]) -> Component:
     unknown = [f for f in given.get("guessed") or [] if f not in fields]
     if unknown:
         raise ValueError(f"Component {key!r}: 'guessed' names {unknown}, which are not spec fields of a {kind}")
+    absent = [f for f in absent if f not in _TUBE_ONLY]
     no_default = [f for f in absent if model.model_fields[f].default is None]
     return model.model_validate({**given, "defaulted": [f for f in absent if f not in no_default], "unknown": no_default})
 

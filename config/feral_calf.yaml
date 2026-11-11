@@ -41,6 +41,17 @@ placeholders:
   belt_g: null            # per belt
   neck_rods_g: null       # the thin steel neck rods, if not inside the head+neck lump
 
+# Mass models (gene mass_model, ADR-108). as_entered needs nothing here. explicit_v1: the researcher's request of
+# 2026-11-11 (session R14). Parts are library entries (config/components, verified: false); the two numbers
+# below are the researcher's figures for the whole robot, not part specs.
+mass_models:
+  explicit_v1:
+    pulley_axle: pulley_axle          # config/components/parts.yaml; one per belt-driven joint, at the joint axis
+    servo_horn: servo_horn            # config/components/parts.yaml; one per motor, at the servo output
+    leg_tube: cf_leg_tube_16x12       # config/components/materials.yaml; replaces the tube-gene leg tube masses
+    battery_total_g: 270              # both packs together, split evenly over the packs at their placement
+    headroom_g: 300                   # PROVISIONAL headroom at the trunk's centre of mass: not a part
+
 # Design dimensions (mm). PROVISIONAL (ADR-067): chosen to make the checks
 # computable, not supplied.
 layout:
