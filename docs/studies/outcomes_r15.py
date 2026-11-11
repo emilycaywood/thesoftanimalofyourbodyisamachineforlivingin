@@ -20,7 +20,7 @@ from __future__ import annotations
 import json
 import sys
 import time
-from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any
 
@@ -97,9 +97,16 @@ def pilot(lab: Any, opts: dict[str, str]) -> None:
             return body, beh, r
 
         with ThreadPoolExecutor(max_workers=len(bodies) * len(behaviours)) as th:
-            futs = [th.submit(one, b, beh) for b in bodies for beh in behaviours]
-            for f in futs:
-                body, beh, r = f.result()
+            futs = {th.submit(one, b, beh): (b, beh) for b in bodies for beh in behaviours}
+            for f in as_completed(futs):
+                try:
+                    body, beh, r = f.result()
+                except Exception as e:  # one search failing must not lose the others
+                    body, beh = futs[f]
+                    data.setdefault("failed", {})[f"{body} {beh}"] = repr(e)
+                    print(f"FAILED {body} {beh}: {e!r}", flush=True)
+                    OUT.write_bytes(json.dumps(data, indent=1, default=float).encode())
+                    continue
                 data["pilot"].setdefault(body, {})[beh] = r
                 best = r["best"]
                 print(f"DONE {body} {beh}: holds {best['holds']} rank {best['rank']} wall {r['wall_s']} s "

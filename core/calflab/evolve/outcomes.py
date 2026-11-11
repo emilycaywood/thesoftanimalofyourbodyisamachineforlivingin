@@ -236,8 +236,10 @@ def play_seed(payload: dict[str, Any], space: BehaviourSpace, params: dict[str, 
     length = play_length(space, params, judging)
     cm = scene(space.behaviour, compile_mjcf(spec, lib, CompileOptions.model_validate(copts), seed), spec, task)
     lie = space.behaviour == "lie"
-    settings = SimSettings(duration_s=length, control_hz=50.0, record_hz=50.0, settle_s=0.4, start_pose="stand",
-                           stop_on_fall=not lie, seed=seed)
+    settings = SimSettings(duration_s=min(length, 60.0), control_hz=50.0, record_hz=50.0, settle_s=0.4,
+                           start_pose="stand", stop_on_fall=not lie, seed=seed)
+    # SimSettings' 60 s bound is the lab's slider range; standing is judged for minutes (the runner has no limit)
+    settings.duration_s = length
     ctrl = registry.get("controller", "outcome_motion")(controller_params(space, params))  # type: ignore[call-arg]
     ro = run_rollout(cm, ctrl, settings, lib)  # type: ignore[arg-type]
     complete = bool(len(ro.t) and float(ro.t[-1]) >= length - 0.05)
