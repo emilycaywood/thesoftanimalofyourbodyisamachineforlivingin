@@ -25,7 +25,7 @@ The search plays short, the judging plays long (same seeds): what is optimised i
 
 | behaviour | score | gates (all PROVISIONAL) | search / judged |
 |---|---|---|---|
-| **suckle** | 20th percentile of the forward head force on the block over the press window (from 6 s), as a share of body weight | pressing ≥ 90 % of the window (> 0.5 N); steady: std/mean ≤ 0.25; no hoof slides more than 10 mm while loaded; centre of mass ≥ 10 mm inside the loaded hooves' support polygon; head not leaning down on the block (≤ 0.1 body weight, 80th pct); nothing but the head touches the block (≤ 1 N); trunk tilt ≤ 30° | 14 s / 30 s |
+| **suckle** | a light, steady press is enough (Emily, 2026-11-11): −(mean + worst)/2 servo effort over the press window (from 6 s), as stand | pressing: forward head force ≥ 0.25 N (20th percentile) and in contact ≥ 90 % of the window; steady: std/mean ≤ 0.3; no loaded hoof travels more than 10 mm (net); centre of mass ≥ 10 mm inside the loaded hooves' support polygon; head not leaning down on the block (≤ 0.1 body weight, 80th pct); nothing but the head touches the block (≤ 1 N); trunk tilt ≤ 30° | 14 s / 30 s |
 | **trot** | the slowest 5 s window's forward speed (mm/s), less 0.5 × sideways drift (mm/s) | slowest window ≥ 100 mm/s; trunk never under 0.8 of standing height; heading within 30°; hoof sliding while loaded ≤ 150 mm per metre travelled; tilt ≤ 30° | 12 s / 60 s |
 | **stand** | −(mean + worst)/2 of each servo's mean \|torque\| / rated torque, from 4 s | mean trunk height ≥ 0.85 of standing; nothing but hooves on the floor (≤ 1 N); trunk travel ≤ 20 mm; tilt ≤ 10° | 12 s / 120 s |
 | **lie** | 1 − 0.5 × peak descent speed / 300 mm/s − 0.5 × peak body-floor force / 2 body weights (+0.5 if it stands again) | trunk at ≤ 0.5 of standing for ≥ 2 s; tilt ≤ 30° throughout (no tipping); peak trunk descent ≤ 300 mm/s (over 0.1 s); peak force of non-hoof parts on the floor ≤ 2 body weights | its own length + 3.5 s, judged as searched |
@@ -38,12 +38,14 @@ The runner records them only when a model asks; every other rollout is unchanged
 
 | behaviour | cheat | stopped by |
 |---|---|---|
-| suckle | **a lunge** counted as pushing: a peak, then nothing | the score is the 20th percentile over 8 s (search) / 24 s (judged), not the peak; *pressing*, *steady* |
+| suckle | **a lunge** counted as pushing: a peak, then nothing | *pressing* takes the 20th percentile over 8 s (search) / 24 s (judged), not the peak; *steady* |
+| suckle | **standing near the block** without touching it (the cheapest posture) | *pressing* (≥ 0.25 N for 80 % of the window) |
 | suckle | **leaning on the block**: falling forward and being held up by it | *not propped*: the centre of mass must stay inside the loaded hooves' support polygon, so the push is held by the legs (take the block away and it still stands) |
 | suckle | resting the head **on top** of the block (the block carrying weight) | only the horizontal force scores; *not leaning down* |
 | suckle | pushing with the **chest or a leg** | only the head's force scores; *head only* |
 | suckle | sliding the hooves backward (a push that is really a slip) | *no slip* |
 | suckle | a high-friction seed only | worst of three seeds (friction 0.7–1.1) |
+| suckle | pushing harder than needed (costly, the earlier version of this score) | the score is effort: more force never scores more |
 | trot | **a lunge or a fall forward** counted as travel | the slowest 5 s window, not the mean; a play that stops at the simulator's fall check ranks −5; *stays up*, *tilt* |
 | trot | **shuffling** (hooves sliding along the floor) | *no shuffle* |
 | trot | **a crawl** (trunk low, crawling on the knees) | *stays up* (≥ 0.8 standing height) |
@@ -80,11 +82,11 @@ against `feral_motion` frame by frame) and four of R11c's trot-grid corners star
 lie_rise kneel and lie poses start the lying search; standing starts from the standing pose. The search is free to
 leave them, and the gates, not the old motions, say what counts.
 
-Search per behaviour: CMA-ES on its own dims scaled 0..1 (stand 7, suckle 15, trot 20, lie 13), popsize 12,
+Suckling searches a narrower posture range around standing (a lean, not a lunge) and starts from standing and three small leans. Search per behaviour: CMA-ES on its own dims scaled 0..1 (stand 7, suckle 15, trot 20, lie 13), popsize 12,
 20 generations, every candidate on three seeds (stopped after the first if hopeless), worst seed ranks; the best
 three distinct versions are re-judged at the judging length. Ranking: normalised score (250 mm/s, 0.2 body weights,
 2 × effort, lie as is), less 2 per failed gate (a version failing a gate never outranks one that passes on score), less 5
-for a fall, plus the margin when negative; the best is chosen lexicographically: holds, within, rank.
+for a fall, plus the margin when negative, less 0.1 × the summed excess past the limits (margins saturate at −3, so without it a search far over a limit has no slope); the best is chosen lexicographically: holds, within, rank.
 
 ## 2. Suckling: what the model lacks
 
@@ -102,8 +104,10 @@ trunk: the legs lean the trunk forward and the ground's friction carries the for
 | g007-002 | 20.0 N | 761 mm | 7.3 N (0.37 bw) | 14.0 N (0.70 bw) | 14.0 / 22.0 N |
 | g012-009 | 20.4 N | 754 mm | 7.8 N (0.38 bw) | 14.7 N (0.72 bw) | 14.3 / 22.4 N |
 
-So a steady push of up to about 0.7 body weight is physically available without a neck; the pilot (section 3) shows
-how much the servos can hold for 24 s.
+So a steady push of up to about 0.7 body weight is physically available without a neck. Emily (2026-11-11): suckling can
+be very subtle, a forward lean is enough; so the objective asks for a light steady press (≥ 0.25 N) at least effort.
+A light lean (shoulders 3–4° back) presses 0.3–0.36 N within every limit on both bodies; a 6° lean presses 0.7–0.85 N
+but overloads the front shoulders' sustained torque.
 
 **What a neck pitch joint would add** (and so when it is needed):
 

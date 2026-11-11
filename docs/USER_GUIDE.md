@@ -1315,9 +1315,9 @@ others. R15 starts from what the calf should do instead. Four behaviours are
 **scores with gates**, not motions (`calflab.fitness.outcomes`; preset
 `outcomes_r15`):
 
-* **Suckle**: push the head into a fixed block ahead of it (at the head's
-  standing height) and keep pressing. Score: the steady forward force (20th
-  percentile over the press) as a share of body weight.
+* **Suckle**: lean the head lightly into a fixed block ahead of it (at the head's
+  standing height) and keep pressing, steadily and lightly (at least 0.25 N;
+  a forward lean is enough). Score: the least servo effort that does it.
 * **Trot**: travel forward for a minute, any gait. Score: the slowest 5 s
   window's speed less sideways drift. The footfall (phases, duty factors,
   *trot / walk / pace / bound*) is recorded, not required.
