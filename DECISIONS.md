@@ -4133,6 +4133,14 @@ working body, catalogs, component values and `verified` flags were not changed. 
     bodies' best versions) + seed bodies g012-009, g020-008-r01, g009-000; the old lie_rise screen play is dropped.
     **Not run: Emily chooses the budget** (S 8 x 8: ~0.8 h per generation of 14; M 12 x 15: ~2.3 h; L 12 x 30: ~4.5 h;
     plus up to ~32 min judging per generation; 7.5 CPU-s per play as measured).
+    *Added when Emily chose budget S and 10 generations:* generation 0 is seeded with each seed body as is, with
+    its shoulder spring switched, its shoulder belted and its carpus spring on (11 + the working body of 14), as
+    R11c's Stage A did: with 3 seed bodies the random draws were 65 % rejected and the run stopped (run
+    `20261111-022820`'s predecessor `20261111-022538-evolve-6b3f`; the stop path also crashed, fixed). **A body that
+    fails the gate scores -3 + 0.5 x its lie_rise worst-seed margin - 0.1 x cost**, below every body that passes
+    and ordered by how close it comes: without this every failing body sat in the (0 minutes, no trot) cell, where
+    the cheapest (the working body, -1.68) was the only elite (run `20261111-022820-evolve-cd0e`, stopped after
+    generation 0). Until a body passes, the search climbs from the closest body.
 11. `compare.html?set=r12` gains the screen item **lie_rise (evolved)**: each body plays its own version
     (`CompareSet.evolved` -> `docs/studies/lierise_r13.json`), judged over the whole motion; the body line adds
     "(evolved, whole: <margin>)".

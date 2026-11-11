@@ -639,6 +639,11 @@ def perform_task(payload: dict[str, Any]) -> dict[str, Any]:
 
 
 # ====================================================================== summary of one body
+#: fitness of a body that fails the lie_rise gate: this + 0.5 x its lie_rise worst-seed margin (>= -3) - cost term;
+#: below every body that passes (whose fitness is headroom >= -1 less the cost term)
+GATE_FAIL_BASE = -3.0
+
+
 def _clip(v: float | None, lo: float = -1.0, hi: float = 0.5) -> float:
     return lo if v is None else float(min(hi, max(lo, v)))
 
@@ -706,6 +711,11 @@ def summarise(screen: dict[str, Any], performances: list[dict[str, Any]] | None,
     headroom = 0.5 * float(np.mean(head_screen)) + 0.5 * float(np.mean(head_perf))
     cost = screen["costs"]
     fitness = headroom - hw.cost_weight * float(cost["cost_index"])
+    if gate is not None and not gate["held"]:
+        # R13 (ADR-107): a body that does not lie down and rise within limits ranks below every body that does, and
+        # by how close it comes; otherwise every such body sits in the (0 minutes, no trot) cell, judged by cost
+        fitness = GATE_FAIL_BASE + 0.5 * max(-3.0, float(gate["worst_margin"])) - hw.cost_weight * float(
+            cost["cost_index"])
     current = [s["current"]["known_peak_a"] for s in all_seeds if (s.get("current") or {}).get("known_peak_a") is not None]
     # belt tension per drive (both sides, every play and seed) and spring force per site, from the simulation (R11c)
     belt_loads: dict[str, dict[str, float]] = {}

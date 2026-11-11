@@ -142,6 +142,9 @@ def test_lie_rise_gate_screens_out_a_body_that_does_not_lie_and_rise(monkeypatch
     assert out["plays"] == [] and out["lie_rise"]["held"] is False and out["evals"] == 30
     s = summarise(out, None, hw, 1)
     assert not s["passed_screen"] and s["screen"]["lie_rise (evolved)"]["worst_margin"] == -0.5
+    # gated out: ranked by how close lie_rise comes, always below a body that passes (fitness >= -1 - cost term)
+    worse = summarise({**out, "lie_rise": {**out["lie_rise"], "worst_margin": -2.0}}, None, hw, 1)
+    assert worse["fitness"] < s["fitness"] < -1.0 - hw.cost_weight * float(out["costs"]["cost_index"]) - 1.0
     again = screen_task(_payload(_genome(), hw, [0]))  # cached per body: no second search
     assert len(calls) == 1 and again["lie_rise"]["cached"]
     monkeypatch.setattr(hwmod, "play_primitive_seed", lambda *a, **k: {
