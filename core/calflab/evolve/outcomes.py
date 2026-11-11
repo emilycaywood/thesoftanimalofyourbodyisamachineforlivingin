@@ -93,8 +93,11 @@ def default_spaces() -> dict[str, BehaviourSpace]:
         "suckle": BehaviourSpace(
             behaviour="suckle",
             dims=[*_kf("p1", LEAN_RANGES), ("p1_s", 0.5, 3.0), *_kf("p2", LEAN_RANGES), ("p2_s", 0.5, 3.0),
+                  *_kf("p3", LEAN_RANGES), ("p3_s", 5.0, 30.0),
                   ("pitch_gain", -1.0, 1.0), ("pitch_gain_hind", -1.0, 1.0), ("roll_gain", -1.0, 1.0)],
-            fixed={}, search_s=14.0, judge_s=30.0, task={"press_from_s": 6.0}),
+            # searched at its judging length: a light lean that holds 14 s creeps off the block by 30 s (ADR-110);
+            # keyframe 3, reached slowly, lets the lean keep going as the hooves creep
+            fixed={}, search_s=30.0, judge_s=30.0, task={"press_from_s": 6.0}),
         "trot": BehaviourSpace(
             behaviour="trot",
             dims=[("cycle_s", 0.35, 1.0), ("swing", 0.3, 0.55), ("phase_fl", 0.0, 1.0), ("phase_hr", 0.0, 1.0),
@@ -152,7 +155,9 @@ def warm_starts(behaviour: str, lie_versions: list[dict[str, Any]] | None = None
         return [{"p1_s": 2.0, "p2_s": 2.0},
                 {"p1_s": 2.0, "p2_s": 2.0, "p2_shoulder": 3.0},
                 {"p1_s": 2.0, "p2_s": 2.0, "p2_shoulder": 6.0},
-                {"p1_s": 2.0, "p2_s": 2.0, "p2_shoulder": 4.0, "p2_stifle": 4.0, "p2_hock": 4.0}]
+                {"p1_s": 2.0, "p2_s": 2.0, "p2_shoulder": 4.0, "p2_stifle": 4.0, "p2_hock": 4.0},
+                {"p1_s": 2.0, "p2_s": 2.0, "p2_shoulder": 4.0, "p2_stifle": 4.0, "p2_hock": 4.0,
+                 "p3_s": 24.0, "p3_shoulder": 7.0, "p3_stifle": 6.0, "p3_hock": 6.0}]
     if behaviour == "trot":
         out = []
         for c, st in ((0.5, 1.5), (0.6, 1.0), (0.8, 0.5), (0.4, 2.0)):
@@ -285,7 +290,9 @@ def rank(behaviour: str, rec: dict[str, Any]) -> float:
     m = rec.get("margin")
     m = -1.0 if m is None else float(m)
     sc = float(o.get("score", 0.0)) * NORM[behaviour]
-    if failed:  # a version that fails a gate never outranks one that passes them all on its score
+    if not rec.get("within", True):  # over a limit counts as a failed gate (a fast trot over a belt limit must not lead)
+        failed += 1
+    if failed:  # a version that fails a gate or a limit never outranks one that passes them all on its score
         sc = 0.5 * min(sc, 1.0)
     r = sc - 2.0 * float(failed) + min(0.0, m) - EXCESS_WEIGHT * excess(rec.get("joints") or {})
     if not rec.get("complete", True):

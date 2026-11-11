@@ -85,6 +85,9 @@ class LieTask(BaseModel):
     lying_hold_s: float = P(2.0, unit="s", ge=0.2, le=30.0, desc="Gate: ... for at least this long.")
     max_descent_mm_s: float = P(300.0, unit="mm/s", ge=10.0, le=3000.0, desc="Gate: peak trunk descent speed.")
     max_impact_bw: float = P(2.0, ge=0.1, le=20.0, desc="Gate: peak non-hoof floor force, share of body weight.")
+    min_resting_bw: float = P(0.25, ge=0.0, le=1.0,
+                              desc="Gate: while lying, the floor carries at least this share of body weight through "
+                                   "parts other than the hooves (lying, not a held crouch on folded legs).")
     max_tilt_deg: float = P(30.0, unit="deg", ge=5.0, le=90.0, desc="Gate (tipping): trunk tilt at any time.")
     rise_bonus: float = P(0.5, ge=0.0, le=2.0, desc="Score added when the body stands again at the end (a bonus).")
     smooth_s: float = P(0.1, unit="s", ge=0.0, le=1.0, desc="Descent speed taken over this window.")
@@ -421,12 +424,15 @@ def measure_lie(ro: Any, spec: Any, task: LieTask) -> dict[str, Any]:
     tilt = float(np.max(tr["tilt"]))
     risen = bool(frac[-1] >= 0.85 and tr["up_z"][-1] > 0.9)
     hoof_impact = max((s for (_t, _f, s) in ro.impacts), default=0.0) * 1000.0
-    gates = {"lay_down": best >= task.lying_hold_s, "not_tipped": tilt <= task.max_tilt_deg,
-             "slow_descent": descent <= task.max_descent_mm_s, "soft_landing": impact <= task.max_impact_bw}
+    bf = np.linalg.norm(probe(ro, "body_floor"), axis=-1)
+    resting = float(np.median(bf[low])) / bw if bw > 0 and low.any() else 0.0
+    gates = {"lay_down": best >= task.lying_hold_s, "resting": resting >= task.min_resting_bw,
+             "not_tipped": tilt <= task.max_tilt_deg, "slow_descent": descent <= task.max_descent_mm_s,
+             "soft_landing": impact <= task.max_impact_bw}
     score = 1.0 - 0.5 * descent / task.max_descent_mm_s - 0.5 * impact / task.max_impact_bw
     if risen and gates["lay_down"]:
         score += task.rise_bonus
-    return {"lying_min": _r(float(np.min(frac))), "lying_held_s": round(best, 2), "descent_peak_mm_s": _r(descent, 1),
+    return {"lying_min": _r(float(np.min(frac))), "lying_held_s": round(best, 2), "resting_bw": _r(resting), "descent_peak_mm_s": _r(descent, 1),
             "impact_peak_bw": _r(impact), "hoof_impact_peak_mm_s": _r(hoof_impact, 1), "tilt_max_deg": _r(tilt, 1),
             "risen": risen, "score": round(score, 4), "gates": gates, "holds": all(gates.values())}
 

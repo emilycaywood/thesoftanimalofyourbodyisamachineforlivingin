@@ -140,6 +140,8 @@ def test_a_crouch_does_not_count_as_lying_down() -> None:
     ro, spec = _fake(z, body_floor=np.where(z < 0.28, 19.6, 0.0))
     o = measure_lie(ro, spec, LieTask())
     assert o["holds"], o
+    ro, spec = _fake(z, body_floor=np.zeros(len(z)))  # low enough, but held up on folded legs: a crouch
+    assert not measure_lie(ro, spec, LieTask())["gates"]["resting"]
 
 
 def test_a_drop_or_a_roll_onto_the_side_does_not_count_as_lying_under_control() -> None:
@@ -213,11 +215,12 @@ def test_rank_puts_a_failed_gate_below_any_held_version() -> None:
 
     held = {"outcome": {"score": 120.0, "gates": {"a": True}}, "margin": 0.05, "complete": True}
     fast_cheat = {"outcome": {"score": 400.0, "gates": {"a": False}}, "margin": 0.05, "complete": True}
-    over = {"outcome": {"score": 400.0, "gates": {"a": True}}, "margin": -1.5, "complete": True,
+    over = {"outcome": {"score": 400.0, "gates": {"a": True}}, "margin": -1.5, "complete": True, "within": False,
             "joints": {"fl.carpus": {"torque": 3.0, "speed": 0.5}}}
     assert rank("trot", held) > rank("trot", fast_cheat)
     assert rank("trot", fast_cheat) == pytest.approx(0.5 - 2.0)
-    assert rank("trot", over) == pytest.approx(400 / 250 - 1.5 - 0.1 * 2.0)  # excess past a limit: a slope
+    assert rank("trot", over) == pytest.approx(0.5 - 2.0 - 1.5 - 0.1 * 2.0)  # over a limit = a failed gate
+    assert rank("trot", over) < rank("trot", held)
     fell = {**held, "complete": False}
     assert rank("trot", fell) < rank("trot", held) - 4.9
 

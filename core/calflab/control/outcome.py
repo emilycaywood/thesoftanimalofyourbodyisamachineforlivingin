@@ -72,7 +72,8 @@ class OutcomeMotionController(Controller):
         p3_hock: float = P(0.0, unit="deg", ge=-60, le=130, step=0.5, desc="Keyframe 3: hock.")
         p3_shoulder: float = P(0.0, unit="deg", ge=-60, le=130, step=0.5, desc="Keyframe 3: shoulder.")
         p3_carpus: float = P(0.0, unit="deg", ge=-60, le=130, step=0.5, desc="Keyframe 3: carpus.")
-        p3_s: float = P(0.0, unit="s", ge=0.0, le=10.0, step=0.1, desc="Keyframe 3: time to reach it (0 = not used).")
+        p3_s: float = P(0.0, unit="s", ge=0.0, le=40.0, step=0.1,
+                        desc="Keyframe 3: time to reach it (0 = not used); long = a slow continuing lean.")
         hold_s: float = P(0.0, unit="s", ge=0.0, le=30.0, step=0.1,
                           desc="Rise: time at the last keyframe before rising (used only with rise_scale > 0).")
         rise_scale: float = P(0.0, ge=0.0, le=4.0, step=0.05,
