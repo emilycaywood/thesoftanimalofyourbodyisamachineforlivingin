@@ -151,7 +151,7 @@ def mass_breakdown(spec: RobotSpec, lib: Any) -> dict[str, Any]:
     return {
         "total_g": round(total, 2),
         "by_source_g": {k: round(v, 2) for k, v in by_source.items()},
-        "source_labels": SOURCES,
+        "source_labels": dict(SOURCES),  # a copy: callers may edit their result
         "geometry_parts": [r["body"] for r in bodies if r["structure"]["source"] in ("geometry", "infill")],
         #: the parts among them whose mass is an infill estimate
         "infill_parts": [r["body"] for r in bodies if r["structure"]["source"] == "infill"],

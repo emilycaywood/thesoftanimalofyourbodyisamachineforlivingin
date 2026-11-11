@@ -1,9 +1,10 @@
 # CALFLAB session handoff
 
 Everything a new Claude Code session (or a new collaborator) needs to pick up
-CALFLAB. Last updated 2026-11-10 on branch `robot-calf-final` (cut from
-`chassis-mass`), after session R13 (lying down and rising, diagnosed and evolved per body; no body holds; the body
-search with lie_rise as a constraint is built and waits for Emily's budget; ADR-107), section 4 "Session R13"; before
+CALFLAB. Last updated 2026-11-11 on branch `robot-calf-final` (cut from
+`chassis-mass`), after session R14 (the bodies at their real weight: an explicit mass model, +0.7 kg, almost no
+behaviour holds; the seeded search waits for Emily's budget; ADR-108), section 4 "Session R14"; before it session R13
+(lying down and rising, diagnosed and evolved per body; no body holds; ADR-107), section 4 "Session R13"; before
 it session R12-view (one behaviour picker for the six R12 bodies on `compare.html?set=r12`;
 ADR-106), section 4 "Session R12-view"; before it session R12 / Stage C (every front body gets behaviours evolved for
 it; ADR-105), section 4 "Session R12"; before it session R11c-B (reading Stage B's 20 generations; new best body g020-008-r01, ADR-104), section 4
@@ -1433,6 +1434,41 @@ component values and `verified` flags were not changed; nothing installed. Study
   (the known flaky "evolve from a baked design"), 14/14 on re-run.
 * The computer slept for about 3 h during the lying search (16:56-19:48); it only delayed the run.
 
+**Session R14 (2026-11-11; ADR-108): the bodies at their real weight.** The working body (document), existing
+catalog and library values and `verified` flags were not changed; nothing installed. Study `docs/studies/mass_r14.md`
+(script `mass_r14.py`: breakdown / judge / report / preset / estimate / search; full tables `mass_r14_tables.md`).
+
+* **Gene `mass_model`** (Form > Body; `as_entered` for every stored genome and new documents, so nothing built so far
+  changes). `explicit_v1`: 24 g pulley axle at each belt-driven joint axis, 14 g horn at each servo output, leg tubes
+  from `cf_leg_tube_16x12` (16 x 12 mm, 1.65 g/cm3, per segment length, replacing the tube-gene mass; the drawn tube
+  stays 15 mm), packs 270 g in total (as before), 300 g **headroom (PROVISIONAL)** at the trunk's centre of mass
+  (own mass source `headroom`, Annotations layer, never a part; `mass_breakdown` reports `headroom_g` / `parts_g`).
+* **Library:** new kind `part` (`config/components/parts.yaml`: `pulley_axle`, `servo_horn`); material
+  `cf_leg_tube_16x12` with `tube_od_mm` / `tube_id_mm`. All `verified: false`, added with Emily's approval.
+* **Mass:** working 1304 -> 2005 g, g007-002 1383 -> 2085, g009-000 1380 -> 2080, g012-009 1421 -> 2122,
+  g020-008-r01 1419 -> 2120 (each +700-702 g; 300 g of it headroom).
+* **Re-judged** (R11c suite; a control at as_entered reproduces R12 and R13 exactly): own Stage C behaviours held 3/3
+  g007-002 23 -> 4, working 11 -> 1, g009-000 16 -> 0, g012-009 14 -> 0, g020-008-r01 8 -> 0. Trots still hold
+  (543 / 414 / 394 mm/s) on fewer grid points; walk, turn and both lie_rise versions fail (-2.3 to -3.0). Binding:
+  sustained servo torque on the C018 hip ab/ad servos, the shoulders and the carpi.
+* **Searches:** `HardwareSettings.mass_model`; `hardware_r11c` and `hardware_r13` are version 2 with explicit_v1
+  (old runs carry their own copy). New `hardware_r14` = hardware_r11c v2 seeded with g007-002, working, g012-009 and
+  their spring / belted-shoulder variants (11 seeds). Estimate: ~34 min per generation of 15 (hardware_r14), ~54 min
+  (hardware_r13 v2). **Not started: Emily chooses the budget** (section 7, R14-search). If `lierise_r13.py preset`
+  is run again it rewrites hardware_r13 without the mass model.
+* **Battery option raised by Emily:** Flywoo Explorer Molicel P45B 21700 3S1P 4500 mAh. Retailer listings give
+  224.3 g, 11.1 V, 45 A continuous; the discharge plug is listed as XT30UP by one seller and XT60 by another. Not
+  entered: it waits for her approval (section 7, R14-battery).
+* Tests: new `tests/test_mass_model.py` (11) and a test in `test_hardware.py` (the preset's mass model reaches every
+  body). Web: `Mass.tsx` / `types.ts` know the `tube`, `specified` and `headroom` sources; `web/dist` rebuilt. The
+  component audit classifies the new kind and tube fields; `mass_breakdown` returns a copy of its source labels
+  (a caller editing them had changed the module's own dict). The servo fingerprints leave out R14's empty additions.
+* `calflab test`: ruff, mypy, web typecheck and eslint, 19 Vitest, 14 Playwright pass; pytest 585 passed, 7 failed in
+  the full run, 6 of them fixed and re-run (audit, fingerprints, `test_mass`). Still failing, as before R14:
+  `test_the_projects_bodies_are_bit_identical_through_the_pair_genes` (`project_document`, the web-lab save of
+  2026-11-10; its mass hash now matches, spec and MJCF differ as in R13). The full suite was not re-run after the
+  fixes. The Mass panel at explicit_v1 was not looked at in the browser (the document was not switched).
+
 **Scaffolded only (interfaces + tests, no behaviour):** PPO training, MJX
 simulator, RemoteSSH and CloudNotebook transports (job bundling is real),
 imitation reward, interactive selection, molds, skin patterns, nesting,
@@ -1858,6 +1894,29 @@ Journal, Rhino bridge):**
 ## 7. Recommended next sessions
 
 Prefix each with the opening message from section 1.
+
+**R14-search. The body search at the real weight** (recommended next; written after R14, ADR-108.)
+> In projects/robot-calf-final, R14 (`docs/studies/mass_r14.md`) found that at mass_model explicit_v1 (about 2.0-2.1
+> kg) almost no Stage C behaviour holds; sustained servo torque binds at the hip ab/ad, shoulders and carpi. Run the
+> seeded search with preset hardware_r14 for <N> generations of 15
+> (`python docs/studies/mass_r14.py projects/robot-calf-final search --generations=<N>`), then report every five
+> generations: the Pareto front (minutes / trot / cost) against g007-002, the working body and g012-009 at
+> explicit_v1, where the C002s go, springs, what binds, and rejection reasons. Do not change the working body,
+> catalog values or `verified` flags.
+
+**R14-battery. The Flywoo P45B pack in the mass model** (when Emily approves the entry.)
+> In projects/robot-calf-final, add the Flywoo Explorer Molicel P45B 21700 3S1P 4500 mAh pack to
+> config/components/electronics.yaml (kind battery, values from the product listing with source, verified: false;
+> ask before adding). Add a mass model `explicit_v2` = explicit_v1 with one pack of this mass in place of the two
+> 135 g packs, at a placement I confirm, and re-judge the R14 bodies (`mass_r14.py judge --model=explicit_v2`).
+> Do not change verified flags or existing values.
+
+**R14-servo. What carries 2 kg** (in memory; after R14.)
+> In projects/robot-calf-final, R14 found sustained torque binds at the C018 hip ab/ad servos, the shoulders and the
+> carpi at explicit_v1. In memory, for g007-002 and g012-009: move the C002s to hip ab/ad and shoulders (within six,
+> then what eight would do, flagged), turn on and step the hip ab/ad and shoulder springs (hardware_r11c steps), and
+> re-judge with `mass_r14.py judge`. Report per lever the behaviours held, trot and what binds. Do not change the
+> working body, catalog values or `verified` flags.
 
 **R13-S3b. The hind stifle in lying down and rising** (ON HOLD: on 2026-11-11 Emily paused the lying-down work; it
 is not the priority now. Do not start it unless she asks.)

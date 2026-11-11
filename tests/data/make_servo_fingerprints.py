@@ -39,11 +39,23 @@ def fingerprint(spec: Any) -> dict[str, str]:
     # R11c (ADR-103) added sourced entries to the catalogs, which changes their digest and nothing else (checked
     # against the pre-R11c catalog: spec, MJCF and masses identical)
     (fer.get("belt_catalog") or {}).pop("digest", None)
+    # R14 (ADR-108) records the mass model; as_entered is the counting these fingerprints were made with
+    if fer.get("mass_model") == {"model": "as_entered"}:
+        fer.pop("mass_model")
+    mb = mass_breakdown(spec, lib)
+    if not mb.get("headroom_g"):  # R14's new keys, all empty or zero without headroom
+        for k in ("headroom_g", "parts_g", "headroom_items"):
+            mb.pop(k, None)
+        mb["by_source_g"].pop("headroom", None)
+        mb["source_labels"].pop("headroom", None)
+        for r in mb["bodies"]:
+            for it in r["items"]:
+                it.pop("provisional", None)
     h = lambda s: hashlib.sha256(s.encode("utf-8")).hexdigest()  # noqa: E731
     return {
         "spec": h(json.dumps(dump, sort_keys=True)),
         "mjcf": h(compile_mjcf(spec, lib, CompileOptions(), 0).xml),
-        "mass": h(json.dumps(mass_breakdown(spec, lib), sort_keys=True, default=str)),
+        "mass": h(json.dumps(mb, sort_keys=True, default=str)),
         "total_mass_g": repr(spec.total_mass_g()),
     }
 

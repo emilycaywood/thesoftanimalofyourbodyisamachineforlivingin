@@ -90,6 +90,14 @@ FIELD_USES: dict[str, dict[str, tuple[str, tuple[str, ...]]]] = {
         "joint_stiffness_nm_per_rad_per_mm": ("N*m/rad per mm", ("sim_dynamics",)),
         "joint_damping_nms_per_rad_per_mm": ("N*m*s/rad per mm", ("sim_dynamics",)),
         "cost_usd_per_kg": ("USD/kg", ("bom_cost",)),
+        # a tube entry only (ADR-108): the leg tube mass per length
+        "tube_od_mm": ("mm", ("mass", "sim_dynamics")),
+        "tube_id_mm": ("mm", ("mass", "sim_dynamics")),
+    },
+    "part": {  # ADR-108: a part counted by its mass (axle, horn)
+        "mass_g": ("g", ("mass", "sim_dynamics")),
+        "dims_mm": ("mm", ("geometry",)),
+        "cost_usd": ("USD", ("bom_cost",)),
     },
 }
 
@@ -121,6 +129,8 @@ def worksheet(lib: Library) -> list[dict[str, str]]:
     rows: list[dict[str, str]] = []
     for c in lib.all():
         for field, (unit, uses) in FIELD_USES[c.kind].items():
+            if field in ("tube_od_mm", "tube_id_mm") and getattr(c, field) is None:
+                continue  # not a tube entry: nothing recorded (ADR-108)
             flag = "guess" if field in c.guessed else ("default assumed" if field in c.defaulted else "")
             rows.append(
                 {
