@@ -1082,7 +1082,13 @@ class MapElitesHardware(Optimizer):
                         for r in str(c.error).split("; "):
                             key = r.split(" (")[0][:120]
                             tally[key] = tally.get(key, 0) + 1
+                    st0 = archive.stats
                     entry = {"generation": gen, "stopped": True, "rejected": len(rejected), "draws": n_draws,
+                             # the fields every generation entry has (the lab's report reads "best" and "elites")
+                             "best": float(st0.obj_max) if st0.num_elites else None,  # type: ignore[arg-type]
+                             "mean": float(st0.obj_mean) if st0.num_elites else None,  # type: ignore[arg-type]
+                             "coverage": float(st0.coverage), "qd_score": float(st0.qd_score),
+                             "elites": int(st0.num_elites),
                              "rejected_fraction": round(frac, 3),
                              "reasons": [[k, n] for k, n in sorted(tally.items(), key=lambda kv: -kv[1])[:20]],
                              "notes": list(notes), "bodies": 0, "infeasible": len(rejected), "failed": 0,

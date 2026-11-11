@@ -197,8 +197,18 @@ def write_preset(lab: Any, opts: dict[str, str]) -> dict[str, Any]:
     for body in STAGE3_SEEDS:
         c = next(x for x in cands if x["id"].endswith(body))
         vals = gdef.complete(c["genome"]["values"])
-        seeds.append({"label": body, "note": f"Stage B candidate {c['id']} (ADR-104)",
-                      "values": {k: v for k, v in vals.items() if base.get(k) != v}})
+        own = {k: v for k, v in vals.items() if base.get(k) != v}
+        # generation 0 = seed bodies (as R11c's Stage A): each body as is, its shoulder spring switched, its shoulder
+        # belted, its carpus spring on (variants that change nothing are left out); random draws would mostly be
+        # rejected (the first Stage 3 attempt, run 20261111-022538-evolve-6b3f, stopped at 65 % rejected)
+        sh = bool(vals.get("spring_shoulder"))
+        variants = [("", {}), (f" + shoulder spring {'off' if sh else 'on'}", {"spring_shoulder": not sh}),
+                    (" + belted shoulder", {"shoulder_belt": True}), (" + carpus spring", {"spring_carpus": True})]
+        for suffix, extra in variants:
+            if extra and all(vals.get(k) == v for k, v in extra.items()):
+                continue
+            seeds.append({"label": body + suffix, "note": f"Stage B candidate {c['id']} (ADR-104){suffix}",
+                          "values": {**own, **extra}})
         if body in o.get(section, {}):
             starts.append(o[section][body]["best"]["params"])
     hw = d["evaluation"]["hardware"]

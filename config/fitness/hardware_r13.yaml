@@ -106,6 +106,48 @@ evaluation:
         spring_shoulder_free_length: 45.6
         spring_carpus: true
         spring_carpus_free_length: 49.1
+    - label: g012-009 + shoulder spring off
+      note: Stage B candidate 20261107-043030-evolve-c02e-g012-009 (ADR-104) + shoulder spring off
+      values:
+        femur_length: 198.0
+        rear_cannon_length: 226.0
+        upper_leg_length: 344.0
+        servo_hock: sts3250_c002
+        servo_shoulder: sts3250_c002
+        servo_carpus: sts3250_c002
+        belt_stifle_pulleys: GT2-40T-10+GT2-60T-10
+        belt_hock_pulleys: 40T-80T
+        belt_hock_length: GT2-2mm-450-C
+        belt_carpus_pulleys: GT2-80T-10+GT2-80T-10
+        belt_shoulder_pulleys: GT2-30T-10+GT2-45T-10
+        spring_hock_free_length: 54.3
+        spring_hock_upper_along: 95.0
+        spring_hip_abd_k: 0.0889
+        spring_shoulder_free_length: 45.6
+        spring_carpus: true
+        spring_carpus_free_length: 49.1
+        spring_shoulder: false
+    - label: g012-009 + belted shoulder
+      note: Stage B candidate 20261107-043030-evolve-c02e-g012-009 (ADR-104) + belted shoulder
+      values:
+        femur_length: 198.0
+        rear_cannon_length: 226.0
+        upper_leg_length: 344.0
+        servo_hock: sts3250_c002
+        servo_shoulder: sts3250_c002
+        servo_carpus: sts3250_c002
+        belt_stifle_pulleys: GT2-40T-10+GT2-60T-10
+        belt_hock_pulleys: 40T-80T
+        belt_hock_length: GT2-2mm-450-C
+        belt_carpus_pulleys: GT2-80T-10+GT2-80T-10
+        belt_shoulder_pulleys: GT2-30T-10+GT2-45T-10
+        spring_hock_free_length: 54.3
+        spring_hock_upper_along: 95.0
+        spring_hip_abd_k: 0.0889
+        spring_shoulder_free_length: 45.6
+        spring_carpus: true
+        spring_carpus_free_length: 49.1
+        shoulder_belt: true
     - label: g020-008-r01
       note: Stage B candidate 20261107-043030-evolve-c02e-g020-008-r01 (ADR-104)
       values:
@@ -122,6 +164,56 @@ evaluation:
         belt_shoulder_pulleys: GT2-30T-10+GT2-45T-10
         spring_hip_abd_k: 0.0889
         spring_shoulder: false
+    - label: g020-008-r01 + shoulder spring on
+      note: Stage B candidate 20261107-043030-evolve-c02e-g020-008-r01 (ADR-104) + shoulder spring on
+      values:
+        femur_length: 198.0
+        tibia_length: 239.0
+        rear_cannon_length: 226.0
+        front_cannon_length: 247.0
+        servo_hock: sts3250_c002
+        servo_shoulder: sts3250_c002
+        servo_carpus: sts3250_c002
+        belt_stifle_pulleys: GT2-40T-10+GT2-60T-10
+        belt_hock_pulleys: GT2-40T-10+GT2-60T-10
+        belt_carpus_pulleys: GT2-80T-10+GT2-80T-10
+        belt_shoulder_pulleys: GT2-30T-10+GT2-45T-10
+        spring_hip_abd_k: 0.0889
+        spring_shoulder: true
+    - label: g020-008-r01 + belted shoulder
+      note: Stage B candidate 20261107-043030-evolve-c02e-g020-008-r01 (ADR-104) + belted shoulder
+      values:
+        femur_length: 198.0
+        tibia_length: 239.0
+        rear_cannon_length: 226.0
+        front_cannon_length: 247.0
+        servo_hock: sts3250_c002
+        servo_shoulder: sts3250_c002
+        servo_carpus: sts3250_c002
+        belt_stifle_pulleys: GT2-40T-10+GT2-60T-10
+        belt_hock_pulleys: GT2-40T-10+GT2-60T-10
+        belt_carpus_pulleys: GT2-80T-10+GT2-80T-10
+        belt_shoulder_pulleys: GT2-30T-10+GT2-45T-10
+        spring_hip_abd_k: 0.0889
+        spring_shoulder: false
+        shoulder_belt: true
+    - label: g020-008-r01 + carpus spring
+      note: Stage B candidate 20261107-043030-evolve-c02e-g020-008-r01 (ADR-104) + carpus spring
+      values:
+        femur_length: 198.0
+        tibia_length: 239.0
+        rear_cannon_length: 226.0
+        front_cannon_length: 247.0
+        servo_hock: sts3250_c002
+        servo_shoulder: sts3250_c002
+        servo_carpus: sts3250_c002
+        belt_stifle_pulleys: GT2-40T-10+GT2-60T-10
+        belt_hock_pulleys: GT2-40T-10+GT2-60T-10
+        belt_carpus_pulleys: GT2-80T-10+GT2-80T-10
+        belt_shoulder_pulleys: GT2-30T-10+GT2-45T-10
+        spring_hip_abd_k: 0.0889
+        spring_shoulder: false
+        spring_carpus: true
     - label: g009-000
       note: Stage B candidate 20261107-043030-evolve-c02e-g009-000 (ADR-104)
       values:
@@ -138,6 +230,57 @@ evaluation:
         spring_shoulder_free_length: 29.7
         spring_shoulder_upper_along: 25.0
         spring_carpus_lower_along: 55.0
+    - label: g009-000 + shoulder spring off
+      note: Stage B candidate 20261107-043030-evolve-c02e-g009-000 (ADR-104) + shoulder spring off
+      values:
+        tibia_length: 243.0
+        rear_cannon_length: 224.0
+        upper_leg_length: 342.0
+        front_cannon_length: 239.0
+        servo_hock: sts3250_c002
+        servo_carpus: sts3250_c002
+        belt_stifle_pulleys: 40T-80T
+        belt_hock_pulleys: 40T-80T
+        belt_carpus_pulleys: GT2-48T-10+GT2-80T-10
+        spring_stifle_k: 0.0984
+        spring_shoulder_free_length: 29.7
+        spring_shoulder_upper_along: 25.0
+        spring_carpus_lower_along: 55.0
+        spring_shoulder: false
+    - label: g009-000 + belted shoulder
+      note: Stage B candidate 20261107-043030-evolve-c02e-g009-000 (ADR-104) + belted shoulder
+      values:
+        tibia_length: 243.0
+        rear_cannon_length: 224.0
+        upper_leg_length: 342.0
+        front_cannon_length: 239.0
+        servo_hock: sts3250_c002
+        servo_carpus: sts3250_c002
+        belt_stifle_pulleys: 40T-80T
+        belt_hock_pulleys: 40T-80T
+        belt_carpus_pulleys: GT2-48T-10+GT2-80T-10
+        spring_stifle_k: 0.0984
+        spring_shoulder_free_length: 29.7
+        spring_shoulder_upper_along: 25.0
+        spring_carpus_lower_along: 55.0
+        shoulder_belt: true
+    - label: g009-000 + carpus spring
+      note: Stage B candidate 20261107-043030-evolve-c02e-g009-000 (ADR-104) + carpus spring
+      values:
+        tibia_length: 243.0
+        rear_cannon_length: 224.0
+        upper_leg_length: 342.0
+        front_cannon_length: 239.0
+        servo_hock: sts3250_c002
+        servo_carpus: sts3250_c002
+        belt_stifle_pulleys: 40T-80T
+        belt_hock_pulleys: 40T-80T
+        belt_carpus_pulleys: GT2-48T-10+GT2-80T-10
+        spring_stifle_k: 0.0984
+        spring_shoulder_free_length: 29.7
+        spring_shoulder_upper_along: 25.0
+        spring_carpus_lower_along: 55.0
+        spring_carpus: true
     servo_denominator: 4
     production:
       geometry:
