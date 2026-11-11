@@ -35,9 +35,12 @@ from calflab.schema import P
 
 VERSION = 1  # part of every cache key: bump when a play would no longer give the same record
 
-#: per behaviour, score -> rank units (ranking only; PROVISIONAL): 250 mm/s of trot, 0.2 body weights of push,
-#: stand effort x2, lie as it is
-NORM = {"trot": 1.0 / 250.0, "suckle": 1.0 / 0.2, "stand": 2.0, "lie": 1.0}
+#: per behaviour, score -> rank units (ranking only; PROVISIONAL): 250 mm/s of trot, stand and suckle effort x2,
+#: lie as it is
+NORM = {"trot": 1.0 / 250.0, "suckle": 2.0, "stand": 2.0, "lie": 1.0}
+#: excess over the limits (sum over joints of the most-used limit's use - 1) costs this much rank: margins
+#: saturate at -3 for the sustained limits, so without it a search far over a limit has no slope (as ADR-107)
+EXCESS_WEIGHT = 0.1
 
 
 class OutcomeSearch(BaseModel):
@@ -74,6 +77,9 @@ def _kf(prefix: str, ranges: dict[str, tuple[float, float]]) -> list[tuple[str, 
 #: -30..80, shoulder -60..60, carpus -10..130) less a margin
 STAND_RANGES = {"abd": (-10.0, 10.0), "stifle": (-25.0, 45.0), "hock": (-25.0, 45.0), "shoulder": (-35.0, 35.0),
                 "carpus": (-8.0, 45.0)}
+#: suckling: a light lean around standing (Emily, 2026-11-11: a forward lean is enough)
+LEAN_RANGES = {"abd": (-8.0, 8.0), "stifle": (-15.0, 25.0), "hock": (-15.0, 25.0), "shoulder": (-20.0, 20.0),
+               "carpus": (-6.0, 25.0)}
 LIE_RANGES = {"abd": (-10.0, 10.0), "stifle": (-20.0, 78.0), "hock": (-20.0, 78.0), "shoulder": (-58.0, 20.0),
               "carpus": (-5.0, 128.0)}
 
@@ -86,7 +92,7 @@ def default_spaces() -> dict[str, BehaviourSpace]:
             fixed={"p1_s": 2.0}, search_s=12.0, judge_s=120.0),
         "suckle": BehaviourSpace(
             behaviour="suckle",
-            dims=[*_kf("p1", STAND_RANGES), ("p1_s", 0.5, 3.0), *_kf("p2", STAND_RANGES), ("p2_s", 0.5, 3.0),
+            dims=[*_kf("p1", LEAN_RANGES), ("p1_s", 0.5, 3.0), *_kf("p2", LEAN_RANGES), ("p2_s", 0.5, 3.0),
                   ("pitch_gain", -1.0, 1.0), ("pitch_gain_hind", -1.0, 1.0), ("roll_gain", -1.0, 1.0)],
             fixed={}, search_s=14.0, judge_s=30.0, task={"press_from_s": 6.0}),
         "trot": BehaviourSpace(
@@ -142,11 +148,11 @@ def warm_starts(behaviour: str, lie_versions: list[dict[str, Any]] | None = None
 
     if behaviour == "stand":
         return [{}]
-    if behaviour == "suckle":
-        return [{"p1_s": 2.0, "p2_s": 2.0, "p2_shoulder": 8.0},
-                {"p1_s": 2.0, "p2_s": 2.0, "p1_stifle": 8.0, "p1_hock": 8.0, "p2_stifle": 8.0, "p2_hock": 8.0,
-                 "p2_shoulder": 10.0},
-                {"p1_s": 1.5, "p2_s": 2.5, "p2_shoulder": 15.0, "p2_carpus": 10.0}]
+    if behaviour == "suckle":  # standing, then small leans (shoulders back = trunk forward over the front hooves)
+        return [{"p1_s": 2.0, "p2_s": 2.0},
+                {"p1_s": 2.0, "p2_s": 2.0, "p2_shoulder": 3.0},
+                {"p1_s": 2.0, "p2_s": 2.0, "p2_shoulder": 6.0},
+                {"p1_s": 2.0, "p2_s": 2.0, "p2_shoulder": 4.0, "p2_stifle": 4.0, "p2_hock": 4.0}]
     if behaviour == "trot":
         out = []
         for c, st in ((0.5, 1.5), (0.6, 1.0), (0.8, 0.5), (0.4, 2.0)):
@@ -261,6 +267,16 @@ def binding(joints: dict[str, Any]) -> dict[str, Any] | None:
     return None if best is None else {"joint": best[1], "limit": best[2], "use": round(best[0], 3)}
 
 
+def excess(joints: dict[str, Any]) -> float:
+    """Sum over joints of how far the most-used limit is past 1 (0 within every limit)."""
+    tot = 0.0
+    for row in joints.values():
+        uses = [float(row[k]) for k in ("speed", "torque", "belt", "envelope", "stall") if row.get(k) is not None]
+        if uses:
+            tot += max(0.0, max(uses) - 1.0)
+    return round(tot, 4)
+
+
 def rank(behaviour: str, rec: dict[str, Any]) -> float:
     o = rec.get("outcome") or {}
     failed = sum(1 for v in (o.get("gates") or {}).values() if not v)
@@ -269,7 +285,7 @@ def rank(behaviour: str, rec: dict[str, Any]) -> float:
     sc = float(o.get("score", 0.0)) * NORM[behaviour]
     if failed:  # a version that fails a gate never outranks one that passes them all on its score
         sc = 0.5 * min(sc, 1.0)
-    r = sc - 2.0 * float(failed) + min(0.0, m)
+    r = sc - 2.0 * float(failed) + min(0.0, m) - EXCESS_WEIGHT * excess(rec.get("joints") or {})
     if not rec.get("complete", True):
         r -= 5.0
     return round(r, 4)

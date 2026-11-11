@@ -6,13 +6,13 @@
 # fail_value. What each term measures and how it could be cheated: docs/studies/outcomes_r15.md.
 name: outcomes_r15
 version: 1
-description: 'R15 (ADR-110): suckle (steady head push into a fixed block), trot (forward travel, any gait), stand (least
+description: 'R15 (ADR-110): suckle (a light, steady head press on a fixed block), trot (forward travel, any gait), stand (least
   sustained servo effort) and lie (down to lying height under control), each optimised per body with the outcome_motion
   controller; limits as the R11c suite at margin 0.2; masses from mass_model explicit_v2.'
 terms:
 - term: outcome_suckle
   weight: 1.0
-  params: {scale: 0.2, fail_value: -1.0}      # 0.2 body weights of steady push = 1
+  params: {scale: 0.5, fail_value: -1.0}      # score = -(mean + worst effort) / 2 while pressing lightly
 - term: outcome_trot
   weight: 1.0
   params: {scale: 250.0, fail_value: -1.0}    # 250 mm/s (slowest 5 s window, less drift) = 1
@@ -43,7 +43,7 @@ outcomes:
     judge_top: 3
   # task settings over calflab.fitness.outcomes defaults (all PROVISIONAL); spaces: calflab.evolve.outcomes.default_spaces
   tasks:
-    suckle: {press_from_s: 6.0, gap_mm: 10.0, height_mm: 0.0, min_contact: 0.9, max_cv: 0.25, max_slip_mm: 10.0,
+    suckle: {press_from_s: 6.0, gap_mm: 10.0, height_mm: 0.0, min_contact: 0.9, max_cv: 0.3, contact_n: 0.25, max_slip_mm: 10.0,
              min_com_margin_mm: 10.0, max_down_bw: 0.1, max_other_n: 1.0, max_tilt_deg: 30.0}
     trot: {from_s: 4.0, min_speed_mm_s: 100.0, window_s: 5.0, min_height: 0.8, max_heading_deg: 30.0,
            max_slip_per_m: 150.0, drift_weight: 0.5}

@@ -199,10 +199,10 @@ def test_preset_terms_and_settings() -> None:
     assert s.mass_model == "explicit_v2" and s.margin == 0.2
     assert s.space("suckle").task["press_from_s"] == 6.0
     p = preset("outcomes_r15")
-    out = {"suckle": {"holds": True, "within": True, "score": 0.3}, "trot": {"holds": False, "score": 900.0},
+    out = {"suckle": {"holds": True, "within": True, "score": -0.15}, "trot": {"holds": False, "score": 900.0},
            "stand": {"holds": True, "within": True, "score": -0.05}, "lie": {}}
     r = p.evaluate({"outcome": out})
-    assert r["terms"]["outcome_suckle"]["value"] == pytest.approx(1.5)
+    assert r["terms"]["outcome_suckle"]["value"] == pytest.approx(-0.3)
     assert r["terms"]["outcome_trot"]["value"] == -1.0  # a fast trot that does not hold earns nothing
     assert r["terms"]["outcome_stand"]["value"] == pytest.approx(-0.1)
     assert r["terms"]["outcome_lie"]["value"] == -1.0
@@ -213,9 +213,23 @@ def test_rank_puts_a_failed_gate_below_any_held_version() -> None:
 
     held = {"outcome": {"score": 120.0, "gates": {"a": True}}, "margin": 0.05, "complete": True}
     fast_cheat = {"outcome": {"score": 400.0, "gates": {"a": False}}, "margin": 0.05, "complete": True}
-    over = {"outcome": {"score": 400.0, "gates": {"a": True}}, "margin": -1.5, "complete": True}
+    over = {"outcome": {"score": 400.0, "gates": {"a": True}}, "margin": -1.5, "complete": True,
+            "joints": {"fl.carpus": {"torque": 3.0, "speed": 0.5}}}
     assert rank("trot", held) > rank("trot", fast_cheat)
     assert rank("trot", fast_cheat) == pytest.approx(0.5 - 2.0)
-    assert rank("trot", over) == pytest.approx(400 / 250 - 1.5)
+    assert rank("trot", over) == pytest.approx(400 / 250 - 1.5 - 0.1 * 2.0)  # excess past a limit: a slope
     fell = {**held, "complete": False}
     assert rank("trot", fell) < rank("trot", held) - 4.9
+
+
+def test_slip_is_net_travel_not_jitter() -> None:
+    from calflab.fitness.outcomes import slip_mm, slip_net_mm
+
+    rng = np.random.default_rng(0)
+    hp = np.zeros((400, 1, 3))
+    hp[:, 0, :2] = rng.normal(0.0, 0.0003, (400, 2))  # 0.3 mm contact jitter
+    load = np.ones((400, 1), bool)
+    assert slip_mm(hp, load)[0] > 50.0  # the summed path grows with time
+    assert slip_net_mm(hp, load)[0] < 2.0
+    hp[:, 0, 0] += np.linspace(0.0, 0.015, 400)  # a real 15 mm slide
+    assert slip_net_mm(hp, load)[0] > 14.0

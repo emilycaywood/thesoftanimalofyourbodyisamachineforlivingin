@@ -5,9 +5,10 @@ and ``gates``: named pass/fail tests that stop the obvious ways of scoring witho
 ``holds`` when every gate passes and it stays within the servo, belt and joint limits at the suite's margin (judged
 elsewhere, ``calflab.evolve.outcomes``). The four fitness terms below turn those numbers into a preset's terms.
 
-* **suckle**: push the head forward into a fixed block (at the head's standing height, ahead of it) and keep pressing.
-  Score = the 20th-percentile forward head force over the press window, as a share of body weight. Gates: in contact
-  most of the window, steady (coefficient of variation), the hooves do not slip, the body is not propped up by the
+* **suckle**: push the head forward into a fixed block (at the head's standing height, ahead of it) and keep pressing
+  lightly: a forward lean is enough (Emily, 2026-11-11). Score = -(mean + worst)/2 servo effort over the press window
+  (as stand). Gates: pressing (20th-percentile force at least ``contact_n``, in contact most of the window), steady
+  (coefficient of variation), the hooves do not slip (net travel), the body is not propped up by the
   block (centre of mass inside the hooves' support polygon), the head does not lean down on the block, nothing but
   the head touches it, no fall.
 * **trot**: travel forward on flat ground for a minute. Score = the slowest 5 s window's forward speed (mm/s), less the
@@ -44,10 +45,13 @@ class SuckleTask(BaseModel):
                          desc="Block centre above the head's standing centre (the udder height stand-in).")
     half_mm: tuple[float, float, float] = P((20.0, 60.0, 40.0), unit="mm", desc="Block half extents (x, y, z).")
     press_from_s: float = P(4.0, unit="s", ge=0.0, le=30.0, desc="The press window starts here (after the approach).")
-    contact_n: float = P(0.5, unit="N", ge=0.0, le=10.0, desc="Forward head force that counts as pressing.")
+    contact_n: float = P(0.25, unit="N", ge=0.0, le=10.0,
+                         desc="Forward head force that counts as pressing; also the gate on its 20th percentile (a "
+                              "light, steady lean is enough: Emily, 2026-11-11).")
     min_contact: float = P(0.9, ge=0.0, le=1.0, desc="Gate: share of the window pressing.")
-    max_cv: float = P(0.25, ge=0.0, le=2.0, desc="Gate: largest std / mean of the forward force.")
-    max_slip_mm: float = P(10.0, unit="mm", ge=0.0, le=100.0, desc="Gate: largest hoof slide while loaded.")
+    max_cv: float = P(0.3, ge=0.0, le=2.0, desc="Gate: largest std / mean of the forward force.")
+    max_slip_mm: float = P(10.0, unit="mm", ge=0.0, le=100.0,
+                           desc="Gate: largest net horizontal travel of a loaded hoof over the press window.")
     min_com_margin_mm: float = P(10.0, unit="mm", ge=-50.0, le=100.0,
                                  desc="Gate: centre of mass at least this far inside the hooves' support polygon "
                                       "(less = the block holds the body up).")
@@ -139,6 +143,18 @@ def slip_mm(hp: np.ndarray, load: np.ndarray) -> np.ndarray:
     return np.sum(np.where(both, d, 0.0), axis=0)
 
 
+def slip_net_mm(hp: np.ndarray, load: np.ndarray) -> np.ndarray:
+    """Per hoof, the largest horizontal distance (mm) from where it was first loaded in the window, over the frames it
+    is loaded. Net travel, so contact jitter does not add up (``slip_mm`` sums the path)."""
+    out = np.zeros(hp.shape[1] if hp.ndim == 3 else 0)
+    for i in range(len(out)):
+        idx = np.nonzero(load[:, i])[0]
+        if len(idx):
+            d = np.linalg.norm(hp[idx, i, :2] - hp[idx[0], i, :2], axis=-1) * 1000.0
+            out[i] = float(np.max(d))
+    return out
+
+
 def _hull(pts: np.ndarray) -> np.ndarray:
     """Convex hull (counter-clockwise) of a few 2-D points (monotone chain)."""
     p = sorted({(float(a), float(b)) for a, b in pts})
@@ -218,7 +234,7 @@ def measure_suckle(ro: Any, spec: Any, task: SuckleTask) -> dict[str, Any]:
     mean = float(np.mean(pw))
     cv = float(np.std(pw) / mean) if mean > 1e-6 else math.inf
     contact = float(np.mean(pw > task.contact_n))
-    slip = slip_mm(hp[win], load[win])
+    slip = slip_net_mm(hp[win], load[win])
     com = np.asarray(ro.com[ro.t >= 0], float)[win, :2]
     margins = []
     for k in range(0, int(win.sum()), 5):  # every 0.1 s at 50 Hz
@@ -226,13 +242,18 @@ def measure_suckle(ro: Any, spec: Any, task: SuckleTask) -> dict[str, Any]:
         margins.append(support_margin(com[k], feet) * 1000.0)
     com_margin = float(np.min(margins)) if margins else -math.inf
     tilt = float(np.max(tr["tilt"]))
-    gates = {"pressing": contact >= task.min_contact, "steady": cv <= task.max_cv,
+    gates = {"pressing": contact >= task.min_contact and p20 >= task.contact_n, "steady": cv <= task.max_cv,
              "no_slip": float(np.max(slip)) <= task.max_slip_mm, "not_propped": com_margin >= task.min_com_margin_mm,
              "not_leaning_down": float(np.percentile(down[win], 80)) <= task.max_down_bw * bw,
              "head_only": float(np.max(other)) <= task.max_other_n, "upright": tilt <= task.max_tilt_deg}
-    score = p20 / bw if bw > 0 else 0.0
+    eff = servo_effort(ro, spec, task.press_from_s)
+    vals = list(eff.values()) or [math.inf]
+    e_mean, e_max = float(np.mean(vals)), float(np.max(vals))
+    score = -(e_mean + e_max) / 2.0  # a light lean is enough: the least effort that keeps the press (as stand)
     out.update({"push_p20_n": _r(p20), "push_mean_n": _r(mean), "push_peak_n": _r(float(np.max(pw))),
-                "push_cv": _r(cv), "push_p20_bw": _r(score, 4), "contact_frac": _r(contact),
+                "push_cv": _r(cv), "push_p20_bw": _r(p20 / bw if bw > 0 else 0.0, 4), "contact_frac": _r(contact),
+                "effort_mean": _r(e_mean, 4), "effort_max": _r(e_max, 4),
+                "worst": max(eff, key=lambda k: eff[k]) if eff else None,
                 "down_p80_n": _r(float(np.percentile(down[win], 80))), "other_peak_n": _r(float(np.max(other))),
                 "slip_max_mm": _r(float(np.max(slip)), 1), "com_margin_mm": _r(com_margin, 1),
                 "tilt_max_deg": _r(tilt, 1), "weight_n": _r(bw, 2), "score": round(score, 4), "gates": gates,
@@ -442,7 +463,7 @@ class _OutcomeTerm(FitnessTerm):
 class SuckleTerm(_OutcomeTerm):
     key = "outcome_suckle"
     label = "Suckling (steady head push)"
-    description = "20th-percentile forward head force on a fixed block, share of body weight, when every gate holds."
+    description = "A light, steady head press on a fixed block at the least servo effort, when every gate holds."
     behaviour = "suckle"
 
 
