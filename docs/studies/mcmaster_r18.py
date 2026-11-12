@@ -518,6 +518,32 @@ def confirm(lab: Any, opts: dict[str, str]) -> None:
     _save(data)
 
 
+def adopt(lab: Any, opts: dict[str, str]) -> None:
+    """The best ``--n`` (default 3) confirmed bodies by their three-seed fitness become study bodies ``r18-a``,
+    ``r18-b``... (genes over the baseline payload), with a title line each for the compare page."""
+    data = _load()
+    conf = (data.get("confirm") or {}).get("bodies") or {}
+    ranked = sorted(((cid, r) for cid, r in conf.items() if r.get("summary")),
+                    key=lambda kv: -float(kv[1]["summary"].get("fitness") or -9))
+    n = int(opts.get("n", 3))
+    bs = data.setdefault("bodies", {})
+    labels = data.setdefault("labels", {})
+    labels[BASE] = "baseline: 10 mm GT2 (not sourceable)"
+    labels[SWAP] = "closest swap: McMaster 3MGT"
+    adopted = {}
+    for k, (cid, r) in enumerate(ranked[:n]):
+        name = f"r18-{'abc'[k]}"
+        s = r["summary"]
+        bs[name] = dict(r["genome"])
+        drives = {d["drive"]: d for d in s.get("drives") or []} if isinstance(s.get("drives"), list) else {}
+        labels[name] = (f"{cid.rsplit('-', 2)[-2]}-{cid.rsplit('-', 1)[-1]}: {s.get('minutes_held')}/"
+                        f"{s.get('minutes_of')} min, trot {s.get('trot_speed_mm_s', 0):.0f} mm/s")
+        adopted[name] = {"candidate": cid, "fitness_3_seeds": s.get("fitness"), "drives": drives}
+        print(name, cid, s.get("fitness"), flush=True)
+    data["adopted"] = adopted
+    _save(data)
+
+
 # --------------------------------------------------------------------- production sheets (step 4)
 SHEETS = Path("docs/studies/sheets_r18")
 

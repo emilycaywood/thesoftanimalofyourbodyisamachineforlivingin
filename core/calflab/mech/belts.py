@@ -681,11 +681,17 @@ def evaluate_drive(
         checks.append(Check(id="pulley_gap", label="Pulleys do not touch",
                             status="pass" if c > need else "fail",
                             detail=f"C {c:.1f} mm, needs more than (D1 + D2) / 2 + {layout.pulley_clearance_mm:g} = {need:.1f} mm"))
-        wrap = wrap_angle_driver(d1, d2, c)
-        tim = teeth_in_mesh(pair.driver_teeth, wrap)
-        checks.append(Check(id="teeth_in_mesh", label=f"At least {layout.min_teeth_in_mesh:g} teeth in mesh on the driver",
-                            status="pass" if tim >= layout.min_teeth_in_mesh else "fail",
-                            detail=f"{tim:.1f} teeth (wrap {u.rad_to_deg(wrap):.1f} deg on {pair.driver_teeth}T)"))
+        if abs(d2 - d1) < 2.0 * c:
+            wrap = wrap_angle_driver(d1, d2, c)
+            tim = teeth_in_mesh(pair.driver_teeth, wrap)
+            checks.append(Check(id="teeth_in_mesh",
+                                label=f"At least {layout.min_teeth_in_mesh:g} teeth in mesh on the driver",
+                                status="pass" if tim >= layout.min_teeth_in_mesh else "fail",
+                                detail=f"{tim:.1f} teeth (wrap {u.rad_to_deg(wrap):.1f} deg on {pair.driver_teeth}T)"))
+        else:  # the pulleys' difference in diameter exceeds 2C: no open belt wraps them (R18: 3MGT 16T-45T pairs)
+            checks.append(Check(id="teeth_in_mesh",
+                                label=f"At least {layout.min_teeth_in_mesh:g} teeth in mesh on the driver",
+                                status="fail", detail=f"|D2 - D1| = {abs(d2 - d1):.1f} mm is more than 2C = {2 * c:.1f} mm"))
         status, detail, span = _servo_fit(layout, c)
         checks.append(Check(id="servo_on_segment", label="Servo case on its segment, clear of both joint fittings",
                             status=status, detail=detail))
