@@ -130,7 +130,35 @@ def fits(lab: Any, opts: dict[str, str]) -> None:
         print(d, len(ok), "fit;", fails, flush=True)
     data = _load()
     data["fits"] = out
+    fits_csv(data)
+    compact_fits(data)
     _save(data)
+
+
+def compact_fits(data: dict[str, Any]) -> None:
+    """Replace the fit rows (every one is in ``mcmaster_r18_fits_<drive>.csv``) by a summary per pulley pair."""
+    for r in (data.get("fits") or {}).values():
+        rows = r.pop("fits", None)
+        if rows is None:
+            continue
+        groups: dict[str, list[dict[str, Any]]] = {}
+        for x in rows:
+            groups.setdefault(f"{x['system']}|{x['driver_teeth']}|{x['driven_teeth']}", []).append(x)
+        r["n"] = len(rows)
+        r["unknown"] = sum(1 for x in rows if x["unknown"])
+        r["pairs"] = [{"system": g[0]["system"], "driver_teeth": g[0]["driver_teeth"],
+                       "driven_teeth": g[0]["driven_teeth"], "ratio": g[0]["ratio"], "lengths": len(g),
+                       "c_min": min(x["c_mm"] for x in g), "c_max": max(x["c_mm"] for x in g),
+                       "teeth_in_mesh_min": min(x["teeth_in_mesh"] for x in g),
+                       "unknown": sum(1 for x in g if x["unknown"])} for g in groups.values()]
+
+
+def fit_rows(drive: str) -> list[dict[str, str]]:
+    """Every fitting choice of a drive, as written to its CSV (strings)."""
+    import csv
+
+    with OUT.with_name(f"mcmaster_r18_fits_{drive}.csv").open(encoding="utf-8") as fh:
+        return list(csv.DictReader(fh))
 
 
 def closest(rows: list[dict[str, Any]], ratio0: float, c0: float) -> dict[str, Any]:
@@ -366,8 +394,9 @@ def preset(lab: Any, opts: dict[str, str]) -> None:
 
     p = yaml.safe_load(Path("config/fitness/hardware_r14.yaml").read_text(encoding="utf-8"))
     sw = _swap_genes()
-    fits_c = (_load().get("fits") or {}).get("carpus", {}).get("fits") or []
-    c72 = min((r for r in fits_c if r["pulleys"] == "MM-2MGT-72T+MM-2MGT-72T"),
+    c72 = min(({"system": r["system"], "pulleys": "MM-2MGT-72T+MM-2MGT-72T",
+                "length": f"MM-2MGT-{float(r['length_mm']):g}", "c_mm": float(r["c_mm"])} for r in fit_rows("carpus")
+               if r["system"] == "MM-2MGT-6" and r["driver_teeth"] == r["driven_teeth"] == "72"),
               key=lambda r: abs(r["c_mm"] - 232.5), default=None)
     seeds = [{"label": "g020-008-r01-mc (closest swap)", "note": "R18 step 2", "values": sw}]
     if c72:
@@ -486,6 +515,47 @@ def confirm(lab: Any, opts: dict[str, str]) -> None:
         print(c["id"], round(float(c.get("fitness") or 0), 3), "->", s.get("fitness"), s.get("minutes_held"),
               flush=True)
     data["confirm"] = {"bodies": res, "seconds": round(time.perf_counter() - t, 1), "runs": runs}
+    _save(data)
+
+
+# --------------------------------------------------------------------- production sheets (step 4)
+SHEETS = Path("docs/studies/sheets_r18")
+
+
+def sheets(lab: Any, opts: dict[str, str]) -> None:
+    """Per body (``--bodies=``, default every non-baseline body): the Rhino / Grasshopper geometry CSV, the parts list
+    (McMaster part numbers only for belts and pulleys) and the bill of materials with its total cost."""
+    from calflab.bridge.production_sheet import bom, geometry_csv, geometry_rows, parts_list
+    from calflab.evolve.hardware import _build
+    from calflab.evolve.production import SpringSpace, spring_checks
+
+    SHEETS.mkdir(parents=True, exist_ok=True)
+    bs = bodies(lab)
+    names = (opts.get("bodies") or ",".join(n for n in bs if n != BASE)).split(",")
+    data = _load()
+    out = data.setdefault("sheets", {})
+    for n in names:
+        pl = bs[n]
+        d, lib = _build(pl)
+        vals = dict(d.genome.values)
+        cat = _cat(pl)
+        _why, srep = spring_checks(d.spec, vals, SpringSpace())
+        parts = parts_list(d.spec, vals, cat, srep, lib)
+        not_mm = [b["drive"] for b in parts["belts"] if b.get("vendor") != "McMaster-Carr"]
+        if not_mm:
+            raise SystemExit(f"{n}: belts not from McMaster at {not_mm}")
+        parts["bom"] = bom(parts)
+        parts["body"] = n
+        parts["breaking_strength"] = "assumed (researcher's assumption 2026-11-12, 51 lbf per 1/8 in of width)"
+        parts["sustained_belt_tension"] = "unknown: no allowable working tension (not published, not supplied)"
+        slug = "".join(ch if ch.isalnum() else "_" for ch in n).strip("_")
+        (SHEETS / f"{slug}_geometry.csv").write_bytes(geometry_csv(geometry_rows(d.spec, vals)).encode("utf-8"))
+        (SHEETS / f"{slug}_parts.json").write_bytes(json.dumps(parts, indent=1).encode("utf-8"))
+        out[n] = {"total_usd": parts["bom"]["total_usd"], "complete": parts["bom"]["complete"],
+                  "unpriced": parts["bom"]["unpriced"], "rows": parts["bom"]["rows"],
+                  "open_items": parts["bom"]["open_items"]}
+        print(n, "BOM", parts["bom"]["total_usd"], "USD", "complete" if parts["bom"]["complete"] else
+              f"unpriced: {parts['bom']['unpriced']}", flush=True)
     _save(data)
 
 
@@ -612,7 +682,7 @@ def _cell_rows(data: dict[str, Any], a: str, b: str) -> list[str]:
     def agg(rs: list[dict[str, Any]]) -> tuple[str, str, str]:
         if not rs:
             return "-", "-", "-"
-        h = all(r["holds"] for r in rs)
+        h = all(held_excl(r) for r in rs)
         w = all(r["within_excl"] for r in rs)
         m = min((r["margin_excl"] for r in rs if r["margin_excl"] is not None), default=None)
         worst = min(rs, key=lambda r: r["margin_excl"] if r["margin_excl"] is not None else 9)
@@ -640,6 +710,24 @@ def _cell_rows(data: dict[str, Any], a: str, b: str) -> list[str]:
     return lines
 
 
+def held_excl(r: dict[str, Any]) -> bool:
+    """Holds and within every limit, excluding sustained belt tension: a play that fails only that check (possible on
+    the baseline, whose 10 mm belt has an allowable tension) counts as holding, as it would on a McMaster belt."""
+    return bool(r["within_excl"] and (r["holds"] or (not r["fell"] and set(r["violations"]) == {"belt_sustained"})))
+
+
+def sustained_keep(data: dict[str, Any], body: str, level: float, frac: float = 0.25) -> int:
+    """Behaviours that hold and are within* on every seed and spend at most ``frac`` of every 2 s window above
+    ``level`` N on every belted drive: what a sustained check would keep if 0.8 x allowable = ``level``."""
+    from collections import defaultdict
+
+    by: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for r in (data.get("replay") or {}).get(body, []):
+        by[r["key"]].append(r)
+    return sum(all(held_excl(r) and all(v["above"][f"{level:g}"] <= frac for v in (r.get("belts") or {}).values())
+                   for r in v) for v in by.values())
+
+
 def counts(data: dict[str, Any], body: str) -> dict[str, int]:
     """Behaviours (of the R16 repertoire) that hold, are within limits (all, and excluding sustained belt tension) on
     every seed."""
@@ -651,40 +739,38 @@ def counts(data: dict[str, Any], body: str) -> dict[str, int]:
     return {"behaviours": len(by), "holds": sum(all(r["holds"] for r in v) for v in by.values()),
             "within": sum(all(r["within"] for r in v) for v in by.values()),
             "within_excl": sum(all(r["within_excl"] for r in v) for v in by.values()),
-            "holds_and_within_excl": sum(all(r["holds"] and r["within_excl"] for r in v) for v in by.values()),
-            "full_cells_within_excl": sum(all(r["holds"] and r["within_excl"] for r in v) for k, v in by.items()
+            "holds_and_within_excl": sum(all(held_excl(r) for r in v) for v in by.values()),
+            "full_cells_within_excl": sum(all(held_excl(r) for r in v) for k, v in by.items()
                                           if k.startswith("full:"))}
 
 
 def summary(lab: Any, opts: dict[str, str]) -> None:
     data = _load()
-    paths = fits_csv(data)
+    paths = [OUT.with_name(f"mcmaster_r18_fits_{d}.csv") for d in (data.get("fits") or {})]
     L = ["# R18 tables (generated by `docs/studies/mcmaster_r18.py summary`)", "",
          "Breaking strength assumed (researcher's assumption, 51 lbf per 1/8 in of width); sustained belt tension "
          "unknown (no allowable working tension). *within\\** = within every limit at margin 0.2 **excluding sustained "
          "belt tension**.", ""]
     L += ["## 1. McMaster choices that fit each drive of g020-008-r01", ""]
     for d, r in (data.get("fits") or {}).items():
-        rows = r["fits"]
         L.append(f"### {d} ({r['layout']['segment']}, {r['layout']['segment_length_mm']:g} mm; servo window "
                  f"{r['layout']['window_mm'][0]:g}-{r['layout']['window_mm'][1]:g} mm; now "
                  f"{r['current']['choice']['pulleys']}, {r['current']['ratio']:g}:1, C {r['current']['c_mm']:.1f} mm)")
         L.append("")
-        L.append(f"{len(rows)} pair x length choices pass every check (all in `{paths[0].name.replace('stifle', d)}`); "
+        L.append(f"{r['n']} pair x length choices pass every check (all in `mcmaster_r18_fits_{d}.csv`); "
                  "failed: " + ", ".join(f"{k} {v}" for k, v in r["failed_checks"].items()) + ".")
         L.append("")
         L.append("| system | pair (driver/driven T) | ratio | lengths that fit | C range mm | min teeth in mesh | "
-                 "clearance unknown |")
+                 "a check unknown |")
         L.append("|---|---|---|---|---|---|---|")
-        groups: dict[tuple[str, int, int], list[dict[str, Any]]] = {}
-        for x in rows:
-            groups.setdefault((x["system"], x["driver_teeth"], x["driven_teeth"]), []).append(x)
-        for (s, a, b), g in sorted(groups.items(), key=lambda kv: (kv[0][0], kv[1][0]["ratio"], kv[0][1])):
-            if opts.get("all") or abs(g[0]["ratio"] - r["current"]["ratio"]) <= 0.35:
-                L.append(f"| {s} | {a}/{b} | {g[0]['ratio']:.3f} | {len(g)} | {min(x['c_mm'] for x in g):.1f}-"
-                         f"{max(x['c_mm'] for x in g):.1f} | {min(x['teeth_in_mesh'] for x in g):.1f} | "
-                         f"{sum(1 for x in g if x['clearance'] == 'unknown' or x['servo_check'] == 'unknown')} |")
-        L.append(f"\n(pairs within 0.35 of the current ratio shown; {len(groups)} pairs fit in all.)\n")
+        for g in sorted(r["pairs"], key=lambda g: (g["system"], g["ratio"], g["driver_teeth"])):
+            if opts.get("all") or abs(g["ratio"] - r["current"]["ratio"]) <= 0.35:
+                L.append(f"| {g['system']} | {g['driver_teeth']}/{g['driven_teeth']} | {g['ratio']:.3f} | "
+                         f"{g['lengths']} | {g['c_min']:.1f}-{g['c_max']:.1f} | {g['teeth_in_mesh_min']:.1f} | "
+                         f"{g['unknown']} |")
+        L.append(f"\n(pairs within 0.35 of the current ratio shown; {len(r['pairs'])} pairs fit in all; "
+                 f"{r['unknown']} choices have a check that stays unknown until the servo's output-axis offset is "
+                 "entered.)\n")
     sw = data.get("swap") or {}
     if sw:
         L += ["## 2. The closest swap g020-008-r01-mc", "",
@@ -743,6 +829,14 @@ def summary(lab: Any, opts: dict[str, str]) -> None:
             c = counts(data, n)
             L.append(f"| {n} | {c['behaviours']} | {c['holds']} | {c['within']} | {c['within_excl']} | "
                      f"{c['holds_and_within_excl']} | {c['full_cells_within_excl']} |")
+        L.append("")
+        L += ["What an allowable working tension would keep: behaviours that hold and are within* on every seed AND "
+              "spend at most 25 % of every 2 s window above the level on every drive (the sustained check with the "
+              "margin: level = 0.8 x allowable).", "",
+              "| body | " + " | ".join(f"<= {lv:g} N (allowable {lv / 0.8:g} N)" for lv in LEVELS) + " |",
+              "|---|" + "---|" * len(LEVELS)]
+        for n in rp:
+            L.append(f"| {n} | " + " | ".join(str(sustained_keep(data, n, lv)) for lv in LEVELS) + " |")
         L.append("")
         for other in [n for n in rp if n != BASE]:
             L += [f"### {BASE} vs {other}", ""] + _cell_rows(data, BASE, other) + [""]

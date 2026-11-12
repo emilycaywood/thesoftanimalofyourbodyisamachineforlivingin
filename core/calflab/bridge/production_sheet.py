@@ -97,7 +97,7 @@ def parts_list(spec: Any, values: dict[str, Any], catalog: Any, springs: dict[st
                       "purchase_confirmed": entry.purchase_confirmed, "c_mm": round(float(r["c_mm"]), 2),
                       "allowable_working_tension_n": system.allowable_working_tension_n,
                       "breaking_strength_n": system.breaking_strength_n, "verified": False})
-        verify.append(f"{d} belt: {system.width_mm:g} mm GT2, {entry.pitch_length_mm:g} mm ({entry.teeth} teeth) is "
+        verify.append(f"{d} belt: {system.width_mm:g} mm {system.profile}, {entry.pitch_length_mm:g} mm ({entry.teeth} teeth) is "
                       f"really listed and orderable (source {entry.source}); purchase_confirmed is false")
         for role, teeth in (("driver (servo)", r["driver_teeth"]), ("driven (joint)", r["driven_teeth"])):
             s = _single_for(catalog, int(teeth), system.width_mm)
