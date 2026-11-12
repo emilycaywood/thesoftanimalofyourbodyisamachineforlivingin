@@ -59,6 +59,83 @@ Elites (search descriptor; judged worst seed):
 
 Cells after the starts and each batch: 4 5 8 10 11 12 12 13 13 13 15 16 17 17 18 18 19 19 19 19 19 19 19 20 23 23 23 25 27 27 28 28 29 30 30 30 31 32 32 32 32
 
+## full
+
+52 of 315 cells (16.5 %), 24909 plays, search 15736 s, judging 0 s on 14 workers; space 52 dims; judged at 30.0 s.
+
+Cells filled per class (speed bins x turn bins):
+
+| class | cells | tried (seed 0) | held 3 seeds | judged: hold / same cell | most common reasons it failed |
+|---|---|---|---|---|---|
+| down | 0 | 530 | 0 | 0 / 0 | gate: slow_descent 529; gate: not_tipped 527; gate: soft_landing 518; limit: fl.shoulder torque 240 |
+| kneel | 0 | 472 | 0 | 0 / 0 | gate: slow_descent 456; gate: not_tipped 451; gate: soft_landing 412; limit: fl.shoulder torque 309 |
+| crouch | 0 | 27 | 0 | 0 / 0 | limit: hl.stifle torque 18; gate: slow_descent 8; limit: fl.shoulder torque 5; limit: hl.hip_abd torque 4 |
+| stand | 13 | 7250 | 2332 | 13 / 13 | limit: fl.shoulder torque 1756; limit: hl.hip_abd torque 1240; limit: hl.stifle torque 1064; limit: hl.stifle belt 495 |
+| walk | 10 | 1320 | 606 | 10 / 10 | limit: hl.hock belt 84; limit: hr.stifle belt 83; limit: fl.shoulder torque 75; fails on another seed 74 |
+| trot | 12 | 1505 | 691 | 12 / 12 | limit: hl.hock belt 147; limit: hr.hock belt 123; fails on another seed 100; confirmed 74 |
+| pace | 6 | 576 | 217 | 6 / 6 | limit: fl.shoulder torque 51; limit: hr.hip_abd torque 51; limit: hl.stifle belt 39; fails on another seed 39 |
+| bound | 2 | 54 | 36 | 2 / 2 | confirmed 4; limit: fl.shoulder torque 4; limit: hl.stifle belt 3; fails on another seed 3 |
+| irregular | 9 | 2282 | 534 | 9 / 9 | limit: hl.hip_abd torque 362; limit: hr.hip_abd torque 268; limit: fl.shoulder torque 243; limit: hl.stifle torque 131 |
+
+Elites (search descriptor; judged worst seed):
+
+| cell | found by | speed mm/s | turn deg/s | trunk mean / lowest | footfall (lag) | effort mean / worst (servo) | judged: holds, same cell, margin, binds |
+|---|---|---|---|---|---|---|---|
+| stand, nose up a lot, lowered | posture (batch 382) | -0 | 0.0 | 0.93 / 0.93 | stand (–) | 0.17 / 0.32 (hl.stifle) | yes, yes, 0.00, hl.hock belt 1.00 |
+| stand, nose up, lowered | block:reflex (batch 457) | -0 | 0.0 | 0.94 / 0.94 | stand (–) | 0.16 / 0.30 (fl.shoulder) | yes, yes, 0.08, fl.shoulder torque 0.92 |
+| stand, nose up, standing height | posture (batch 439) | 0 | 0.0 | 0.98 / 0.98 | stand (–) | 0.10 / 0.14 (fl.carpus) | yes, yes, 0.90, fl.carpus envelope 0.10 |
+| stand, nose a little up, standing height | gauss (batch 493) | -0 | 0.0 | 0.99 / 0.99 | stand (–) | 0.09 / 0.13 (hl.hip_abd) | yes, yes, 0.86, fl.carpus envelope 0.13 |
+| stand, level, standing height | gauss (batch 131) | 0 | 0.0 | 1.00 / 1.00 | stand (–) | 0.09 / 0.13 (hl.hip_abd) | yes, yes, 0.89, fl.carpus envelope 0.11 |
+| stand, nose a little down, lowered | block:reflex (batch 408) | 0 | 0.0 | 0.94 / 0.94 | stand (–) | 0.17 / 0.22 (hl.hock) | yes, yes, 0.81, fl.shoulder envelope 0.19 |
+| stand, nose a little down, standing height | gauss (batch 84) | -0 | 0.0 | 1.01 / 1.01 | stand (–) | 0.09 / 0.14 (hl.hip_abd) | yes, yes, 0.78, hl.stifle envelope 0.22 |
+| stand, nose a little down, raised | gauss (batch 191) | 0 | 0.0 | 1.02 / 1.01 | stand (–) | 0.08 / 0.13 (hl.hip_abd) | yes, yes, 0.82, hl.stifle envelope 0.18 |
+| stand, nose down, lowered | gauss (batch 484) | 0 | 0.0 | 0.94 / 0.94 | stand (–) | 0.18 / 0.25 (fl.carpus) | yes, yes, 0.83, fl.shoulder envelope 0.17 |
+| stand, nose down, standing height | gauss (batch 367) | -0 | 0.0 | 1.02 / 1.01 | stand (–) | 0.10 / 0.13 (hl.hip_abd) | yes, yes, 0.68, hl.stifle speed 0.32 |
+| stand, nose down, raised | gauss (batch 190) | 0 | 0.0 | 1.03 / 1.01 | stand (–) | 0.08 / 0.12 (hl.hip_abd) | yes, yes, 0.81, hl.stifle envelope 0.19 |
+| stand, nose down a lot, standing height | gauss (batch 434) | 0 | 0.0 | 1.01 / 1.00 | stand (–) | 0.12 / 0.23 (fl.carpus) | yes, yes, 0.79, hl.stifle envelope 0.21 |
+| stand, nose down a lot, raised | posture (batch 472) | -0 | 0.0 | 1.02 / 1.01 | stand (–) | 0.12 / 0.16 (fl.carpus) | yes, yes, 0.36, hl.stifle belt 0.64 |
+| walk, backward, straight | block:reflex (batch 469) | -38 | 0.5 | 0.99 / 0.99 | walk (0.25) | 0.17 / 0.25 (hl.stifle) | yes, yes, 0.04, fl.shoulder torque 0.96 |
+| walk, in place, straight | gauss (batch 350) | 2 | 0.0 | 1.01 / 1.00 | walk (0.21) | 0.08 / 0.13 (fl.shoulder) | yes, yes, 0.77, hr.stifle envelope 0.23 |
+| walk, creeping, turning right | line (batch 210) | 52 | -3.5 | 1.02 / 1.01 | trot (0.17) | 0.15 / 0.23 (hl.hip_abd) | yes, yes, 0.72, hl.stifle envelope 0.28 |
+| walk, creeping, straight | block:reflex (batch 425) | 18 | -0.1 | 1.02 / 1.01 | walk (0.29) | 0.10 / 0.15 (fl.carpus) | yes, yes, 0.80, fl.carpus envelope 0.20 |
+| walk, creeping, turning left | line (batch 420) | 90 | 4.0 | 1.02 / 1.01 | walk (0.23) | 0.18 / 0.27 (hr.stifle) | yes, yes, 0.12, hr.stifle torque 0.88 |
+| walk, slow, straight | gauss (batch 370) | 107 | 0.0 | 0.99 / 0.99 | walk (0.19) | 0.14 / 0.21 (fl.carpus) | yes, yes, 0.44, hl.stifle speed 0.56 |
+| walk, slow, turning left | block:reflex (batch 435) | 228 | 3.7 | 1.00 / 1.00 | walk (0.20) | 0.17 / 0.21 (hl.stifle) | yes, yes, 0.00, hr.hock belt 1.00 |
+| walk, medium, straight | gauss (batch 299) | 257 | 0.7 | 1.00 / 1.00 | trot (0.17) | 0.16 / 0.19 (hl.stifle) | yes, yes, 0.12, hr.hock belt 0.88 |
+| walk, brisk, straight | block:reflex (batch 416) | 490 | 0.1 | 1.01 / 1.00 | walk (0.20) | 0.19 / 0.23 (fr.carpus) | yes, yes, 0.06, hl.hock speed 0.94 |
+| walk, fast, straight | block:reflex (batch 405) | 557 | 0.4 | 1.00 / 1.00 | walk (0.18) | 0.22 / 0.28 (fl.carpus) | yes, yes, 0.07, hl.hock speed 0.93 |
+| trot, backward, straight | line (batch 372) | -19 | 0.1 | 1.01 / 1.00 | trot (0.06) | 0.12 / 0.19 (fr.shoulder) | yes, yes, 0.25, hl.stifle speed 0.75 |
+| trot, backward, turning left | gauss (batch 318) | -59 | 3.8 | 1.01 / 1.00 | trot (0.02) | 0.18 / 0.25 (fl.shoulder) | yes, yes, 0.04, hr.stifle belt 0.96 |
+| trot, in place, turning right | gauss (batch 174) | -7 | -3.0 | 0.99 / 0.99 | trot (0.16) | 0.15 / 0.24 (hr.stifle) | yes, yes, 0.28, hr.stifle belt 0.72 |
+| trot, in place, straight | gauss (batch 428) | 6 | -0.0 | 1.01 / 1.01 | trot (0.16) | 0.09 / 0.13 (fl.shoulder) | yes, yes, 0.83, fr.carpus envelope 0.15 |
+| trot, in place, turning left | block:reflex (batch 449) | -2 | 3.1 | 1.00 / 1.00 | trot (0.11) | 0.15 / 0.22 (hl.hip_abd) | yes, yes, 0.28, hr.stifle belt 0.72 |
+| trot, creeping, turning right | gauss (batch 236) | 55 | -2.9 | 1.02 / 1.01 | trot (0.15) | 0.14 / 0.22 (hr.hip_abd) | yes, yes, 0.69, hl.stifle envelope 0.31 |
+| trot, creeping, straight | gauss (batch 450) | 15 | -0.2 | 1.02 / 1.01 | trot (0.13) | 0.09 / 0.15 (fr.carpus) | yes, yes, 0.72, hl.stifle speed 0.28 |
+| trot, creeping, turning left | line (batch 480) | 28 | 3.5 | 1.00 / 1.00 | trot (0.04) | 0.14 / 0.25 (hl.hip_abd) | yes, yes, 0.34, hr.stifle envelope 0.66 |
+| trot, slow, straight | gauss (batch 476) | 175 | -0.0 | 1.00 / 1.00 | trot (0.07) | 0.13 / 0.20 (fr.carpus) | yes, yes, 0.35, hr.stifle speed 0.65 |
+| trot, medium, straight | line (batch 416) | 337 | 0.5 | 1.03 / 1.01 | trot (0.12) | 0.15 / 0.20 (fl.carpus) | yes, yes, 0.25, hl.stifle speed 0.75 |
+| trot, brisk, straight | block:p3 (batch 252) | 406 | 0.1 | 1.03 / 1.01 | trot (0.15) | 0.16 / 0.23 (fl.carpus) | yes, yes, 0.16, hl.stifle speed 0.84 |
+| trot, fast, straight | gauss (batch 302) | 573 | -0.1 | 1.00 / 1.00 | trot (0.15) | 0.20 / 0.24 (fr.shoulder) | yes, yes, 0.00, hr.stifle speed 1.00 |
+| pace, in place, straight | gauss (batch 387) | 3 | 0.0 | 1.02 / 1.01 | pace (0.36) | 0.10 / 0.15 (fl.carpus) | yes, yes, 0.48, hr.stifle belt 0.52 |
+| pace, creeping, turning right | block:reflex (batch 396) | 44 | -5.2 | 1.00 / 1.00 | pace (0.35) | 0.15 / 0.21 (fl.carpus) | yes, yes, 0.28, hl.stifle belt 0.72 |
+| pace, creeping, straight | gauss (batch 309) | 25 | 0.0 | 1.00 / 1.00 | trot (0.11) | 0.11 / 0.15 (fl.carpus) | yes, yes, 0.81, hl.hock envelope 0.17 |
+| pace, slow, straight | block:p1 (batch 486) | 116 | -1.4 | 1.00 / 1.00 | pace (0.41) | 0.16 / 0.21 (fl.carpus) | yes, yes, 0.40, hr.stifle envelope 0.60 |
+| pace, medium, straight | line (batch 345) | 312 | 0.3 | 1.00 / 1.00 | pace (0.40) | 0.17 / 0.21 (fr.carpus) | yes, yes, 0.10, hr.stifle speed 0.90 |
+| pace, brisk, straight | gauss (batch 174) | 497 | 0.1 | 1.00 / 1.00 | pace (0.35) | 0.19 / 0.26 (fl.carpus) | yes, yes, 0.04, hr.hock belt 0.96 |
+| bound, creeping, straight | gauss (batch 199) | 34 | 0.7 | 1.00 / 1.00 | bound (–) | 0.12 / 0.16 (fr.carpus) | yes, yes, 0.24, hr.hock belt 0.76 |
+| bound, slow, straight | gauss (batch 344) | 133 | 0.8 | 1.00 / 1.00 | bound (–) | 0.15 / 0.19 (fr.shoulder) | yes, yes, 0.20, hl.hip_abd torque 0.80 |
+| irregular, backward, straight | gauss (batch 430) | -76 | 0.1 | 1.02 / 1.01 | other (–) | 0.15 / 0.23 (fl.shoulder) | yes, yes, 0.04, hr.stifle belt 0.96 |
+| irregular, in place, straight | block:reflex (batch 476) | 2 | 0.0 | 1.01 / 1.00 | other (–) | 0.08 / 0.13 (fl.shoulder) | yes, yes, 0.78, hr.stifle envelope 0.22 |
+| irregular, in place, turning left | line (batch 470) | 3 | 3.6 | 1.01 / 1.00 | other (–) | 0.15 / 0.25 (hl.stifle) | yes, yes, 0.04, hl.stifle torque 0.96 |
+| irregular, creeping, turning right | line (batch 368) | 99 | -4.2 | 1.00 / 1.00 | other (–) | 0.14 / 0.21 (fl.carpus) | yes, yes, 0.16, hl.stifle torque 0.84 |
+| irregular, creeping, straight | line (batch 450) | 19 | -0.1 | 1.02 / 1.01 | other (–) | 0.09 / 0.16 (fr.carpus) | yes, yes, 0.82, hr.stifle speed 0.17 |
+| irregular, creeping, turning left | line (batch 499) | 31 | 5.6 | 1.00 / 1.00 | other (–) | 0.16 / 0.28 (fl.carpus) | yes, yes, 0.08, hl.stifle torque 0.92 |
+| irregular, slow, straight | gauss (batch 364) | 119 | 1.1 | 1.00 / 1.00 | bound (–) | 0.16 / 0.21 (fr.shoulder) | yes, yes, 0.20, hl.hip_abd torque 0.80 |
+| irregular, medium, straight | gauss (batch 461) | 336 | -0.9 | 1.03 / 1.01 | other (–) | 0.16 / 0.21 (fl.carpus) | yes, yes, 0.28, hl.stifle speed 0.72 |
+| irregular, brisk, straight | block:reflex (batch 81) | 521 | 0.1 | 1.00 / 1.00 | other (–) | 0.20 / 0.27 (fl.carpus) | yes, yes, 0.12, hl.hock belt 0.88 |
+
+Cells after the starts and each batch: 6 6 7 8 9 10 10 11 11 11 13 13 13 16 16 16 17 17 17 17 17 17 18 18 18 18 18 18 18 18 19 19 19 19 19 19 19 20 20 20 20 20 20 20 20 21 21 21 21 21 21 21 21 21 22 22 22 22 22 22 23 23 23 23 23 24 25 25 25 25 25 25 25 25 25 25 25 25 25 25 25 25 25 25 25 25 25 25 25 27 27 27 27 27 27 27 28 28 28 28 28 28 28 28 28 28 28 28 28 28 28 28 28 28 28 28 28 28 28 28 28 28 28 28 28 28 28 28 28 28 28 28 29 29 31 31 31 31 31 31 31 31 31 31 31 31 32 32 32 32 32 32 32 32 32 32 32 32 32 33 33 33 33 33 33 33 33 33 33 33 33 33 33 33 33 35 35 35 35 35 35 35 35 35 35 35 35 35 35 35 35 35 35 35 35 35 35 35 35 35 35 36 36 36 36 37 37 37 37 38 39 40 40 40 41 41 41 41 41 41 41 41 41 41 41 41 41 41 41 41 41 41 41 41 41 41 41 41 41 42 42 42 42 42 42 42 42 42 42 42 42 43 43 43 43 43 43 43 43 43 43 43 43 43 43 43 43 43 43 43 43 43 43 43 43 43 43 43 44 44 44 44 44 44 44 44 44 44 44 44 44 44 44 44 44 44 44 44 44 44 44 44 44 44 44 44 44 44 44 44 44 44 44 44 44 44 44 44 44 44 44 44 44 44 44 44 44 44 44 44 44 44 44 44 44 44 44 44 44 44 44 44 44 44 44 45 45 45 45 45 45 45 45 45 45 45 45 45 45 45 45 45 45 45 45 45 45 45 45 45 45 45 45 45 45 45 45 45 45 45 45 45 45 46 46 47 47 47 47 47 47 47 47 47 47 47 47 47 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 48 49 49 50 50 50 50 51 51 51 51 51 51 51 51 51 51 51 51 51 51 51 52 52 52 52 52 52 52 52 52 52 52 52 52 52 52 52 52 52 52 52 52 52 52 52 52 52 52 52 52 52 52 52 52 52 52 52 52 52 52 52 52 52 52 52 52 52 52 52 52 52 52 52 52 52 52 52 52 52 52
+
 ## probe_trot
 
 26 of 165 cells (15.8 %), 677 plays, search 372 s, judging 75 s on 14 workers; space 30 dims; judged at 30.0 s.

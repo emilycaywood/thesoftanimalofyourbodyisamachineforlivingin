@@ -436,13 +436,20 @@ def store(lab: Any, opts: dict[str, str]) -> None:
                       "space": lie["space"]})
     tmp = Path(sys.argv[1]) / ".cache" / "outcomes_rollouts"
     tmp.mkdir(parents=True, exist_ok=True)
+    data = _load(OUT)
+    # an elite already stored with the same numbers keeps its run (no replay, no duplicate run)
+    prev = {s["key"]: s for s in data.get("shown") or []}
+    for s in shown:
+        p = prev.get(s["key"])
+        if p and p.get("run") and p.get("params") == s["params"]:
+            s["run"] = p["run"]
+    todo = [s for s in shown if not s.get("run")]
     jobs = [{"payload": pl, "space": s["space"], "params": s["params"], "margin": margin,
-             "path": str(tmp / f"r16_{i}.npz")} for i, s in enumerate(shown)]
+             "path": str(tmp / f"r16_{i}.npz")} for i, s in enumerate(todo)]
     with ProcessPoolExecutor(max_workers=int(opts.get("workers", 14))) as pool:
         recs = list(pool.map(_store_job, jobs))
-    data = _load(OUT)
-    old = {s["key"]: s.get("run") for s in data.get("shown") or []}
-    for s, job, rec in zip(shown, jobs, recs, strict=True):
+    old = {k: p.get("run") for k, p in prev.items()}
+    for s, job, rec in zip(todo, jobs, recs, strict=True):
         sp = BehaviourSpace.model_validate(s["space"])
         title = s.get("title") or s["cell_label"]
         s["run"] = _store_run(lab, pl, f"R16 {BODY} {title} [{s['source']}]: seed 0", Path(job["path"]),

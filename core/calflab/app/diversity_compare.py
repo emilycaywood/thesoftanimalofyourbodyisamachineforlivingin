@@ -47,7 +47,10 @@ VERBS = {"down": "goes down", "kneel": "kneels", "crouch": "crouches", "stand": 
 
 
 def _n(v: Any, fmt: str) -> str:
-    return "-" if v is None else format(float(v), fmt)
+    if v is None:
+        return "-"
+    s = format(float(v), fmt)
+    return s[1:] if s.startswith("-") and not s.strip("-+0.") else s  # "-0" -> "0"
 
 
 def name(d: dict[str, Any], o: dict[str, Any]) -> str:
