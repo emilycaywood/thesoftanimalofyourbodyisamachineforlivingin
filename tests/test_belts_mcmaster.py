@@ -139,3 +139,54 @@ def test_the_search_space_offers_only_sourceable_parts() -> None:
     assert [s.id for s in space.systems] == [MM2, MM3]
     assert all(p.vendor == "McMaster-Carr" for v in space.pulleys.values() for p in v)
     assert "carpus_belt" in space.names
+
+
+def test_a_new_body_gets_mcmaster_belts_and_a_priced_bill_of_materials() -> None:
+    from calflab.bridge.production_sheet import bom, parts_list
+    from calflab.components import library
+    from calflab.design import build_design, genome_definition
+    from calflab.mech.belts import catalog_files
+
+    gdef = genome_definition("feral_calf")
+    gp = {"belt_catalog": catalog_files(None), "auto_belts": True}
+    d = build_design(gdef.default_genome(), [], "feral_calf", gp)
+    drives = d.spec.metadata["feral"]["belt_drives"]
+    assert drives and all(r["ok"] and r["choice"]["system"] == "MM-3MGT-9" for r in drives.values())
+    cat = BeltCatalog.from_dict(gp["belt_catalog"])
+    parts = parts_list(d.spec, dict(d.genome.values), cat, {}, library())
+    assert all(b["part_number"] and b["vendor"] == "McMaster-Carr" and not b["not_sourceable"] for b in parts["belts"])
+    assert all(p["part_number"] for p in parts["pulleys"])
+    b = bom(parts)
+    priced = [r for r in b["rows"] if r["line_usd"] is not None]
+    assert b["total_usd"] == pytest.approx(sum(r["line_usd"] for r in priced))
+    assert sum(r["qty"] for r in b["rows"] if r["kind"] == "pulley") == 4 * len(drives)
+    assert all(r["kind"] == "pulley" for r in priced) or b["complete"]  # belt prices only where a page was read
+    assert {o["item"] for o in b["open_items"]} == {"servo_shaft_adapter", "joint_axle"}
+    assert all(not o["priced"] for o in b["open_items"])
+
+
+def test_the_r18_compare_manifest_judges_each_body_from_the_study_only(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    import json
+
+    from calflab.app import body_compare as bc
+
+    beh = {"shown": [{"key": "full:walk|4|2", "group": "walk", "descriptor": {"class": "walk", "speed": 256.0,
+                                                                             "turn": 0.0}, "outcome": {}}]}
+    rec = {"key": "full:walk|4|2", "holds": True, "within": False, "within_excl": True, "margin_excl": 0.12,
+           "violations": ["belt_sustained"], "binding": {"joint": "hl.hock", "limit": "speed"},
+           "belts": {"hl.hock": {"belt_peak_n": 61.0, "belt_mean_n": 18.0}}}
+    study = {"replay": {"a": [{**rec, "seed": s} for s in (0, 1, 2)],
+                        "b": [{**rec, "seed": 0}, {**rec, "seed": 1, "holds": False}, {**rec, "seed": 2}]},
+             "store": {"a": {"full:walk|4|2": "run-a"}}, "labels": {"a": "baseline"}}
+    (tmp_path / "s.json").write_text(json.dumps(study), encoding="utf-8")
+    (tmp_path / "b.json").write_text(json.dumps(beh), encoding="utf-8")
+    bc.BODY_SETS["_t"] = bc.BodyCompareSet(key="_t", title="t", study=str(tmp_path / "s.json"),
+                                           behaviours=str(tmp_path / "b.json"))
+    try:
+        m = bc.body_manifest(None, "_t")
+    finally:
+        bc.BODY_SETS.pop("_t")
+    assert [b["key"] for b in m["bodies"]] == ["a", "b"] and m["stored"] == 1 and m["missing"] == 1
+    a, b = m["groups"][0]["items"][0]["cells"]
+    assert a["seeds"][0]["badge"] == "within" and "61 N" in a["seeds"][0]["text"]  # sustained belt not counted
+    assert b["seeds"][0]["badge"] == "over" and "does not hold on 1" in b["seeds"][0]["text"] and b["empty"]

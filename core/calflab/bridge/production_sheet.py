@@ -14,6 +14,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from calflab.mech.belts import BeltChoice
 from calflab.model.xform import quat_rotate
 
 SEGMENT_GENES = {"femur": "femur_length", "tibia": "tibia_length", "rear cannon": "rear_cannon_length",
@@ -88,6 +89,9 @@ def parts_list(spec: Any, values: dict[str, Any], catalog: Any, springs: dict[st
         entry = catalog.length(ch["length"])
         src = catalog.source(entry.source)
         belts.append({"drive": d, "qty": 2, "system": system.id, "profile": system.profile, "pitch_mm": system.pitch_mm,
+                      "vendor": system.vendor, "part_number": entry.part_number, "price_usd": entry.price_usd,
+                      "guessed": list(system.guessed), "not_sourceable": catalog.sourcing_problems(
+                          BeltChoice.model_validate(ch)),
                       "width_mm": system.width_mm, "pitch_length_mm": entry.pitch_length_mm, "teeth": entry.teeth,
                       "source": src.label, "url": src.url, "listings": list(src.listings) + list(entry.listings),
                       "purchase_confirmed": entry.purchase_confirmed, "c_mm": round(float(r["c_mm"]), 2),
@@ -103,6 +107,9 @@ def parts_list(spec: Any, values: dict[str, Any], catalog: Any, springs: dict[st
                             "bores_mm": s.bores_mm if s else None, "listed_mass_g": s.listed_mass_g if s else None,
                             "listings": [x.model_dump() for x in s.listings] if s else [],
                             "catalog_id": s.id if s else None, "verified": False,
+                            "vendor": s.vendor if s else None, "part_number": s.part_number if s else None,
+                            "price_usd": s.price_usd if s else None,
+                            "listed": dict(s.listed) if s else {},
                             "note": "" if s else "no single listed pulley of this size for this width in the catalog"})
             verify.append(f"{d} {role} pulley {teeth}T for {system.width_mm:g} mm: listing, bore to fit "
                           + ("the servo horn / spline (not checked in simulation)" if role.startswith("driver")
@@ -129,3 +136,58 @@ def parts_list(spec: Any, values: dict[str, Any], catalog: Any, springs: dict[st
     verify.append("lateral stack (tube, pulley, belt, spring offsets) and pulley clearance at each joint for its own "
                   "diameter: not modelled (one-plane assumption)")
     return {"belts": belts, "pulleys": pulleys, "springs": spring_rows, "servos": servos, "to_verify": verify}
+
+
+#: open items every belt drive of a McMaster (1/4 in bore) body needs, not modelled and not in any catalog (R18,
+#: ADR-118): their part, mass and size are the researcher's to choose
+OPEN_ITEMS_QUARTER_INCH = (
+    ("servo_shaft_adapter", "Servo output (spline horn) to 1/4 in round shaft adapter, one per belted servo",
+     "driver"),
+    ("joint_axle", "1/4 in joint axle carrying the driven pulley, one per belted joint", "driven"),
+)
+
+
+def bom(parts: dict[str, Any]) -> dict[str, Any]:
+    """Bill of materials of the belt drives from a ``parts_list``: one row per part number (quantity summed over the
+    drives and both sides), unit price and line total as the catalog lists them (None = not listed; the total then
+    counts only the priced rows and names the rest). Every part must come from a named vendor: a part without a part
+    number is listed under ``unpriced`` with the reason. Open items (adapters, axles) are listed, never priced
+    (R18, ADR-118)."""
+    rows: dict[str, dict[str, Any]] = {}
+    unpriced: list[str] = []
+    for b in parts.get("belts", []):
+        key = b.get("part_number") or f"(no part number) {b['system']} {b['pitch_length_mm']:g} mm"
+        r = rows.setdefault(key, {"part_number": b.get("part_number"), "vendor": b.get("vendor"), "kind": "belt",
+                                  "description": f"{b['profile']} closed belt, {b['pitch_length_mm']:g} mm pitch "
+                                                 f"length ({b['teeth']} teeth), {b['width_mm']:g} mm wide",
+                                  "qty": 0, "unit_usd": b.get("price_usd"), "used_by": []})
+        r["qty"] += int(b["qty"])
+        r["used_by"].append(f"{b['drive']} belt")
+    driver_count = 0
+    for p in parts.get("pulleys", []):
+        key = p.get("part_number") or f"(no part number) {p['teeth']}T {p['pitch_mm']:g} mm for {p['belt_width_mm']:g} mm"
+        r = rows.setdefault(key, {"part_number": p.get("part_number"), "vendor": p.get("vendor"), "kind": "pulley",
+                                  "description": f"{p['teeth']}T {p['pitch_mm']:g} mm pitch pulley for "
+                                                 f"{p['belt_width_mm']:g} mm belts, bore "
+                                                 f"{'/'.join(f'{x:g}' for x in (p.get('bores_mm') or [])) or '?'} mm",
+                                  "qty": 0, "unit_usd": p.get("price_usd"), "used_by": []})
+        r["qty"] += int(p["qty"])
+        r["used_by"].append(f"{p['drive']} {p['role']}")
+        if p["role"].startswith("driver"):
+            driver_count += int(p["qty"])
+    total = 0.0
+    out = []
+    for r in sorted(rows.values(), key=lambda r: (r["kind"], str(r["part_number"]))):
+        r["line_usd"] = None if r["unit_usd"] is None else round(r["unit_usd"] * r["qty"], 2)
+        if r["line_usd"] is None:
+            unpriced.append(f"{r['part_number'] or r['description']}: no price listed"
+                            + ("" if r["part_number"] else " (and no part number)"))
+        else:
+            total += r["line_usd"]
+        out.append(r)
+    open_items = [{"item": k, "description": d, "qty": driver_count, "priced": False,
+                   "note": "open: not chosen, not modelled (mass and size not added)"}
+                  for k, d, _role in OPEN_ITEMS_QUARTER_INCH]
+    return {"rows": out, "total_usd": round(total, 2), "complete": not unpriced, "unpriced": unpriced,
+            "open_items": open_items, "currency": "USD", "note": "prices as read from the vendor's pages; shipping "
+                                                                  "and tax not included"}

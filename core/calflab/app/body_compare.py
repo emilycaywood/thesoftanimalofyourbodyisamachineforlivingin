@@ -1,0 +1,118 @@
+"""The compare page's manifest for the same behaviours on several bodies (R18, ADR-119).
+
+``compare.html?set=r18`` shows one cell per body (the baseline g020-008-r01, its closest McMaster swap and the
+reformulated bodies); the picker sets every cell to the same R16 behaviour. The page renders this manifest only
+(CLAUDE.md, golden rule 1): names, numbers and badges are decided here.
+
+Read from the study's JSON (``docs/studies/mcmaster_r18.json``):
+
+* ``replay[body]``: one record per behaviour and seed (holds, within, within excluding sustained belt tension,
+  margins, binding, belt statistics), written by ``mcmaster_r18.py replay``;
+* ``store[body][behaviour key]``: the seed-0 ``sim`` run of that play (``mcmaster_r18.py store``); the baseline's
+  are R16's own runs (``diversity_r16.json`` shown);
+* ``labels[body]``: the cell's title line.
+
+Badges: green = holds and within every limit at the margin on every seed, **excluding sustained belt tension** (the
+McMaster belts have no allowable working tension; breaking strength is assumed); red = over a limit or unsafe on a
+seed (the limit named). Units: N, mm/s.
+"""
+from __future__ import annotations
+
+import json
+from typing import Any
+
+from pydantic import BaseModel
+
+from calflab.paths import repo_root
+
+
+class BodyCompareSet(BaseModel):
+    key: str
+    title: str
+    study: str
+    #: the behaviours' names, groups and numbers
+    behaviours: str
+    note: str = ""
+
+
+BODY_SETS: dict[str, BodyCompareSet] = {
+    "r18": BodyCompareSet(key="r18", title="R18 / g020-008-r01 on McMaster-Carr belt parts",
+                          study="docs/studies/mcmaster_r18.json", behaviours="docs/studies/diversity_r16.json",
+                          note="within = excluding sustained belt tension (no allowable working tension); breaking "
+                               "strength assumed"),
+}
+
+
+def _read(rel: str) -> dict[str, Any]:
+    f = repo_root() / rel
+    return json.loads(f.read_text(encoding="utf-8")) if f.is_file() else {}
+
+
+def judged(records: list[dict[str, Any]]) -> dict[str, Any]:
+    """One behaviour on one body over its seeds: badge, text, worst margin (excluding sustained belt tension), the
+    binding limit of the worst seed, and the largest belt peak / mean (N) over the seeds."""
+    if not records:
+        return {"badge": "empty", "text": "not replayed", "margin": None, "limit": None}
+    ok = all(r["holds"] and r["within_excl"] for r in records)
+    ms = [r["margin_excl"] for r in records if r.get("margin_excl") is not None]
+    worst = min(records, key=lambda r: r["margin_excl"] if r.get("margin_excl") is not None else 9.0)
+    b = worst.get("binding") or {}
+    limit = f"{b.get('joint')} {b.get('limit')}" if b.get("joint") else None
+    peaks = [v["belt_peak_n"] for r in records for v in (r.get("belts") or {}).values()]
+    means = [v["belt_mean_n"] for r in records for v in (r.get("belts") or {}).values()]
+    belt = f"belt peak {max(peaks):.0f} N, mean {max(means):.0f} N" if peaks else ""
+    if ok:
+        text = f"holds and within* on all {len(records)} seeds"
+    elif all(r["holds"] for r in records):
+        bad = sorted({v for r in records for v in r["violations"] if v != "belt_sustained"})
+        text = "holds, but over " + (", ".join(bad) or "a limit")
+    else:
+        text = "does not hold on " + ", ".join(str(r["seed"]) for r in records if not r["holds"])
+    return {"badge": "within" if ok else "over", "text": f"{text}; {belt}".strip("; "),
+            "margin": min(ms) if ms else None, "limit": None if ok else limit}
+
+
+def body_manifest(lab: Any, set_key: str) -> dict[str, Any]:
+    from calflab.app.diversity_compare import GROUP_TITLES, _n, name
+
+    spec = BODY_SETS[set_key]
+    data = _read(spec.study)
+    shown = _read(spec.behaviours).get("shown") or []
+    replay: dict[str, list[dict[str, Any]]] = data.get("replay") or {}
+    store: dict[str, dict[str, str]] = data.get("store") or {}
+    labels: dict[str, str] = data.get("labels") or {}
+    names = list(replay)
+    bodies = [{"key": n, "label": n, "line": labels.get(n, ""), "stage_c_run": None} for n in names]
+    by_group: dict[str, list[dict[str, Any]]] = {}
+    for rec in shown:
+        by_group.setdefault(rec.get("group") or "probe", []).append(rec)
+    groups = []
+    stored = missing = 0
+    for g in ["stand", "walk", "trot", "pace", "bound", "irregular", "probe"] + sorted(
+            x for x in by_group if x not in ("stand", "walk", "trot", "pace", "bound", "irregular", "probe")):
+        if g not in by_group:
+            continue
+        items = []
+        for rec in sorted(by_group[g], key=lambda r: (float((r.get("descriptor") or {}).get("speed") or 0.0),
+                                                      float((r.get("descriptor") or {}).get("turn") or 0.0))):
+            d, o = rec.get("descriptor") or {}, rec.get("outcome") or {}
+            title = rec.get("title") or name(d, o)
+            cells = []
+            for n in names:
+                run = (store.get(n) or {}).get(rec["key"])
+                j = judged([r for r in replay.get(n, []) if r["key"] == rec["key"]])
+                stored += bool(run)
+                missing += not run
+                cells.append({"body": n, "play": rec["key"], "playing": f"{title} on {n}: {j['text']}",
+                              "match": None, "empty": not run, "message": None if run else "not stored yet",
+                              "seeds": [{"seed": 0, "run": run, "badge": j["badge"], "margin": j["margin"],
+                                         "limit": j["limit"], "text": j["text"],
+                                         "href": f"/?replay={run}" if run else None}]})
+            items.append({"key": rec["key"], "label": f"{title} ({_n(d.get('speed'), '.0f')} mm/s)", "kind": "elite",
+                          "cells": cells})
+        groups.append({"key": g, "title": GROUP_TITLES.get(g, g), "items": items})
+    return {"set": spec.key, "title": spec.title, "seeds": [0], "near": 0.0, "bodies": bodies, "groups": groups,
+            "stored": stored, "missing": missing, "per_cell": False,
+            "hint": (f"the same {len(shown)} R16 behaviours on {len(names)} bodies; replays are seed 0, the badge is "
+                     f"over seeds 0-2; {spec.note}" if names else
+                     "nothing replayed yet: python docs/studies/mcmaster_r18.py <project> replay")}

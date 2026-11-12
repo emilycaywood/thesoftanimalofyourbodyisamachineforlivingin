@@ -1,0 +1,197 @@
+# Fitness preset R18 (ADR-117): written by docs/studies/mcmaster_r18.py preset. Use with the optimizer
+# map_elites_hardware, starting from Stage B's candidate g020-008-r01. Bump `version` when you change it.
+name: hardware_r18
+version: 1
+description: 'R18 (ADR-117): g020-008-r01 reformulated on McMaster-Carr belt parts only. hardware_r14 v2 (explicit_v2) with
+  belt systems MM-2MGT-6 / MM-3MGT-9 (sourceable only), carpus belted or direct, the R11c suite on seed 0 (front-runners confirmed
+  on seeds 0-2). Breaking strength assumed; sustained belt tension unknown.'
+terms:
+- term: survival
+  weight: 0.0
+evaluation:
+  seeds:
+  - 0
+  randomize: true
+  friction:
+  - 0.7
+  - 1.1
+  mass_scale:
+  - 0.95
+  - 1.05
+  aggregate: worst
+  torque_derating: 1.0
+  servo_model: torque_speed
+  hardware:
+    mass_model: explicit_v2
+    margin: 0.2
+    servo_choices:
+    - sts3215_c018
+    - sts3250_c002
+    servo_budget:
+      sts3250_c002: 6
+    drives:
+    - stifle
+    - hock
+    - carpus
+    - shoulder
+    belt_systems:
+    - MM-2MGT-6
+    - MM-3MGT-9
+    trot_cycles_s:
+    - 0.4
+    - 0.45
+    - 0.5
+    - 0.6
+    - 0.8
+    trot_strides:
+    - 0.5
+    - 1.0
+    - 1.5
+    - 2.0
+    trot_lift: 0.6
+    screen_extra:
+    - walk
+    - turn
+    - lie_rise
+    screen_min_held: 0
+    screen_min_margin: -0.25
+    performance_s: 60
+    performances:
+    - label: R6c-calm
+      ref: 20261105-053201-evolve-e4c8:g002-016
+    - label: R6c-lively
+      ref: 20261105-053201-evolve-e4c8:g018-025
+    - label: R6c-walking
+      ref: 20261105-053201-evolve-e4c8:g013-008
+    - label: R6c-trotting
+      ref: 20261105-053201-evolve-e4c8:g012-026
+    - label: R7-calm
+      ref: 20261105-232649-evolve-4237:g000-000
+    - label: R7-ambling
+      ref: 20261105-232649-evolve-4237:g009-004
+    - label: R7-lively
+      ref: 20261105-232649-evolve-4237:g000-001
+    - label: R7-walking
+      ref: 20261105-232649-evolve-4237:g008-000
+    - label: R7-trot-walk
+      ref: 20261105-232649-evolve-4237:g006-013
+    - label: R7-trot-shift
+      ref: 20261105-232649-evolve-4237:g001-015
+    - label: R7-trotting
+      ref: 20261105-232649-evolve-4237:g000-003
+    cost_weights:
+      servos: 1.0
+      pulley_sizes: 0.25
+      what_if: 0.5
+      mass_kg: 1.0
+      spring_sites: 0.25
+    cost_weight: 0.1
+    seeds_bodies:
+    - label: g020-008-r01-mc (closest swap)
+      note: R18 step 2
+      values:
+        belt_stifle_system: MM-3MGT-9
+        belt_stifle_pulleys: MM-3MGT-30T+MM-3MGT-45T
+        belt_stifle_length: MM-3MGT-450
+        belt_hock_system: MM-3MGT-9
+        belt_hock_pulleys: MM-3MGT-30T+MM-3MGT-45T
+        belt_hock_length: MM-3MGT-414
+        belt_carpus_system: MM-3MGT-9
+        belt_carpus_pulleys: MM-3MGT-45T+MM-3MGT-45T
+        belt_carpus_length: MM-3MGT-600
+    - label: swap + carpus 2MGT 72T/72T
+      note: the 6 mm 1:1 option
+      values:
+        belt_stifle_system: MM-3MGT-9
+        belt_stifle_pulleys: MM-3MGT-30T+MM-3MGT-45T
+        belt_stifle_length: MM-3MGT-450
+        belt_hock_system: MM-3MGT-9
+        belt_hock_pulleys: MM-3MGT-30T+MM-3MGT-45T
+        belt_hock_length: MM-3MGT-414
+        belt_carpus_system: MM-2MGT-6
+        belt_carpus_pulleys: MM-2MGT-72T+MM-2MGT-72T
+        belt_carpus_length: MM-2MGT-600
+    - label: swap + carpus direct
+      note: C002 carpus on the joint
+      values:
+        belt_stifle_system: MM-3MGT-9
+        belt_stifle_pulleys: MM-3MGT-30T+MM-3MGT-45T
+        belt_stifle_length: MM-3MGT-450
+        belt_hock_system: MM-3MGT-9
+        belt_hock_pulleys: MM-3MGT-30T+MM-3MGT-45T
+        belt_hock_length: MM-3MGT-414
+        belt_carpus_system: MM-3MGT-9
+        belt_carpus_pulleys: MM-3MGT-45T+MM-3MGT-45T
+        belt_carpus_length: MM-3MGT-600
+        carpus_belt: false
+    - label: swap + shoulder belted 3MGT 30T/45T
+      note: a length feasible on the body is chosen
+      values:
+        belt_stifle_system: MM-3MGT-9
+        belt_stifle_pulleys: MM-3MGT-30T+MM-3MGT-45T
+        belt_stifle_length: MM-3MGT-450
+        belt_hock_system: MM-3MGT-9
+        belt_hock_pulleys: MM-3MGT-30T+MM-3MGT-45T
+        belt_hock_length: MM-3MGT-414
+        belt_carpus_system: MM-3MGT-9
+        belt_carpus_pulleys: MM-3MGT-45T+MM-3MGT-45T
+        belt_carpus_length: MM-3MGT-600
+        shoulder_belt: true
+        belt_shoulder_system: MM-3MGT-9
+        belt_shoulder_pulleys: MM-3MGT-30T+MM-3MGT-45T
+        belt_shoulder_length: MM-3MGT-450
+    servo_denominator: 4
+    production:
+      geometry:
+        genes:
+        - femur_length
+        - tibia_length
+        - rear_cannon_length
+        - upper_leg_length
+        - front_cannon_length
+        rel: 0.1
+        step_mm: 2.0
+        ratios:
+        - - tibia_length
+          - femur_length
+        - - rear_cannon_length
+          - tibia_length
+        - - front_cannon_length
+          - upper_leg_length
+        ratio_tolerance: 0.05
+      springs:
+        sites:
+        - hip_abd
+        - stifle
+        - hock
+        - shoulder
+        - carpus
+        switch: true
+        k_factors:
+        - 0.5
+        - 0.75
+        - 1.0
+        - 1.5
+        - 2.0
+        preload_factors:
+        - 0.5
+        - 1.0
+        - 1.5
+        along_steps_mm:
+        - -15.0
+        - 0.0
+        - 15.0
+        normal_steps_mm:
+        - -10.0
+        - 0.0
+        - 10.0
+        clearance_mm: 3.0
+        sweep_step_deg: 5.0
+        fitting_mm: 28.0
+        lever_mm: 30.0
+      pulleys: singles
+      feasible_lengths: true
+      shoulder_drive: true
+      stop_rejected_fraction: 0.5
+      sourceable_only: true
+      carpus_drive: true
