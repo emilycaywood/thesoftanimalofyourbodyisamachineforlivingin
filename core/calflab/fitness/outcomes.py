@@ -94,7 +94,26 @@ class LieTask(BaseModel):
     smooth_s: float = P(0.1, unit="s", ge=0.0, le=1.0, desc="Descent speed taken over this window.")
 
 
-TASKS: dict[str, type[BaseModel]] = {"suckle": SuckleTask, "trot": TrotTask, "stand": StandTask, "lie": LieTask}
+class FreeTask(BaseModel):
+    """Anything the body does safely (R16, ADR-112): no outcome is asked for; the play is described (what the legs
+    do, speed, turning, posture) and judged on safety only. Thresholds as ``LieTask`` / ``TrotTask`` (PROVISIONAL)."""
+
+    from_s: float = P(3.0, unit="s", ge=0.0, le=30.0, desc="Described from here (after the ramps).")
+    effort_from_s: float = P(0.5, unit="s", ge=0.0, le=30.0, desc="Servo effort averaged from here.")
+    max_tilt_deg: float = P(30.0, unit="deg", ge=5.0, le=90.0, desc="Gate (tipping): trunk tilt at any time.")
+    max_descent_mm_s: float = P(300.0, unit="mm/s", ge=10.0, le=3000.0, desc="Gate: peak trunk descent speed.")
+    max_impact_bw: float = P(2.0, ge=0.1, le=20.0, desc="Gate: peak non-hoof floor force, share of body weight.")
+    smooth_s: float = P(0.1, unit="s", ge=0.0, le=1.0, desc="Descent speed taken over this window.")
+    down_height: float = P(0.5, ge=0.2, le=0.9, desc="Class 'down': trunk held at or under this share of standing.")
+    crouch_height: float = P(0.85, ge=0.3, le=1.0, desc="Class 'crouch': trunk held under this share, still.")
+    kneel_bw: float = P(0.1, ge=0.0, le=1.0,
+                        desc="Class 'kneel': the floor carries at least this share of body weight through parts "
+                             "other than the hooves, for at least ``hold_s``.")
+    hold_s: float = P(1.0, unit="s", ge=0.1, le=10.0, desc="A posture counts when held this long.")
+
+
+TASKS: dict[str, type[BaseModel]] = {"suckle": SuckleTask, "trot": TrotTask, "stand": StandTask, "lie": LieTask,
+                                     "free": FreeTask}
 
 
 # ====================================================================== helpers
@@ -438,7 +457,86 @@ def measure_lie(ro: Any, spec: Any, task: LieTask) -> dict[str, Any]:
             "risen": risen, "score": round(score, 4), "gates": gates, "holds": all(gates.values())}
 
 
-MEASURES = {"suckle": measure_suckle, "trot": measure_trot, "stand": measure_stand, "lie": measure_lie}
+# ====================================================================== free (R16)
+#: what the body does, in the order a reader would group them (ADR-112)
+CLASSES = ("down", "kneel", "crouch", "stand", "walk", "trot", "pace", "bound", "irregular")
+
+
+def held_min(x: np.ndarray, dt: float, hold_s: float) -> float:
+    """The lowest value of ``x`` averaged over ``hold_s`` (a level held, not a dip)."""
+    n = max(1, int(round(hold_s / max(dt, 1e-9))))
+    if len(x) < n:
+        return float(np.mean(x)) if len(x) else math.nan
+    c = np.convolve(x, np.ones(n) / n, mode="valid")
+    return float(np.min(c))
+
+
+def held_max(x: np.ndarray, dt: float, hold_s: float) -> float:
+    return -held_min(-x, dt, hold_s)
+
+
+def classify(low: float, kneel: float, label: str, task: FreeTask) -> str:
+    """The class of a play from its lowest held trunk height (share of standing), the most body weight the floor held
+    through non-hoof parts for ``hold_s`` (share), and the footfall label (``footfall``)."""
+    if low <= task.down_height:
+        return "down"
+    if kneel >= task.kneel_bw:
+        return "kneel"
+    if label in ("walk", "trot", "pace", "bound"):
+        return label
+    if label == "other":
+        return "irregular"
+    return "crouch" if low < task.crouch_height else "stand"
+
+
+def measure_free(ro: Any, spec: Any, task: FreeTask) -> dict[str, Any]:
+    """Descriptors and safety of any play: speed forward (mm/s, + ahead), turn rate (deg/s, + left), posture, the
+    footfall, the class (``CLASSES``), servo effort; gates = safety only (not tipped, slow descent, soft landing)."""
+    tr = trunk(ro, spec)
+    t, pos = tr["t"], tr["pos"]
+    if len(t) < 3:
+        return {"score": -10.0, "gates": {"window": False}, "holds": False}
+    dt = float(np.median(np.diff(t)))
+    h0 = max(1e-6, stand_height_m(ro))
+    frac = pos[:, 2] / h0
+    m = t >= task.from_s
+    if m.sum() < 2:
+        return {"score": -10.0, "gates": {"window": False}, "holds": False}
+    dur = float(t[m][-1] - t[m][0])
+    speed = float(pos[m][-1, 0] - pos[m][0, 0]) * 1000.0 / max(dur, 1e-6)
+    side = float(pos[m][-1, 1] - pos[m][0, 1]) * 1000.0 / max(dur, 1e-6)
+    turn = float(np.degrees(tr["yaw"][m][-1] - tr["yaw"][m][0])) / max(dur, 1e-6)
+    n = max(1, int(round(task.smooth_s / dt)))
+    z = pos[:, 2]
+    vz = (z[n:] - z[:-n]) / (n * dt) if len(z) > n else np.zeros(1)
+    descent = float(max(0.0, -float(np.min(vz)))) * 1000.0
+    bw = weight_n(ro)
+    bf = np.linalg.norm(probe(ro, "body_floor"), axis=-1)
+    impact = float(np.max(bf)) / bw if bw > 0 else 0.0
+    kneel = held_max(bf / bw, dt, task.hold_s) if bw > 0 else 0.0
+    low = held_min(frac, dt, task.hold_s)
+    tilt = float(np.max(tr["tilt"]))
+    pitch = np.degrees(np.arcsin(np.clip(-_rot(ro.body_quat[ro.t >= 0][:, ro.body_ids.index(spec.root.id)])[:, 2, 0],
+                                         -1, 1))) if spec.root.id in ro.body_ids else np.zeros(len(t))
+    ff = footfall(ro, spec, task.from_s)
+    cls = classify(low, kneel, str(ff.get("label")), task)
+    eff = servo_effort(ro, spec, task.effort_from_s)
+    vals = list(eff.values()) or [math.inf]
+    e_mean, e_max = float(np.mean(vals)), float(np.max(vals))
+    gates = {"not_tipped": tilt <= task.max_tilt_deg, "slow_descent": descent <= task.max_descent_mm_s,
+             "soft_landing": impact <= task.max_impact_bw}
+    return {"d_class": cls, "d_speed_mm_s": _r(speed, 1), "d_turn_deg_s": _r(turn, 2), "side_mm_s": _r(side, 1),
+            "height_mean": _r(float(np.mean(frac[m]))), "height_low": _r(low), "kneel_bw": _r(kneel),
+            "pitch_mean_deg": _r(float(np.mean(pitch[m])), 1) if len(pitch) == len(t) else None,
+            "tilt_max_deg": _r(tilt, 1), "descent_peak_mm_s": _r(descent, 1), "impact_peak_bw": _r(impact),
+            "footfall": ff, "gait": ff.get("label"), "diagonal_lag": ff.get("diagonal_lag"),
+            "effort_mean": _r(e_mean, 4), "effort_max": _r(e_max, 4), "effort": eff,
+            "worst": max(eff, key=lambda k: eff[k]) if eff else None,
+            "score": round(-(e_mean + e_max) / 2.0, 4), "gates": gates, "holds": all(gates.values())}
+
+
+MEASURES = {"suckle": measure_suckle, "trot": measure_trot, "stand": measure_stand, "lie": measure_lie,
+            "free": measure_free}
 
 
 def measure(behaviour: str, ro: Any, spec: Any, task: dict[str, Any] | BaseModel | None = None) -> dict[str, Any]:

@@ -19,6 +19,12 @@ be optimised inside a body search on a CPU:
   a contact reflex would need a phase-reset rule, more numbers to search, and the robot has no foot sensors in the
   model's harness yet (ADR-043).
 
+Version 2 (R16, ADR-112) widens it for a diversity search on one body; with their defaults the new numbers play
+version 1 exactly: ``stride`` (0 = stepping in place, negative = backward; with ``turn`` beyond +-1 the body turns on
+the spot), a **left/right offset** per joint group (``side_*``, reached over ``side_s`` from ``side_from_s``), a
+**pause** at keyframes 1 and 2 (``p*_hold_s``), and a rhythm that can **start late** (``gait_from_s``) and run in
+**bouts** with pauses (``bout_s``, ``pause_s``).
+
 Angles in degrees relative to the standing pose (0), signs as ``feral_motion``: positive = flexion at stifle, hock and
 carpus, a backward swing at the shoulder, abduction at the hip (both sides). Times in s.
 """
@@ -51,7 +57,7 @@ class OutcomeMotionController(Controller):
     label = "Outcome motion (keyframes + rhythm + reflexes)"
     description = ("Up to three posture keyframes, an optional rhythm whose leg phases are free, and trunk-attitude "
                    "reflexes. The space in which behaviours defined by their outcome are searched per body.")
-    version = "1"
+    version = "2"  # R16: stride, side offsets, keyframe holds, rhythm start and bouts; defaults play version 1
 
     class Params(BaseModel):
         # keyframes
@@ -74,6 +80,20 @@ class OutcomeMotionController(Controller):
         p3_carpus: float = P(0.0, unit="deg", ge=-60, le=130, step=0.5, desc="Keyframe 3: carpus.")
         p3_s: float = P(0.0, unit="s", ge=0.0, le=40.0, step=0.1,
                         desc="Keyframe 3: time to reach it (0 = not used); long = a slow continuing lean.")
+        p1_hold_s: float = P(0.0, unit="s", ge=0.0, le=20.0, step=0.1,
+                             desc="Pause at keyframe 1 before moving on (R16; 0 = none).")
+        p2_hold_s: float = P(0.0, unit="s", ge=0.0, le=20.0, step=0.1,
+                             desc="Pause at keyframe 2 before moving on (R16; 0 = none).")
+        # left/right (R16): offsets added on the left legs and taken off the right ones, reached on their own time
+        side_abd: float = P(0.0, unit="deg", ge=-30, le=30, step=0.5,
+                            desc="Side: hip ab/ad + on the left, - on the right (shifts the hind end sideways).")
+        side_stifle: float = P(0.0, unit="deg", ge=-60, le=60, step=0.5, desc="Side: stifle + left, - right.")
+        side_hock: float = P(0.0, unit="deg", ge=-60, le=60, step=0.5, desc="Side: hock + left, - right.")
+        side_shoulder: float = P(0.0, unit="deg", ge=-60, le=60, step=0.5, desc="Side: shoulder + left, - right.")
+        side_carpus: float = P(0.0, unit="deg", ge=-60, le=60, step=0.5, desc="Side: carpus + left, - right.")
+        side_from_s: float = P(0.0, unit="s", ge=0.0, le=60.0, step=0.1, desc="Side: the move starts here.")
+        side_s: float = P(0.0, unit="s", ge=0.0, le=10.0, step=0.1,
+                          desc="Side: time to reach the offsets (0 = no left/right offset).")
         hold_s: float = P(0.0, unit="s", ge=0.0, le=30.0, step=0.1,
                           desc="Rise: time at the last keyframe before rising (used only with rise_scale > 0).")
         rise_scale: float = P(0.0, ge=0.0, le=4.0, step=0.05,
@@ -96,9 +116,17 @@ class OutcomeMotionController(Controller):
                                  desc="Rhythm: shoulder angle at mid-swing (keeps the folded hoof under the body).")
         abd_sway: float = P(0.0, unit="deg", ge=-15, le=15, step=0.1,
                             desc="Rhythm: hind ab/ad moved with each hind leg's own cycle (+ = out in swing).")
-        turn: float = P(0.0, ge=-1.0, le=1.0, step=0.01,
-                        desc="Rhythm: right legs sweep (1 + turn), left legs (1 - turn) times as far (+ turns left).")
+        stride: float = P(1.0, ge=-1.5, le=2.0, step=0.05,
+                          desc="Rhythm: every leg's sweep times this (R16; 0 = stepping in place, negative = backward).")
+        turn: float = P(0.0, ge=-2.0, le=2.0, step=0.01,
+                        desc="Rhythm: right legs sweep (stride + turn), left legs (stride - turn) times as far (+ turns "
+                             "left; with stride 0 the body turns on the spot).")
         ramp_s: float = P(1.5, unit="s", ge=0.0, le=5.0, step=0.1, desc="Rhythm: time to grow from nothing to full.")
+        gait_from_s: float = P(0.0, unit="s", ge=0.0, le=60.0, step=0.1,
+                               desc="Rhythm: starts growing here (R16; after the keyframes = a transition).")
+        bout_s: float = P(0.0, unit="s", ge=0.0, le=30.0, step=0.1,
+                          desc="Rhythm: steps in bouts this long, each followed by a pause (R16; 0 = continuous).")
+        pause_s: float = P(1.0, unit="s", ge=0.0, le=30.0, step=0.1, desc="Rhythm: the pause between bouts.")
         # reflexes
         roll_gain: float = P(0.0, ge=-3.0, le=3.0, step=0.05,
                              desc="Hind ab/ad turned by this many degrees per degree of trunk roll, against it.")
@@ -137,7 +165,41 @@ class OutcomeMotionController(Controller):
                 for leg in legs:
                     pose[f"{leg}.{joint}"] = float(getattr(p, f"{k}_{g}"))
             out.append((pose, d))
+            hold = float(getattr(p, f"{k}_hold_s", 0.0))
+            if hold > 0.0:  # a pause at this keyframe (R16)
+                out.append((dict(pose), hold))
         return out
+
+    def side_at(self, t: float) -> dict[str, float]:
+        """The left/right offsets (deg) at ``t``: + on the left legs, - on the right (R16)."""
+        p: Any = self.params
+        if float(p.side_s) <= 0.0:
+            return {}
+        w = smooth((t - float(p.side_from_s)) / float(p.side_s))
+        if w <= 0.0:
+            return {}
+        out: dict[str, float] = {}
+        for g, (joint, legs) in GROUPS.items():
+            v = float(getattr(p, f"side_{g}"))
+            if v:
+                for leg in legs:
+                    out[f"{leg}.{joint}"] = SIDE[leg] * v * w
+        return out
+
+    def envelope(self, t: float) -> float:
+        """The rhythm's amplitude factor at ``t`` (0..1): grows from ``gait_from_s`` over ``ramp_s``; with bouts, on
+        for ``bout_s`` then off for ``pause_s`` (0.4 s edges at most). With the defaults it is version 1's ramp."""
+        p: Any = self.params
+        t0 = float(p.gait_from_s)
+        ramp = smooth((t - t0) / float(p.ramp_s)) if float(p.ramp_s) > 0 else (1.0 if t >= t0 else 0.0)
+        bout = float(p.bout_s)
+        if bout <= 0.0 or t < t0:
+            return ramp
+        ph = (t - t0) % (bout + float(p.pause_s))
+        if ph >= bout:
+            return 0.0
+        edge = min(0.4, bout / 2.0)
+        return ramp * smooth(ph / edge) * smooth((bout - ph) / edge)
 
     def timeline(self) -> list[tuple[dict[str, float], float]]:
         """The keyframes, then (with a rise) a hold and the way back up, as (pose, time to reach it)."""
@@ -175,7 +237,10 @@ class OutcomeMotionController(Controller):
         amp = float(p.gait_amp)
         if amp <= 0.0:
             return {}
-        ramp = smooth(t / float(p.ramp_s)) if float(p.ramp_s) > 0 else 1.0
+        ramp = self.envelope(t)
+        if ramp <= 0.0:
+            return {}
+        stride = float(p.stride)
         out: dict[str, float] = {}
         for leg in ("hl", "fl", "hr", "fr"):
             ph = ((t / float(p.cycle_s)) - self._phase(leg)) % 1.0
@@ -185,7 +250,7 @@ class OutcomeMotionController(Controller):
                 sweep, lift = -math.cos(math.pi * s), math.sin(math.pi * s)
             else:
                 sweep, lift = 1.0 - 2.0 * (ph - sw) / (1.0 - sw), 0.0
-            sweep *= (1.0 - SIDE[leg] * turn) * amp * ramp
+            sweep *= (stride - SIDE[leg] * turn) * amp * ramp
             lift *= amp * ramp
             if leg in HIND:
                 out[f"{leg}.stifle"] = sweep * p.sweep_stifle + lift * p.lift_stifle
@@ -224,8 +289,11 @@ class OutcomeMotionController(Controller):
         if self.yaw0 is None:
             self.yaw0 = yaw
         dyaw = (yaw - self.yaw0 + math.pi) % (2 * math.pi) - math.pi
-        turn = max(-1.0, min(1.0, float(p.turn) - float(p.yaw_gain) * dyaw))
+        lim = max(1.0, abs(float(p.turn)))  # version 1 clipped to +-1; a wider turn (R16) is kept as set
+        turn = max(-lim, min(lim, float(p.turn) - float(p.yaw_gain) * dyaw))
         pose = self.posture_at(obs.t)
+        for k, v in self.side_at(obs.t).items():
+            pose[k] = pose.get(k, 0.0) + v
         ranges = self._ranges()
         for k, v in pose.items():  # postures stay inside the joint ranges (rhythm and reflexes are clipped by the sim)
             if k in ranges:
@@ -277,3 +345,18 @@ def from_feral_trot(cycle_s: float = 0.6, stride: float = 1.0, lift: float = 0.3
             "sweep_shoulder": d.front_sweep_shoulder * stride, "lift_stifle": d.hind_lift_stifle * lift,
             "lift_hock": d.hind_lift_hock * lift, "lift_carpus": d.front_lift_carpus * lift,
             "lift_shoulder": d.front_lift_shoulder * lift, "roll_gain": roll_gain, "ramp_s": ramp_s}
+
+
+def from_feral_walk(cycle_s: float = 4.0, stride: float = 1.0, turn: float = 0.0) -> dict[str, float]:
+    """``outcome_motion`` params close to ``feral_motion``'s walk (the four-beat sequence hind-left, front-left,
+    hind-right, front-right; its leg numbers; its hip sway as ``abd_sway``). Not exact: the walk shifts the body
+    over three hooves between steps, the rhythm sways with each hind leg's lift. A starting point (R16, ADR-112)."""
+    from calflab.control.feral_motion import SEQUENCE, FeralMotionController
+
+    d = FeralMotionController.Params()
+    return {"gait_amp": 1.0, "cycle_s": cycle_s, "swing": d.swing_fraction, "phase_fl": SEQUENCE["fl"],
+            "phase_hr": SEQUENCE["hr"], "phase_fr": SEQUENCE["fr"], "sweep_stifle": d.hind_sweep_stifle,
+            "sweep_hock": d.hind_sweep_hock, "sweep_shoulder": d.front_sweep_shoulder,
+            "lift_stifle": d.hind_lift_stifle, "lift_hock": d.hind_lift_hock, "lift_carpus": d.front_lift_carpus,
+            "lift_shoulder": d.front_lift_shoulder, "abd_sway": d.sway, "stride": stride, "turn": turn,
+            "roll_gain": 0.0}

@@ -223,9 +223,11 @@ _PLAN_CACHE: dict[str, tuple[Any, dict[str, Any]]] = {}
 
 def compare_set(key: str) -> CompareSet:
     if key not in SETS:
+        from calflab.app.diversity_compare import DIVERSITY_SETS
         from calflab.app.outcome_compare import OUTCOME_SETS
 
-        raise CompareError(f"No compare set {key!r}; known: {', '.join(sorted([*SETS, *OUTCOME_SETS]))}")
+        known = ", ".join(sorted([*SETS, *OUTCOME_SETS, *DIVERSITY_SETS]))
+        raise CompareError(f"No compare set {key!r}; known: {known}")
     return SETS[key]
 
 
@@ -383,10 +385,13 @@ def plan(lab: Any, spec: CompareSet) -> dict[str, Any]:
 def manifest(lab: Any, set_key: str) -> dict[str, Any]:
     """The compare page's manifest: plan + per cell and seed the stored run, badge and stopping limit. Sets of
     behaviours searched by outcome (R15) are read by ``calflab.app.outcome_compare``."""
+    from calflab.app.diversity_compare import DIVERSITY_SETS, diversity_manifest
     from calflab.app.outcome_compare import OUTCOME_SETS, outcome_manifest
 
     if set_key in OUTCOME_SETS:
         return outcome_manifest(lab, set_key)
+    if set_key in DIVERSITY_SETS:  # one body, many behaviours (R16, ADR-112)
+        return diversity_manifest(lab, set_key)
     spec = compare_set(set_key)
     p = plan(lab, spec)
     runs = p["stage_c_runs"]

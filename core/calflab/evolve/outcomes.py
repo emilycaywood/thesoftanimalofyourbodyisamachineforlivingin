@@ -37,7 +37,7 @@ VERSION = 1  # part of every cache key: bump when a play would no longer give th
 
 #: per behaviour, score -> rank units (ranking only; PROVISIONAL): 250 mm/s of trot, stand and suckle effort x2,
 #: lie as it is
-NORM = {"trot": 1.0 / 250.0, "suckle": 2.0, "stand": 2.0, "lie": 1.0}
+NORM = {"trot": 1.0 / 250.0, "suckle": 2.0, "stand": 2.0, "lie": 1.0, "free": 2.0}
 #: excess over the limits (sum over joints of the most-used limit's use - 1) costs this much rank: margins
 #: saturate at -3 for the sustained limits, so without it a search far over a limit has no slope (as ADR-107)
 EXCESS_WEIGHT = 0.1
@@ -240,7 +240,7 @@ def play_seed(payload: dict[str, Any], space: BehaviourSpace, params: dict[str, 
     task = TASKS[space.behaviour].model_validate(space.task)
     length = play_length(space, params, judging)
     cm = scene(space.behaviour, compile_mjcf(spec, lib, CompileOptions.model_validate(copts), seed), spec, task)
-    lie = space.behaviour == "lie"
+    lie = space.behaviour in ("lie", "free")  # may go down: judged by tilt and impact, not the fall check
     settings = SimSettings(duration_s=min(length, 60.0), control_hz=50.0, record_hz=50.0, settle_s=0.4,
                            start_pose="stand", stop_on_fall=not lie, seed=seed)
     # SimSettings' 60 s bound is the lab's slider range; standing is judged for minutes (the runner has no limit)

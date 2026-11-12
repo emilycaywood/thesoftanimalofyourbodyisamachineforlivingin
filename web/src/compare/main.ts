@@ -68,6 +68,8 @@ export interface Manifest {
   missing: number;
   hint: string;
   per_cell?: boolean;
+  /** with per_cell: the item each cell starts on when the URL gives none (R16) */
+  default_cells?: string[];
 }
 
 type Msg = { calflab: "playback"; action: string; run?: string; t?: number };
@@ -148,7 +150,7 @@ export function mountSet(m: Manifest) {
   let state: PickerState = initPicker(items, m.seeds, { item: q.get("item"), seed: q.get("seed") == null ? null : Number(q.get("seed")) });
   let clock: Clock = stoppedClock();
   // per-cell picks (manifests with per_cell): null = follow the top picker; the top picker clears them
-  const fromUrl = (q.get("cells") || "").split(",");
+  const fromUrl = q.get("cells") != null ? q.get("cells")!.split(",") : q.get("item") ? [] : (m.default_cells ?? []);
   const picks: (string | null)[] = m.bodies.map((_, i) => (m.per_cell && byKey.has(fromUrl[i]) ? fromUrl[i] : null));
 
   // ---- top bar: picker, seed, play controls
