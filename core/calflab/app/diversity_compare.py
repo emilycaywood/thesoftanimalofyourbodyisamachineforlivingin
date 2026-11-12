@@ -66,6 +66,11 @@ def name(d: dict[str, Any], o: dict[str, Any]) -> str:
                 f", turning {'left' if tu > 0 else 'right'}" if abs(tu) >= 2.5 else "")
         return f"{verb} {where}"
     extra = []
+    pitch, height = d.get("pitch"), d.get("height")
+    if pitch is not None and abs(float(pitch)) >= 1.0:
+        extra.append(f"nose {'down' if float(pitch) > 0 else 'up'} {abs(float(pitch)):.0f} deg")
+    if height is not None and cls == "stand" and not 0.95 <= float(height) <= 1.02:
+        extra.append("lowered" if float(height) < 0.95 else "raised")
     if abs(sp) >= 15.0:
         extra.append("drifting " + ("back" if sp < 0 else "forward"))
     if abs(tu) >= 2.5:

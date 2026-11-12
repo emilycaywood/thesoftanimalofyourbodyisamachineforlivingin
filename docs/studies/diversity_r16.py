@@ -179,7 +179,7 @@ def full(lab: Any, opts: dict[str, str]) -> None:
 
     st, names = starts()
     opts = {"seed": "1", "posture": "0.5", "confirm": "", **opts}
-    _qd(lab, opts, opts.get("key", "full"), free_space(), Grid(), st, names)
+    _qd(lab, opts, opts.get("key", "full"), free_space(), Grid(still_by_posture=True), st, names)
 
 
 def _names(edges: list[float], unit: str) -> list[str]:

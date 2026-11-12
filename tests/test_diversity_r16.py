@@ -81,7 +81,12 @@ def test_grid_cells_and_descriptor() -> None:
                    {"outcome": {"d_class": "trot", "d_speed_mm_s": 20.0, "d_turn_deg_s": 2.0}},
                    {"outcome": {"d_class": "trot", "d_speed_mm_s": 30.0, "d_turn_deg_s": 3.0}}]}
     d = qd.descriptor(e)
-    assert d == {"class": "trot", "speed": 20.0, "turn": 2.0, "agree": 0.67}
+    assert d == {"class": "trot", "speed": 20.0, "turn": 2.0, "pitch": None, "height": None, "agree": 0.67}
+    s = qd.Grid(still_by_posture=True)
+    assert s.cell({"class": "stand", "speed": 0.0, "turn": 0.0, "pitch": 4.0, "height": 1.05}) == "stand|5|4"
+    assert s.label("stand|5|4") == "stand, nose down, raised"
+    assert s.cell({"class": "trot", "speed": 544.0, "turn": 0.1}) == "trot|5|2"  # moving classes as before
+    assert g.cell({"class": "stand", "speed": 0.0, "turn": 0.0, "pitch": 4.0, "height": 1.05}) == "stand|1|2"
 
 
 def test_parameters_snap_and_keep_defaults() -> None:
@@ -197,3 +202,9 @@ def test_confirmation_and_the_posture_emitter(monkeypatch: pytest.MonkeyPatch) -
     assert op == "posture" and child[names.index("gait_amp")] == 0.0
     rhythm = [i for i, n in enumerate(names) if qd.block_of(n) == "rhythm" and n != "gait_amp"]
     assert np.allclose(child[rhythm], 0.6)
+
+def test_still_poses_are_named_by_posture() -> None:
+    from calflab.app.diversity_compare import name
+
+    assert name({"class": "stand", "speed": 0.0, "turn": 0.0, "pitch": 4.2, "height": 1.05}, {}) == \
+        "stands (nose down 4 deg, raised)"

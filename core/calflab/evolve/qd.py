@@ -84,12 +84,35 @@ class Grid(BaseModel):
     turn_names: list[str] = Field(default_factory=lambda: ["turning right fast", "turning right", "straight",
                                                            "turning left", "turning left fast"])
 
+    #: R16-full: a still body has no speed or turn, so every still pose fell into one cell. With this on, the still
+    #: classes are binned by trunk pitch (deg, + nose down; ``pitch_edges``, as many bins as speed) and mean trunk
+    #: height (share of standing; ``height_edges``, as many bins as turn) instead. Off = the pilot's grid.
+    still_by_posture: bool = False
+    still_classes: list[str] = Field(default_factory=lambda: ["down", "kneel", "crouch", "stand"])
+    pitch_edges: list[float] = Field(default_factory=lambda: [-6.0, -3.0, -1.0, 1.0, 3.0, 6.0])
+    pitch_names: list[str] = Field(default_factory=lambda: ["nose up a lot", "nose up", "nose a little up", "level",
+                                                            "nose a little down", "nose down", "nose down a lot"])
+    height_edges: list[float] = Field(default_factory=lambda: [0.6, 0.75, 0.95, 1.02])
+    height_names: list[str] = Field(default_factory=lambda: ["very low", "low", "lowered", "standing height",
+                                                             "raised"])
+
     def size(self) -> int:
         return len(self.classes) * (len(self.speed_edges) + 1) * (len(self.turn_edges) + 1)
 
+    def _still(self, cls: str) -> bool:
+        return self.still_by_posture and cls in self.still_classes
+
     def cell(self, d: dict[str, Any]) -> str | None:
         cls = d.get("class")
-        if cls not in self.classes or d.get("speed") is None or d.get("turn") is None:
+        if cls not in self.classes:
+            return None
+        if self._still(str(cls)):
+            if d.get("pitch") is None or d.get("height") is None:
+                return None
+            si = min(len(self.speed_edges), int(np.searchsorted(self.pitch_edges, float(d["pitch"]), side="right")))
+            ti = min(len(self.turn_edges), int(np.searchsorted(self.height_edges, float(d["height"]), side="right")))
+            return f"{cls}|{si}|{ti}"
+        if d.get("speed") is None or d.get("turn") is None:
             return None
         si = int(np.searchsorted(self.speed_edges, float(d["speed"]), side="right"))
         ti = int(np.searchsorted(self.turn_edges, float(d["turn"]), side="right"))
@@ -97,6 +120,8 @@ class Grid(BaseModel):
 
     def label(self, cell: str) -> str:
         cls, si, ti = cell.split("|")
+        if self._still(cls):
+            return f"{cls}, {self.pitch_names[int(si)]}, {self.height_names[int(ti)]}"
         names = self.speed_names if len(self.speed_names) == len(self.speed_edges) + 1 else None
         sp = names[int(si)] if names else f"speed bin {si}"
         tn = self.turn_names[int(ti)] if len(self.turn_names) == len(self.turn_edges) + 1 else f"turn bin {ti}"
@@ -111,10 +136,12 @@ def descriptor(entry: dict[str, Any]) -> dict[str, Any]:
         return {"class": None, "speed": None, "turn": None, "agree": 0.0}
     top, n = Counter(classes).most_common(1)[0]
     cls = top if n > 1 or len(classes) == 1 else classes[0]
-    sp = [float(o["d_speed_mm_s"]) for o in outs if o.get("d_speed_mm_s") is not None]
-    tu = [float(o["d_turn_deg_s"]) for o in outs if o.get("d_turn_deg_s") is not None]
-    return {"class": cls, "speed": round(float(np.median(sp)), 1) if sp else None,
-            "turn": round(float(np.median(tu)), 2) if tu else None,
+    def med(key: str, nd: int) -> float | None:
+        v = [float(o[key]) for o in outs if o.get(key) is not None]
+        return round(float(np.median(v)), nd) if v else None
+
+    return {"class": cls, "speed": med("d_speed_mm_s", 1), "turn": med("d_turn_deg_s", 2),
+            "pitch": med("pitch_mean_deg", 1), "height": med("height_mean", 3),
             "agree": round(sum(1 for c in classes if c == cls) / len(classes), 2)}
 
 
