@@ -68,6 +68,32 @@ PAGES: dict[str, dict[str, Any]] = {
                  "hub_diameter_mm": 18.03, "inside_width_mm": 10.16, "od_mm": 18, "outside_width_mm": 11.43,
                  "overall_width_mm": 17.55, "shaft_mount": "set screw"},
 }
+#: the other 3MGT pages read in R18 (9 mm max belt width, 1/4 in finished bore, set screw, standard hub; no weight,
+#: no set-screw size listed): part number -> (price USD, listed PD, flanges, hub diameter, inside width, OD, outside
+#: width, overall width), mm
+_PAGES_3 = {
+    "3764N126": (16.31, 16.2, 1, 18.8, 10.16, 19, 11.43, 17.55),
+    "3764N127": (16.37, 17.2, 2, 11.23, 10.16, 20, 12.95, 20.62),
+    "3764N128": (11.06, 19.1, 2, 12.7, 10.16, 23, 12.95, 20.62),
+    "3764N129": (16.96, 21.0, 2, 14.27, 10.16, 24, 12.95, 20.62),
+    "3764N13": (17.37, 22.9, 2, 15.88, 10.16, 26, 12.95, 20.62),
+    "3764N131": (17.58, 23.9, 2, 15.88, 10.16, 27, 12.95, 20.62),
+    "3764N132": (17.58, 24.8, 2, 15.88, 10.16, 28, 12.95, 20.62),
+    "3764N133": (14.31, 26.7, 2, 17.81, 10.16, 30, 12.95, 20.62),
+    "3764N134": (19.38, 28.7, 2, 19.71, 10.16, 32, 12.95, 20.62),
+    "3764N135": (14.50, 30.6, 2, 21.62, 10.16, 34, 12.95, 20.62),
+    "3764N136": (21.19, 32.5, 2, 23.39, 10.16, 36, 13.46, 21.16),
+    "3764N137": (22.08, 34.4, 2, 25.4, 10.16, 37, 13.46, 21.16),
+    "3764N139": (16.44, 38.2, 2, 29.21, 10.16, 41, 13.46, 21.16),
+    "3764N14": (22.33, 42.0, 2, 33.02, 10.16, 45, 13.46, 21.16),
+    "3764N141": (16.71, 43.0, 2, 31.75, 10.16, 45, 13.46, 21.16),
+}
+for _pn, (_pr, _pd, _fl, _hub, _iw, _od, _ow, _all) in _PAGES_3.items():
+    PAGES[_pn] = {"read": DATE, "title": "High-Strength Gt Timing Belt Pulley, Press-Fit Mount, for 9 mm Maximum Belt "
+                  "Width", "price_usd": _pr, "for_belt_trade_size": "3MGT", "max_belt_width_mm": 9,
+                  "bore": "finished, for 1/4 in shaft", "pitch_diameter_mm": _pd, "flanges": _fl,
+                  "hub_type": "standard", "hub_diameter_mm": _hub, "inside_width_mm": _iw, "od_mm": _od,
+                  "outside_width_mm": _ow, "overall_width_mm": _all, "shaft_mount": "set screw"}
 
 RULE = (f"researcher's rule {DATE} (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr "
         "only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part")
@@ -148,14 +174,16 @@ def _lengths(pitch: int, width: int, belts: dict[int, int], prices: dict[str, fl
         out.append({"id": f"MM-{pitch}MGT-{t * pitch}", "pitch_mm": pitch, "pitch_length_mm": t * pitch, "teeth": t,
                     "source": f"MM-{pitch}MGT",
                     "listings": [f"{URL.format(pn)} ({pn}; {t} teeth, {t * pitch} mm pitch length, {width} mm wide; "
-                                 f"read {DATE})"],
+                                 + (f"page read {DATE}: price and Gates number listed, no weight)" if pn in prices
+                                    else f"part list supplied by the researcher {DATE}; page not read)")],
                     "purchase_confirmed": False, "part_number": pn, "price_usd": prices.get(pn), "mass_g": None,
                     "verified": False, "not_sourceable": ""})
     return out
 
 
-#: belt prices read from their part pages (R18); a belt not read has no price
-BELT_PRICES: dict[str, float] = {}
+#: belt prices read from their part pages (R18: Gates 450-3P-09, 414-3P-09, 600-3P-09; "Outer Circle" = the pitch
+#: length; no weight listed); a belt not read has no price
+BELT_PRICES: dict[str, float] = {"7947K795": 14.43, "7947K792": 14.18, "7947K815": 16.47}
 
 
 def _mark(entry: dict[str, Any], key: str) -> None:
