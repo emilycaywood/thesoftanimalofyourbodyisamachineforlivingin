@@ -1499,8 +1499,17 @@ tables `diversity_r16_tables.md`, data `diversity_r16.json`.
   - no bound;
   - no lying: in every hind fold the hind hooves carry about half the weight, so the hind stifle and hip ab/ad
     saturate.
-* **55 runs** `R16 g020-008-r01 ...` (about 35 MB in `projects/robot-calf-final/runs`).
-* **Full search not started:** S about 2 h, M about 4.9 h, L about 11.6 h.
+* **Full search, budget M (Emily's choice; ADR-113):** 500 batches, 4 h 22 min after a restart. Changes:
+  - would-be elites confirmed at 30 s;
+  - half of each batch posture-only;
+  - still poses binned by pitch and height. The first attempt put 321 different stands in one cell; it was stopped
+    at batch 100 and kept as `full_stopped`.
+
+  Result: **52 cells, all holding at 30 s in their cell**: stepping in place, backward gaits, slow turning on the spot
+  both ways, **bounds** (33 and 130 mm/s), a 556 mm/s walk, a 497 mm/s pace and 13 distinct stands. Still no down,
+  kneel or crouch (1 029 tries). The coverage curve was flat for the last 50 batches.
+* **107 runs** `R16 g020-008-r01 ...` (about 65 MB in `projects/robot-calf-final/runs`): the pilot's, the full
+  search's and the probes'.
 * **Tests:** `tests/test_diversity_r16.py` (10). `calflab test`: ruff, mypy, 19 Vitest and 14 Playwright pass; pytest 621 passed, 2 failed. One was R16's (the rhythm returned no keys before it starts; fixed, its file re-run). The other is the known `project_document` bit-identity failure from R13/R14. The full suite was not re-run after the fix.
 
 **The researcher must verify (new in session R16, ADR-112):**
@@ -1508,8 +1517,8 @@ tables `diversity_r16_tables.md`, data `diversity_r16.json`.
 * **Watch `compare.html?set=r16`** (restart the lab on 8020 first: the running server has the old code). Do the walk,
   pace, the 605 mm/s trot and the turning-on-the-spot trot look like what their labels say, and do any of them look
   organic or surprising?
-* **Choose the full search's budget** (S / M / L), and whether to first add the two changes the study recommends:
-  judging cells at 30 s inside the search, and a posture emitter.
+* **The full search's still-pose bins** (pitch ±1 / ±3 / ±6°, height 0.6 / 0.75 / 0.95 / 1.02) and the restart
+  (ADR-113). Watch the 13 stands, the two bounds and the backward walk on `compare.html?set=r16`.
 * **The descriptors and their thresholds:** class borders (diagonal lag 0.18 / 0.32, heights 0.5 / 0.85, kneel
   0.1 bw), speed and turn bins. Many elites sit on a border.
 * **Lying:** the hind legs cannot fold flat within the PROVISIONAL ranges (stifle and hock −30..80°, ab/ad ±25°).
@@ -1942,15 +1951,20 @@ Journal, Rhino bridge):**
 
 Prefix each with the opening message from section 1.
 
-**R16-full. The diversity search on g020-008-r01 at a chosen budget** (written after R16, ADR-112.)
-> In projects/robot-calf-final, R16 (`docs/studies/diversity_r16.md`) piloted a MAP-Elites search on g020-008-r01
-> (explicit_v2) and filled 32 of 315 cells, all locomotion; half the elites changed cell when judged at 30 s. Before
-> the full run: (1) make the search accept a candidate only after it holds and stays in its cell over 30 s (a second
-> stage in `calflab.evolve.qd.run`), and (2) add a posture emitter (rhythm off, keyframes, side offsets and pauses
-> only) that gets half of each batch. Re-run a 20-batch pilot to compare coverage and drift, then run budget <S|M|L>
-> (`diversity_r16.py pilot --iters=<N> --seed=1`, stored under a new key), store the new elites and add them to
-> `compare.html?set=r16`. Report coverage, new kinds of behaviour, what binds per class, and anything surprising. Do
-> not change the body, catalogs, library entries or `verified` flags.
+**R17. A repertoire that plays itself: chaining g020-008-r01's behaviours** (recommended next; written after R16,
+ADR-112/113.)
+> In projects/robot-calf-final, R16's full search (`docs/studies/diversity_r16.md` section 6, `full` in
+> `diversity_r16.json`) found 52 behaviours of g020-008-r01 that each hold for 30 s: still poses, stepping in place,
+> walks, paces, trots, bounds, backward gaits and slow turns. I want the robot to move between them on its own,
+> without a script, as organic and surprising behaviour rather than a sequence I wrote. Design and test a transition
+> layer in the core:
+> * which pairs can follow each other safely: play A, a blend of its controller numbers into B, then B, judged by the
+>   R11c suite at margin 0.2 on seeds 0-2 (the transition must hold too);
+> * a policy that picks the next behaviour from that graph (for example a semi-Markov chain with dwell times, or a
+>   novelty drive), deterministic for a seed.
+>
+> Report which transitions hold and what binds, and store a few 3-minute performances as runs with a compare page.
+> Do not change the body, catalogs, library entries or `verified` flags.
 
 **R16-lie. What would let g020-008-r01 lie down** (in memory; after R16.)
 > In projects/robot-calf-final, R16's lie_grid (`docs/studies/diversity_r16.md` 3c) found that the hind hooves always

@@ -4423,3 +4423,40 @@ library entries and `verified` flags were not changed; no hardware was added. St
    The PROVISIONAL hind ranges (stifle and hock −30..80°, ab/ad ±25°) do not fold the legs flat enough. A change of
    range, hardware or springs would be needed; that is the researcher's decision.
 6. Full search estimate: S 200 batches about 2 h, M 500 about 4.9 h, L 1200 about 11.6 h. **Not started.**
+## ADR-113 — The full diversity search on g020-008-r01: confirmation, a posture emitter, still poses by posture (**VERIFY**)
+
+*Requested 2026-11-11 (after R16): Emily chose budget M (500 batches, about 5 h).* Before the run I added the two
+changes the R16 study recommended. During the run I found and fixed a flaw in the descriptors. The body, catalogs,
+library and `verified` flags were not changed. Study: `docs/studies/diversity_r16.md` section 6.
+
+*Decisions / ASSUMPTIONS.*
+1. **Confirmation** (`QDSettings.confirm`). A candidate that would fill or improve a cell is played again at the
+   judging length (30 s) on seeds 0-2. It enters only if it holds there and its 30 s descriptor gives the same cell.
+   Cost: about 25 % more time per batch. Reason: in the pilot half the elites changed cell over 30 s.
+2. **Posture emitter** (`p_posture` 0.5, σ 0.15, 40 % of dims). Half of each batch copies an elite, switches its
+   rhythm off and nudges only the keyframes, side offsets and pauses. Reason: no posture class held in the pilot.
+3. **Still poses binned by posture** (`Grid.still_by_posture`; off for the pilot's grid):
+   - For down, kneel, crouch and stand, the second and third descriptors are mean trunk pitch (bins at ±1 / ±3 / ±6°,
+     + nose down) and mean trunk height (bins at 0.6 / 0.75 / 0.95 / 1.02 of standing) instead of speed and turn.
+   - Reason: the first run (stopped at batch 100 after about 1 h, kept as `full_stopped`) held 321 still stands, and
+     they all fell into the one cell "stand, in place, straight".
+   - The bins are PROVISIONAL.
+4. **Budget M was kept at 500 batches**, though confirmation made it longer than the 4.9 h estimate. It took 4 h
+   22 min, plus the stopped hour: about 5.4 h of CPU in all.
+5. `store` keeps the run of an elite already stored with the same numbers (no replay, no duplicate run).
+
+*Facts found* (worst of three seeds at 30 s).
+1. **52 of 315 cells; all 52 hold and stay in their cell:** 13 stand, 12 trot, 10 walk, 9 irregular, 6 pace,
+   2 bound.
+2. **New compared with the pilot:**
+   - stepping in place (trot, walk, pace);
+   - walking, trotting and stepping backward (−18 to −75 mm/s);
+   - turning on the spot to both sides (slow, 2.5-3.5 deg/s);
+   - **bounds that hold** (33 and 130 mm/s);
+   - a 556 mm/s walk and a 497 mm/s pace;
+   - 13 still poses from nose up 6° and lowered to 0.93, to nose down 7° and raised to 1.03.
+3. **Down, kneel and crouch: none** in 1 029 tries. They fail on descent, landing or tipping first, then on front
+   shoulder, hind stifle and hip ab/ad torque. The lowest stands that hold (0.93-0.95) bind on the front shoulder at
+   twice a level stand's effort.
+4. **The coverage curve flattened:** 45 cells at batch 375, 52 at 450, and none new in the last 50 batches.
+5. 52 new runs; compare set r16 now lists 107 behaviours (the pilot's and the probes' are kept beside them).

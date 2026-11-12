@@ -202,7 +202,7 @@ each pair of a 5 × 5 grid (20–78°). Measured in the last 2 s:
   - orange: holds but changes cell, or the seeds disagree on the class;
   - red: over a limit or unsafe, with the limit named.
 
-## 5. The full search: three budgets (not started)
+## 5. The full search: three budgets (estimated after the pilot; M was run, section 6)
 
 From the pilot: 34.7 s per batch of 28 on 14 workers, 1.81 plays per candidate, 3.2 s per elite judged at 30 s.
 
@@ -234,7 +234,54 @@ python docs/studies/diversity_r16.py projects/robot-calf-final pilot --iters=200
 
 (use a new seed with `--seed=1`).
 
-## 6. What this rests on
+## 6. The full search (budget M, chosen by Emily; ADR-113)
+
+**Run:** 500 batches of 28, seed 1, `full` in the JSON, 24 909 plays, 4 h 22 min on 14 workers, after a first
+attempt was stopped at batch 100 (see the third bullet below).
+
+**Two changes before it,** as recommended in section 5:
+
+* **Confirmation.** A candidate that would fill or improve a cell is played again for 30 s on seeds 0-2. It enters
+  only if it holds there and stays in its cell (`QDSettings.confirm`).
+* **A posture emitter.** Half of each batch switches the rhythm off and nudges only the keyframes, side offsets and
+  pauses, harder (σ 0.15, 40 % of those dims; `p_posture`).
+
+**A third change found during the run.** The first attempt held 321 still stands by batch 100, and they all landed in
+one cell. A body standing still has no speed or turn, so every still pose (leaning, nose down, raised, askew) competed
+for "stand, in place, straight". I stopped it after about an hour (kept as `full_stopped`; every play stays in the
+cache) and restarted with **still poses binned by trunk pitch** (bins at ±1, ±3, ±6°, + nose down) **and mean trunk
+height** (bins at 0.6, 0.75, 0.95, 1.02 of standing) instead (`Grid.still_by_posture`). The pilot's grid is
+unchanged.
+
+**Result: 52 of 315 cells; all 52 hold for 30 s on every seed and stay in their cell** (the pilot managed 14 of 32).
+The full table is in `diversity_r16_tables.md`.
+
+| class | cells | new kinds compared with the pilot |
+|---|---|---|
+| stand | 13 | still poses from **nose up 6° and lowered to 0.93** through level, to **nose down 7°**, and raised to 1.03 of standing; effort 0.08-0.18 (the cheapest, nose down and raised, 0.076 / 0.124) |
+| trot | 12 | **trotting in place** (straight, turning left, turning right); **backward** trot (−18 mm/s) and backward turning left; up to 573 mm/s forward |
+| walk | 10 | **walking in place**, **walking backward** (−38 mm/s), and a **556 mm/s walk** (four beats, as fast as the fastest trot, margin 0.07) |
+| irregular | 9 | stepping **backward** (−75 mm/s, nose down 6°), **stepping in place**, turning on the spot to the left, a 521 mm/s irregular gait |
+| pace | 6 | **pacing in place**, pacing while turning right, a **497 mm/s pace** |
+| bound | 2 | **the first bounds that hold**: 33 and 130 mm/s, front pair and hind pair each together (margin 0.20-0.24) |
+| down / kneel / crouch | 0 | 1 029 tries: all fail on descent speed, landing or tipping first, then front shoulder, hind stifle and hip ab/ad torque |
+
+**What this adds to the probes (section 3):**
+
+* **Other gaits:** a bound does hold, but only slowly (≤ 130 mm/s). The pilot's 7 tries were too few. The walk
+  reaches 556 mm/s and the pace 497.
+* **Turning on the spot** now holds to the left as well (a trot at 2.9 deg/s in place, an irregular gait at
+  3.3 deg/s). The fast on-the-spot turns of the pilot (8 deg/s right) were among the elites that drifted at 30 s;
+  with confirmation, every turn on the spot that holds is slow (2.5-3.5 deg/s).
+* **Lowered stands are as far down as this body goes** (0.93-0.95 of standing height). They cost about twice the
+  effort of a level stand (0.16-0.18) and bind on the front shoulder, the same limit that stops kneeling.
+* Still no posture below 0.9 holds. That agrees with section 3c: lowering the trunk loads the hind stifle and the
+  front shoulders past their sustained limits.
+
+**Coverage curve** (cells after every 25 batches): 6, 18, 21, 25, 28, 28, 32, 35, 35, 41, 42, 43, 44, 44, 45, 45,
+48, 50, 52, 52, 52. The last 75 batches added no new cell, so budget L would most likely add only a handful.
+
+## 7. What this rests on
 
 - **Library values, unverified:** the C018 and C002 torque-speed figures and rated torques (effort, sustained
   limits).

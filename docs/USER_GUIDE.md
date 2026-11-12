@@ -1396,9 +1396,17 @@ python docs/studies/diversity_r16.py projects/robot-calf-final probe_gaits --ite
 python docs/studies/diversity_r16.py projects/robot-calf-final probe_lie
 python docs/studies/diversity_r16.py projects/robot-calf-final lie_grid
 python docs/studies/diversity_r16.py projects/robot-calf-final judge_trots
+python docs/studies/diversity_r16.py projects/robot-calf-final full --iters=500
 python docs/studies/diversity_r16.py projects/robot-calf-final store
 python docs/studies/diversity_r16.py projects/robot-calf-final report
 ```
+
+`full` is the full search (ADR-113). It plays every would-be elite again for 30 s
+before accepting it (it must hold and stay in its cell). Half of each batch is
+still poses (no stepping). Still poses are sorted by trunk pitch (nose up /
+level / nose down) and trunk height (lowered / standing / raised) instead of
+speed and turn. It writes a checkpoint every 5 batches, so a stopped run keeps
+its archive. 500 batches took about 4.5 hours on 14 workers.
 
 `store` saves each distinct behaviour as a run titled
 `R16 g020-008-r01 <cell> [<source>]: seed 0` (Journal > Runs).
