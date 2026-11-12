@@ -1367,6 +1367,53 @@ over a limit, with the limit named). The replay itself is seed 0. The cells'
 picks are kept in the address (`&cells=stand,trot,...`), so a view can be
 bookmarked.
 
+#### What one body can do (R16, ADR-112)
+
+R15 asks one question per behaviour ("what is the best trot?"). R16 asks the
+reverse for one body: **what different things can it do safely?** A
+quality-diversity search (MAP-Elites, `calflab.evolve.qd`) plays the
+**Outcome motion** controller with no task at all and sorts every safe play
+into a cell by three descriptors:
+
+* **What the body does**: down, kneel, crouch, stand (by trunk height and
+  floor contact), or walk / trot / pace / bound / irregular (by the footfall).
+* **Forward speed**: backward, in place, creeping, slow, medium, brisk, fast.
+* **Turning**: right fast, right, straight, left, left fast.
+
+A play only counts if it stays within every limit at margin 0.2 on three seeds
+and does not tip, drop or land hard. Inside a cell the version with the least
+servo effort wins. The controller gained a few numbers for this (all off by
+default, so earlier results are unchanged): stride (stepping in place or
+backward), a stronger turn (turning on the spot), a left/right lean per joint,
+pauses between keyframes, and a rhythm that can start late or come in bouts.
+
+From a terminal (no panel yet):
+
+```powershell
+python docs/studies/diversity_r16.py projects/robot-calf-final pilot --iters=40
+python docs/studies/diversity_r16.py projects/robot-calf-final probe_trot --iters=15
+python docs/studies/diversity_r16.py projects/robot-calf-final probe_gaits --iters=15
+python docs/studies/diversity_r16.py projects/robot-calf-final probe_lie
+python docs/studies/diversity_r16.py projects/robot-calf-final lie_grid
+python docs/studies/diversity_r16.py projects/robot-calf-final judge_trots
+python docs/studies/diversity_r16.py projects/robot-calf-final store
+python docs/studies/diversity_r16.py projects/robot-calf-final report
+```
+
+`store` saves each distinct behaviour as a run titled
+`R16 g020-008-r01 <cell> [<source>]: seed 0` (Journal > Runs).
+
+**Side by side:** `compare.html?set=r16` (e.g.
+`http://localhost:8020/compare.html?set=r16`) shows six views of the same
+body. Every view has a menu of all stored behaviours, grouped by what the body
+does, and starts on a different one. Under the menu: what the behaviour is in
+words, its speed, turn, trunk height, footfall, effort and margin (worst of
+three seeds over 30 s), and a badge. Green means it holds and stays the same
+kind of behaviour for 30 s. Orange means it holds but drifts into another cell,
+or the seeds disagree. Red means it goes over a limit, with the limit named.
+Bodies that travel leave the camera's view after a few seconds; open the cell
+in the full lab (click its title) to follow them.
+
 #### Proportions: comparing bodies instead of finding one
 
 The lab has three ways to look for a better body or gait:

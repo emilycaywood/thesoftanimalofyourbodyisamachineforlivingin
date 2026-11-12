@@ -47,7 +47,7 @@ That gives 9 × 7 × 5 = 315 cells. Trunk pitch and head force were left out. Pi
 speed. Head force needs the suckling block, which is not in a free scene; suckling is already settled in R15.
 
 **The search** (`calflab.evolve.qd`):
-- MAP-Elites over 55 dims scaled 0..1, in seven blocks: three keyframes, the rise, the side offset, the rhythm and
+- MAP-Elites over 52 dims scaled 0..1, in seven blocks: three keyframes, the rise, the side offset, the rhythm and
   the reflexes.
 - Each new candidate is a mutated elite. One of three operators is chosen: nudge a quarter of the dims (σ 0.08); a
   line step towards another elite; or copy one whole block from another elite (for example one body's posture with

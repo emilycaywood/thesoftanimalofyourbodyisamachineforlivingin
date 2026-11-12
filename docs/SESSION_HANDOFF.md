@@ -2,7 +2,9 @@
 
 Everything a new Claude Code session (or a new collaborator) needs to pick up
 CALFLAB. Last updated 2026-11-11 on branch `robot-calf-final` (cut from
-`chassis-mass`), after session R14 (the bodies at their real weight: an explicit mass model, +0.7 kg, almost no
+`chassis-mass`), after session R16 (what g020-008-r01 can do: a diversity search on one body, ADR-112), section 4
+"Session R16"; before it session R15 (behaviours defined by their outcome, ADR-110/111), section 4 "Session R15";
+before it session R14 (the bodies at their real weight: an explicit mass model, +0.7 kg, almost no
 behaviour holds; the seeded search waits for Emily's budget; ADR-108), section 4 "Session R14"; before it session R13
 (lying down and rising, diagnosed and evolved per body; no body holds; ADR-107), section 4 "Session R13"; before
 it session R12-view (one behaviour picker for the six R12 bodies on `compare.html?set=r12`;
@@ -1472,6 +1474,48 @@ catalog and library values and `verified` flags were not changed; nothing instal
   2026-11-10; its mass hash now matches, spec and MJCF differ as in R13). The full suite was not re-run after the
   fixes. The Mass panel at explicit_v1 was not looked at in the browser (the document was not switched).
 
+**Session R15 (2026-11-11; ADR-110, ADR-111): behaviours defined by their outcome.** Recorded here in R16 (R15 did
+not update this file). Suckle, trot, stand and lie are scores with gates (`calflab.fitness.outcomes`); the
+`outcome_motion` controller is searched per body (`calflab.evolve.outcomes`, CMA-ES). Suckling is variant A (6 s
+approach, 10 s press, 30 mm hoof slip). At explicit_v2 every judged body stands and suckles. The trot holds on
+g009-000, g012-009 and g020-008-r01 (544 mm/s). No body lies down within the limits. `compare.html?set=r15` shows
+the five bodies with a menu per cell. Study `docs/studies/outcomes_r15.md` (its section 3 heading still says "filled
+in below"; the numbers are in `outcomes_r15_tables.md` and ADR-110/111).
+
+**Session R16 (2026-11-11; ADR-112): what g020-008-r01 can do.** The body, catalogs, library and `verified` flags
+were not changed, and no hardware was added. Study `docs/studies/diversity_r16.md`, script `diversity_r16.py`,
+tables `diversity_r16_tables.md`, data `diversity_r16.json`.
+
+* **Controller** `outcome_motion` version 2: stride, turn up to ±2, left/right offsets, keyframe pauses, a late or
+  bouted rhythm. Version 1 is reproduced exactly with the defaults (tested against R15's trot).
+* **New code:** the `free` outcome (safety gates, descriptors: class / speed / turn, least effort); `calflab.evolve.qd`
+  (MAP-Elites, deterministic, reuses R15's cached staged-seed evaluation); compare set `r16`
+  (`calflab.app.diversity_compare`). The compare page reads an optional `default_cells` from a manifest (web rebuilt).
+* **Pilot** (40 batches, 24 min): 32 of 315 cells: trots, walks, paces, irregular gaits, slow turning on the spot, one
+  stand. 29 hold at 30 s, and 14 of those stay in their cell. No down, kneel or crouch.
+* **Probes:**
+  - a trot at **578 mm/s** holds for a minute (R15: 544);
+  - walk (up to 416 mm/s) and pace (170-441) hold;
+  - no bound;
+  - no lying: in every hind fold the hind hooves carry about half the weight, so the hind stifle and hip ab/ad
+    saturate.
+* **55 runs** `R16 g020-008-r01 ...` (about 35 MB in `projects/robot-calf-final/runs`).
+* **Full search not started:** S about 2 h, M about 4.9 h, L about 11.6 h.
+* **Tests:** `tests/test_diversity_r16.py` (10).
+
+**The researcher must verify (new in session R16, ADR-112):**
+
+* **Watch `compare.html?set=r16`** (restart the lab on 8020 first: the running server has the old code). Do the walk,
+  pace, the 605 mm/s trot and the turning-on-the-spot trot look like what their labels say, and do any of them look
+  organic or surprising?
+* **Choose the full search's budget** (S / M / L), and whether to first add the two changes the study recommends:
+  judging cells at 30 s inside the search, and a posture emitter.
+* **The descriptors and their thresholds:** class borders (diagonal lag 0.18 / 0.32, heights 0.5 / 0.85, kneel
+  0.1 bw), speed and turn bins. Many elites sit on a border.
+* **Lying:** the hind legs cannot fold flat within the PROVISIONAL ranges (stifle and hock −30..80°, ab/ad ±25°).
+  Decide whether the ranges may change, or whether a C002 stifle or a stifle spring should be tried.
+* Left-turning gaits drift forward and right-turning ones stay on the spot: an asymmetry worth a look in the replay.
+
 **Scaffolded only (interfaces + tests, no behaviour):** PPO training, MJX
 simulator, RemoteSSH and CloudNotebook transports (job bundling is real),
 imitation reward, interactive selection, molds, skin patterns, nesting,
@@ -1880,7 +1924,7 @@ Journal, Rhino bridge):**
 |---|---|
 | `CLAUDE.md` | Conventions for every session (loaded automatically) |
 | `PLAN.md` | Architecture, module boundaries, data flow, phases, risks, status |
-| `DECISIONS.md` | ADR log: every assumption (107 so far) |
+| `DECISIONS.md` | ADR log: every assumption (112 so far) |
 | `docs/proposals/anatomical-leg.md` | Proposal for a three-segment leg (set aside 2026-10-04; not built) |
 | `docs/USER_GUIDE.md` | How to use the lab |
 | `docs/CHAT_GUIDE_PROMPT.md` | Prompt that makes a chat assistant a guide to the whole lab |
@@ -1897,6 +1941,33 @@ Journal, Rhino bridge):**
 ## 7. Recommended next sessions
 
 Prefix each with the opening message from section 1.
+
+**R16-full. The diversity search on g020-008-r01 at a chosen budget** (written after R16, ADR-112.)
+> In projects/robot-calf-final, R16 (`docs/studies/diversity_r16.md`) piloted a MAP-Elites search on g020-008-r01
+> (explicit_v2) and filled 32 of 315 cells, all locomotion; half the elites changed cell when judged at 30 s. Before
+> the full run: (1) make the search accept a candidate only after it holds and stays in its cell over 30 s (a second
+> stage in `calflab.evolve.qd.run`), and (2) add a posture emitter (rhythm off, keyframes, side offsets and pauses
+> only) that gets half of each batch. Re-run a 20-batch pilot to compare coverage and drift, then run budget <S|M|L>
+> (`diversity_r16.py pilot --iters=<N> --seed=1`, stored under a new key), store the new elites and add them to
+> `compare.html?set=r16`. Report coverage, new kinds of behaviour, what binds per class, and anything surprising. Do
+> not change the body, catalogs, library entries or `verified` flags.
+
+**R16-lie. What would let g020-008-r01 lie down** (in memory; after R16.)
+> In projects/robot-calf-final, R16's lie_grid (`docs/studies/diversity_r16.md` 3c) found that the hind hooves always
+> carry about half the weight when this body lies, so the hind stifle and hip ab/ad saturate. In memory only, without
+> changing stored genomes, catalogs or `verified` flags: re-run `diversity_r16.py lie_grid` and `probe_lie` with
+> (a) the hind stifle and hock ranges widened to 100 / 110 deg and the ab/ad to ±40 deg (flagged as what-ifs),
+> (b) a C002 stifle in place of another pair, within six, and (c) the hardware_r11c stifle spring steps. Report per
+> lever whether the hind end reaches the floor, the stifle load while lying, and whether R15's stand, suckle and trot
+> still hold. Ask me before adding any hardware.
+
+**R16-turn. Turning and heading on g020-008-r01** (after R16.)
+> In projects/robot-calf-final, R16 found that right-turning gaits stay on the spot and left-turning ones drift
+> forward, and that a 605 mm/s trot holds for 30 s but loses its heading within a minute. Add a turning outcome to
+> `calflab.fitness.outcomes` (a target turn rate, on the spot or along an arc, with R15's safety gates) and search the
+> rhythm with `yaw_gain` and `turn` for left and right turns on the spot at 5, 10 and 20 deg/s, and the fastest trot
+> with a heading reflex judged over 60 s. Store the results in compare set r16. Do not change the body, catalogs or
+> `verified` flags.
 
 **R15. Behaviour from outcomes, body and behaviour together** (recommended next; Emily, 2026-11-11: the
 prescriptive behaviours got stuck. Supersedes R14-search, R14-servo and the lying-down sessions.)
