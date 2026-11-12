@@ -1501,7 +1501,7 @@ tables `diversity_r16_tables.md`, data `diversity_r16.json`.
     saturate.
 * **55 runs** `R16 g020-008-r01 ...` (about 35 MB in `projects/robot-calf-final/runs`).
 * **Full search not started:** S about 2 h, M about 4.9 h, L about 11.6 h.
-* **Tests:** `tests/test_diversity_r16.py` (10).
+* **Tests:** `tests/test_diversity_r16.py` (10). `calflab test`: ruff, mypy, 19 Vitest and 14 Playwright pass; pytest 621 passed, 2 failed. One was R16's (the rhythm returned no keys before it starts; fixed, its file re-run). The other is the known `project_document` bit-identity failure from R13/R14. The full suite was not re-run after the fix.
 
 **The researcher must verify (new in session R16, ADR-112):**
 

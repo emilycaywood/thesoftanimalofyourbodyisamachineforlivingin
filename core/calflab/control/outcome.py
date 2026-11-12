@@ -237,9 +237,7 @@ class OutcomeMotionController(Controller):
         amp = float(p.gait_amp)
         if amp <= 0.0:
             return {}
-        ramp = self.envelope(t)
-        if ramp <= 0.0:
-            return {}
+        ramp = self.envelope(t)  # 0 before the rhythm starts or in a pause: every offset 0 (as version 1 at t = 0)
         stride = float(p.stride)
         out: dict[str, float] = {}
         for leg in ("hl", "fl", "hr", "fr"):

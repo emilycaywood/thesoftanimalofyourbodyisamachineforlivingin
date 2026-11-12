@@ -40,7 +40,7 @@ def test_pauses_side_offsets_and_bouts() -> None:
     assert off["hl.hip_abd"] == pytest.approx(6.0) and off["hr.hip_abd"] == pytest.approx(-6.0)
     g = _ctrl(**from_feral_trot(ramp_s=0.0), bout_s=2.0, pause_s=1.0)
     assert g.envelope(1.0) == pytest.approx(1.0)
-    assert g.envelope(2.5) == 0.0 and g.rhythm_at(2.5, 0.0) == {}
+    assert g.envelope(2.5) == 0.0 and not any(g.rhythm_at(2.5, 0.0).values())
     late = _ctrl(**from_feral_trot(), gait_from_s=5.0)
     assert late.envelope(4.9) == 0.0 and late.envelope(8.0) == pytest.approx(1.0)
 
