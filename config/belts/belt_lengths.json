@@ -11,7 +11,8 @@
       ],
       "construction": "generic",
       "url": "https://www.ebay.com/itm/335089089074",
-      "range_note": "300-700 mm only"
+      "range_note": "300-700 mm only",
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "B",
@@ -24,7 +25,8 @@
       ],
       "construction": "Gates",
       "url": "",
-      "range_note": "300-700 mm only"
+      "range_note": "300-700 mm only",
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "C",
@@ -39,7 +41,8 @@
         "eBay UK 283328995672",
         "AliExpress 10 mm closed-loop listing",
         "Amazon B0G1XTWKCG (6/10 mm)"
-      ]
+      ],
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "D",
@@ -48,9 +51,143 @@
       "widths_mm": null,
       "construction": null,
       "url": "",
-      "range_note": "Listed by the researcher for GT2-3mm-9mm and GT2-3mm-15mm; the widths this listing covers were not stated."
+      "range_note": "Listed by the researcher for GT2-3mm-9mm and GT2-3mm-15mm; the widths this listing covers were not stated.",
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
-    {"id": "E", "label": "Amazon B0DPV1912G 'GT2/2M Closed Loop ... Length 300mm 310mm, Width 6/9/10/12/15mm'", "pitch_mm": 2, "widths_mm": [6, 9, 10, 12, 15], "construction": "generic rubber", "url": "https://www.amazon.com/clp/B0DPV1912G", "range_note": "R11c (ADR-103): search-result title only; offered for the 15 mm system only. A wider 15 mm range seen elsewhere (homediyer, 50T-175T) names no exact lengths, so none is entered."}
+    {
+      "id": "E",
+      "label": "Amazon B0DPV1912G 'GT2/2M Closed Loop ... Length 300mm 310mm, Width 6/9/10/12/15mm'",
+      "pitch_mm": 2,
+      "widths_mm": [
+        6,
+        9,
+        10,
+        12,
+        15
+      ],
+      "construction": "generic rubber",
+      "url": "https://www.amazon.com/clp/B0DPV1912G",
+      "range_note": "R11c (ADR-103): search-result title only; offered for the 15 mm system only. A wider 15 mm range seen elsewhere (homediyer, 50T-175T) names no exact lengths, so none is entered.",
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
+    },
+    {
+      "id": "MM-2MGT",
+      "label": "McMaster-Carr 2MGT closed-loop belts, 6 mm wide",
+      "pitch_mm": 2,
+      "widths_mm": [
+        6
+      ],
+      "construction": "neoprene, fiberglass cord, nylon-coated teeth",
+      "url": "https://www.mcmaster.com/",
+      "range_note": "50-582 teeth, closed loops only (no cut-to-length); part list read from mcmaster.com 2026-11-12",
+      "listings": [
+        "7947K711",
+        "7947K712",
+        "7947K713",
+        "7947K714",
+        "7947K715",
+        "7947K716",
+        "7947K717",
+        "7947K718",
+        "7947K719",
+        "7947K721",
+        "7947K722",
+        "7947K725",
+        "7947K726",
+        "7947K727",
+        "7947K728",
+        "7947K729",
+        "7947K731",
+        "7947K732",
+        "7947K733",
+        "7947K734",
+        "7947K735",
+        "7947K736",
+        "7947K737",
+        "7947K738",
+        "7947K739",
+        "7947K741",
+        "7947K742",
+        "7947K743",
+        "7947K744",
+        "7947K745",
+        "7947K746",
+        "7947K747",
+        "7947K748",
+        "7947K749",
+        "7947K751",
+        "7947K753",
+        "7947K754",
+        "7947K755",
+        "7947K756",
+        "7947K757",
+        "7947K758",
+        "7947K759",
+        "7947K761",
+        "7947K762",
+        "7947K763",
+        "7947K764"
+      ],
+      "vendor": "McMaster-Carr",
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-3MGT",
+      "label": "McMaster-Carr 3MGT closed-loop belts, 9 mm wide",
+      "pitch_mm": 3,
+      "widths_mm": [
+        9
+      ],
+      "construction": "neoprene, fiberglass cord, nylon-coated teeth",
+      "url": "https://www.mcmaster.com/",
+      "range_note": "33-687 teeth, closed loops only (no cut-to-length); part list read from mcmaster.com 2026-11-12",
+      "listings": [
+        "7947K765",
+        "7947K767",
+        "7947K769",
+        "7947K771",
+        "7947K772",
+        "7947K773",
+        "7947K774",
+        "7947K775",
+        "7947K776",
+        "7947K777",
+        "7947K778",
+        "7947K779",
+        "7947K781",
+        "7947K782",
+        "7947K783",
+        "7947K784",
+        "7947K785",
+        "7947K786",
+        "7947K787",
+        "7947K788",
+        "7947K789",
+        "7947K791",
+        "7947K792",
+        "7947K793",
+        "7947K795",
+        "7947K796",
+        "7947K797",
+        "7947K798",
+        "7947K811",
+        "7947K812",
+        "7947K813",
+        "7947K814",
+        "7947K815",
+        "7947K816",
+        "7947K817",
+        "7947K818",
+        "7947K822",
+        "7947K823",
+        "7947K824",
+        "7947K825",
+        "7947K826",
+        "7947K828"
+      ],
+      "vendor": "McMaster-Carr",
+      "not_sourceable": ""
+    }
   ],
   "lengths": [
     {
@@ -59,7 +196,8 @@
       "pitch_length_mm": 300,
       "teeth": 150,
       "source": "A",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-302-A",
@@ -67,7 +205,8 @@
       "pitch_length_mm": 302,
       "teeth": 151,
       "source": "A",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-308-A",
@@ -75,7 +214,8 @@
       "pitch_length_mm": 308,
       "teeth": 154,
       "source": "A",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-320-A",
@@ -83,7 +223,8 @@
       "pitch_length_mm": 320,
       "teeth": 160,
       "source": "A",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-336-A",
@@ -91,7 +232,8 @@
       "pitch_length_mm": 336,
       "teeth": 168,
       "source": "A",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-340-A",
@@ -99,7 +241,8 @@
       "pitch_length_mm": 340,
       "teeth": 170,
       "source": "A",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-348-A",
@@ -107,7 +250,8 @@
       "pitch_length_mm": 348,
       "teeth": 174,
       "source": "A",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-350-A",
@@ -115,7 +259,8 @@
       "pitch_length_mm": 350,
       "teeth": 175,
       "source": "A",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-376-A",
@@ -123,7 +268,8 @@
       "pitch_length_mm": 376,
       "teeth": 188,
       "source": "A",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-390-A",
@@ -131,7 +277,8 @@
       "pitch_length_mm": 390,
       "teeth": 195,
       "source": "A",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-392-A",
@@ -139,7 +286,8 @@
       "pitch_length_mm": 392,
       "teeth": 196,
       "source": "A",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-396-A",
@@ -147,7 +295,8 @@
       "pitch_length_mm": 396,
       "teeth": 198,
       "source": "A",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-400-A",
@@ -155,7 +304,8 @@
       "pitch_length_mm": 400,
       "teeth": 200,
       "source": "A",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-406-A",
@@ -163,7 +313,8 @@
       "pitch_length_mm": 406,
       "teeth": 203,
       "source": "A",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-410-A",
@@ -171,7 +322,8 @@
       "pitch_length_mm": 410,
       "teeth": 205,
       "source": "A",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-430-A",
@@ -179,7 +331,8 @@
       "pitch_length_mm": 430,
       "teeth": 215,
       "source": "A",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-444-A",
@@ -187,7 +340,8 @@
       "pitch_length_mm": 444,
       "teeth": 222,
       "source": "A",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-450-A",
@@ -195,7 +349,8 @@
       "pitch_length_mm": 450,
       "teeth": 225,
       "source": "A",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-460-A",
@@ -203,7 +358,8 @@
       "pitch_length_mm": 460,
       "teeth": 230,
       "source": "A",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-466-A",
@@ -211,7 +367,8 @@
       "pitch_length_mm": 466,
       "teeth": 233,
       "source": "A",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-480-A",
@@ -219,7 +376,8 @@
       "pitch_length_mm": 480,
       "teeth": 240,
       "source": "A",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-488-A",
@@ -227,7 +385,8 @@
       "pitch_length_mm": 488,
       "teeth": 244,
       "source": "A",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-494-A",
@@ -235,7 +394,8 @@
       "pitch_length_mm": 494,
       "teeth": 247,
       "source": "A",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-500-A",
@@ -243,7 +403,8 @@
       "pitch_length_mm": 500,
       "teeth": 250,
       "source": "A",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-520-A",
@@ -251,7 +412,8 @@
       "pitch_length_mm": 520,
       "teeth": 260,
       "source": "A",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-524-A",
@@ -259,7 +421,8 @@
       "pitch_length_mm": 524,
       "teeth": 262,
       "source": "A",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-528-A",
@@ -267,7 +430,8 @@
       "pitch_length_mm": 528,
       "teeth": 264,
       "source": "A",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-540-A",
@@ -275,7 +439,8 @@
       "pitch_length_mm": 540,
       "teeth": 270,
       "source": "A",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-550-A",
@@ -283,7 +448,8 @@
       "pitch_length_mm": 550,
       "teeth": 275,
       "source": "A",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-600-A",
@@ -291,7 +457,8 @@
       "pitch_length_mm": 600,
       "teeth": 300,
       "source": "A",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-606-A",
@@ -299,7 +466,8 @@
       "pitch_length_mm": 606,
       "teeth": 303,
       "source": "A",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-616-A",
@@ -307,7 +475,8 @@
       "pitch_length_mm": 616,
       "teeth": 308,
       "source": "A",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-640-A",
@@ -315,7 +484,8 @@
       "pitch_length_mm": 640,
       "teeth": 320,
       "source": "A",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-670-A",
@@ -323,7 +493,8 @@
       "pitch_length_mm": 670,
       "teeth": 335,
       "source": "A",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-696-A",
@@ -331,7 +502,8 @@
       "pitch_length_mm": 696,
       "teeth": 348,
       "source": "A",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-300-B",
@@ -339,7 +511,8 @@
       "pitch_length_mm": 300,
       "teeth": 150,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-302-B",
@@ -347,7 +520,8 @@
       "pitch_length_mm": 302,
       "teeth": 151,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-304-B",
@@ -355,7 +529,8 @@
       "pitch_length_mm": 304,
       "teeth": 152,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-308-B",
@@ -363,7 +538,8 @@
       "pitch_length_mm": 308,
       "teeth": 154,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-310-B",
@@ -371,7 +547,8 @@
       "pitch_length_mm": 310,
       "teeth": 155,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-314-B",
@@ -379,7 +556,8 @@
       "pitch_length_mm": 314,
       "teeth": 157,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-318-B",
@@ -387,7 +565,8 @@
       "pitch_length_mm": 318,
       "teeth": 159,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-320-B",
@@ -395,7 +574,8 @@
       "pitch_length_mm": 320,
       "teeth": 160,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-322-B",
@@ -403,7 +583,8 @@
       "pitch_length_mm": 322,
       "teeth": 161,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-324-B",
@@ -411,7 +592,8 @@
       "pitch_length_mm": 324,
       "teeth": 162,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-326-B",
@@ -419,7 +601,8 @@
       "pitch_length_mm": 326,
       "teeth": 163,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-328-B",
@@ -427,7 +610,8 @@
       "pitch_length_mm": 328,
       "teeth": 164,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-330-B",
@@ -435,7 +619,8 @@
       "pitch_length_mm": 330,
       "teeth": 165,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-332-B",
@@ -443,7 +628,8 @@
       "pitch_length_mm": 332,
       "teeth": 166,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-336-B",
@@ -451,7 +637,8 @@
       "pitch_length_mm": 336,
       "teeth": 168,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-338-B",
@@ -459,7 +646,8 @@
       "pitch_length_mm": 338,
       "teeth": 169,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-340-B",
@@ -467,7 +655,8 @@
       "pitch_length_mm": 340,
       "teeth": 170,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-342-B",
@@ -475,7 +664,8 @@
       "pitch_length_mm": 342,
       "teeth": 171,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-344-B",
@@ -483,7 +673,8 @@
       "pitch_length_mm": 344,
       "teeth": 172,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-346-B",
@@ -491,7 +682,8 @@
       "pitch_length_mm": 346,
       "teeth": 173,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-350-B",
@@ -499,7 +691,8 @@
       "pitch_length_mm": 350,
       "teeth": 175,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-352-B",
@@ -507,7 +700,8 @@
       "pitch_length_mm": 352,
       "teeth": 176,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-354-B",
@@ -515,7 +709,8 @@
       "pitch_length_mm": 354,
       "teeth": 177,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-356-B",
@@ -523,7 +718,8 @@
       "pitch_length_mm": 356,
       "teeth": 178,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-358-B",
@@ -531,7 +727,8 @@
       "pitch_length_mm": 358,
       "teeth": 179,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-360-B",
@@ -539,7 +736,8 @@
       "pitch_length_mm": 360,
       "teeth": 180,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-364-B",
@@ -547,7 +745,8 @@
       "pitch_length_mm": 364,
       "teeth": 182,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-366-B",
@@ -555,7 +754,8 @@
       "pitch_length_mm": 366,
       "teeth": 183,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-370-B",
@@ -563,7 +763,8 @@
       "pitch_length_mm": 370,
       "teeth": 185,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-372-B",
@@ -571,7 +772,8 @@
       "pitch_length_mm": 372,
       "teeth": 186,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-376-B",
@@ -579,7 +781,8 @@
       "pitch_length_mm": 376,
       "teeth": 188,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-380-B",
@@ -587,7 +790,8 @@
       "pitch_length_mm": 380,
       "teeth": 190,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-382-B",
@@ -595,7 +799,8 @@
       "pitch_length_mm": 382,
       "teeth": 191,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-386-B",
@@ -603,7 +808,8 @@
       "pitch_length_mm": 386,
       "teeth": 193,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-392-B",
@@ -611,7 +817,8 @@
       "pitch_length_mm": 392,
       "teeth": 196,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-394-B",
@@ -619,7 +826,8 @@
       "pitch_length_mm": 394,
       "teeth": 197,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-400-B",
@@ -627,7 +835,8 @@
       "pitch_length_mm": 400,
       "teeth": 200,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-406-B",
@@ -635,7 +844,8 @@
       "pitch_length_mm": 406,
       "teeth": 203,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-412-B",
@@ -643,7 +853,8 @@
       "pitch_length_mm": 412,
       "teeth": 206,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-420-B",
@@ -651,7 +862,8 @@
       "pitch_length_mm": 420,
       "teeth": 210,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-426-B",
@@ -659,7 +871,8 @@
       "pitch_length_mm": 426,
       "teeth": 213,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-428-B",
@@ -667,7 +880,8 @@
       "pitch_length_mm": 428,
       "teeth": 214,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-430-B",
@@ -675,7 +889,8 @@
       "pitch_length_mm": 430,
       "teeth": 215,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-436-B",
@@ -683,7 +898,8 @@
       "pitch_length_mm": 436,
       "teeth": 218,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-440-B",
@@ -691,7 +907,8 @@
       "pitch_length_mm": 440,
       "teeth": 220,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-444-B",
@@ -699,7 +916,8 @@
       "pitch_length_mm": 444,
       "teeth": 222,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-446-B",
@@ -707,7 +925,8 @@
       "pitch_length_mm": 446,
       "teeth": 223,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-448-B",
@@ -715,7 +934,8 @@
       "pitch_length_mm": 448,
       "teeth": 224,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-452-B",
@@ -723,7 +943,8 @@
       "pitch_length_mm": 452,
       "teeth": 226,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-456-B",
@@ -731,7 +952,8 @@
       "pitch_length_mm": 456,
       "teeth": 228,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-460-B",
@@ -739,7 +961,8 @@
       "pitch_length_mm": 460,
       "teeth": 230,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-466-B",
@@ -747,7 +970,8 @@
       "pitch_length_mm": 466,
       "teeth": 233,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-470-B",
@@ -755,7 +979,8 @@
       "pitch_length_mm": 470,
       "teeth": 235,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-474-B",
@@ -763,7 +988,8 @@
       "pitch_length_mm": 474,
       "teeth": 237,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-478-B",
@@ -771,7 +997,8 @@
       "pitch_length_mm": 478,
       "teeth": 239,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-480-B",
@@ -779,7 +1006,8 @@
       "pitch_length_mm": 480,
       "teeth": 240,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-484-B",
@@ -787,7 +1015,8 @@
       "pitch_length_mm": 484,
       "teeth": 242,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-486-B",
@@ -795,7 +1024,8 @@
       "pitch_length_mm": 486,
       "teeth": 243,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-488-B",
@@ -803,7 +1033,8 @@
       "pitch_length_mm": 488,
       "teeth": 244,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-492-B",
@@ -811,7 +1042,8 @@
       "pitch_length_mm": 492,
       "teeth": 246,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-494-B",
@@ -819,7 +1051,8 @@
       "pitch_length_mm": 494,
       "teeth": 247,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-500-B",
@@ -827,7 +1060,8 @@
       "pitch_length_mm": 500,
       "teeth": 250,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-502-B",
@@ -835,7 +1069,8 @@
       "pitch_length_mm": 502,
       "teeth": 251,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-504-B",
@@ -843,7 +1078,8 @@
       "pitch_length_mm": 504,
       "teeth": 252,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-506-B",
@@ -851,7 +1087,8 @@
       "pitch_length_mm": 506,
       "teeth": 253,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-516-B",
@@ -859,7 +1096,8 @@
       "pitch_length_mm": 516,
       "teeth": 258,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-524-B",
@@ -867,7 +1105,8 @@
       "pitch_length_mm": 524,
       "teeth": 262,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-528-B",
@@ -875,7 +1114,8 @@
       "pitch_length_mm": 528,
       "teeth": 264,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-530-B",
@@ -883,7 +1123,8 @@
       "pitch_length_mm": 530,
       "teeth": 265,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-534-B",
@@ -891,7 +1132,8 @@
       "pitch_length_mm": 534,
       "teeth": 267,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-544-B",
@@ -899,7 +1141,8 @@
       "pitch_length_mm": 544,
       "teeth": 272,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-550-B",
@@ -907,7 +1150,8 @@
       "pitch_length_mm": 550,
       "teeth": 275,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-552-B",
@@ -915,7 +1159,8 @@
       "pitch_length_mm": 552,
       "teeth": 276,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-558-B",
@@ -923,7 +1168,8 @@
       "pitch_length_mm": 558,
       "teeth": 279,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-560-B",
@@ -931,7 +1177,8 @@
       "pitch_length_mm": 560,
       "teeth": 280,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-570-B",
@@ -939,7 +1186,8 @@
       "pitch_length_mm": 570,
       "teeth": 285,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-572-B",
@@ -947,7 +1195,8 @@
       "pitch_length_mm": 572,
       "teeth": 286,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-576-B",
@@ -955,7 +1204,8 @@
       "pitch_length_mm": 576,
       "teeth": 288,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-578-B",
@@ -963,7 +1213,8 @@
       "pitch_length_mm": 578,
       "teeth": 289,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-586-B",
@@ -971,7 +1222,8 @@
       "pitch_length_mm": 586,
       "teeth": 293,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-600-B",
@@ -979,7 +1231,8 @@
       "pitch_length_mm": 600,
       "teeth": 300,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-606-B",
@@ -987,7 +1240,8 @@
       "pitch_length_mm": 606,
       "teeth": 303,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-616-B",
@@ -995,7 +1249,8 @@
       "pitch_length_mm": 616,
       "teeth": 308,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-630-B",
@@ -1003,7 +1258,8 @@
       "pitch_length_mm": 630,
       "teeth": 315,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-634-B",
@@ -1011,7 +1267,8 @@
       "pitch_length_mm": 634,
       "teeth": 317,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-640-B",
@@ -1019,7 +1276,8 @@
       "pitch_length_mm": 640,
       "teeth": 320,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-646-B",
@@ -1027,7 +1285,8 @@
       "pitch_length_mm": 646,
       "teeth": 323,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-660-B",
@@ -1035,7 +1294,8 @@
       "pitch_length_mm": 660,
       "teeth": 330,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-670-B",
@@ -1043,7 +1303,8 @@
       "pitch_length_mm": 670,
       "teeth": 335,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-676-B",
@@ -1051,7 +1312,8 @@
       "pitch_length_mm": 676,
       "teeth": 338,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-690-B",
@@ -1059,7 +1321,8 @@
       "pitch_length_mm": 690,
       "teeth": 345,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-696-B",
@@ -1067,7 +1330,8 @@
       "pitch_length_mm": 696,
       "teeth": 348,
       "source": "B",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-3mm-300-D",
@@ -1075,7 +1339,8 @@
       "pitch_length_mm": 300,
       "teeth": 100,
       "source": "D",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-3mm-303-D",
@@ -1083,7 +1348,8 @@
       "pitch_length_mm": 303,
       "teeth": 101,
       "source": "D",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-3mm-309-D",
@@ -1091,7 +1357,8 @@
       "pitch_length_mm": 309,
       "teeth": 103,
       "source": "D",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-3mm-312-D",
@@ -1099,7 +1366,8 @@
       "pitch_length_mm": 312,
       "teeth": 104,
       "source": "D",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-3mm-324-D",
@@ -1107,7 +1375,8 @@
       "pitch_length_mm": 324,
       "teeth": 108,
       "source": "D",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-3mm-330-D",
@@ -1115,7 +1384,8 @@
       "pitch_length_mm": 330,
       "teeth": 110,
       "source": "D",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-3mm-339-D",
@@ -1123,7 +1393,8 @@
       "pitch_length_mm": 339,
       "teeth": 113,
       "source": "D",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-3mm-348-D",
@@ -1131,7 +1402,8 @@
       "pitch_length_mm": 348,
       "teeth": 116,
       "source": "D",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-3mm-354-D",
@@ -1139,7 +1411,8 @@
       "pitch_length_mm": 354,
       "teeth": 118,
       "source": "D",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-3mm-357-D",
@@ -1147,7 +1420,8 @@
       "pitch_length_mm": 357,
       "teeth": 119,
       "source": "D",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-3mm-360-D",
@@ -1155,7 +1429,8 @@
       "pitch_length_mm": 360,
       "teeth": 120,
       "source": "D",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-3mm-363-D",
@@ -1163,7 +1438,8 @@
       "pitch_length_mm": 363,
       "teeth": 121,
       "source": "D",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-3mm-375-D",
@@ -1171,7 +1447,8 @@
       "pitch_length_mm": 375,
       "teeth": 125,
       "source": "D",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-3mm-384-D",
@@ -1179,7 +1456,8 @@
       "pitch_length_mm": 384,
       "teeth": 128,
       "source": "D",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-3mm-387-D",
@@ -1187,7 +1465,8 @@
       "pitch_length_mm": 387,
       "teeth": 129,
       "source": "D",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-3mm-390-D",
@@ -1195,7 +1474,8 @@
       "pitch_length_mm": 390,
       "teeth": 130,
       "source": "D",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-3mm-393-D",
@@ -1203,7 +1483,8 @@
       "pitch_length_mm": 393,
       "teeth": 131,
       "source": "D",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-3mm-399-D",
@@ -1211,7 +1492,8 @@
       "pitch_length_mm": 399,
       "teeth": 133,
       "source": "D",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-3mm-408-D",
@@ -1219,7 +1501,8 @@
       "pitch_length_mm": 408,
       "teeth": 136,
       "source": "D",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-3mm-414-D",
@@ -1227,7 +1510,8 @@
       "pitch_length_mm": 414,
       "teeth": 138,
       "source": "D",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-3mm-420-D",
@@ -1235,7 +1519,8 @@
       "pitch_length_mm": 420,
       "teeth": 140,
       "source": "D",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-3mm-444-D",
@@ -1243,7 +1528,8 @@
       "pitch_length_mm": 444,
       "teeth": 148,
       "source": "D",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-3mm-447-D",
@@ -1251,7 +1537,8 @@
       "pitch_length_mm": 447,
       "teeth": 149,
       "source": "D",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-3mm-450-D",
@@ -1259,7 +1546,8 @@
       "pitch_length_mm": 450,
       "teeth": 150,
       "source": "D",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-3mm-456-D",
@@ -1267,7 +1555,8 @@
       "pitch_length_mm": 456,
       "teeth": 152,
       "source": "D",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-3mm-474-D",
@@ -1275,7 +1564,8 @@
       "pitch_length_mm": 474,
       "teeth": 158,
       "source": "D",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-3mm-480-D",
@@ -1283,7 +1573,8 @@
       "pitch_length_mm": 480,
       "teeth": 160,
       "source": "D",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-3mm-483-D",
@@ -1291,7 +1582,8 @@
       "pitch_length_mm": 483,
       "teeth": 161,
       "source": "D",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-3mm-489-D",
@@ -1299,7 +1591,8 @@
       "pitch_length_mm": 489,
       "teeth": 163,
       "source": "D",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-3mm-495-D",
@@ -1307,7 +1600,8 @@
       "pitch_length_mm": 495,
       "teeth": 165,
       "source": "D",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-3mm-501-D",
@@ -1315,7 +1609,8 @@
       "pitch_length_mm": 501,
       "teeth": 167,
       "source": "D",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-3mm-504-D",
@@ -1323,7 +1618,8 @@
       "pitch_length_mm": 504,
       "teeth": 168,
       "source": "D",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-3mm-510-D",
@@ -1331,7 +1627,8 @@
       "pitch_length_mm": 510,
       "teeth": 170,
       "source": "D",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-3mm-513-D",
@@ -1339,7 +1636,8 @@
       "pitch_length_mm": 513,
       "teeth": 171,
       "source": "D",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-3mm-522-D",
@@ -1347,7 +1645,8 @@
       "pitch_length_mm": 522,
       "teeth": 174,
       "source": "D",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-3mm-537-D",
@@ -1355,7 +1654,8 @@
       "pitch_length_mm": 537,
       "teeth": 179,
       "source": "D",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-3mm-540-D",
@@ -1363,7 +1663,8 @@
       "pitch_length_mm": 540,
       "teeth": 180,
       "source": "D",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-3mm-552-D",
@@ -1371,7 +1672,8 @@
       "pitch_length_mm": 552,
       "teeth": 184,
       "source": "D",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-3mm-561-D",
@@ -1379,7 +1681,8 @@
       "pitch_length_mm": 561,
       "teeth": 187,
       "source": "D",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-3mm-564-D",
@@ -1387,7 +1690,8 @@
       "pitch_length_mm": 564,
       "teeth": 188,
       "source": "D",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-3mm-570-D",
@@ -1395,7 +1699,8 @@
       "pitch_length_mm": 570,
       "teeth": 190,
       "source": "D",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-3mm-582-D",
@@ -1403,7 +1708,8 @@
       "pitch_length_mm": 582,
       "teeth": 194,
       "source": "D",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-3mm-588-D",
@@ -1411,7 +1717,8 @@
       "pitch_length_mm": 588,
       "teeth": 196,
       "source": "D",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-3mm-600-D",
@@ -1419,7 +1726,8 @@
       "pitch_length_mm": 600,
       "teeth": 200,
       "source": "D",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-3mm-621-D",
@@ -1427,7 +1735,8 @@
       "pitch_length_mm": 621,
       "teeth": 207,
       "source": "D",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-3mm-630-D",
@@ -1435,7 +1744,8 @@
       "pitch_length_mm": 630,
       "teeth": 210,
       "source": "D",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-3mm-657-D",
@@ -1443,7 +1753,8 @@
       "pitch_length_mm": 657,
       "teeth": 219,
       "source": "D",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-3mm-684-D",
@@ -1451,7 +1762,8 @@
       "pitch_length_mm": 684,
       "teeth": 228,
       "source": "D",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-3mm-696-D",
@@ -1459,7 +1771,8 @@
       "pitch_length_mm": 696,
       "teeth": 232,
       "source": "D",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-3mm-735-D",
@@ -1467,7 +1780,8 @@
       "pitch_length_mm": 735,
       "teeth": 245,
       "source": "D",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-3mm-750-D",
@@ -1475,7 +1789,8 @@
       "pitch_length_mm": 750,
       "teeth": 250,
       "source": "D",
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-300-C",
@@ -1486,7 +1801,8 @@
       "listings": [
         "eBay UK 283328995672"
       ],
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-360-C",
@@ -1497,7 +1813,8 @@
       "listings": [
         "eBay UK 283328995672"
       ],
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-376-C",
@@ -1508,7 +1825,8 @@
       "listings": [
         "eBay UK 283328995672"
       ],
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-394-C",
@@ -1519,7 +1837,8 @@
       "listings": [
         "Amazon B0G1XTWKCG (6/10 mm)"
       ],
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-400-C",
@@ -1531,7 +1850,8 @@
         "eBay UK 283328995672",
         "Amazon B0G1XTWKCG (6/10 mm)"
       ],
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-444-C",
@@ -1542,7 +1862,8 @@
       "listings": [
         "AliExpress 10 mm closed-loop listing"
       ],
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "one unconfirmed listing (source C); researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-450-C",
@@ -1553,7 +1874,8 @@
       "listings": [
         "AliExpress 10 mm closed-loop listing"
       ],
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-460-C",
@@ -1564,7 +1886,8 @@
       "listings": [
         "Amazon B0G1XTWKCG (6/10 mm)"
       ],
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-500-C",
@@ -1577,7 +1900,8 @@
         "AliExpress 10 mm closed-loop listing",
         "Amazon B0G1XTWKCG (6/10 mm)"
       ],
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-540-C",
@@ -1588,7 +1912,8 @@
       "listings": [
         "Amazon B0G1XTWKCG (6/10 mm)"
       ],
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-550-C",
@@ -1599,7 +1924,8 @@
       "listings": [
         "AliExpress 10 mm closed-loop listing"
       ],
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-600-C",
@@ -1610,7 +1936,8 @@
       "listings": [
         "AliExpress 10 mm closed-loop listing"
       ],
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-610-C",
@@ -1621,7 +1948,8 @@
       "listings": [
         "AliExpress 10 mm closed-loop listing"
       ],
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
     {
       "id": "GT2-2mm-640-C",
@@ -1632,9 +1960,1434 @@
       "listings": [
         "AliExpress 10 mm closed-loop listing"
       ],
-      "purchase_confirmed": false
+      "purchase_confirmed": false,
+      "not_sourceable": "one unconfirmed listing (source C); researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
     },
-    {"id": "GT2-2mm-300-E", "pitch_mm": 2, "pitch_length_mm": 300, "teeth": 150, "source": "E", "purchase_confirmed": false},
-    {"id": "GT2-2mm-310-E", "pitch_mm": 2, "pitch_length_mm": 310, "teeth": 155, "source": "E", "purchase_confirmed": false}
+    {
+      "id": "GT2-2mm-300-E",
+      "pitch_mm": 2,
+      "pitch_length_mm": 300,
+      "teeth": 150,
+      "source": "E",
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
+    },
+    {
+      "id": "GT2-2mm-310-E",
+      "pitch_mm": 2,
+      "pitch_length_mm": 310,
+      "teeth": 155,
+      "source": "E",
+      "purchase_confirmed": false,
+      "not_sourceable": "researcher's rule 2026-11-12 (session R18, ADR-115): every pulley and belt of this body comes from McMaster-Carr only (GT pulleys with a finished 1/4 in bore; closed neoprene GT belts); this entry is not a McMaster part"
+    },
+    {
+      "id": "MM-2MGT-100",
+      "pitch_mm": 2,
+      "pitch_length_mm": 100,
+      "teeth": 50,
+      "source": "MM-2MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K711/ (7947K711; 50 teeth, 100 mm pitch length, 6 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K711",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-2MGT-112",
+      "pitch_mm": 2,
+      "pitch_length_mm": 112,
+      "teeth": 56,
+      "source": "MM-2MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K712/ (7947K712; 56 teeth, 112 mm pitch length, 6 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K712",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-2MGT-124",
+      "pitch_mm": 2,
+      "pitch_length_mm": 124,
+      "teeth": 62,
+      "source": "MM-2MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K713/ (7947K713; 62 teeth, 124 mm pitch length, 6 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K713",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-2MGT-126",
+      "pitch_mm": 2,
+      "pitch_length_mm": 126,
+      "teeth": 63,
+      "source": "MM-2MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K714/ (7947K714; 63 teeth, 126 mm pitch length, 6 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K714",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-2MGT-134",
+      "pitch_mm": 2,
+      "pitch_length_mm": 134,
+      "teeth": 67,
+      "source": "MM-2MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K715/ (7947K715; 67 teeth, 134 mm pitch length, 6 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K715",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-2MGT-136",
+      "pitch_mm": 2,
+      "pitch_length_mm": 136,
+      "teeth": 68,
+      "source": "MM-2MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K716/ (7947K716; 68 teeth, 136 mm pitch length, 6 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K716",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-2MGT-140",
+      "pitch_mm": 2,
+      "pitch_length_mm": 140,
+      "teeth": 70,
+      "source": "MM-2MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K717/ (7947K717; 70 teeth, 140 mm pitch length, 6 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K717",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-2MGT-152",
+      "pitch_mm": 2,
+      "pitch_length_mm": 152,
+      "teeth": 76,
+      "source": "MM-2MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K718/ (7947K718; 76 teeth, 152 mm pitch length, 6 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K718",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-2MGT-158",
+      "pitch_mm": 2,
+      "pitch_length_mm": 158,
+      "teeth": 79,
+      "source": "MM-2MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K719/ (7947K719; 79 teeth, 158 mm pitch length, 6 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K719",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-2MGT-160",
+      "pitch_mm": 2,
+      "pitch_length_mm": 160,
+      "teeth": 80,
+      "source": "MM-2MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K721/ (7947K721; 80 teeth, 160 mm pitch length, 6 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K721",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-2MGT-164",
+      "pitch_mm": 2,
+      "pitch_length_mm": 164,
+      "teeth": 82,
+      "source": "MM-2MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K722/ (7947K722; 82 teeth, 164 mm pitch length, 6 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K722",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-2MGT-172",
+      "pitch_mm": 2,
+      "pitch_length_mm": 172,
+      "teeth": 86,
+      "source": "MM-2MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K725/ (7947K725; 86 teeth, 172 mm pitch length, 6 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K725",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-2MGT-180",
+      "pitch_mm": 2,
+      "pitch_length_mm": 180,
+      "teeth": 90,
+      "source": "MM-2MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K726/ (7947K726; 90 teeth, 180 mm pitch length, 6 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K726",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-2MGT-186",
+      "pitch_mm": 2,
+      "pitch_length_mm": 186,
+      "teeth": 93,
+      "source": "MM-2MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K727/ (7947K727; 93 teeth, 186 mm pitch length, 6 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K727",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-2MGT-192",
+      "pitch_mm": 2,
+      "pitch_length_mm": 192,
+      "teeth": 96,
+      "source": "MM-2MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K728/ (7947K728; 96 teeth, 192 mm pitch length, 6 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K728",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-2MGT-200",
+      "pitch_mm": 2,
+      "pitch_length_mm": 200,
+      "teeth": 100,
+      "source": "MM-2MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K729/ (7947K729; 100 teeth, 200 mm pitch length, 6 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K729",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-2MGT-202",
+      "pitch_mm": 2,
+      "pitch_length_mm": 202,
+      "teeth": 101,
+      "source": "MM-2MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K731/ (7947K731; 101 teeth, 202 mm pitch length, 6 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K731",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-2MGT-212",
+      "pitch_mm": 2,
+      "pitch_length_mm": 212,
+      "teeth": 106,
+      "source": "MM-2MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K732/ (7947K732; 106 teeth, 212 mm pitch length, 6 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K732",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-2MGT-220",
+      "pitch_mm": 2,
+      "pitch_length_mm": 220,
+      "teeth": 110,
+      "source": "MM-2MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K733/ (7947K733; 110 teeth, 220 mm pitch length, 6 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K733",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-2MGT-232",
+      "pitch_mm": 2,
+      "pitch_length_mm": 232,
+      "teeth": 116,
+      "source": "MM-2MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K734/ (7947K734; 116 teeth, 232 mm pitch length, 6 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K734",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-2MGT-236",
+      "pitch_mm": 2,
+      "pitch_length_mm": 236,
+      "teeth": 118,
+      "source": "MM-2MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K735/ (7947K735; 118 teeth, 236 mm pitch length, 6 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K735",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-2MGT-240",
+      "pitch_mm": 2,
+      "pitch_length_mm": 240,
+      "teeth": 120,
+      "source": "MM-2MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K736/ (7947K736; 120 teeth, 240 mm pitch length, 6 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K736",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-2MGT-250",
+      "pitch_mm": 2,
+      "pitch_length_mm": 250,
+      "teeth": 125,
+      "source": "MM-2MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K737/ (7947K737; 125 teeth, 250 mm pitch length, 6 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K737",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-2MGT-252",
+      "pitch_mm": 2,
+      "pitch_length_mm": 252,
+      "teeth": 126,
+      "source": "MM-2MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K738/ (7947K738; 126 teeth, 252 mm pitch length, 6 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K738",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-2MGT-258",
+      "pitch_mm": 2,
+      "pitch_length_mm": 258,
+      "teeth": 129,
+      "source": "MM-2MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K739/ (7947K739; 129 teeth, 258 mm pitch length, 6 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K739",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-2MGT-280",
+      "pitch_mm": 2,
+      "pitch_length_mm": 280,
+      "teeth": 140,
+      "source": "MM-2MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K741/ (7947K741; 140 teeth, 280 mm pitch length, 6 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K741",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-2MGT-300",
+      "pitch_mm": 2,
+      "pitch_length_mm": 300,
+      "teeth": 150,
+      "source": "MM-2MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K742/ (7947K742; 150 teeth, 300 mm pitch length, 6 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K742",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-2MGT-320",
+      "pitch_mm": 2,
+      "pitch_length_mm": 320,
+      "teeth": 160,
+      "source": "MM-2MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K743/ (7947K743; 160 teeth, 320 mm pitch length, 6 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K743",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-2MGT-332",
+      "pitch_mm": 2,
+      "pitch_length_mm": 332,
+      "teeth": 166,
+      "source": "MM-2MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K744/ (7947K744; 166 teeth, 332 mm pitch length, 6 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K744",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-2MGT-350",
+      "pitch_mm": 2,
+      "pitch_length_mm": 350,
+      "teeth": 175,
+      "source": "MM-2MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K745/ (7947K745; 175 teeth, 350 mm pitch length, 6 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K745",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-2MGT-370",
+      "pitch_mm": 2,
+      "pitch_length_mm": 370,
+      "teeth": 185,
+      "source": "MM-2MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K746/ (7947K746; 185 teeth, 370 mm pitch length, 6 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K746",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-2MGT-380",
+      "pitch_mm": 2,
+      "pitch_length_mm": 380,
+      "teeth": 190,
+      "source": "MM-2MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K747/ (7947K747; 190 teeth, 380 mm pitch length, 6 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K747",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-2MGT-400",
+      "pitch_mm": 2,
+      "pitch_length_mm": 400,
+      "teeth": 200,
+      "source": "MM-2MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K748/ (7947K748; 200 teeth, 400 mm pitch length, 6 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K748",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-2MGT-420",
+      "pitch_mm": 2,
+      "pitch_length_mm": 420,
+      "teeth": 210,
+      "source": "MM-2MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K749/ (7947K749; 210 teeth, 420 mm pitch length, 6 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K749",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-2MGT-456",
+      "pitch_mm": 2,
+      "pitch_length_mm": 456,
+      "teeth": 228,
+      "source": "MM-2MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K751/ (7947K751; 228 teeth, 456 mm pitch length, 6 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K751",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-2MGT-488",
+      "pitch_mm": 2,
+      "pitch_length_mm": 488,
+      "teeth": 244,
+      "source": "MM-2MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K753/ (7947K753; 244 teeth, 488 mm pitch length, 6 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K753",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-2MGT-504",
+      "pitch_mm": 2,
+      "pitch_length_mm": 504,
+      "teeth": 252,
+      "source": "MM-2MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K754/ (7947K754; 252 teeth, 504 mm pitch length, 6 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K754",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-2MGT-528",
+      "pitch_mm": 2,
+      "pitch_length_mm": 528,
+      "teeth": 264,
+      "source": "MM-2MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K755/ (7947K755; 264 teeth, 528 mm pitch length, 6 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K755",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-2MGT-552",
+      "pitch_mm": 2,
+      "pitch_length_mm": 552,
+      "teeth": 276,
+      "source": "MM-2MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K756/ (7947K756; 276 teeth, 552 mm pitch length, 6 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K756",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-2MGT-576",
+      "pitch_mm": 2,
+      "pitch_length_mm": 576,
+      "teeth": 288,
+      "source": "MM-2MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K757/ (7947K757; 288 teeth, 576 mm pitch length, 6 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K757",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-2MGT-600",
+      "pitch_mm": 2,
+      "pitch_length_mm": 600,
+      "teeth": 300,
+      "source": "MM-2MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K758/ (7947K758; 300 teeth, 600 mm pitch length, 6 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K758",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-2MGT-640",
+      "pitch_mm": 2,
+      "pitch_length_mm": 640,
+      "teeth": 320,
+      "source": "MM-2MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K759/ (7947K759; 320 teeth, 640 mm pitch length, 6 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K759",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-2MGT-696",
+      "pitch_mm": 2,
+      "pitch_length_mm": 696,
+      "teeth": 348,
+      "source": "MM-2MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K761/ (7947K761; 348 teeth, 696 mm pitch length, 6 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K761",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-2MGT-744",
+      "pitch_mm": 2,
+      "pitch_length_mm": 744,
+      "teeth": 372,
+      "source": "MM-2MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K762/ (7947K762; 372 teeth, 744 mm pitch length, 6 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K762",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-2MGT-848",
+      "pitch_mm": 2,
+      "pitch_length_mm": 848,
+      "teeth": 424,
+      "source": "MM-2MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K763/ (7947K763; 424 teeth, 848 mm pitch length, 6 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K763",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-2MGT-1164",
+      "pitch_mm": 2,
+      "pitch_length_mm": 1164,
+      "teeth": 582,
+      "source": "MM-2MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K764/ (7947K764; 582 teeth, 1164 mm pitch length, 6 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K764",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-3MGT-99",
+      "pitch_mm": 3,
+      "pitch_length_mm": 99,
+      "teeth": 33,
+      "source": "MM-3MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K765/ (7947K765; 33 teeth, 99 mm pitch length, 9 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K765",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-3MGT-123",
+      "pitch_mm": 3,
+      "pitch_length_mm": 123,
+      "teeth": 41,
+      "source": "MM-3MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K767/ (7947K767; 41 teeth, 123 mm pitch length, 9 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K767",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-3MGT-165",
+      "pitch_mm": 3,
+      "pitch_length_mm": 165,
+      "teeth": 55,
+      "source": "MM-3MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K769/ (7947K769; 55 teeth, 165 mm pitch length, 9 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K769",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-3MGT-180",
+      "pitch_mm": 3,
+      "pitch_length_mm": 180,
+      "teeth": 60,
+      "source": "MM-3MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K771/ (7947K771; 60 teeth, 180 mm pitch length, 9 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K771",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-3MGT-183",
+      "pitch_mm": 3,
+      "pitch_length_mm": 183,
+      "teeth": 61,
+      "source": "MM-3MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K772/ (7947K772; 61 teeth, 183 mm pitch length, 9 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K772",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-3MGT-189",
+      "pitch_mm": 3,
+      "pitch_length_mm": 189,
+      "teeth": 63,
+      "source": "MM-3MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K773/ (7947K773; 63 teeth, 189 mm pitch length, 9 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K773",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-3MGT-201",
+      "pitch_mm": 3,
+      "pitch_length_mm": 201,
+      "teeth": 67,
+      "source": "MM-3MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K774/ (7947K774; 67 teeth, 201 mm pitch length, 9 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K774",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-3MGT-219",
+      "pitch_mm": 3,
+      "pitch_length_mm": 219,
+      "teeth": 73,
+      "source": "MM-3MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K775/ (7947K775; 73 teeth, 219 mm pitch length, 9 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K775",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-3MGT-225",
+      "pitch_mm": 3,
+      "pitch_length_mm": 225,
+      "teeth": 75,
+      "source": "MM-3MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K776/ (7947K776; 75 teeth, 225 mm pitch length, 9 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K776",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-3MGT-240",
+      "pitch_mm": 3,
+      "pitch_length_mm": 240,
+      "teeth": 80,
+      "source": "MM-3MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K777/ (7947K777; 80 teeth, 240 mm pitch length, 9 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K777",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-3MGT-243",
+      "pitch_mm": 3,
+      "pitch_length_mm": 243,
+      "teeth": 81,
+      "source": "MM-3MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K778/ (7947K778; 81 teeth, 243 mm pitch length, 9 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K778",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-3MGT-255",
+      "pitch_mm": 3,
+      "pitch_length_mm": 255,
+      "teeth": 85,
+      "source": "MM-3MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K779/ (7947K779; 85 teeth, 255 mm pitch length, 9 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K779",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-3MGT-267",
+      "pitch_mm": 3,
+      "pitch_length_mm": 267,
+      "teeth": 89,
+      "source": "MM-3MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K781/ (7947K781; 89 teeth, 267 mm pitch length, 9 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K781",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-3MGT-282",
+      "pitch_mm": 3,
+      "pitch_length_mm": 282,
+      "teeth": 94,
+      "source": "MM-3MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K782/ (7947K782; 94 teeth, 282 mm pitch length, 9 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K782",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-3MGT-291",
+      "pitch_mm": 3,
+      "pitch_length_mm": 291,
+      "teeth": 97,
+      "source": "MM-3MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K783/ (7947K783; 97 teeth, 291 mm pitch length, 9 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K783",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-3MGT-300",
+      "pitch_mm": 3,
+      "pitch_length_mm": 300,
+      "teeth": 100,
+      "source": "MM-3MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K784/ (7947K784; 100 teeth, 300 mm pitch length, 9 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K784",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-3MGT-339",
+      "pitch_mm": 3,
+      "pitch_length_mm": 339,
+      "teeth": 113,
+      "source": "MM-3MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K785/ (7947K785; 113 teeth, 339 mm pitch length, 9 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K785",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-3MGT-348",
+      "pitch_mm": 3,
+      "pitch_length_mm": 348,
+      "teeth": 116,
+      "source": "MM-3MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K786/ (7947K786; 116 teeth, 348 mm pitch length, 9 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K786",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-3MGT-357",
+      "pitch_mm": 3,
+      "pitch_length_mm": 357,
+      "teeth": 119,
+      "source": "MM-3MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K787/ (7947K787; 119 teeth, 357 mm pitch length, 9 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K787",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-3MGT-360",
+      "pitch_mm": 3,
+      "pitch_length_mm": 360,
+      "teeth": 120,
+      "source": "MM-3MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K788/ (7947K788; 120 teeth, 360 mm pitch length, 9 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K788",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-3MGT-375",
+      "pitch_mm": 3,
+      "pitch_length_mm": 375,
+      "teeth": 125,
+      "source": "MM-3MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K789/ (7947K789; 125 teeth, 375 mm pitch length, 9 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K789",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-3MGT-393",
+      "pitch_mm": 3,
+      "pitch_length_mm": 393,
+      "teeth": 131,
+      "source": "MM-3MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K791/ (7947K791; 131 teeth, 393 mm pitch length, 9 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K791",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-3MGT-414",
+      "pitch_mm": 3,
+      "pitch_length_mm": 414,
+      "teeth": 138,
+      "source": "MM-3MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K792/ (7947K792; 138 teeth, 414 mm pitch length, 9 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K792",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-3MGT-420",
+      "pitch_mm": 3,
+      "pitch_length_mm": 420,
+      "teeth": 140,
+      "source": "MM-3MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K793/ (7947K793; 140 teeth, 420 mm pitch length, 9 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K793",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-3MGT-450",
+      "pitch_mm": 3,
+      "pitch_length_mm": 450,
+      "teeth": 150,
+      "source": "MM-3MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K795/ (7947K795; 150 teeth, 450 mm pitch length, 9 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K795",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-3MGT-474",
+      "pitch_mm": 3,
+      "pitch_length_mm": 474,
+      "teeth": 158,
+      "source": "MM-3MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K796/ (7947K796; 158 teeth, 474 mm pitch length, 9 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K796",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-3MGT-480",
+      "pitch_mm": 3,
+      "pitch_length_mm": 480,
+      "teeth": 160,
+      "source": "MM-3MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K797/ (7947K797; 160 teeth, 480 mm pitch length, 9 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K797",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-3MGT-483",
+      "pitch_mm": 3,
+      "pitch_length_mm": 483,
+      "teeth": 161,
+      "source": "MM-3MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K798/ (7947K798; 161 teeth, 483 mm pitch length, 9 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K798",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-3MGT-504",
+      "pitch_mm": 3,
+      "pitch_length_mm": 504,
+      "teeth": 168,
+      "source": "MM-3MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K811/ (7947K811; 168 teeth, 504 mm pitch length, 9 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K811",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-3MGT-537",
+      "pitch_mm": 3,
+      "pitch_length_mm": 537,
+      "teeth": 179,
+      "source": "MM-3MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K812/ (7947K812; 179 teeth, 537 mm pitch length, 9 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K812",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-3MGT-552",
+      "pitch_mm": 3,
+      "pitch_length_mm": 552,
+      "teeth": 184,
+      "source": "MM-3MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K813/ (7947K813; 184 teeth, 552 mm pitch length, 9 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K813",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-3MGT-564",
+      "pitch_mm": 3,
+      "pitch_length_mm": 564,
+      "teeth": 188,
+      "source": "MM-3MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K814/ (7947K814; 188 teeth, 564 mm pitch length, 9 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K814",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-3MGT-600",
+      "pitch_mm": 3,
+      "pitch_length_mm": 600,
+      "teeth": 200,
+      "source": "MM-3MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K815/ (7947K815; 200 teeth, 600 mm pitch length, 9 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K815",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-3MGT-630",
+      "pitch_mm": 3,
+      "pitch_length_mm": 630,
+      "teeth": 210,
+      "source": "MM-3MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K816/ (7947K816; 210 teeth, 630 mm pitch length, 9 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K816",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-3MGT-684",
+      "pitch_mm": 3,
+      "pitch_length_mm": 684,
+      "teeth": 228,
+      "source": "MM-3MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K817/ (7947K817; 228 teeth, 684 mm pitch length, 9 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K817",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-3MGT-735",
+      "pitch_mm": 3,
+      "pitch_length_mm": 735,
+      "teeth": 245,
+      "source": "MM-3MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K818/ (7947K818; 245 teeth, 735 mm pitch length, 9 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K818",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-3MGT-840",
+      "pitch_mm": 3,
+      "pitch_length_mm": 840,
+      "teeth": 280,
+      "source": "MM-3MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K822/ (7947K822; 280 teeth, 840 mm pitch length, 9 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K822",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-3MGT-945",
+      "pitch_mm": 3,
+      "pitch_length_mm": 945,
+      "teeth": 315,
+      "source": "MM-3MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K823/ (7947K823; 315 teeth, 945 mm pitch length, 9 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K823",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-3MGT-1050",
+      "pitch_mm": 3,
+      "pitch_length_mm": 1050,
+      "teeth": 350,
+      "source": "MM-3MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K824/ (7947K824; 350 teeth, 1050 mm pitch length, 9 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K824",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-3MGT-1080",
+      "pitch_mm": 3,
+      "pitch_length_mm": 1080,
+      "teeth": 360,
+      "source": "MM-3MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K825/ (7947K825; 360 teeth, 1080 mm pitch length, 9 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K825",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-3MGT-1536",
+      "pitch_mm": 3,
+      "pitch_length_mm": 1536,
+      "teeth": 512,
+      "source": "MM-3MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K826/ (7947K826; 512 teeth, 1536 mm pitch length, 9 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K826",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    },
+    {
+      "id": "MM-3MGT-2061",
+      "pitch_mm": 3,
+      "pitch_length_mm": 2061,
+      "teeth": 687,
+      "source": "MM-3MGT",
+      "listings": [
+        "https://www.mcmaster.com/7947K828/ (7947K828; 687 teeth, 2061 mm pitch length, 9 mm wide; read 2026-11-12)"
+      ],
+      "purchase_confirmed": false,
+      "part_number": "7947K828",
+      "price_usd": null,
+      "mass_g": null,
+      "verified": false,
+      "not_sourceable": ""
+    }
   ]
 }

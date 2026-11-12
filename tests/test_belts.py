@@ -81,14 +81,15 @@ def test_wrap_and_teeth_in_mesh():
 # ---------------------------------------------------------------------- catalog
 def test_catalog_values_are_the_supplied_ones(catalog: BeltCatalog):
     s = {x.id: x for x in catalog.systems}
-    assert catalog.default_system == "GT2-2mm-10mm-generic"
+    assert catalog.default_system == "MM-3MGT-9"  # R18 (ADR-115): the default rule chooses McMaster parts
     assert (s["GT2-2mm-10mm-generic"].allowable_working_tension_n, s["GT2-2mm-10mm-generic"].breaking_strength_n) == (44, 860)
     assert (s["GT2-2mm-9mm-gates"].allowable_working_tension_n, s["GT2-2mm-9mm-gates"].breaking_strength_n) == (39, 774)
     assert (s["GT2-2mm-15mm-generic"].allowable_working_tension_n, s["GT2-2mm-15mm-generic"].breaking_strength_n) == (66, 1290)
     assert s["GT2-3mm-9mm"].allowable_working_tension_n is None and s["GT2-3mm-9mm"].breaking_strength_n == 1422
     assert s["GT2-3mm-15mm"].allowable_working_tension_n is None and s["GT2-3mm-15mm"].breaking_strength_n == 2370
     assert "derated" in s["GT2-2mm-10mm-generic"].notes
-    assert [p.id for p in catalog.pairs] == ["30T-60T", "36T-72T", "40T-80T"] and catalog.default_pair == "30T-60T"
+    assert [p.id for p in catalog.pairs] == ["30T-60T", "36T-72T", "40T-80T"]
+    assert catalog.pair(catalog.default_pair).pitch_mm == catalog.system(catalog.default_system).pitch_mm
     assert all(p.ratio == 2 for p in catalog.pairs)
     assert all(not e.purchase_confirmed for e in catalog.lengths)
 
@@ -184,11 +185,12 @@ def test_too_few_teeth_in_mesh_fails():
 
 
 def test_default_is_the_passing_length_closest_to_target(catalog: BeltCatalog):
-    choice, rep, why = choose_default(catalog, hock_layout())
+    old = ("GT2-2mm-10mm-generic", "30T-60T")  # the pre-R18 default, still a valid (not offered) catalog choice
+    choice, rep, why = choose_default(catalog, hock_layout(), *old)
     assert why == "" and choice is not None and rep is not None
     assert choice.length == "GT2-2mm-450-C" and rep.c_mm == pytest.approx(179.7, abs=0.1)
     win = hock_layout(target=DriveTarget(kind="C", value=175, low=150, high=200), far_limit_mm=240.0)
-    choice, rep, _ = choose_default(catalog, win)
+    choice, rep, _ = choose_default(catalog, win, *old)
     assert choice is not None and choice.length == "GT2-2mm-444-C"
 
 

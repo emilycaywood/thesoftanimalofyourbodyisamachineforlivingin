@@ -1176,6 +1176,12 @@ class SetBeltDrive(Command):
                 raise _err(f"Belt drive at the {p.drive} rejected: with {new.system} and {new.pulleys}, {why}.")  # type: ignore[attr-defined]
             new = ch
             note = f"The length was re-chosen ({ch.length}): {entry.id} is not offered for {system.id}."
+        # R18 (ADR-115): only sourceable parts are offered for a new choice; a stored body naming others still builds
+        unsourced = catalog.sourcing_problems(new)
+        if unsourced:
+            offered = ", ".join(s.id for s in catalog.offered_systems()) or "none"
+            raise _err(f"Belt drive at the {p.drive} rejected: not sourceable for this body: "  # type: ignore[attr-defined]
+                       + "; ".join(unsourced) + f". Belt systems offered: {offered}.")
         from calflab.model.genome import Genome
         from calflab.morphology.feral import belt_genes
 

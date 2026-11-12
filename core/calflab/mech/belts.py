@@ -100,6 +100,18 @@ class BeltSystem(BaseModel):
     length_sources: list[str]
     sources: list[str] = []
     notes: str = ""
+    #: R18 (ADR-115): who sells it. A system with a vendor accepts only single pulleys and lengths of that vendor
+    #: (check ``vendor``); None = no vendor named (every entry before R18), and no such check is run
+    vendor: str | None = None
+    #: where the entry was read: URL + part numbers + date
+    source: str = ""
+    #: values supplied as a guess or an assumption (ADR-051): every result that uses one says so
+    guessed: list[str] = []
+    verified: bool = False
+    purchase_confirmed: bool = False
+    #: non-empty = not offered for a new choice (set_belt_drive, the Belts panel, the searches), with the evidence;
+    #: a stored body that names it still builds (R18, ADR-115)
+    not_sourceable: str = ""
 
     @property
     def label(self) -> str:
@@ -117,6 +129,8 @@ class LengthSource(BaseModel):
     url: str = ""
     range_note: str = ""
     listings: list[str] = []
+    vendor: str | None = None
+    not_sourceable: str = ""
 
 
 class BeltLength(BaseModel):
@@ -131,6 +145,12 @@ class BeltLength(BaseModel):
     source: str
     listings: list[str] = []
     purchase_confirmed: bool = False
+    #: R18 (ADR-115): the vendor's part number, price (USD each) and mass (g) as its page lists them; None = not listed
+    part_number: str | None = None
+    price_usd: float | None = None
+    mass_g: float | None = None
+    verified: bool = False
+    not_sourceable: str = ""
 
     @model_validator(mode="after")
     def _whole_teeth(self) -> BeltLength:
@@ -158,6 +178,7 @@ class PulleyPair(BaseModel):
     #: required values still to be entered (None = not entered: counted as 0 g and listed)
     driver_mass_g: float | None = None
     driven_mass_g: float | None = None
+    not_sourceable: str = ""
 
     @property
     def ratio(self) -> float:
@@ -210,6 +231,16 @@ class Pulley(BaseModel):
     listings: list[Listing] = []
     verified: bool = False
     notes: str = ""
+    #: R18 (ADR-115): vendor, part number, price (USD each), where it was read, and what its page lists (``listed``:
+    #: hub diameter, OD, widths, flanges, shaft mount...; a value the page does not list is absent, never filled in).
+    #: A listed pitch diameter is kept there for comparison only: the lab always computes its own.
+    vendor: str | None = None
+    part_number: str | None = None
+    price_usd: float | None = None
+    source: str = ""
+    purchase_confirmed: bool = False
+    listed: dict[str, Any] = {}
+    not_sourceable: str = ""
 
 
 #: separator of a pair made of two single pulleys
@@ -280,11 +311,17 @@ class BeltCatalog(BaseModel):
                 problems.append(f"belt length {e.id!r}: pitch {e.pitch_mm:g} mm differs from its source's")
         if self.default_system not in {s.id for s in self.systems}:
             problems.append(f"default belt system {self.default_system!r} is not in the catalog")
-        if self.default_pair not in {p.id for p in self.pairs}:
+        if self.default_pair not in {p.id for p in self.pairs} and not self._singles_pair(self.default_pair):
             problems.append(f"default pulley pair {self.default_pair!r} is not in the catalog")
         if problems:
             raise ValueError("; ".join(problems))
         return self
+
+    def _singles_pair(self, pair_id: str) -> bool:
+        if PAIR_SEP not in pair_id:
+            return False
+        ids = {p.id for p in self.pulleys}
+        return all(x in ids for x in pair_id.split(PAIR_SEP, 1))
 
     # ---------------------------------------------------------------- loading
     @classmethod
@@ -350,7 +387,39 @@ class BeltCatalog(BaseModel):
     def pulleys_for(self, system: BeltSystem) -> list[Pulley]:
         """Single pulleys of the system's pitch whose listings name the system's width, fewest teeth first."""
         return sorted((p for p in self.pulleys if p.pitch_mm == system.pitch_mm
-                       and any(abs(w - system.width_mm) < 1e-9 for w in p.belt_widths_mm)), key=lambda p: (p.teeth, p.id))
+                       and any(abs(w - system.width_mm) < 1e-9 for w in p.belt_widths_mm)
+                       and (system.vendor is None or p.vendor == system.vendor)), key=lambda p: (p.teeth, p.id))
+
+    # ---------------------------------------------------------------- sourcing (R18, ADR-115)
+    def sourcing_problems(self, choice: BeltChoice) -> list[str]:
+        """Why a choice may not be offered for a new drive: every entry it names that is marked not sourceable, with
+        the evidence. Empty = every part is offered. Unknown ids raise ``CatalogError``."""
+        out: list[str] = []
+        system = self.system(choice.system)
+        if system.not_sourceable:
+            out.append(f"belt system {system.id}: {system.not_sourceable}")
+        sing = self.singles(choice.pulleys)
+        if sing is None:
+            pair = next((p for p in self.pairs if p.id == choice.pulleys), None)
+            if pair is None:
+                self.pair(choice.pulleys)  # raises CatalogError
+            elif pair.not_sourceable:
+                out.append(f"pulley pair {pair.id}: {pair.not_sourceable}")
+        else:
+            for p in {x.id: x for x in sing}.values():
+                if p.not_sourceable:
+                    out.append(f"pulley {p.id}: {p.not_sourceable}")
+        entry = self.length(choice.length)
+        if entry.not_sourceable:
+            out.append(f"belt length {entry.id}: {entry.not_sourceable}")
+        src = next((s for s in self.sources if s.id == entry.source), None)
+        if src is not None and src.not_sourceable:
+            out.append(f"length source {src.id} ({src.label}): {src.not_sourceable}")
+        return out
+
+    def offered_systems(self) -> list[BeltSystem]:
+        """Belt systems offered for a new choice (not marked not sourceable)."""
+        return [s for s in self.systems if not s.not_sourceable]
 
     def pair_of(self, driver_id: str, driven_id: str) -> str:
         """The pair id for two single pulleys: ``<driver>+<driven>``."""
@@ -586,6 +655,19 @@ def evaluate_drive(
                             detail="; ".join(bad) if bad else f"both listed for {system.width_mm:g} mm belts"))
     checks.append(Check(id="length_source", label="Length offered in this belt's width",
                         status="pass" if selectable else "fail", detail=reason or f"source {entry.source}"))
+    if system.vendor is not None:  # R18 (ADR-115): belt, pulleys and length from one vendor; no check before R18
+        bad_v: list[str] = []
+        if sing is None:
+            bad_v.append(f"pair {choice.pulleys} is not made of {system.vendor} pulleys")
+        else:
+            bad_v += [f"{p.id} is from {p.vendor or 'no named vendor'}" for p in {x.id: x for x in sing}.values()
+                      if p.vendor != system.vendor]
+        src_v = next((x.vendor for x in catalog.sources if x.id == entry.source), None)
+        if src_v != system.vendor:
+            bad_v.append(f"length {entry.id} is from {src_v or 'no named vendor'}")
+        checks.append(Check(id="vendor", label=f"Pulleys and belt from {system.vendor}",
+                            status="fail" if bad_v else "pass",
+                            detail="; ".join(bad_v) if bad_v else f"belt, both pulleys and the length from {system.vendor}"))
     c: float | None
     try:
         c = center_distance(entry.pitch_length_mm, d1, d2)
@@ -701,6 +783,37 @@ def choose_default(
     return best[1], best[2], ""
 
 
+def fitting_choices(
+    catalog: BeltCatalog, layout: DriveLayout, system_ids: list[str] | None = None, extra: ExtraChecks | None = None,
+    offered_only: bool = True,
+) -> tuple[list[DriveReport], dict[str, int]]:
+    """Every (system, pulley pair, length) on this drive that passes every check (R18, ADR-116): for a system with
+    single pulleys, every driver x driven pair of them; otherwise its listed pairs. Only offered (sourceable) systems
+    and lengths unless ``offered_only`` is False. Returns the passing reports (by system, ratio, driver teeth,
+    length) and a count of the failed checks over the rest."""
+    systems = [catalog.system(s) for s in system_ids] if system_ids else (
+        catalog.offered_systems() if offered_only else list(catalog.systems))
+    ok: list[DriveReport] = []
+    fails: dict[str, int] = {}
+    for system in systems:
+        singles = catalog.pulleys_for(system)
+        pair_ids = ([f"{a.id}{PAIR_SEP}{b.id}" for a in singles for b in singles] if singles
+                    else [p.id for p in catalog.pairs_for(system)])
+        lengths = [e for e in catalog.lengths_for(system) if catalog.length_status(system, e)[0]
+                   and not (offered_only and e.not_sourceable)]
+        for pid in pair_ids:
+            for e in lengths:
+                rep = evaluate_drive(catalog, layout, BeltChoice(system=system.id, pulleys=pid, length=e.id), extra)
+                if rep.ok:
+                    ok.append(rep)
+                else:
+                    for ch in rep.checks:
+                        if ch.status == "fail":
+                            fails[ch.label] = fails.get(ch.label, 0) + 1
+    ok.sort(key=lambda r: (r.choice.system, r.ratio, r.driver_teeth, r.length_mm))
+    return ok, fails
+
+
 def drive_options(
     catalog: BeltCatalog, layout: DriveLayout, choice: BeltChoice, extra: ExtraChecks | None = None
 ) -> dict[str, Any]:
@@ -716,21 +829,37 @@ def drive_options(
             "allowable_working_tension_n": s.allowable_working_tension_n,
             "breaking_strength_n": s.breaking_strength_n, "lengths_offered": n_sel,
             "pulley_pairs": len(catalog.pairs_for(s)), "notes": s.notes,
-            "usable": n_sel > 0 and bool(catalog.pairs_for(s)),
-            "why_not": "" if n_sel and catalog.pairs_for(s) else
-            ("no lengths confirmed in this width" if not n_sel else f"no {s.pitch_mm:g} mm pitch pulley pair in pulleys.json"),
+            "usable": n_sel > 0 and bool(catalog.pairs_for(s) or catalog.pulleys_for(s)) and not s.not_sourceable,
+            "why_not": (f"not sourceable: {s.not_sourceable}" if s.not_sourceable else
+                        "" if n_sel and (catalog.pairs_for(s) or catalog.pulleys_for(s)) else
+                        ("no lengths confirmed in this width" if not n_sel
+                         else f"no {s.pitch_mm:g} mm pitch pulley pair in pulleys.json")),
+            "vendor": s.vendor, "guessed": list(s.guessed),
         })
     pairs = [{"id": p.id, "label": p.label, "ratio": p.ratio, "d1_mm": p.d1_mm, "d2_mm": p.d2_mm,
-              "usable": p.id in pair_ok,
+              "usable": p.id in pair_ok and not p.not_sourceable and system.vendor is None,
+              "not_sourceable": p.not_sourceable,
               "masses_missing": [k for k in ("driver_mass_g", "driven_mass_g") if getattr(p, k) is None]}
              for p in catalog.pairs]
+    if system.vendor is not None:  # R18 (ADR-115): a vendor's system offers every pair of its own single pulleys
+        singles = catalog.pulleys_for(system)
+        pair_ok = [f"{a.id}{PAIR_SEP}{b.id}" for a in singles for b in singles]
+        for pid in pair_ok:
+            pp = catalog.pair(pid)
+            pairs.append({"id": pid, "label": pp.label, "ratio": pp.ratio, "d1_mm": pp.d1_mm, "d2_mm": pp.d2_mm,
+                          "usable": True, "not_sourceable": "",
+                          "masses_missing": [k for k in ("driver_mass_g", "driven_mass_g") if getattr(pp, k) is None]})
+    elif PAIR_SEP in choice.pulleys:  # a stored pair of singles: checked like any listed pair
+        pair_ok.append(choice.pulleys)
     lengths = []
     for e in catalog.lengths_for(system):
         selectable, reason = catalog.length_status(system, e)
         row: dict[str, Any] = {
             "id": e.id, "length_mm": e.pitch_length_mm, "teeth": e.teeth, "source": e.source,
             "source_label": catalog.source(e.source).label, "listings": e.listings,
-            "purchase_confirmed": e.purchase_confirmed, "selectable": selectable, "reason": reason,
+            "purchase_confirmed": e.purchase_confirmed, "selectable": selectable and not e.not_sourceable,
+            "reason": reason or (f"not sourceable: {e.not_sourceable}" if e.not_sourceable else ""),
+            "part_number": e.part_number, "price_usd": e.price_usd,
             "c_mm": None, "ok": False, "failed": [], "unknown": [],
         }
         if choice.pulleys in pair_ok and selectable:

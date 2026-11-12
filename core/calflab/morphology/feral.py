@@ -914,17 +914,21 @@ def provisional_values(genes: dict[str, GeneValue], gp: Any, cfg: dict[str, Any]
     return out
 
 
-def belt_context(spec: RobotSpec, project_dir: Any) -> tuple[BeltCatalog, dict[str, DriveLayout], dict[str, Any]]:
+def belt_context(spec: RobotSpec, project_dir: Any, catalog: BeltCatalog | None = None,
+                 stifle_choice: BeltChoice | None = None) -> tuple[BeltCatalog, dict[str, DriveLayout], dict[str, Any]]:
     """The catalog, the layout of every drive and the extra checks of a built
-    feral calf, to list and evaluate other choices for one drive (Belts panel)."""
+    feral calf, to list and evaluate other choices for one drive (Belts panel).
+    ``stifle_choice``: check the hock against this stifle belt instead of the body's (R18)."""
     meta = spec.metadata.get("feral") or {}
-    catalog = load_catalog(project_dir)[0]
+    catalog = catalog if catalog is not None else load_catalog(project_dir)[0]
     drives = meta.get("belt_drives", {})
     layouts = {d: DriveLayout.model_validate(r["layout"]) for d, r in drives.items()}
     extra: dict[str, Any] = {}
     sw = meta.get("sweep")
     if sw and "stifle" in drives:
         stifle = DriveReport.model_validate({k: v for k, v in drives["stifle"].items() if k in DriveReport.model_fields})
+        if stifle_choice is not None:
+            stifle = evaluate_drive(catalog, layouts["stifle"], stifle_choice)
 
         def hock_extra(rep: DriveReport) -> list[Check]:
             return [stifle_clearance_check(rep, stifle, ry(sw["rel_stifle_deg"]), tuple(sw["stifle_range"]), sw["tibia_mm"],

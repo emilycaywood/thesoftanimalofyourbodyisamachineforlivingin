@@ -362,27 +362,30 @@ def test_set_belt_drive_validates_and_undoes(tmp_path):
             return {k: v for k, v in lab.state.graph.node("genome").params.items() if k.startswith("belt_")}
 
         start = belts()
-        assert start["belt_stifle_length"] == "GT2-2mm-444-C" and start["belt_hock_length"] == "GT2-2mm-400-C"
-        with pytest.raises(LabError, match="rejected"):
-            lab.execute("set_belt_drive", {"drive": "hock", "length": "GT2-2mm-450-C"})
-        with pytest.raises(LabError, match="width unconfirmed"):
-            lab.execute("set_belt_drive", {"drive": "hock", "length": "GT2-2mm-396-A"})
+        # R18 (ADR-115): a new project's belts come from the McMaster parts only
+        assert start["belt_stifle_system"] == "MM-3MGT-9" and start["belt_hock_length"].startswith("MM-3MGT-")
+        with pytest.raises(LabError, match="not sourceable"):
+            lab.execute("set_belt_drive", {"drive": "hock", "system": "GT2-2mm-10mm-generic", "pulleys": "30T-60T",
+                                           "length": "GT2-2mm-400-C"})
+        with pytest.raises(LabError, match="rejected"):  # too short to go round both pulleys: rejected, not clamped
+            lab.execute("set_belt_drive", {"drive": "hock", "length": "MM-3MGT-99"})
         with pytest.raises(LabError, match="set_belt_drive"):
             lab.execute("set_node_params", {"node": "morphology", "params": {"auto_belts": True}})
         with pytest.raises(LabError, match="set_belt_drive"):
-            lab.execute("set_genes", {"values": {"belt_hock_length": "GT2-2mm-394-C"}})
+            lab.execute("set_genes", {"values": {"belt_hock_length": "MM-3MGT-600"}})
         assert belts() == start  # nothing changed
-        out = lab.execute("set_belt_drive", {"drive": "hock", "length": "GT2-2mm-394-C"})["result"]
-        assert out["c_mm"] == pytest.approx(151.7, abs=0.1)
-        out = lab.execute("set_belt_drive", {"drive": "stifle", "system": "GT2-2mm-9mm-gates"})["result"]
-        assert out["choice"]["length"].endswith("-B") and "re-chosen" in out["note"]
+        panel = lab.analysis("belt_drives")
+        hock_opts = panel["drives"]["hock"]["options"]["lengths"]
+        other = next(o for o in hock_opts if o["ok"] and o["id"] != start["belt_hock_length"])
+        assert not next(o for o in hock_opts if o["id"] == "MM-3MGT-99")["ok"]
+        out = lab.execute("set_belt_drive", {"drive": "hock", "length": other["id"]})["result"]
+        assert out["c_mm"] == pytest.approx(other["c_mm"])
+        out = lab.execute("set_belt_drive", {"drive": "stifle", "system": "MM-2MGT-6",
+                                             "pulleys": "MM-2MGT-60T+MM-2MGT-72T"})["result"]
+        assert out["choice"]["length"].startswith("MM-2MGT-") and "re-chosen" in out["note"]
         lab.undo()
         lab.undo()
         assert belts() == start
-        panel = lab.analysis("belt_drives")
-        hock_opts = {o["id"]: o for o in panel["drives"]["hock"]["options"]["lengths"]}
-        assert not hock_opts["GT2-2mm-450-A"]["selectable"] and "width unconfirmed" in hock_opts["GT2-2mm-450-A"]["reason"]
-        assert not hock_opts["GT2-2mm-450-C"]["ok"]
         assert any(p["where"].startswith("gene rail_spacing") for p in panel["provisional"])
     finally:
         lab.close()

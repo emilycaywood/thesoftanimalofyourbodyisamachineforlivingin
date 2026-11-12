@@ -93,6 +93,9 @@ class ProductionSettings(BaseModel):
     pulleys: str = P("singles", desc="'singles': driver and driven chosen separately from the listed pulleys.")
     feasible_lengths: bool = P(True, desc="Belt length decodes only over listed lengths that pass on this body.")
     shoulder_drive: bool = P(True, desc="Evolve the shoulder drive: direct or belted.")
+    carpus_drive: bool = P(False, desc="Evolve the carpus drive: belted or direct (R18, ADR-117).")
+    sourceable_only: bool = P(False, desc="Offer only belt systems, pulleys and lengths not marked not sourceable "
+                                          "(R18, ADR-115).")
     stop_rejected_fraction: float = P(0.5, ge=0.0, le=1.0, desc="Stop when more than this share of a generation's "
                                                                 "draws is rejected.")
 
@@ -236,13 +239,19 @@ class ProductionSpace:
             self.dims.append(Dim(name=gname, kind="choice", n=len(hw.servo_choices)))
         if self.pr.shoulder_drive and gdef.has("shoulder_belt"):
             self.dims.append(Dim(name="shoulder_belt", kind="choice", n=2))
+        if self.pr.carpus_drive and gdef.has("carpus_belt"):
+            self.dims.append(Dim(name="carpus_belt", kind="choice", n=2))
         # belts
         allowed = set(hw.belt_systems) if hw.belt_systems else None
-        self.systems = [s for s in catalog.systems if catalog.pulleys_for(s) and (allowed is None or s.id in allowed)]
+        so = self.pr.sourceable_only
+        self.systems = [s for s in catalog.systems if catalog.pulleys_for(s) and (allowed is None or s.id in allowed)
+                        and not (so and s.not_sourceable)]
         self.excluded_systems = [s.id for s in catalog.systems if not catalog.pulleys_for(s)]
-        self.lengths = {s.id: [e for e in catalog.lengths_for(s) if catalog.length_status(s, e)[0]] for s in self.systems}
+        self.lengths = {s.id: [e for e in catalog.lengths_for(s) if catalog.length_status(s, e)[0]
+                               and not (so and (e.not_sourceable or catalog.source(e.source).not_sourceable))]
+                        for s in self.systems}
         self.systems = [s for s in self.systems if self.lengths[s.id]]
-        self.pulleys = {s.id: catalog.pulleys_for(s) for s in self.systems}
+        self.pulleys = {s.id: [p for p in catalog.pulleys_for(s) if not (so and p.not_sourceable)] for s in self.systems}
         self.max_lengths = max((len(v) for v in self.lengths.values()), default=1)
         self.drives = [d for d in BELT_ORDER if d in hw.drives or (d == "shoulder" and self.pr.shoulder_drive)]
         for d in self.drives:
@@ -303,6 +312,8 @@ class ProductionSpace:
             x[idx[gname]] = _x(ch.index(sv), len(ch)) if sv in ch else _x(0, len(ch))
         if "shoulder_belt" in idx:
             x[idx["shoulder_belt"]] = _x(int(bool(values.get("shoulder_belt", False))), 2)
+        if "carpus_belt" in idx:
+            x[idx["carpus_belt"]] = _x(int(bool(values.get("carpus_belt", True))), 2)
         design = None
         for d in self.drives:
             sid = values.get(f"belt_{d}_system")
@@ -396,7 +407,7 @@ class ProductionSpace:
                 v[name] = self.geo[name][_i(x[k], d.n)]
             elif name in self.servo_genes:
                 v[name] = self.hw.servo_choices[_i(x[k], d.n)]
-            elif name == "shoulder_belt":
+            elif name in ("shoulder_belt", "carpus_belt"):
                 v[name] = bool(_i(x[k], 2))
         # ratios
         g = self.pr.geometry
