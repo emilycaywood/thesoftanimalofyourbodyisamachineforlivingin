@@ -175,3 +175,25 @@ def test_names() -> None:
     assert name({"class": "walk", "speed": -40.0, "turn": 0.0}, {}) == "walks backward"
     assert name({"class": "stand", "speed": 0.0, "turn": 0.0}, {}) == "stands"
     assert name({"class": "down", "speed": 0.0, "turn": 0.0}, {"height_mean": 0.9}) == "goes down (and gets up again)"
+
+
+def test_confirmation_and_the_posture_emitter(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("calflab.evolve.outcomes.body_key", lambda payload: "fake")
+    sp = qd.free_space()
+    s = qd.QDSettings(iterations=3, batch=10, seed=2, confirm=True, p_posture=0.5)
+    seen: list[dict] = []
+
+    def checkpoint(r: dict) -> None:
+        seen.append(r)
+
+    r = qd.run({}, sp, qd.Grid(), s, [{}, from_feral_trot(cycle_s=0.4, stride=2.0)], 0.2, _fake_map, None,
+               checkpoint=checkpoint)
+    assert len(seen) == 3 and seen[-1]["cells"] == r["cells"]
+    assert all("judged" in e and e["judged"]["same_cell"] for e in r["archive"].values())
+    assert r["tried"]["stand"]["confirmed"] >= 1
+    x = np.full(len(sp.dims), 0.6)
+    child, op = qd.posture_child(np.random.default_rng(0), x, sp.dims, s)
+    names = [n for n, _lo, _hi in sp.dims]
+    assert op == "posture" and child[names.index("gait_amp")] == 0.0
+    rhythm = [i for i, n in enumerate(names) if qd.block_of(n) == "rhythm" and n != "gait_amp"]
+    assert np.allclose(child[rhythm], 0.6)

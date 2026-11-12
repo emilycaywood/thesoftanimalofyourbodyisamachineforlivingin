@@ -156,6 +156,34 @@ class QDSettings(BaseModel):
                                "ranks below -2).")
     search_seeds: list[int] = Field(default_factory=lambda: [0, 1, 2])
     judge_seeds: list[int] = Field(default_factory=lambda: [0, 1, 2])
+    confirm: bool = P(False, desc="A candidate that would fill or improve a cell is played again at the judging "
+                                  "length on the judging seeds; it enters only if it holds there and stays in the cell "
+                                  "(R16-full: half the pilot's elites drifted to another cell over 30 s).")
+    p_posture: float = P(0.0, ge=0.0, le=1.0,
+                         desc="Share of each batch from the posture emitter: rhythm off, only the keyframes, the "
+                              "side offset and the pauses mutated (R16-full: no posture class held in the pilot).")
+    posture_sigma: float = P(0.15, ge=0.0, le=1.0, desc="Posture emitter: Gaussian step.")
+    posture_rate: float = P(0.4, ge=0.0, le=1.0, desc="Posture emitter: share of its dims nudged.")
+
+
+#: what the posture emitter mutates; it switches the rhythm off
+POSTURE_BLOCKS = ("p1", "p2", "p3", "side")
+
+
+def posture_child(rng: np.random.Generator, x: np.ndarray, dims: list[tuple[str, float, float]],
+                  s: QDSettings) -> tuple[np.ndarray, str]:
+    """A child of ``x`` that stands still: ``gait_amp`` to 0, the posture blocks nudged harder."""
+    child = x.copy()
+    idx = [i for i, (n, _lo, _hi) in enumerate(dims) if block_of(n) in POSTURE_BLOCKS]
+    for i, (n, _lo, _hi) in enumerate(dims):
+        if n == "gait_amp":
+            child[i] = 0.0
+    if idx:
+        mask = rng.random(len(idx)) < s.posture_rate
+        if not mask.any():
+            mask[int(rng.integers(len(idx)))] = True
+        child[idx] += mask * rng.normal(0.0, s.posture_sigma, len(idx))
+    return np.clip(child, 0, 1), "posture"
 
 
 def mutate(rng: np.random.Generator, x: np.ndarray, other: np.ndarray, dims: list[tuple[str, float, float]],
@@ -182,10 +210,11 @@ def mutate(rng: np.random.Generator, x: np.ndarray, other: np.ndarray, dims: lis
 # ====================================================================== the search
 def run(payload: dict[str, Any], space: BehaviourSpace, grid: Grid, s: QDSettings, starts: list[dict[str, Any]],
         margin: float, map_fn: MapFn, cache: str | None, start_labels: list[str] | None = None,
-        report: Callable[[str], None] | None = None) -> dict[str, Any]:
+        report: Callable[[str], None] | None = None,
+        checkpoint: Callable[[dict[str, Any]], None] | None = None) -> dict[str, Any]:
     """MAP-Elites from ``starts`` (played first; starting points only). Returns the archive (cell -> elite), the
     coverage per batch, and per class what was tried, held and why the rest failed (the binding limit or gate on the
-    first seed)."""
+    first seed). ``checkpoint`` gets the result so far after every batch."""
     from calflab.evolve.outcomes import body_key
 
     t0 = time.perf_counter()
@@ -204,6 +233,7 @@ def run(payload: dict[str, Any], space: BehaviourSpace, grid: Grid, s: QDSetting
         nonlocal plays
         res = evaluate(payload, bkey, space, cands, s.search_seeds, margin, os_, map_fn, cache)
         added = 0
+        pending: list[tuple[dict[str, Any], np.ndarray, str, dict[str, Any], str, Counter[str]]] = []
         for e, x, op in zip(res, xs_in, ops, strict=True):
             plays += len(e["seeds"])
             first = e["seeds"][0]
@@ -228,15 +258,42 @@ def run(payload: dict[str, Any], space: BehaviourSpace, grid: Grid, s: QDSetting
                 continue
             old = archive.get(cell)
             if old is None or float(e["rank"]) > float(old["rank"]):
+                pending.append((e, x, op, d, cell, c))
+        confirmed: list[dict[str, Any] | None] = [None] * len(pending)
+        if s.confirm and pending:  # the would-be elites, again at the judging length
+            js = OutcomeSearch(search_seeds=s.judge_seeds, judge_seeds=s.judge_seeds).model_copy(
+                update={"early_stop": s.early_stop})
+            jr = evaluate(payload, bkey, space, [p[0]["params"] for p in pending], s.judge_seeds, margin, js,
+                          map_fn, cache, judging=True)
+            for k, j in enumerate(jr):
+                plays += len(j["seeds"])
+                jd = descriptor(j)
+                jc = grid.cell(jd)
+                confirmed[k] = {"holds": j["holds"], "within": j["within"], "rank": j["rank"], "descriptor": jd,
+                                "cell": jc, "same_cell": jc == pending[k][4], "summary": summary(j)}
+        for k, (e, x, op, d, cell, c) in enumerate(pending):
+            jv = confirmed[k]
+            if s.confirm:
+                if jv is None or not (jv["holds"] and jv["same_cell"]):
+                    c["drifts or fails at the judging length"] += 1
+                    continue
+                c["confirmed"] += 1
+            old = archive.get(cell)
+            if old is None or float(e["rank"]) > float(old["rank"]):
                 archive[cell] = {"cell": cell, "label": grid.label(cell), "descriptor": d, "rank": e["rank"],
                                  "iteration": it, "op": op, "summary": summary(e),
-                                 "replaced": (old or {}).get("replaced", 0) + (1 if old else 0)}
+                                 "replaced": (old or {}).get("replaced", 0) + (1 if old else 0),
+                                 **({"judged": jv} if jv else {})}
                 xs[cell] = x
                 added += 1
         return added
 
     names = start_labels or [f"start {i}" for i in range(len(starts))]
-    x0 = [to_x(st, dims, base) for st in starts]
+
+    def result() -> dict[str, Any]:
+        return _result_of(grid, s, space, archive, history, tried, plays, time.perf_counter() - t0, names)
+
+    x0 =[to_x(st, dims, base) for st in starts]
     added = consider([from_x(x, dims) for x in x0], x0, -1, [f"start:{n}" for n in names])
     history.append({"iteration": -1, "cells": len(archive), "added": added, "plays": plays,
                     "wall_s": round(time.perf_counter() - t0, 1)})
@@ -247,10 +304,11 @@ def run(payload: dict[str, Any], space: BehaviourSpace, grid: Grid, s: QDSetting
         keys = sorted(xs)
         parents = [xs[k] for k in keys] or pool
         batch_x, ops = [], []
-        for _ in range(s.batch):
+        n_posture = int(round(s.p_posture * s.batch))
+        for k in range(s.batch):
             a = parents[int(rng.integers(len(parents)))]
             b = parents[int(rng.integers(len(parents)))]
-            child, op = mutate(rng, a, b, dims, s)
+            child, op = posture_child(rng, a, dims, s) if k < n_posture else mutate(rng, a, b, dims, s)
             batch_x.append(child)
             ops.append(op)
         added = consider([from_x(x, dims) for x in batch_x], batch_x, it, ops)
@@ -259,10 +317,17 @@ def run(payload: dict[str, Any], space: BehaviourSpace, grid: Grid, s: QDSetting
         if report:
             report(f"batch {it + 1}/{s.iterations}: {len(archive)} cells (+{added}), {plays} plays, "
                    f"{time.perf_counter() - t0:.0f} s")
+        if checkpoint:
+            checkpoint(result())
+    return result()
+
+
+def _result_of(grid: Grid, s: QDSettings, space: BehaviourSpace, archive: dict[str, Any], history: list[Any],
+               tried: dict[str, Counter[str]], plays: int, wall_s: float, names: list[str]) -> dict[str, Any]:
     return {"grid": grid.model_dump(), "settings": s.model_dump(), "space": space.model_dump(mode="json"),
             "archive": archive, "history": history, "tried": {k: dict(v) for k, v in tried.items()},
             "coverage": round(len(archive) / grid.size(), 4), "cells": len(archive), "grid_size": grid.size(),
-            "plays": plays, "wall_s": round(time.perf_counter() - t0, 1), "starts": names}
+            "plays": plays, "wall_s": round(wall_s, 1), "starts": names}
 
 
 def judge(payload: dict[str, Any], space: BehaviourSpace, grid: Grid, archive: dict[str, dict[str, Any]],
