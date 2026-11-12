@@ -191,6 +191,76 @@ def suckle_variants(lab: Any, opts: dict[str, str]) -> None:
     OUT.write_bytes(json.dumps(data, indent=1, default=float).encode())
 
 
+def suckle_final(lab: Any, opts: dict[str, str]) -> None:
+    """Suckling searched again with variant A as the definition (Emily, 2026-11-11: a 10 s press, 0.25 N floor, hoof
+    slip limit loosened to 30 mm; ``default_spaces()["suckle"]``), warm-started from the usual leans plus each
+    body's best version of A. Replaces ``pilot.<body>.suckle``; the old result is kept as ``suckle_30s``. Then
+    stored as runs (``R15 <body> suckle: seed 0``)."""
+    from calflab.evolve.outcomes import (
+        BehaviourSpace,
+        OutcomeSearch,
+        controller_params,
+        default_spaces,
+        optimise,
+        play_length,
+        play_seed,
+        warm_starts,
+    )
+
+    bodies = (opts.get("bodies") or ",".join(BODIES)).split(",")
+    model = opts.get("model", "explicit_v2")
+    workers = int(opts.get("workers", 14))
+    s = OutcomeSearch(popsize=int(opts.get("pop", 12)), generations=int(opts.get("gens", 20)))
+    pl, ev = payloads(lab, bodies, model)
+    margin = float(ev["hardware"]["margin"])
+    cache = str(Path(sys.argv[1]) / ".cache" / "outcomes")
+    space = default_spaces()["suckle"]
+    data = _load(OUT)
+    a_best = {b: data["suckle_variants"]["A-short"][b]["best"]["params"] for b in bodies}
+    t0 = time.time()
+    with ProcessPoolExecutor(max_workers=workers) as pool:
+        def map_fn(fn: Any, jobs: list[dict[str, Any]]) -> list[dict[str, Any]]:
+            return list(pool.map(fn, jobs))
+
+        def one(body: str) -> tuple[str, dict[str, Any]]:
+            starts = [*warm_starts("suckle"), a_best[body]]
+            r = optimise(pl[body], space, margin, s, starts, map_fn, cache,
+                         report=lambda m: print(f"[{body}] {m} ({time.time() - t0:.0f} s)", flush=True))
+            return body, r
+
+        with ThreadPoolExecutor(max_workers=len(bodies)) as th:
+            for f in as_completed([th.submit(one, b) for b in bodies]):
+                body, r = f.result()
+                old = data["pilot"][body].get("suckle")
+                if old is not None and "suckle_30s" not in data["pilot"][body]:
+                    data["pilot"][body]["suckle_30s"] = old
+                data["pilot"][body]["suckle"] = r
+                print(f"DONE {body}: holds {r['best']['holds']} rank {r['best']['rank']} wall {r['wall_s']} s",
+                      flush=True)
+                OUT.write_bytes(json.dumps(data, indent=1, default=float).encode())
+    data["suckle_final_wall_s"] = round(time.time() - t0, 1)
+    tmp = Path(sys.argv[1]) / ".cache" / "outcomes_rollouts"
+    stored = data.setdefault("stored", {})
+    for body in bodies:
+        r = data["pilot"][body]["suckle"]
+        sp = BehaviourSpace.model_validate(r["space"])
+        params = r["best"]["params"]
+        path = tmp / f"{body}_suckle_final.npz"
+        rec = play_seed(pl[body], sp, params, 0, margin, judging=True, rollout_path=str(path))
+        run_id = _store_run(lab, pl[body], f"R15 {body} suckle (A, slip 30 mm): seed 0", path,
+                            {"key": "outcome_motion", "params": controller_params(sp, params)},
+                            play_length(sp, params, True), rec)
+        st = stored.setdefault(body, {})
+        if "suckle" in st and "suckle 30s" not in st:
+            st["suckle 30s"] = st["suckle"]
+        st["suckle"] = run_id
+        o = rec["outcome"]
+        print("STORED", body, run_id, "holds", rec["holds"], "p20", o.get("push_p20_n"), "mean",
+              o.get("push_mean_n"), "slip", o.get("slip_max_mm"), [k for k, v in o["gates"].items() if not v],
+              rec["binding"], flush=True)
+    OUT.write_bytes(json.dumps(data, indent=1, default=float).encode())
+
+
 def _mass(payload: dict[str, Any]) -> float:
     from calflab.evolve.hardware import _build
 
@@ -426,6 +496,8 @@ def main() -> None:
             store(lab, opts)
         elif stage == "suckle_variants":
             suckle_variants(lab, opts)
+        elif stage == "suckle_final":
+            suckle_final(lab, opts)
     finally:
         close = getattr(lab, "close", None)
         if close:

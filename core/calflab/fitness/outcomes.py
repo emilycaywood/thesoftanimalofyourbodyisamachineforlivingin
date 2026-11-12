@@ -50,8 +50,9 @@ class SuckleTask(BaseModel):
                               "light, steady lean is enough: Emily, 2026-11-11).")
     min_contact: float = P(0.9, ge=0.0, le=1.0, desc="Gate: share of the window pressing.")
     max_cv: float = P(0.3, ge=0.0, le=2.0, desc="Gate: largest std / mean of the forward force.")
-    max_slip_mm: float = P(10.0, unit="mm", ge=0.0, le=100.0,
-                           desc="Gate: largest net horizontal travel of a loaded hoof over the press window.")
+    max_slip_mm: float = P(30.0, unit="mm", ge=0.0, le=100.0,
+                           desc="Gate: largest net horizontal travel of a loaded hoof over the press window (30 mm: "
+                                "loosened from 10 for the simulator's soft-contact creep, ADR-110).")
     min_com_margin_mm: float = P(10.0, unit="mm", ge=-50.0, le=100.0,
                                  desc="Gate: centre of mass at least this far inside the hooves' support polygon "
                                       "(less = the block holds the body up).")

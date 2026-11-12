@@ -200,6 +200,7 @@ def test_preset_terms_and_settings() -> None:
     s = settings_from_preset("outcomes_r15")
     assert s.mass_model == "explicit_v2" and s.margin == 0.2
     assert s.space("suckle").task["press_from_s"] == 6.0
+    assert s.space("suckle").task["max_slip_mm"] == 30.0 and s.space("suckle").judge_s == 16.0  # variant A
     p = preset("outcomes_r15")
     out = {"suckle": {"holds": True, "within": True, "score": -0.15}, "trot": {"holds": False, "score": 900.0},
            "stand": {"holds": True, "within": True, "score": -0.05}, "lie": {}}

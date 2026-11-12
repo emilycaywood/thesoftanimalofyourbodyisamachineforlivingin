@@ -4255,10 +4255,16 @@ flags were not changed. Study: `docs/studies/outcomes_r15.md`.
    (`calflab.fitness.outcomes`). A version **holds** when every gate and every limit pass on all three judging seeds.
 2. **Suckle** (after Emily's note): the least servo effort, -(mean + worst)/2 of each servo's mean |torque| / rated
    torque over the press window (from 6 s), while pressing: forward head force >= 0.25 N at its 20th percentile and
-   in contact >= 90 % of the window, std/mean <= 0.3, no loaded hoof travelling more than 10 mm net, centre of mass
+   in contact >= 90 % of the window, std/mean <= 0.3, no loaded hoof travelling more than 30 mm net, centre of mass
    >= 10 mm inside the loaded hooves' support polygon (not propped by the block), the head not leaning down on the
    block (<= 0.1 body weight), nothing else touching it (<= 1 N), tilt <= 30 deg. First version (superseded the same
    day): the 20th-percentile force as a share of body weight, maximised.
+   **Variant A is the definition** (Emily chose it after a side-by-side of three versions): a 6 s approach then a
+   10 s press. The pilot's 30 s press (0.7 N) and variant B (10 s, a 1 N floor: nothing passed) are kept in the
+   study only. **The hoof slip limit is 30 mm, loosened from 10 mm** at Emily's request: A's best versions pressed
+   about 1.1 N within every limit on both bodies and failed only on 23-24 mm of net hoof travel, much of it the
+   simulator's soft-contact creep (fact 1). 30 mm is an ASSUMPTION: above what A needs, still well under a body
+   that skates off the block (it loses contact and fails `pressing` first).
 3. **The suckling scene** (`calflab.sim.scene`): the head lump (a 25 mm sphere, visual only in the body) is made solid
    for this scene only; a rigid 40 x 120 x 80 mm block with the model's default friction, its face 10 mm ahead of the
    head's front, centred at the head's standing height (the udder height relative to this body is not known).
@@ -4286,8 +4292,8 @@ flags were not changed. Study: `docs/studies/outcomes_r15.md`.
    limit** costs 2 and caps the score at half of min(score, 1); -5 for a fall; + the margin when negative; - 0.1 x
    the summed excess past the limits (margins saturate at -3). Best = lexicographic (holds, within, rank). Plays
    cached in `<project>/.cache/outcomes`; the rank is recomputed, never cached.
-10. **Search and judging lengths:** stand 12 / 120 s, trot 12 / 60 s, suckle 30 / 30 s (first 14 / 30 s; a lean that
-    holds 14 s creeps off the block by 30 s), lie its own length + 3.5 s.
+10. **Search and judging lengths:** stand 12 / 120 s, trot 12 / 60 s, suckle 16 / 16 s (variant A; first 14 / 30 s,
+    then 30 / 30 s: a lean that holds 14 s creeps off the block by 30 s), lie its own length + 3.5 s.
 11. **Contact probes** are recorded only when a model asks (`CompiledModel.probes`); every other rollout is
     unchanged. `FitnessPreset.outcomes` is a new optional block (None for every existing preset).
 
@@ -4303,3 +4309,8 @@ flags were not changed. Study: `docs/studies/outcomes_r15.md`.
    deg) the folded legs may not let the trunk reach the floor.
 3. **The search chased trots over a limit.** With a limit counted only by its (saturating) margin, g007-002's search
    led with a 733 mm/s trot over the hock belt's sustained limit (1.56) instead of slower trots that hold.
+4. **Suckling with variant A and a 30 mm slip limit holds on both bodies.** Re-searched (`suckle_final`, warm-started
+   from the usual leans and each body's best version of A; 265-277 plays, 654 s for both side by side). On both
+   bodies the best is A's own version: worst seed 0.87-0.88 N at the 20th percentile, about 1.0-1.1 N mean, std/mean
+   0.11-0.16, hooves 23-24 mm net, servo effort 0.11-0.14 of rated torque, safety margin 0.84-0.86. No lighter lean
+   held for the whole 10 s.
