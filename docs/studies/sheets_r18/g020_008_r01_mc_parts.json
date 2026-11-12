@@ -65,7 +65,7 @@
    ],
    "purchase_confirmed": false,
    "c_mm": 168.6,
-   "allowable_working_tension_n": null,
+   "allowable_working_tension_n": 179.6,
    "breaking_strength_n": 643.0,
    "verified": false
   },
@@ -134,7 +134,7 @@
    ],
    "purchase_confirmed": false,
    "c_mm": 150.58,
-   "allowable_working_tension_n": null,
+   "allowable_working_tension_n": 179.6,
    "breaking_strength_n": 643.0,
    "verified": false
   },
@@ -203,7 +203,7 @@
    ],
    "purchase_confirmed": false,
    "c_mm": 232.5,
-   "allowable_working_tension_n": null,
+   "allowable_working_tension_n": 179.6,
    "breaking_strength_n": 643.0,
    "verified": false
   }

@@ -1,0 +1,687 @@
+{
+ "belts": [
+  {
+   "drive": "stifle",
+   "qty": 2,
+   "system": "MM-3MGT-9",
+   "profile": "GT (3MGT)",
+   "pitch_mm": 3.0,
+   "vendor": "McMaster-Carr",
+   "part_number": "7947K771",
+   "price_usd": 11.04,
+   "guessed": [
+    "breaking_strength_n"
+   ],
+   "not_sourceable": [],
+   "width_mm": 9.0,
+   "pitch_length_mm": 180.0,
+   "teeth": 60,
+   "source": "McMaster-Carr 3MGT closed-loop belts, 9 mm wide",
+   "url": "https://www.mcmaster.com/",
+   "listings": [
+    "7947K765",
+    "7947K767",
+    "7947K769",
+    "7947K771",
+    "7947K772",
+    "7947K773",
+    "7947K774",
+    "7947K775",
+    "7947K776",
+    "7947K777",
+    "7947K778",
+    "7947K779",
+    "7947K781",
+    "7947K782",
+    "7947K783",
+    "7947K784",
+    "7947K785",
+    "7947K786",
+    "7947K787",
+    "7947K788",
+    "7947K789",
+    "7947K791",
+    "7947K792",
+    "7947K793",
+    "7947K795",
+    "7947K796",
+    "7947K797",
+    "7947K798",
+    "7947K811",
+    "7947K812",
+    "7947K813",
+    "7947K814",
+    "7947K815",
+    "7947K816",
+    "7947K817",
+    "7947K818",
+    "7947K822",
+    "7947K823",
+    "7947K824",
+    "7947K825",
+    "7947K826",
+    "7947K828",
+    "https://www.mcmaster.com/7947K771/ (7947K771; 60 teeth, 180 mm pitch length, 9 mm wide; page read 2026-11-12: price and Gates number listed, no weight)"
+   ],
+   "purchase_confirmed": false,
+   "c_mm": 39.44,
+   "allowable_working_tension_n": 179.6,
+   "breaking_strength_n": 643.0,
+   "verified": false
+  },
+  {
+   "drive": "hock",
+   "qty": 2,
+   "system": "MM-3MGT-9",
+   "profile": "GT (3MGT)",
+   "pitch_mm": 3.0,
+   "vendor": "McMaster-Carr",
+   "part_number": "7947K797",
+   "price_usd": 14.86,
+   "guessed": [
+    "breaking_strength_n"
+   ],
+   "not_sourceable": [],
+   "width_mm": 9.0,
+   "pitch_length_mm": 480.0,
+   "teeth": 160,
+   "source": "McMaster-Carr 3MGT closed-loop belts, 9 mm wide",
+   "url": "https://www.mcmaster.com/",
+   "listings": [
+    "7947K765",
+    "7947K767",
+    "7947K769",
+    "7947K771",
+    "7947K772",
+    "7947K773",
+    "7947K774",
+    "7947K775",
+    "7947K776",
+    "7947K777",
+    "7947K778",
+    "7947K779",
+    "7947K781",
+    "7947K782",
+    "7947K783",
+    "7947K784",
+    "7947K785",
+    "7947K786",
+    "7947K787",
+    "7947K788",
+    "7947K789",
+    "7947K791",
+    "7947K792",
+    "7947K793",
+    "7947K795",
+    "7947K796",
+    "7947K797",
+    "7947K798",
+    "7947K811",
+    "7947K812",
+    "7947K813",
+    "7947K814",
+    "7947K815",
+    "7947K816",
+    "7947K817",
+    "7947K818",
+    "7947K822",
+    "7947K823",
+    "7947K824",
+    "7947K825",
+    "7947K826",
+    "7947K828",
+    "https://www.mcmaster.com/7947K797/ (7947K797; 160 teeth, 480 mm pitch length, 9 mm wide; page read 2026-11-12: price and Gates number listed, no weight)"
+   ],
+   "purchase_confirmed": false,
+   "c_mm": 183.61,
+   "allowable_working_tension_n": 179.6,
+   "breaking_strength_n": 643.0,
+   "verified": false
+  },
+  {
+   "drive": "carpus",
+   "qty": 2,
+   "system": "MM-3MGT-9",
+   "profile": "GT (3MGT)",
+   "pitch_mm": 3.0,
+   "vendor": "McMaster-Carr",
+   "part_number": "7947K815",
+   "price_usd": 16.47,
+   "guessed": [
+    "breaking_strength_n"
+   ],
+   "not_sourceable": [],
+   "width_mm": 9.0,
+   "pitch_length_mm": 600.0,
+   "teeth": 200,
+   "source": "McMaster-Carr 3MGT closed-loop belts, 9 mm wide",
+   "url": "https://www.mcmaster.com/",
+   "listings": [
+    "7947K765",
+    "7947K767",
+    "7947K769",
+    "7947K771",
+    "7947K772",
+    "7947K773",
+    "7947K774",
+    "7947K775",
+    "7947K776",
+    "7947K777",
+    "7947K778",
+    "7947K779",
+    "7947K781",
+    "7947K782",
+    "7947K783",
+    "7947K784",
+    "7947K785",
+    "7947K786",
+    "7947K787",
+    "7947K788",
+    "7947K789",
+    "7947K791",
+    "7947K792",
+    "7947K793",
+    "7947K795",
+    "7947K796",
+    "7947K797",
+    "7947K798",
+    "7947K811",
+    "7947K812",
+    "7947K813",
+    "7947K814",
+    "7947K815",
+    "7947K816",
+    "7947K817",
+    "7947K818",
+    "7947K822",
+    "7947K823",
+    "7947K824",
+    "7947K825",
+    "7947K826",
+    "7947K828",
+    "https://www.mcmaster.com/7947K815/ (7947K815; 200 teeth, 600 mm pitch length, 9 mm wide; page read 2026-11-12: price and Gates number listed, no weight)"
+   ],
+   "purchase_confirmed": false,
+   "c_mm": 240.69,
+   "allowable_working_tension_n": 179.6,
+   "breaking_strength_n": 643.0,
+   "verified": false
+  }
+ ],
+ "pulleys": [
+  {
+   "drive": "stifle",
+   "role": "driver (servo)",
+   "qty": 2,
+   "teeth": 20,
+   "pitch_mm": 3.0,
+   "belt_width_mm": 9.0,
+   "pitch_diameter_mm": 19.099,
+   "bores_mm": [
+    6.35
+   ],
+   "listed_mass_g": null,
+   "listings": [
+    {
+     "url": "https://www.mcmaster.com/3764N128/",
+     "label": "McMaster-Carr 3764N128 (20T 3MGT, 1/4 in bore)",
+     "read": true,
+     "note": "page read 2026-11-12: High-Strength Gt Timing Belt Pulley, Press-Fit Mount, for 9 mm Maximum Belt Width"
+    }
+   ],
+   "catalog_id": "MM-3MGT-20T",
+   "verified": false,
+   "vendor": "McMaster-Carr",
+   "part_number": "3764N128",
+   "price_usd": 11.06,
+   "listed": {
+    "pitch_diameter_mm": 19.1,
+    "flanges": 2,
+    "bore": "finished, for 1/4 in shaft",
+    "shaft_mount": "set screw",
+    "hub": "standard",
+    "price_usd": 11.06,
+    "from": "part page read 2026-11-12",
+    "read": "2026-11-12",
+    "for_belt_trade_size": "3MGT",
+    "max_belt_width_mm": 9,
+    "hub_type": "standard",
+    "hub_diameter_mm": 12.7,
+    "inside_width_mm": 10.16,
+    "od_mm": 23,
+    "outside_width_mm": 12.95,
+    "overall_width_mm": 20.62
+   },
+   "note": ""
+  },
+  {
+   "drive": "stifle",
+   "role": "driven (joint)",
+   "qty": 2,
+   "teeth": 45,
+   "pitch_mm": 3.0,
+   "belt_width_mm": 9.0,
+   "pitch_diameter_mm": 42.972,
+   "bores_mm": [
+    6.35
+   ],
+   "listed_mass_g": null,
+   "listings": [
+    {
+     "url": "https://www.mcmaster.com/3764N141/",
+     "label": "McMaster-Carr 3764N141 (45T 3MGT, 1/4 in bore)",
+     "read": true,
+     "note": "page read 2026-11-12: High-Strength Gt Timing Belt Pulley, Press-Fit Mount, for 9 mm Maximum Belt Width"
+    }
+   ],
+   "catalog_id": "MM-3MGT-45T",
+   "verified": false,
+   "vendor": "McMaster-Carr",
+   "part_number": "3764N141",
+   "price_usd": 16.71,
+   "listed": {
+    "pitch_diameter_mm": 43.0,
+    "flanges": 2,
+    "bore": "finished, for 1/4 in shaft",
+    "shaft_mount": "set screw",
+    "hub": "standard",
+    "price_usd": 16.71,
+    "from": "part page read 2026-11-12",
+    "read": "2026-11-12",
+    "for_belt_trade_size": "3MGT",
+    "max_belt_width_mm": 9,
+    "hub_type": "standard",
+    "hub_diameter_mm": 31.75,
+    "inside_width_mm": 10.16,
+    "od_mm": 45,
+    "outside_width_mm": 13.46,
+    "overall_width_mm": 21.16
+   },
+   "note": ""
+  },
+  {
+   "drive": "hock",
+   "role": "driver (servo)",
+   "qty": 2,
+   "teeth": 30,
+   "pitch_mm": 3.0,
+   "belt_width_mm": 9.0,
+   "pitch_diameter_mm": 28.648,
+   "bores_mm": [
+    6.35
+   ],
+   "listed_mass_g": null,
+   "listings": [
+    {
+     "url": "https://www.mcmaster.com/3764N134/",
+     "label": "McMaster-Carr 3764N134 (30T 3MGT, 1/4 in bore)",
+     "read": true,
+     "note": "page read 2026-11-12: High-Strength Gt Timing Belt Pulley, Press-Fit Mount, for 9 mm Maximum Belt Width"
+    }
+   ],
+   "catalog_id": "MM-3MGT-30T",
+   "verified": false,
+   "vendor": "McMaster-Carr",
+   "part_number": "3764N134",
+   "price_usd": 19.38,
+   "listed": {
+    "pitch_diameter_mm": 28.7,
+    "flanges": 2,
+    "bore": "finished, for 1/4 in shaft",
+    "shaft_mount": "set screw",
+    "hub": "standard",
+    "price_usd": 19.38,
+    "from": "part page read 2026-11-12",
+    "read": "2026-11-12",
+    "for_belt_trade_size": "3MGT",
+    "max_belt_width_mm": 9,
+    "hub_type": "standard",
+    "hub_diameter_mm": 19.71,
+    "inside_width_mm": 10.16,
+    "od_mm": 32,
+    "outside_width_mm": 12.95,
+    "overall_width_mm": 20.62
+   },
+   "note": ""
+  },
+  {
+   "drive": "hock",
+   "role": "driven (joint)",
+   "qty": 2,
+   "teeth": 45,
+   "pitch_mm": 3.0,
+   "belt_width_mm": 9.0,
+   "pitch_diameter_mm": 42.972,
+   "bores_mm": [
+    6.35
+   ],
+   "listed_mass_g": null,
+   "listings": [
+    {
+     "url": "https://www.mcmaster.com/3764N141/",
+     "label": "McMaster-Carr 3764N141 (45T 3MGT, 1/4 in bore)",
+     "read": true,
+     "note": "page read 2026-11-12: High-Strength Gt Timing Belt Pulley, Press-Fit Mount, for 9 mm Maximum Belt Width"
+    }
+   ],
+   "catalog_id": "MM-3MGT-45T",
+   "verified": false,
+   "vendor": "McMaster-Carr",
+   "part_number": "3764N141",
+   "price_usd": 16.71,
+   "listed": {
+    "pitch_diameter_mm": 43.0,
+    "flanges": 2,
+    "bore": "finished, for 1/4 in shaft",
+    "shaft_mount": "set screw",
+    "hub": "standard",
+    "price_usd": 16.71,
+    "from": "part page read 2026-11-12",
+    "read": "2026-11-12",
+    "for_belt_trade_size": "3MGT",
+    "max_belt_width_mm": 9,
+    "hub_type": "standard",
+    "hub_diameter_mm": 31.75,
+    "inside_width_mm": 10.16,
+    "od_mm": 45,
+    "outside_width_mm": 13.46,
+    "overall_width_mm": 21.16
+   },
+   "note": ""
+  },
+  {
+   "drive": "carpus",
+   "role": "driver (servo)",
+   "qty": 2,
+   "teeth": 34,
+   "pitch_mm": 3.0,
+   "belt_width_mm": 9.0,
+   "pitch_diameter_mm": 32.468,
+   "bores_mm": [
+    6.35
+   ],
+   "listed_mass_g": null,
+   "listings": [
+    {
+     "url": "https://www.mcmaster.com/3764N136/",
+     "label": "McMaster-Carr 3764N136 (34T 3MGT, 1/4 in bore)",
+     "read": true,
+     "note": "page read 2026-11-12: High-Strength Gt Timing Belt Pulley, Press-Fit Mount, for 9 mm Maximum Belt Width"
+    }
+   ],
+   "catalog_id": "MM-3MGT-34T",
+   "verified": false,
+   "vendor": "McMaster-Carr",
+   "part_number": "3764N136",
+   "price_usd": 21.19,
+   "listed": {
+    "pitch_diameter_mm": 32.5,
+    "flanges": 2,
+    "bore": "finished, for 1/4 in shaft",
+    "shaft_mount": "set screw",
+    "hub": "standard",
+    "price_usd": 21.19,
+    "from": "part page read 2026-11-12",
+    "read": "2026-11-12",
+    "for_belt_trade_size": "3MGT",
+    "max_belt_width_mm": 9,
+    "hub_type": "standard",
+    "hub_diameter_mm": 23.39,
+    "inside_width_mm": 10.16,
+    "od_mm": 36,
+    "outside_width_mm": 13.46,
+    "overall_width_mm": 21.16
+   },
+   "note": ""
+  },
+  {
+   "drive": "carpus",
+   "role": "driven (joint)",
+   "qty": 2,
+   "teeth": 45,
+   "pitch_mm": 3.0,
+   "belt_width_mm": 9.0,
+   "pitch_diameter_mm": 42.972,
+   "bores_mm": [
+    6.35
+   ],
+   "listed_mass_g": null,
+   "listings": [
+    {
+     "url": "https://www.mcmaster.com/3764N141/",
+     "label": "McMaster-Carr 3764N141 (45T 3MGT, 1/4 in bore)",
+     "read": true,
+     "note": "page read 2026-11-12: High-Strength Gt Timing Belt Pulley, Press-Fit Mount, for 9 mm Maximum Belt Width"
+    }
+   ],
+   "catalog_id": "MM-3MGT-45T",
+   "verified": false,
+   "vendor": "McMaster-Carr",
+   "part_number": "3764N141",
+   "price_usd": 16.71,
+   "listed": {
+    "pitch_diameter_mm": 43.0,
+    "flanges": 2,
+    "bore": "finished, for 1/4 in shaft",
+    "shaft_mount": "set screw",
+    "hub": "standard",
+    "price_usd": 16.71,
+    "from": "part page read 2026-11-12",
+    "read": "2026-11-12",
+    "for_belt_trade_size": "3MGT",
+    "max_belt_width_mm": 9,
+    "hub_type": "standard",
+    "hub_diameter_mm": 31.75,
+    "inside_width_mm": 10.16,
+    "od_mm": 45,
+    "outside_width_mm": 13.46,
+    "overall_width_mm": 21.16
+   },
+   "note": ""
+  }
+ ],
+ "springs": [
+  {
+   "site": "hip_abd",
+   "qty": 2,
+   "rate_n_per_mm": 0.0889,
+   "free_length_mm": 30.0,
+   "standing_length_mm": 47.9,
+   "max_extension_mm": 33.8,
+   "peak_force_n_range": 3.0,
+   "line_clear_of_joint": true,
+   "verified": false
+  },
+  {
+   "site": "hock",
+   "qty": 2,
+   "rate_n_per_mm": 0.1285,
+   "free_length_mm": 48.8,
+   "standing_length_mm": 87.2,
+   "max_extension_mm": 47.6,
+   "peak_force_n_range": 6.1,
+   "line_clear_of_joint": false,
+   "verified": false
+  },
+  {
+   "site": "stifle",
+   "qty": 2,
+   "rate_n_per_mm": 0.2954,
+   "free_length_mm": 70.8,
+   "standing_length_mm": 120.9,
+   "max_extension_mm": 63.4,
+   "peak_force_n_range": 18.7,
+   "line_clear_of_joint": false,
+   "verified": false
+  }
+ ],
+ "servos": [
+  {
+   "pair": "hip_abd",
+   "qty": 2,
+   "component": "sts3250_c002",
+   "name": "Feetech STS3250 C002 (12 V)",
+   "verified": false
+  },
+  {
+   "pair": "stifle",
+   "qty": 2,
+   "component": "sts3215_c018",
+   "name": "Feetech STS3215 C018 (12 V)",
+   "verified": false
+  },
+  {
+   "pair": "hock",
+   "qty": 2,
+   "component": "sts3250_c002",
+   "name": "Feetech STS3250 C002 (12 V)",
+   "verified": false
+  },
+  {
+   "pair": "shoulder",
+   "qty": 2,
+   "component": "sts3250_c002",
+   "name": "Feetech STS3250 C002 (12 V)",
+   "verified": false
+  },
+  {
+   "pair": "carpus",
+   "qty": 2,
+   "component": "sts3250_c002",
+   "name": "Feetech STS3250 C002 (12 V)",
+   "verified": false
+  }
+ ],
+ "to_verify": [
+  "stifle belt: 9 mm GT (3MGT), 180 mm (60 teeth) is really listed and orderable (source MM-3MGT); purchase_confirmed is false",
+  "stifle driver (servo) pulley 20T for 9 mm: listing, bore to fit the servo horn / spline (not checked in simulation)",
+  "stifle driven (joint) pulley 45T for 9 mm: listing, bore to fit the joint shaft",
+  "hock belt: 9 mm GT (3MGT), 480 mm (160 teeth) is really listed and orderable (source MM-3MGT); purchase_confirmed is false",
+  "hock driver (servo) pulley 30T for 9 mm: listing, bore to fit the servo horn / spline (not checked in simulation)",
+  "hock driven (joint) pulley 45T for 9 mm: listing, bore to fit the joint shaft",
+  "carpus belt: 9 mm GT (3MGT), 600 mm (200 teeth) is really listed and orderable (source MM-3MGT); purchase_confirmed is false",
+  "carpus driver (servo) pulley 34T for 9 mm: listing, bore to fit the servo horn / spline (not checked in simulation)",
+  "carpus driven (joint) pulley 45T for 9 mm: listing, bore to fit the joint shaft",
+  "hip_abd spring: a tension spring of 0.0889 N/mm, free length 30 mm, that survives 33.8 mm of extension (3 N) - no spring has been sourced yet",
+  "hock spring: a tension spring of 0.1285 N/mm, free length 48.8 mm, that survives 47.6 mm of extension (6.1 N) - no spring has been sourced yet",
+  "stifle spring: a tension spring of 0.2954 N/mm, free length 70.8 mm, that survives 63.4 mm of extension (18.7 N) - no spring has been sourced yet",
+  "servo sts3215_c018: every library value (unverified)",
+  "servo sts3250_c002: every library value (unverified)",
+  "driving pulley to servo spline connection: not checked in simulation",
+  "lateral stack (tube, pulley, belt, spring offsets) and pulley clearance at each joint for its own diameter: not modelled (one-plane assumption)"
+ ],
+ "bom": {
+  "rows": [
+   {
+    "part_number": "7947K771",
+    "vendor": "McMaster-Carr",
+    "kind": "belt",
+    "description": "GT (3MGT) closed belt, 180 mm pitch length (60 teeth), 9 mm wide",
+    "qty": 2,
+    "unit_usd": 11.04,
+    "used_by": [
+     "stifle belt"
+    ],
+    "line_usd": 22.08
+   },
+   {
+    "part_number": "7947K797",
+    "vendor": "McMaster-Carr",
+    "kind": "belt",
+    "description": "GT (3MGT) closed belt, 480 mm pitch length (160 teeth), 9 mm wide",
+    "qty": 2,
+    "unit_usd": 14.86,
+    "used_by": [
+     "hock belt"
+    ],
+    "line_usd": 29.72
+   },
+   {
+    "part_number": "7947K815",
+    "vendor": "McMaster-Carr",
+    "kind": "belt",
+    "description": "GT (3MGT) closed belt, 600 mm pitch length (200 teeth), 9 mm wide",
+    "qty": 2,
+    "unit_usd": 16.47,
+    "used_by": [
+     "carpus belt"
+    ],
+    "line_usd": 32.94
+   },
+   {
+    "part_number": "3764N128",
+    "vendor": "McMaster-Carr",
+    "kind": "pulley",
+    "description": "20T 3 mm pitch pulley for 9 mm belts, bore 6.35 mm",
+    "qty": 2,
+    "unit_usd": 11.06,
+    "used_by": [
+     "stifle driver (servo)"
+    ],
+    "line_usd": 22.12
+   },
+   {
+    "part_number": "3764N134",
+    "vendor": "McMaster-Carr",
+    "kind": "pulley",
+    "description": "30T 3 mm pitch pulley for 9 mm belts, bore 6.35 mm",
+    "qty": 2,
+    "unit_usd": 19.38,
+    "used_by": [
+     "hock driver (servo)"
+    ],
+    "line_usd": 38.76
+   },
+   {
+    "part_number": "3764N136",
+    "vendor": "McMaster-Carr",
+    "kind": "pulley",
+    "description": "34T 3 mm pitch pulley for 9 mm belts, bore 6.35 mm",
+    "qty": 2,
+    "unit_usd": 21.19,
+    "used_by": [
+     "carpus driver (servo)"
+    ],
+    "line_usd": 42.38
+   },
+   {
+    "part_number": "3764N141",
+    "vendor": "McMaster-Carr",
+    "kind": "pulley",
+    "description": "45T 3 mm pitch pulley for 9 mm belts, bore 6.35 mm",
+    "qty": 6,
+    "unit_usd": 16.71,
+    "used_by": [
+     "stifle driven (joint)",
+     "hock driven (joint)",
+     "carpus driven (joint)"
+    ],
+    "line_usd": 100.26
+   }
+  ],
+  "total_usd": 288.26,
+  "complete": true,
+  "unpriced": [],
+  "open_items": [
+   {
+    "item": "servo_shaft_adapter",
+    "description": "Servo output (spline horn) to 1/4 in round shaft adapter, one per belted servo",
+    "qty": 6,
+    "priced": false,
+    "note": "open: not chosen, not modelled (mass and size not added)"
+   },
+   {
+    "item": "joint_axle",
+    "description": "1/4 in joint axle carrying the driven pulley, one per belted joint",
+    "qty": 6,
+    "priced": false,
+    "note": "open: not chosen, not modelled (mass and size not added)"
+   }
+  ],
+  "currency": "USD",
+  "note": "prices as read from the vendor's pages; shipping and tax not included"
+ },
+ "body": "r18-a",
+ "breaking_strength": "assumed (researcher's assumption 2026-11-12, 51 lbf per 1/8 in of width)",
+ "sustained_belt_tension": "unknown: no allowable working tension (not published, not supplied)"
+}

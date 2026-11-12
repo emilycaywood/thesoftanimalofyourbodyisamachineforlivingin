@@ -172,8 +172,8 @@ def test_the_r18_compare_manifest_judges_each_body_from_the_study_only(tmp_path)
 
     beh = {"shown": [{"key": "full:walk|4|2", "group": "walk", "descriptor": {"class": "walk", "speed": 256.0,
                                                                              "turn": 0.0}, "outcome": {}}]}
-    rec = {"key": "full:walk|4|2", "holds": True, "within": False, "within_excl": True, "margin_excl": 0.12,
-           "violations": ["belt_sustained"], "binding": {"joint": "hl.hock", "limit": "speed"},
+    rec = {"key": "full:walk|4|2", "holds": True, "within": True, "within_excl": True, "margin": 0.12,
+           "margin_excl": 0.12, "violations": [], "binding": {"joint": "hl.hock", "limit": "speed"},
            "belts": {"hl.hock": {"belt_peak_n": 61.0, "belt_mean_n": 18.0}}}
     study = {"replay": {"a": [{**rec, "seed": s} for s in (0, 1, 2)],
                         "b": [{**rec, "seed": 0}, {**rec, "seed": 1, "holds": False}, {**rec, "seed": 2}]},
@@ -188,7 +188,9 @@ def test_the_r18_compare_manifest_judges_each_body_from_the_study_only(tmp_path)
         bc.BODY_SETS.pop("_t")
     assert [b["key"] for b in m["bodies"]] == ["a", "b"] and m["stored"] == 1 and m["missing"] == 1
     a, b = m["groups"][0]["items"][0]["cells"]
-    assert a["seeds"][0]["badge"] == "within" and "61 N" in a["seeds"][0]["text"]  # sustained belt not counted
+    assert a["seeds"][0]["badge"] == "within" and "61 N" in a["seeds"][0]["text"]
+    over = {**rec, "within": False, "violations": ["belt_sustained"], "seed": 0}
+    assert bc.judged([over])["badge"] == "over"  # sustained belt tension counts since ADR-120
     assert b["seeds"][0]["badge"] == "over" and "does not hold on 1" in b["seeds"][0]["text"] and b["empty"]
 
 

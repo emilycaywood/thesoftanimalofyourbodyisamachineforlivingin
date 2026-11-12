@@ -12,9 +12,9 @@ Read from the study's JSON (``docs/studies/mcmaster_r18.json``):
   are R16's own runs (``diversity_r16.json`` shown);
 * ``labels[body]``: the cell's title line.
 
-Badges: green = holds and within every limit at the margin on every seed, **excluding sustained belt tension** (the
-McMaster belts have no allowable working tension; breaking strength is assumed); red = over a limit or unsafe on a
-seed (the limit named). Units: N, mm/s.
+Badges: green = holds and within every limit at the margin on every seed, sustained belt tension included (the
+McMaster belts' allowable working tension is Gates' published figure, ADR-120; their breaking strength is assumed);
+red = over a limit or unsafe on a seed (the limit named). Units: N, mm/s.
 """
 from __future__ import annotations
 
@@ -38,7 +38,7 @@ class BodyCompareSet(BaseModel):
 BODY_SETS: dict[str, BodyCompareSet] = {
     "r18": BodyCompareSet(key="r18", title="R18 / g020-008-r01 on McMaster-Carr belt parts",
                           study="docs/studies/mcmaster_r18.json", behaviours="docs/studies/diversity_r16.json",
-                          note="within = excluding sustained belt tension (no allowable working tension); breaking "
+                          note="within every limit incl. sustained belt tension (Gates 17611-T allowable); breaking "
                                "strength assumed"),
 }
 
@@ -53,18 +53,18 @@ def judged(records: list[dict[str, Any]]) -> dict[str, Any]:
     binding limit of the worst seed, and the largest belt peak / mean (N) over the seeds."""
     if not records:
         return {"badge": "empty", "text": "not replayed", "margin": None, "limit": None}
-    ok = all(r["holds"] and r["within_excl"] for r in records)
-    ms = [r["margin_excl"] for r in records if r.get("margin_excl") is not None]
-    worst = min(records, key=lambda r: r["margin_excl"] if r.get("margin_excl") is not None else 9.0)
+    ok = all(r["holds"] and r["within"] for r in records)
+    ms = [r["margin"] for r in records if r.get("margin") is not None]
+    worst = min(records, key=lambda r: r["margin"] if r.get("margin") is not None else 9.0)
     b = worst.get("binding") or {}
     limit = f"{b.get('joint')} {b.get('limit')}" if b.get("joint") else None
     peaks = [v["belt_peak_n"] for r in records for v in (r.get("belts") or {}).values()]
     means = [v["belt_mean_n"] for r in records for v in (r.get("belts") or {}).values()]
     belt = f"belt peak {max(peaks):.0f} N, mean {max(means):.0f} N" if peaks else ""
     if ok:
-        text = f"holds and within* on all {len(records)} seeds"
+        text = f"holds and within limits on all {len(records)} seeds"
     elif all(r["holds"] for r in records):
-        bad = sorted({v for r in records for v in r["violations"] if v != "belt_sustained"})
+        bad = sorted({v for r in records for v in r["violations"]})
         text = "holds, but over " + (", ".join(bad) or "a limit")
     else:
         text = "does not hold on " + ", ".join(str(r["seed"]) for r in records if not r["holds"])

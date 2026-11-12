@@ -199,9 +199,11 @@ def _lengths(pitch: int, width: int, belts: dict[int, int], prices: dict[str, fl
     return out
 
 
-#: belt prices read from their part pages (R18: Gates 450-3P-09, 414-3P-09, 600-3P-09; "Outer Circle" = the pitch
+#: belt prices read from their part pages (R18: Gates 450-3P-09, 414-3P-09, 600-3P-09, 180-3P-09, 480-3P-09,
+#: 420-3P-09, 375-3P-09; "Outer Circle" = the pitch
 #: length; no weight listed); a belt not read has no price
-BELT_PRICES: dict[str, float] = {"7947K795": 14.43, "7947K792": 14.18, "7947K815": 16.47}
+BELT_PRICES: dict[str, float] = {"7947K795": 14.43, "7947K792": 14.18, "7947K815": 16.47, "7947K771": 11.04,
+                                 "7947K797": 14.86, "7947K793": 14.18, "7947K789": 13.43}
 
 
 def _mark(entry: dict[str, Any], key: str) -> None:
