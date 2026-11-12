@@ -4332,3 +4332,13 @@ g020-008-r01); g011-003 was never judged at real weight and is left out.
 3. **The three bodies without R15 searches** (working, g009-000, g020-008-r01) were searched with the same spaces,
    search settings and suckle definition (variant A, slip 30 mm) as g007-002 and g012-009. g007-002's and g012-009's
    stand, trot and lie come from the pilot (suckle from `suckle_final`), so the five are judged alike.
+
+*Facts found* (worst of three seeds; the three new searches took 38 min side by side, 14 workers).
+1. **Every body stands and suckles; none lies down within the limits.** Stand: effort mean 0.05-0.09. Suckle (A):
+   0.91-1.20 N at the 20th percentile, hooves creep 24-28 mm. Lie: every best version is over the sustained-torque
+   limit (hl.stifle on four bodies, fl.shoulder on g009-000), and the working body, g009-000 and g020-008-r01 also
+   tip or fall in the search (rank below -6).
+2. **Trot holds on g009-000 (294 mm/s), g012-009 (311 mm/s, diagonal trot) and g020-008-r01 (544 mm/s, diagonal
+   trot).** The working body and g007-002 are over the front carpus's speed limit (1.22-1.25) with a walk-like
+   footfall at about 264 mm/s.
+3. So g009-000, g012-009 and g020-008-r01 hold three of four; the working body and g007-002 two.
