@@ -109,8 +109,8 @@
       "pitch_mm": 2,
       "width_mm": 6,
       "construction": "Neoprene, fiberglass cord, nylon-coated teeth; one-sided teeth; -30 to 180 F (McMaster-Carr)",
-      "allowable_working_tension_n": null,
-      "allowable_working_tension_derivation": "not published by McMaster-Carr and not supplied: unknown. Never derived from the breaking strength or any other figure.",
+      "allowable_working_tension_n": 26.2,
+      "allowable_working_tension_derivation": "Gates recommended working tension for 2M PowerGrip GT2, 111 N per 1 in (25.4 mm) of width, proportioned directly with width (note 6): 111 x 6 / 25.4 = 26.2 N. Source: Gates, Synchronous Belt Data Summary - Belt Tensile Properties, doc 17611-T (3/07), https://fab.cba.mit.edu/classes/865.21/topics/mechanical_design/reference/BeltTensileProperties.pdf, read 2026-11-12. Entered 2026-11-12 on the researcher's instruction (ADR-120).",
       "breaking_strength_n": 429.0,
       "breaking_strength_derivation": "researcher's assumption 2026-11-12: 51 lbf per 1/8 in of width (71.4 N/mm) x width; not published by McMaster = 428.7 N for 6 mm, entered as 429 N as supplied",
       "length_sources": [
@@ -119,7 +119,7 @@
       "sources": [
         "McMaster-Carr closed-loop GT timing belts 2MGT 6 mm wide, 7947K711 to 7947K764 (50-582 teeth); pulleys 3764N118, 3764N119; part list read from mcmaster.com 2026-11-12"
       ],
-      "notes": "Breaking strength is the researcher's assumption (guessed): every result that uses it says 'breaking strength assumed'. The sustained belt-tension check is unknown until an allowable working tension is supplied.",
+      "notes": "Breaking strength is the researcher's assumption (guessed): every result that uses it says 'breaking strength assumed'. The allowable working tension is Gates' published recommended working tension (17611-T), not a full drive-design rating by pulley teeth and teeth in mesh; it is GT2-generation data applied to belts McMaster lists as GT2/GT3/GT4 compatible (likely conservative for GT3); it assumes neoprene/fiberglass belts, near-minimum pulley diameters and speeds below 300 rpm (note 5). Gates' minimum total ultimate strength (note 3: not for drive design) per span: 5 338 N / 2 spans x 6 / 25.4 x 0.82 (note 4, below 1/4 in) = 517 N, for comparison only.",
       "vendor": "McMaster-Carr",
       "source": "https://www.mcmaster.com/ (2MGT closed belts 7947K711-7947K764) 2026-11-12",
       "guessed": [
@@ -135,8 +135,8 @@
       "pitch_mm": 3,
       "width_mm": 9,
       "construction": "Neoprene, fiberglass cord, nylon-coated teeth; one-sided teeth; -30 to 180 F (McMaster-Carr)",
-      "allowable_working_tension_n": null,
-      "allowable_working_tension_derivation": "not published by McMaster-Carr and not supplied: unknown. Never derived from the breaking strength or any other figure.",
+      "allowable_working_tension_n": 179.6,
+      "allowable_working_tension_derivation": "Gates recommended working tension for 3M PowerGrip GT2, 507 N per 1 in (25.4 mm) of width, proportioned directly with width (note 6): 507 x 9 / 25.4 = 179.6 N. Source: Gates, Synchronous Belt Data Summary - Belt Tensile Properties, doc 17611-T (3/07), https://fab.cba.mit.edu/classes/865.21/topics/mechanical_design/reference/BeltTensileProperties.pdf, read 2026-11-12. Entered 2026-11-12 on the researcher's instruction (ADR-120).",
       "breaking_strength_n": 643.0,
       "breaking_strength_derivation": "researcher's assumption 2026-11-12: 51 lbf per 1/8 in of width (71.4 N/mm) x width; not published by McMaster = 643.1 N for 9 mm, entered as 643 N as supplied",
       "length_sources": [
@@ -145,7 +145,7 @@
       "sources": [
         "McMaster-Carr closed-loop GT timing belts 3MGT 9 mm wide, 7947K765 to 7947K828 (33-687 teeth); pulleys 3764N125, 3764N126, 3764N127, 3764N128, 3764N129, 3764N13, 3764N131, 3764N132, 3764N133, 3764N134, 3764N135, 3764N136, 3764N137, 3764N139, 3764N14, 3764N141; part list read from mcmaster.com 2026-11-12"
       ],
-      "notes": "Breaking strength is the researcher's assumption (guessed): every result that uses it says 'breaking strength assumed'. The sustained belt-tension check is unknown until an allowable working tension is supplied.",
+      "notes": "Breaking strength is the researcher's assumption (guessed): every result that uses it says 'breaking strength assumed'. The allowable working tension is Gates' published recommended working tension (17611-T), not a full drive-design rating by pulley teeth and teeth in mesh; it is GT2-generation data applied to belts McMaster lists as GT2/GT3/GT4 compatible (likely conservative for GT3); it assumes neoprene/fiberglass belts, near-minimum pulley diameters and speeds below 300 rpm (note 5). Gates' minimum total ultimate strength (note 3: not for drive design) per span: 9 786 N / 2 spans x 9 / 25.4 x 0.90 (note 4, 1/4-1/2 in) = 1 560 N, for comparison only.",
       "vendor": "McMaster-Carr",
       "source": "https://www.mcmaster.com/ (3MGT closed belts 7947K765-7947K828) 2026-11-12",
       "guessed": [

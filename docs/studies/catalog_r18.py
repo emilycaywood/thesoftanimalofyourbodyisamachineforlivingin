@@ -103,6 +103,17 @@ EVIDENCE = {
     "GT2-2mm-640-C": "one unconfirmed listing (source C)",
     "GT2-2mm-444-C": "one unconfirmed listing (source C)",
 }
+#: Gates, "Synchronous Belt Data Summary - Belt Tensile Properties", doc 17611-T (3/07), read 2026-11-12 (ADR-120):
+#: recommended working tension per 1 in of width (N) and minimum total ultimate strength per 1 in (N, both spans)
+GATES_DOC = ("Source: Gates, Synchronous Belt Data Summary - Belt Tensile Properties, doc 17611-T (3/07), "
+             "https://fab.cba.mit.edu/classes/865.21/topics/mechanical_design/reference/BeltTensileProperties.pdf, "
+             "read 2026-11-12")
+GATES_WORKING_N_PER_IN = {2: 111.0, 3: 507.0}
+GATES_ULT_N_PER_IN = {2: 5338.0, 3: 9786.0}
+GATES_ULT_NOTE = {
+    2: "5 338 N / 2 spans x 6 / 25.4 x 0.82 (note 4, below 1/4 in) = 517 N, for comparison only",
+    3: "9 786 N / 2 spans x 9 / 25.4 x 0.90 (note 4, 1/4-1/2 in) = 1 560 N, for comparison only",
+}
 BREAK_PER_MM = 51.0 * 4.4482216152605 / 3.175  # N per mm of width, the researcher's assumption (71.45)
 BREAK_DERIVATION = ("researcher's assumption 2026-11-12: 51 lbf per 1/8 in of width (71.4 N/mm) x width; not published "
                     "by McMaster")
@@ -114,9 +125,12 @@ def _sys(pitch: int, width: int, belts: dict[int, int], pulleys: dict[int, Any],
     return {
         "id": sid, "profile": f"GT ({pitch}MGT)", "pitch_mm": pitch, "width_mm": width,
         "construction": "Neoprene, fiberglass cord, nylon-coated teeth; one-sided teeth; -30 to 180 F (McMaster-Carr)",
-        "allowable_working_tension_n": None,
-        "allowable_working_tension_derivation": "not published by McMaster-Carr and not supplied: unknown. Never "
-                                                "derived from the breaking strength or any other figure.",
+        "allowable_working_tension_n": round(GATES_WORKING_N_PER_IN[pitch] * width / 25.4, 1),
+        "allowable_working_tension_derivation": (
+            f"Gates recommended working tension for {pitch}M PowerGrip GT2, {GATES_WORKING_N_PER_IN[pitch]:g} N per "
+            f"1 in (25.4 mm) of width, proportioned directly with width (note 6): {GATES_WORKING_N_PER_IN[pitch]:g} x "
+            f"{width} / 25.4 = {GATES_WORKING_N_PER_IN[pitch] * width / 25.4:.1f} N. {GATES_DOC}. Entered "
+            "2026-11-12 on the researcher's instruction (ADR-120)."),
         "breaking_strength_n": brk,
         "breaking_strength_derivation": f"{BREAK_DERIVATION} = {BREAK_PER_MM * width:.1f} N for {width} mm, entered as "
                                         f"{brk:g} N as supplied",
@@ -125,8 +139,12 @@ def _sys(pitch: int, width: int, belts: dict[int, int], pulleys: dict[int, Any],
                     f"7947K{belts[hi]} ({lo}-{hi} teeth); pulleys "
                     + ", ".join(v[0] for v in pulleys.values()) + f"; part list read from mcmaster.com {DATE}"],
         "notes": "Breaking strength is the researcher's assumption (guessed): every result that uses it says "
-                 "'breaking strength assumed'. The sustained belt-tension check is unknown until an allowable working "
-                 "tension is supplied.",
+                 "'breaking strength assumed'. The allowable working tension is Gates' published recommended working "
+                 "tension (17611-T), not a full drive-design rating by pulley teeth and teeth in mesh; it is "
+                 "GT2-generation data applied to belts McMaster lists as GT2/GT3/GT4 compatible (likely conservative "
+                 "for GT3); it assumes neoprene/fiberglass belts, near-minimum pulley diameters and speeds below "
+                 "300 rpm (note 5). Gates' minimum total ultimate strength (note 3: not for drive design) per span: "
+                 + GATES_ULT_NOTE[pitch] + ".",
         "vendor": VENDOR,
         "source": f"https://www.mcmaster.com/ ({pitch}MGT closed belts 7947K{belts[lo]}-7947K{belts[hi]}) {DATE}",
         "guessed": ["breaking_strength_n"], "verified": False, "purchase_confirmed": False, "not_sourceable": "",

@@ -37,7 +37,7 @@ def test_two_mcmaster_systems_with_the_assumed_breaking_strength_and_no_allowabl
     assert (a.pitch_mm, a.width_mm, b.pitch_mm, b.width_mm) == (2, 6, 3, 9)
     assert (a.breaking_strength_n, b.breaking_strength_n) == (429, 643)
     for x in (a, b):
-        assert x.allowable_working_tension_n is None  # not published, never derived
+        assert "breaking_strength_n" in x.guessed and "allowable_working_tension_n" not in x.guessed
         assert x.guessed == ["breaking_strength_n"]
         assert "researcher's assumption 2026-11-12: 51 lbf per 1/8 in of width" in x.breaking_strength_derivation
         assert not x.verified and not x.purchase_confirmed and x.vendor == "McMaster-Carr" and "2026-11-12" in x.source
@@ -190,3 +190,16 @@ def test_the_r18_compare_manifest_judges_each_body_from_the_study_only(tmp_path)
     a, b = m["groups"][0]["items"][0]["cells"]
     assert a["seeds"][0]["badge"] == "within" and "61 N" in a["seeds"][0]["text"]  # sustained belt not counted
     assert b["seeds"][0]["badge"] == "over" and "does not hold on 1" in b["seeds"][0]["text"] and b["empty"]
+
+
+def test_the_allowable_working_tension_is_gates_per_inch_figure_times_width(catalog: BeltCatalog) -> None:
+    """ADR-120: Gates 17611-T (3/07) recommended working tension per 1 in of width, proportioned with width (note 6):
+    2M PowerGrip GT2 111 N, 3M PowerGrip GT2 507 N."""
+    gates_per_inch = {2: 111.0, 3: 507.0}
+    for sid in (MM2, MM3):
+        s = catalog.system(sid)
+        want = gates_per_inch[int(s.pitch_mm)] * s.width_mm / 25.4
+        assert s.allowable_working_tension_n == pytest.approx(want, abs=0.05)
+        assert "17611-T" in s.allowable_working_tension_derivation and not s.verified
+    assert catalog.system(MM3).allowable_working_tension_n == pytest.approx(179.6)
+    assert catalog.system(MM2).allowable_working_tension_n == pytest.approx(26.2)
