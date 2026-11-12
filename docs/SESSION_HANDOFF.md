@@ -1510,7 +1510,8 @@ tables `diversity_r16_tables.md`, data `diversity_r16.json`.
   kneel or crouch (1 029 tries). The coverage curve was flat for the last 50 batches.
 * **107 runs** `R16 g020-008-r01 ...` (about 65 MB in `projects/robot-calf-final/runs`): the pilot's, the full
   search's and the probes'.
-* **Tests:** `tests/test_diversity_r16.py` (10). `calflab test`: ruff, mypy, 19 Vitest and 14 Playwright pass; pytest 621 passed, 2 failed. One was R16's (the rhythm returned no keys before it starts; fixed, its file re-run). The other is the known `project_document` bit-identity failure from R13/R14. The full suite was not re-run after the fix.
+* **Tests:** `tests/test_diversity_r16.py` (13). `calflab test` after the full search: ruff, mypy, 19 Vitest and
+  14 Playwright pass; pytest 624 passed, 1 failed (the known `project_document` bit-identity failure from R13/R14).
 
 **The researcher must verify (new in session R16, ADR-112):**
 
