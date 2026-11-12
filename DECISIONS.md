@@ -4342,3 +4342,84 @@ g020-008-r01); g011-003 was never judged at real weight and is left out.
    trot).** The working body and g007-002 are over the front carpus's speed limit (1.22-1.25) with a walk-like
    footfall at about 264 mm/s.
 3. So g009-000, g012-009 and g020-008-r01 hold three of four; the working body and g007-002 two.
+
+## ADR-112 — What one body can do: a diversity search on g020-008-r01 (**VERIFY**)
+
+*Requested 2026-11-11 (session R16).* With the body fixed (g020-008-r01, explicit_v2, 2074 g, built as
+`outcomes_r15.py` builds it), find many distinct things it can do safely, not one best version of four motions:
+a quality-diversity search over `outcome_motion`, every elite within the R11c suite at margin 0.2 on seeds 0-2, least
+effort inside a cell; a pilot, three budgets for the full search (not started); probes on a faster or cheaper trot,
+other gaits, and lying; the elites stored and shown on a compare page with a menu per cell. The body, catalogs,
+library entries and `verified` flags were not changed; no hardware was added. Study: `docs/studies/diversity_r16.md`.
+
+*Decisions / ASSUMPTIONS.*
+1. **`outcome_motion` version 2.** It adds the following, and with their defaults it plays version 1 exactly (R15's
+   trot re-played: 551.1 mm/s, margin 0.1945, identical):
+   - `stride` (0 = in place, negative = backward) and `turn` up to ±2 (version 1 clipped at ±1), for turning on the
+     spot;
+   - left/right offsets per joint group (`side_*`, reached over `side_s` from `side_from_s`), for weight shifts and
+     folding to one side, at seven numbers instead of fifteen for a per-side keyframe;
+   - pauses at keyframes 1 and 2;
+   - a rhythm that starts late (`gait_from_s`) or runs in bouts (`bout_s`, `pause_s`).
+2. **The `free` outcome** (`fitness.outcomes.measure_free`). No task.
+   - Gates are safety only, R15's lying thresholds: tilt ≤ 30°, descent ≤ 300 mm/s, non-hoof floor force ≤ 2 bw.
+   - Score: −(mean + worst)/2 servo effort, as stand.
+   - Plays are not cut by the simulator's fall check: going down is allowed, and tipping is judged by tilt.
+3. **Descriptors** (3, chosen to separate what a person would call different):
+   - **class**: posture first (down ≤ 0.5 of standing held 1 s; kneel ≥ 0.1 bw through non-hoof parts held 1 s; crouch
+     / stand still below / above 0.85), else R15's footfall label (walk, trot, pace, bound; unlabelled = irregular);
+   - **forward speed**: bins at −15 / 15 / 100 / 250 / 400 / 550 mm/s;
+   - **turn rate**: bins at ±2.5 / ±10 deg/s.
+
+   That makes 315 cells. Majority class, median speed and turn over the three seeds, measured from 3 s. Pitch and head
+   force were not used: pitch follows class and speed, and head force needs the suckling scene. All thresholds are
+   PROVISIONAL.
+4. **MAP-Elites** (`calflab.evolve.qd`, own loop, deterministic for a seed). Own loop rather than pyribs, because it
+   reuses R15's staged-seed evaluation and cache.
+   - Mutations: Gaussian on a quarter of the dims (σ 0.08); a line step towards another elite (σ 0.2); or a whole
+     block copied from another elite (p 0.2).
+   - Uniform parent choice; batches of 28.
+   - The first seed plays; seeds 1-2 only if it ranks above −1.9 (safe and within).
+   - A candidate enters a cell only when it holds on all three seeds.
+   - Search plays last 16 s; every elite is then judged at 30 s.
+   - "Not used" snaps for keyframes, pauses, side move, rhythm and bouts.
+5. **Starting points only:** R15's four versions on this body, R13's evolved lie_rise for it, and the Stage C / R7
+   primitives expressed in the controller: stand, weight shifts, the feral walk (`from_feral_walk`, approximate), the
+   walk turned on the spot, and the trot at five grid corners.
+6. **Compare set `r16`** (`calflab.app.diversity_compare`, via `/api/compare/r16`).
+   - Six views of the one body, each with a menu of every stored elite, grouped by class.
+   - Labels are words from the judged (30 s) descriptor ("trots on the spot, turning right") plus speed, turn,
+     trunk, footfall, effort and margin of the worst seed.
+   - Badges: green = holds and stays in its cell; orange = holds but changes cell, or the seeds disagree on the class;
+     red = over a limit or unsafe.
+   - The manifest gives `default_cells`: each view starts on a different group's fastest green elite. The page only
+     reads it.
+7. The search lives in a study script (`docs/studies/diversity_r16.py`), as R15's did; there is no panel.
+
+*Facts found* (worst of three seeds).
+1. **Pilot:** 40 batches, 1139 candidates, 2062 plays, 24 min on 14 workers. **32 of 315 cells**: 11 trot,
+   8 irregular, 8 walk, 4 pace, 1 stand. 29 hold at 30 s, but only 14 stay in their cell (curving gaits straighten,
+   class borders by diagonal lag are fuzzy). The coverage curve was still rising slowly.
+2. **What binds:**
+   - trots: hind hip ab/ad (C018) sustained torque and the hind hock belt;
+   - walks, paces and irregular gaits: front shoulder sustained torque and the hind stifle belt;
+   - the fastest of each: stifle and hock joint speed;
+   - every down / kneel attempt: unsafe first (too fast, hard landing, tipped).
+3. **Trot:** a faster trot holds at 60 s as R15 judges it: **578 mm/s** (R15's warm start 544), margin 0.15, at about
+   the same or slightly lower effort. Faster than that, the joint speed of the stifle and hock binds (0.86-0.93), and a
+   605 mm/s trot loses its heading within a minute.
+4. **Other gaits hold:**
+   - walk (four beats) up to 416 mm/s;
+   - pace at 170-441 mm/s;
+   - turning on the spot to the right (a trot at about 8 deg/s, a walk at about 4 deg/s).
+
+   No bound held (7 tries: hip ab/ad and shoulder torque). Left-turning versions drift forward.
+5. **Lying: none within the limits**, after 258 plays from front-first, hind-first, one-sided, hips-out and slow
+   starts. A 5 x 5 grid of hind folds with the front lying shows why:
+   - the hind hooves always carry about half the body weight (0.46-0.6 bw) and the hind end never rests on the floor;
+   - each hind stifle holds 0.6-1.1 of rated torque while lying;
+   - folding further moves the load onto the hip ab/ad.
+
+   The PROVISIONAL hind ranges (stifle and hock −30..80°, ab/ad ±25°) do not fold the legs flat enough. A change of
+   range, hardware or springs would be needed; that is the researcher's decision.
+6. Full search estimate: S 200 batches about 2 h, M 500 about 4.9 h, L 1200 about 11.6 h. **Not started.**

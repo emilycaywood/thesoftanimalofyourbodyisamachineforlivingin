@@ -159,7 +159,7 @@ def test_r16_manifest(tmp_path, monkeypatch: pytest.MonkeyPatch) -> None:  # noq
     m = dc.diversity_manifest(None, "t")
     assert m["per_cell"] and [b["key"] for b in m["bodies"]] == ["v1", "v2", "v3"]
     assert [g["key"] for g in m["groups"]] == ["stand", "trot"]
-    assert m["default_cells"][:2] == ["b", "c"]  # each group's first item first
+    assert m["default_cells"][:2] == ["b", "a"]  # each group's fastest that holds first
     trot = m["groups"][1]["items"]
     assert [i["key"] for i in trot] == ["c", "a"]  # slowest first
     assert trot[1]["cells"][0]["seeds"][0]["badge"] == "within"

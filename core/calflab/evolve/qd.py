@@ -273,7 +273,7 @@ def judge(payload: dict[str, Any], space: BehaviourSpace, grid: Grid, archive: d
 
     cells = sorted(archive)
     cands = [archive[c]["summary"]["params"] for c in cells]
-    os_ = OutcomeSearch(search_seeds=seeds, judge_seeds=seeds, early_stop=-1e9)
+    os_ = OutcomeSearch(search_seeds=seeds, judge_seeds=seeds).model_copy(update={"early_stop": -1e9})  # every seed
     res = evaluate(payload, body_key(payload), space, cands, seeds, margin, os_, map_fn, cache, judging=True)
     out = {}
     for c, e in zip(cells, res, strict=True):

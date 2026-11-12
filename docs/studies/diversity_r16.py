@@ -132,11 +132,14 @@ def _qd(lab: Any, opts: dict[str, str], key: str, space: Any, grid: Any, st: lis
     t0 = time.time()
     pool, map_fn = _pool(int(opts.get("workers", 14)))
     with pool:
-        r = run(pl, space, grid, s, st, margin, map_fn, cache, names,
-                report=lambda m: print(f"[{key}] {m}", flush=True))
-        data = _load(OUT)
-        data[key] = r
-        _save(data)
+        if "judge_only" in opts:  # the search is stored; judge its elites again
+            r = _load(OUT)[key]
+        else:
+            r = run(pl, space, grid, s, st, margin, map_fn, cache, names,
+                    report=lambda m: print(f"[{key}] {m}", flush=True))
+            data = _load(OUT)
+            data[key] = r
+            _save(data)
         t1 = time.time()
         j = judge(pl, space, grid, r["archive"], s.judge_seeds, margin, map_fn, cache)
     for c, v in j.items():
@@ -603,7 +606,7 @@ def judge_trots(lab: Any, opts: dict[str, str]) -> None:
     pool, map_fn = _pool(int(opts.get("workers", 14)))
     with pool:
         res = evaluate(pl, body_key(pl), sp, [r["params"] for r in rows], [0, 1, 2], margin,
-                       OutcomeSearch(early_stop=-1e9), map_fn, cache, judging=True)
+                       OutcomeSearch().model_copy(update={"early_stop": -1e9}), map_fn, cache, judging=True)
     out = []
     for r, e in zip(rows, res, strict=True):
         w = min(e["seeds"], key=lambda s: s["rank"])

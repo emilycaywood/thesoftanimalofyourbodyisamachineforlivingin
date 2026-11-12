@@ -127,9 +127,17 @@ def diversity_manifest(lab: Any, set_key: str) -> dict[str, Any]:
             items.append({"key": rec["key"], "label": f"{title} ({_n(d.get('speed'), '.0f')} mm/s)", "kind": "elite",
                           "cells": [{**cell, "body": v["key"]} for v in views]})
         groups.append({"key": g, "title": GROUP_TITLES.get(g, g), "items": items})
-    # each view starts on a different group's first item (the most distinct things first)
-    firsts = [grp["items"][0]["key"] for grp in groups if grp["items"]]
-    rest = [it["key"] for grp in groups for it in grp["items"][1:]]
+    # each view starts on a different group's showpiece: one that holds (green), the fastest of those
+    def showpiece(items: list[dict[str, Any]]) -> str:
+        def k(it: dict[str, Any]) -> tuple[bool, float]:
+            s = it["cells"][0]["seeds"][0]
+            d = by_key[it["key"]].get("descriptor") or {}
+            return s["badge"] == "within", abs(float(d.get("speed") or 0.0))
+        return max(items, key=k)["key"]
+
+    by_key = {r["key"]: r for r in shown}
+    firsts = [showpiece(grp["items"]) for grp in groups if grp["items"]]
+    rest = [it["key"] for grp in groups for it in grp["items"] if it["key"] not in firsts]
     default_cells = (firsts + rest)[: spec.views]
     n = len(shown)
     return {"set": spec.key, "title": spec.title, "seeds": [0], "near": 0.0, "bodies": views, "groups": groups,
