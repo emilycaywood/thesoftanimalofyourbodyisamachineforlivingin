@@ -1356,6 +1356,17 @@ python docs/studies/outcomes_r15.py projects/robot-calf-final estimate
 suckling block is not drawn in the lab's viewport; the replay shows the body
 pressing against nothing.
 
+**Side by side:** open `compare.html?set=r15` on the lab's address (e.g.
+`http://localhost:8020/compare.html?set=r15`). It shows the five bodies judged
+at their real weight (working, g007-002, g009-000, g012-009, g020-008-r01).
+**Each cell has its own behaviour menu**; the picker at the top sets every
+cell at once. Under each title: the body's mass and how many behaviours hold,
+then the numbers of the worst of three judging seeds and a badge (green: holds
+on every seed; orange: within every limit but an outcome check fails; red:
+over a limit, with the limit named). The replay itself is seed 0. The cells'
+picks are kept in the address (`&cells=stand,trot,...`), so a view can be
+bookmarked.
+
 #### Proportions: comparing bodies instead of finding one
 
 The lab has three ways to look for a better body or gait:

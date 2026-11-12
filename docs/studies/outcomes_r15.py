@@ -274,7 +274,7 @@ def store(lab: Any, opts: dict[str, str]) -> None:
 
     data = _load(OUT)
     model = data["settings"]["model"]
-    bodies = list(data["pilot"])
+    bodies = (opts.get("bodies") or ",".join(data["pilot"])).split(",")
     pl, ev = payloads(lab, bodies, model)
     margin = float(ev["hardware"]["margin"])
     tmp = Path(sys.argv[1]) / ".cache" / "outcomes_rollouts"

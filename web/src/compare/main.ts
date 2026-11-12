@@ -1,6 +1,7 @@
 // compare.html: recorded runs side by side, each cell an embedded lab (`/?replay=<run>&embed=1`).
 //
 //   compare.html?set=<key>[&item=<behaviour key>&seed=<n>]   a group of bodies; one picker switches every cell
+//     (a manifest with per_cell also gives each cell its own menu; &cells=<key>,<key>,... keeps their picks)
 //   compare.html?runs=<id>,<id>,...&labels=<l>|<l>|...      any runs in a grid (no picker)
 //   compare.html?a=<id>&b=<id>&la=<label>&lb=<label>         two runs
 //   optional &cols=<n>; &full=1 shows the whole lab in each cell.
@@ -66,6 +67,7 @@ export interface Manifest {
   stored: number;
   missing: number;
   hint: string;
+  per_cell?: boolean;
 }
 
 type Msg = { calflab: "playback"; action: string; run?: string; t?: number };
@@ -145,6 +147,9 @@ export function mountSet(m: Manifest) {
   const byKey = new Map(m.groups.flatMap((g) => g.items.map((it) => [it.key, it] as const)));
   let state: PickerState = initPicker(items, m.seeds, { item: q.get("item"), seed: q.get("seed") == null ? null : Number(q.get("seed")) });
   let clock: Clock = stoppedClock();
+  // per-cell picks (manifests with per_cell): null = follow the top picker; the top picker clears them
+  const fromUrl = (q.get("cells") || "").split(",");
+  const picks: (string | null)[] = m.bodies.map((_, i) => (m.per_cell && byKey.has(fromUrl[i]) ? fromUrl[i] : null));
 
   // ---- top bar: picker, seed, play controls
   const top = el("div", "top");
@@ -161,7 +166,14 @@ export function mountSet(m: Manifest) {
     }
     picker.appendChild(og);
   }
-  picker.onchange = () => dispatch({ type: "select", key: picker.value });
+  picker.onchange = () => {
+    // the top picker sets every cell, including cells whose own menu picked something else
+    const had = picks.some(Boolean);
+    const before = state.index;
+    picks.fill(null);
+    dispatch({ type: "select", key: picker.value });
+    if (had && state.index === before) show();
+  };
   picker.onkeydown = (e) => {
     // the picker's own arrow keys would step twice
     if (actionForKey(e.key)) e.preventDefault();
@@ -197,6 +209,20 @@ export function mountSet(m: Manifest) {
     const name = el("b", "", b.label);
     const line = el("span", "line", b.line);
     head.append(name, line);
+    const menu = el("select", "cellpick");
+    menu.dataset.testid = "cell-picker";
+    for (const it of items) {
+      const o = el("option", "", it.label);
+      o.value = it.key;
+      menu.appendChild(o);
+    }
+    menu.onchange = () => {
+      picks[i] = menu.value;
+      show();
+    };
+    menu.onkeydown = (e) => {
+      if (actionForKey(e.key)) e.stopPropagation();
+    };
     const playing = el("div", "playing");
     playing.dataset.testid = "playing";
     const badge = el("span", "badge");
@@ -208,9 +234,9 @@ export function mountSet(m: Manifest) {
     const f = el("iframe");
     const note = el("div", "note");
     frameBox.append(f, note);
-    cell.append(head, playing, sub, frameBox);
+    cell.append(head, ...(m.per_cell ? [menu] : []), playing, sub, frameBox);
     grid.appendChild(cell);
-    return { body: b, index: i, cell, head, playing, badge, limit, f, note, run: null as string | null, loaded: false, ready: false };
+    return { body: b, index: i, cell, head, menu, playing, badge, limit, f, note, run: null as string | null, loaded: false, ready: false };
   });
   root.append(top, hint, grid);
 
@@ -265,10 +291,14 @@ export function mountSet(m: Manifest) {
     const u = new URL(location.href);
     if (it) u.searchParams.set("item", it.key);
     u.searchParams.set("seed", String(state.seed));
+    if (picks.some((p) => p)) u.searchParams.set("cells", picks.map((p) => p ?? "").join(","));
+    else u.searchParams.delete("cells");
     history.replaceState(null, "", u);
     pending = new Set();
     for (const c of cells) {
-      const cc = item?.cells.find((x) => x.body === c.body.key);
+      const own = picks[c.index] ? byKey.get(picks[c.index]!) : item;
+      c.menu.value = own?.key ?? "";
+      const cc = own?.cells.find((x) => x.body === c.body.key);
       const sp = cc?.seeds.find((s) => s.seed === state.seed);
       c.playing.textContent = cc?.empty ? "" : (cc?.playing ?? "");
       c.playing.title = cc?.playing ?? "";
@@ -312,6 +342,7 @@ export function mountSet(m: Manifest) {
     state = reduce(state, a);
     playBtn.textContent = state.playing ? "Pause all" : "Play all";
     if (state.epoch !== prev.epoch) {
+      if (state.index !== prev.index) picks.fill(null);
       if (state.index !== prev.index || state.seed !== prev.seed) show();
       else startTogether();
       return;

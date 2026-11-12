@@ -4314,3 +4314,21 @@ flags were not changed. Study: `docs/studies/outcomes_r15.md`.
    bodies the best is A's own version: worst seed 0.87-0.88 N at the 20th percentile, about 1.0-1.1 N mean, std/mean
    0.11-0.16, hooves 23-24 mm net, servo effort 0.11-0.14 of rated torque, safety margin 0.84-0.86. No lighter lean
    held for the whole 10 s.
+
+## ADR-111 — Outcome behaviours side by side, a menu per cell
+
+*Requested 2026-11-11 (session R15).* Emily asked to see the top bodies side by side, each with its own behaviour
+menu, then narrowed it to the bodies judged at real weight. R14 judged five (working, g007-002, g009-000, g012-009,
+g020-008-r01); g011-003 was never judged at real weight and is left out.
+
+*Decisions / ASSUMPTIONS.*
+1. **Compare set `r15`** (`calflab.app.outcome_compare`), served by the existing `/api/compare/<set>`: one item per
+   behaviour (stand, suckle, trot, lie), read from `docs/studies/outcomes_r15.json` (`pilot.<body>.<behaviour>.best`,
+   `stored.<body>.<behaviour>`). Only seed 0 is replayed (as `store` saves it); the text and badge describe the worst
+   of the three judging seeds (lowest rank). Badges reuse the page's colours with new meanings for this set: green
+   holds, orange within every limit but a gate fails, red over a limit (the binding limit named).
+2. **A menu in every cell** when the manifest says `per_cell`; the top picker still sets all cells and clears their
+   own picks. Picks are kept in the URL (`&cells=`). The page only renders; nothing is computed in the browser.
+3. **The three bodies without R15 searches** (working, g009-000, g020-008-r01) were searched with the same spaces,
+   search settings and suckle definition (variant A, slip 30 mm) as g007-002 and g012-009. g007-002's and g012-009's
+   stand, trot and lie come from the pilot (suckle from `suckle_final`), so the five are judged alike.
