@@ -169,6 +169,11 @@ fresh; every judged field (holds, within, margin, violations, binding limit) equ
   - the direct body: front shoulder torque 21 (7 on the swap), hip ab/ad torque 19 (13).
 - **Margins:** the direct margin is better on 144 of 321 plays, worse on the rest.
 
+**Do the replays play their names?** The names are R16's, from g020-008-r01 over three seeds. Measured the same
+way, the seed-0 run plays its named gait for 92 of 107 behaviours on the swap and 90 on the direct body. The rest are
+mostly trot or pace read as walk, or irregular. The compare page now shows each cell's own measure (ADR-125). The
+badges and binding limits above are judged on each body's own plays, so they are unaffected.
+
 Per-behaviour holds / within / margin / binding limit for both bodies, with shoulder and carpus peaks, carpus speed
 and envelope use and the hardware's floor clearance, are in tables section 5.
 

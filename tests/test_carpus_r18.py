@@ -117,3 +117,43 @@ def test_the_carpus_set_shows_only_the_belted_and_the_direct_body() -> None:
         m = body_manifest(None, "carpus")
         assert [b["key"] for b in m["bodies"]] == s.bodies
         assert all(len(it["cells"]) == 2 for g in m["groups"] for it in g["items"])
+
+
+def test_plays_as_says_what_a_run_plays_and_flags_a_different_gait() -> None:
+    from calflab.app.body_compare import plays_as
+
+    same = plays_as({"class": "trot", "speed": 552.0, "turn": 0.04}, {"class": "trot", "speed": 554.0})
+    assert same == {"text": "seed 0 plays a trot, 552 mm/s", "agrees": True, "class": "trot", "speed": 552.0,
+                    "turn": 0.04}
+    diff = plays_as({"class": "irregular", "speed": 571.0, "turn": -6.0}, {"class": "trot"})
+    assert diff is not None and not diff["agrees"]
+    assert diff["text"] == "seed 0 plays irregular steps, 571 mm/s, turning -6 deg/s: not a trot as labelled"
+    lie = plays_as({"class": "down", "speed": -17.9, "turn": 0.0}, {"class": "down"})
+    assert lie is not None and lie["text"] == "seed 0 plays lying down" and lie["agrees"]
+    assert plays_as(None, {"class": "trot"}) is None
+
+
+def test_the_manifest_shows_the_measure_only_for_the_run_the_cell_plays(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    import json
+
+    from calflab.app import body_compare as bc
+
+    beh = {"shown": [{"key": "k", "group": "trot", "descriptor": {"class": "trot", "speed": 500.0, "turn": 0.0},
+                      "outcome": {}}]}
+    rec = {"key": "k", "holds": True, "within": True, "margin": 0.1, "violations": [], "binding": None, "belts": {}}
+    study = {"replay": {"a": [{**rec, "seed": 0}], "b": [{**rec, "seed": 0}]},
+             "store": {"a": {"k": "run-a"}, "b": {"k": "run-b"}},
+             "measured": {"a": {"k": {"run": "run-a", "class": "walk", "speed": 480.0, "turn": 0.0}},
+                          "b": {"k": {"run": "an-older-run", "class": "trot", "speed": 500.0, "turn": 0.0}}}}
+    (tmp_path / "s.json").write_text(json.dumps(study), encoding="utf-8")
+    (tmp_path / "b.json").write_text(json.dumps(beh), encoding="utf-8")
+    bc.BODY_SETS["_m"] = bc.BodyCompareSet(key="_m", title="t", study=str(tmp_path / "s.json"),
+                                           behaviours=str(tmp_path / "b.json"))
+    try:
+        m = bc.body_manifest(None, "_m")
+    finally:
+        bc.BODY_SETS.pop("_m")
+    a, b = m["groups"][0]["items"][0]["cells"]
+    assert a["seeds"][0]["plays"]["agrees"] is False and "not a trot" in a["seeds"][0]["plays"]["text"]
+    assert b["seeds"][0]["plays"] is None  # measured on another run: not shown
+    assert m["differ"] == 1

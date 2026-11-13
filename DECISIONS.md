@@ -4691,3 +4691,36 @@ them touch the ground.
    Only R16's lying probe reaches it in play (−17.7 / −14.0 mm); no other play comes within 50 mm.
 2. **The direct case clears the front cannon by 2.0 mm, laterally, through the whole range.** In the side view they
    always overlap near the joint.
+
+## ADR-125 — Body compare pages say what each cell's own run plays; a cell shows only the run it last asked for
+
+*Requested 2026-11-13: the researcher saw a trotting motion in the "lies down" cell and asked how to know the other
+behaviours are what their names say.*
+
+*Facts found.*
+1. **Every stored run is on the body its cell names** (642 runs, genomes compared).
+2. **The lying probe's runs lie down on all six bodies** (measured class `down`, trunk 596 → about 260 mm). Left
+   and right legs move identically; the hind hooves hop 14 times in 2 s while the front kneels. A trot could not be
+   reproduced in the cell.
+3. **The names are R16's.** Each comes from g020-008-r01, as the majority over three seeds. The page plays seed 0 of
+   each body, so a cell can play another gait than its name. Seed-0 runs whose measured class matches the name:
+   - g020-008-r01: 94 of 107 (all 13 others are behaviours whose seeds disagreed, 2 of 3);
+   - the swap g020-008-r01-mc: 92;
+   - the direct carpus: 90;
+   - r18-a / r18-b / r18-c: 61 / 47 / 59.
+4. **A display race.** The embedded lab applied whichever rollout response arrived last. A slow earlier load (a 30 s
+   trot, 1.7 MB) could overwrite a later one (the 7.7 s lie, 0.5 MB). Meanwhile, a cell kept playing the previous
+   behaviour under the new title until its run arrived. This was not reproduced on the idle local server, but both
+   are possible on a busy one.
+
+*Decisions.*
+1. **What a run plays is measured in the core.** `calflab.app.body_compare.measure_run` uses R16's own measure
+   (`measure_free` with the behaviour's task): class, speed, turn. It is stored in the study JSON (`measured[body][key]`,
+   with the run id), by `mcmaster_r18.py measure`, which `store` also runs.
+2. **Each cell shows its run's measure.** The manifest adds `plays` per cell: "seed 0 plays a walk, 492 mm/s". It is
+   flagged (orange on the page) when the class differs from the name. A measure taken on another run than the one the
+   cell plays is not shown. The page's hint counts the differing cells. The names are not changed: they identify the
+   behaviour (its controller numbers), not what every body does with it.
+3. **Loads:** `usePlayback.loadRun` takes a ticket and drops any response that is no longer the latest (a live run
+   also takes one). It resolves `false` for a dropped load, and only the latest load reports ready to compare.html.
+   While a cell loads another run, the page covers it with "loading..." instead of playing the old run.

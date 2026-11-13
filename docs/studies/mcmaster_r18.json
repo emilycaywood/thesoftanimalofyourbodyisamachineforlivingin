@@ -218489,5 +218489,3871 @@
   "r18-a",
   "r18-b",
   "r18-c"
- ]
+ ],
+ "measured": {
+  "g020-008-r01": {
+   "pilot:irregular|2|1": {
+    "run": "20261112-025630-sim-4057",
+    "class": "walk",
+    "speed": 22.5,
+    "turn": -5.25
+   },
+   "pilot:irregular|2|2": {
+    "run": "20261112-025630-sim-f963",
+    "class": "irregular",
+    "speed": 65.0,
+    "turn": -0.47
+   },
+   "pilot:irregular|3|1": {
+    "run": "20261112-025630-sim-28b5",
+    "class": "irregular",
+    "speed": 116.4,
+    "turn": -2.18
+   },
+   "pilot:irregular|3|2": {
+    "run": "20261112-025630-sim-7608",
+    "class": "walk",
+    "speed": 103.6,
+    "turn": -0.55
+   },
+   "pilot:irregular|3|3": {
+    "run": "20261112-025631-sim-2c77",
+    "class": "irregular",
+    "speed": 144.9,
+    "turn": 3.38
+   },
+   "pilot:irregular|4|1": {
+    "run": "20261112-025631-sim-9f6d",
+    "class": "trot",
+    "speed": 157.6,
+    "turn": -4.09
+   },
+   "pilot:irregular|4|2": {
+    "run": "20261112-025631-sim-dfb9",
+    "class": "irregular",
+    "speed": 225.7,
+    "turn": 0.57
+   },
+   "pilot:irregular|4|3": {
+    "run": "20261112-025631-sim-e581",
+    "class": "walk",
+    "speed": 265.4,
+    "turn": 2.97
+   },
+   "pilot:pace|2|2": {
+    "run": "20261112-025631-sim-2acf",
+    "class": "irregular",
+    "speed": 89.6,
+    "turn": -0.68
+   },
+   "pilot:pace|3|1": {
+    "run": "20261112-025631-sim-a844",
+    "class": "pace",
+    "speed": 160.0,
+    "turn": -1.86
+   },
+   "pilot:pace|3|2": {
+    "run": "20261112-025631-sim-d491",
+    "class": "pace",
+    "speed": 171.3,
+    "turn": -0.9
+   },
+   "pilot:pace|4|2": {
+    "run": "20261112-025631-sim-7c14",
+    "class": "walk",
+    "speed": 280.3,
+    "turn": -0.81
+   },
+   "pilot:stand|1|2": {
+    "run": "20261112-025631-sim-656a",
+    "class": "stand",
+    "speed": -0.0,
+    "turn": -0.0
+   },
+   "pilot:trot|2|0": {
+    "run": "20261112-025631-sim-2703",
+    "class": "trot",
+    "speed": -40.3,
+    "turn": -10.3
+   },
+   "pilot:trot|2|1": {
+    "run": "20261112-025632-sim-a469",
+    "class": "trot",
+    "speed": -8.2,
+    "turn": -7.81
+   },
+   "pilot:trot|2|2": {
+    "run": "20261112-025632-sim-4eae",
+    "class": "walk",
+    "speed": 47.9,
+    "turn": -0.31
+   },
+   "pilot:trot|3|1": {
+    "run": "20261112-025632-sim-530b",
+    "class": "trot",
+    "speed": 44.8,
+    "turn": -3.65
+   },
+   "pilot:trot|3|2": {
+    "run": "20261112-025632-sim-c7e3",
+    "class": "trot",
+    "speed": 189.9,
+    "turn": -1.16
+   },
+   "pilot:trot|3|3": {
+    "run": "20261112-025632-sim-82b7",
+    "class": "trot",
+    "speed": 73.1,
+    "turn": 2.98
+   },
+   "pilot:trot|4|1": {
+    "run": "20261112-025632-sim-a419",
+    "class": "trot",
+    "speed": 216.5,
+    "turn": -2.02
+   },
+   "pilot:trot|4|2": {
+    "run": "20261112-025632-sim-ccdc",
+    "class": "trot",
+    "speed": 310.0,
+    "turn": -1.15
+   },
+   "pilot:trot|4|3": {
+    "run": "20261112-025632-sim-81bb",
+    "class": "trot",
+    "speed": 273.5,
+    "turn": 2.85
+   },
+   "pilot:trot|5|2": {
+    "run": "20261112-025632-sim-06d1",
+    "class": "trot",
+    "speed": 363.8,
+    "turn": 2.02
+   },
+   "pilot:trot|6|2": {
+    "run": "20261112-025632-sim-7675",
+    "class": "trot",
+    "speed": 551.5,
+    "turn": 0.06
+   },
+   "pilot:walk|2|1": {
+    "run": "20261112-025633-sim-b6ef",
+    "class": "walk",
+    "speed": -65.3,
+    "turn": -8.14
+   },
+   "pilot:walk|2|2": {
+    "run": "20261112-025633-sim-8c7b",
+    "class": "walk",
+    "speed": 81.2,
+    "turn": -0.57
+   },
+   "pilot:walk|3|1": {
+    "run": "20261112-025633-sim-7300",
+    "class": "walk",
+    "speed": 13.8,
+    "turn": -4.0
+   },
+   "pilot:walk|3|2": {
+    "run": "20261112-025633-sim-97ed",
+    "class": "walk",
+    "speed": 118.4,
+    "turn": -0.78
+   },
+   "pilot:walk|3|3": {
+    "run": "20261112-025633-sim-5442",
+    "class": "walk",
+    "speed": 135.4,
+    "turn": 2.96
+   },
+   "pilot:walk|4|1": {
+    "run": "20261112-025633-sim-80a9",
+    "class": "walk",
+    "speed": 139.1,
+    "turn": -4.1
+   },
+   "pilot:walk|4|2": {
+    "run": "20261112-025633-sim-c0a7",
+    "class": "walk",
+    "speed": 301.1,
+    "turn": 0.85
+   },
+   "pilot:walk|5|2": {
+    "run": "20261112-025633-sim-65c7",
+    "class": "walk",
+    "speed": 370.6,
+    "turn": -1.46
+   },
+   "full:bound|2|2": {
+    "run": "20261112-084720-sim-2c07",
+    "class": "bound",
+    "speed": 30.4,
+    "turn": 0.51
+   },
+   "full:bound|3|2": {
+    "run": "20261112-084721-sim-14c4",
+    "class": "bound",
+    "speed": 130.3,
+    "turn": 0.44
+   },
+   "full:irregular|0|2": {
+    "run": "20261112-084721-sim-240d",
+    "class": "irregular",
+    "speed": -72.7,
+    "turn": 0.3
+   },
+   "full:irregular|1|2": {
+    "run": "20261112-084721-sim-87df",
+    "class": "irregular",
+    "speed": 1.4,
+    "turn": 0.01
+   },
+   "full:irregular|1|3": {
+    "run": "20261112-084721-sim-9c2a",
+    "class": "irregular",
+    "speed": 4.7,
+    "turn": 3.31
+   },
+   "full:irregular|2|1": {
+    "run": "20261112-084721-sim-5574",
+    "class": "irregular",
+    "speed": 57.7,
+    "turn": -3.27
+   },
+   "full:irregular|2|2": {
+    "run": "20261112-084721-sim-53bb",
+    "class": "irregular",
+    "speed": 19.0,
+    "turn": -0.03
+   },
+   "full:irregular|2|3": {
+    "run": "20261112-084721-sim-b207",
+    "class": "irregular",
+    "speed": 17.9,
+    "turn": 5.15
+   },
+   "full:irregular|3|2": {
+    "run": "20261112-084721-sim-bbf2",
+    "class": "irregular",
+    "speed": 115.8,
+    "turn": 0.6
+   },
+   "full:irregular|4|2": {
+    "run": "20261112-084722-sim-6ce3",
+    "class": "trot",
+    "speed": 335.6,
+    "turn": -0.31
+   },
+   "full:irregular|5|2": {
+    "run": "20261112-084722-sim-1bec",
+    "class": "irregular",
+    "speed": 521.1,
+    "turn": 0.04
+   },
+   "full:pace|1|2": {
+    "run": "20261112-084722-sim-0c51",
+    "class": "walk",
+    "speed": 2.7,
+    "turn": 0.02
+   },
+   "full:pace|2|1": {
+    "run": "20261112-084722-sim-078a",
+    "class": "pace",
+    "speed": 18.6,
+    "turn": -3.11
+   },
+   "full:pace|2|2": {
+    "run": "20261112-084722-sim-4ddc",
+    "class": "pace",
+    "speed": 23.8,
+    "turn": 0.02
+   },
+   "full:pace|3|2": {
+    "run": "20261112-084722-sim-87b9",
+    "class": "pace",
+    "speed": 108.3,
+    "turn": -1.03
+   },
+   "full:pace|4|2": {
+    "run": "20261112-084722-sim-aafb",
+    "class": "pace",
+    "speed": 319.4,
+    "turn": 0.16
+   },
+   "full:pace|5|2": {
+    "run": "20261112-084722-sim-df29",
+    "class": "pace",
+    "speed": 498.7,
+    "turn": 0.04
+   },
+   "full:stand|0|2": {
+    "run": "20261112-084722-sim-0fc3",
+    "class": "stand",
+    "speed": -0.1,
+    "turn": -0.0
+   },
+   "full:stand|1|2": {
+    "run": "20261112-084722-sim-6024",
+    "class": "stand",
+    "speed": -0.1,
+    "turn": 0.0
+   },
+   "full:stand|1|3": {
+    "run": "20261112-084723-sim-cb51",
+    "class": "stand",
+    "speed": 0.0,
+    "turn": -0.0
+   },
+   "full:stand|2|3": {
+    "run": "20261112-084723-sim-da50",
+    "class": "stand",
+    "speed": -0.0,
+    "turn": -0.0
+   },
+   "full:stand|3|3": {
+    "run": "20261112-084723-sim-2533",
+    "class": "stand",
+    "speed": -0.0,
+    "turn": 0.0
+   },
+   "full:stand|4|2": {
+    "run": "20261112-084723-sim-8bc1",
+    "class": "stand",
+    "speed": 0.0,
+    "turn": -0.0
+   },
+   "full:stand|4|3": {
+    "run": "20261112-084723-sim-45f8",
+    "class": "stand",
+    "speed": -0.0,
+    "turn": -0.0
+   },
+   "full:stand|4|4": {
+    "run": "20261112-084723-sim-73db",
+    "class": "stand",
+    "speed": -0.0,
+    "turn": -0.0
+   },
+   "full:stand|5|2": {
+    "run": "20261112-084723-sim-6042",
+    "class": "stand",
+    "speed": -0.0,
+    "turn": -0.0
+   },
+   "full:stand|5|3": {
+    "run": "20261112-084723-sim-04cb",
+    "class": "stand",
+    "speed": -0.0,
+    "turn": -0.0
+   },
+   "full:stand|5|4": {
+    "run": "20261112-084723-sim-ef66",
+    "class": "stand",
+    "speed": -0.0,
+    "turn": -0.0
+   },
+   "full:stand|6|3": {
+    "run": "20261112-084723-sim-b421",
+    "class": "stand",
+    "speed": 0.0,
+    "turn": -0.0
+   },
+   "full:stand|6|4": {
+    "run": "20261112-084724-sim-ba8b",
+    "class": "stand",
+    "speed": -0.1,
+    "turn": 0.0
+   },
+   "full:trot|0|2": {
+    "run": "20261112-084724-sim-90cd",
+    "class": "trot",
+    "speed": -17.8,
+    "turn": 0.04
+   },
+   "full:trot|0|3": {
+    "run": "20261112-084724-sim-627d",
+    "class": "trot",
+    "speed": -26.1,
+    "turn": 3.45
+   },
+   "full:trot|1|1": {
+    "run": "20261112-084724-sim-205e",
+    "class": "trot",
+    "speed": -8.6,
+    "turn": -2.49
+   },
+   "full:trot|1|2": {
+    "run": "20261112-084724-sim-731b",
+    "class": "trot",
+    "speed": 5.5,
+    "turn": 0.0
+   },
+   "full:trot|1|3": {
+    "run": "20261112-084724-sim-dc04",
+    "class": "trot",
+    "speed": 3.8,
+    "turn": 2.94
+   },
+   "full:trot|2|1": {
+    "run": "20261112-084724-sim-862a",
+    "class": "trot",
+    "speed": 46.4,
+    "turn": -2.85
+   },
+   "full:trot|2|2": {
+    "run": "20261112-084724-sim-0306",
+    "class": "trot",
+    "speed": 14.8,
+    "turn": -0.12
+   },
+   "full:trot|2|3": {
+    "run": "20261112-084724-sim-ba45",
+    "class": "trot",
+    "speed": 20.4,
+    "turn": 2.83
+   },
+   "full:trot|3|2": {
+    "run": "20261112-084724-sim-918f",
+    "class": "trot",
+    "speed": 174.9,
+    "turn": -0.0
+   },
+   "full:trot|4|2": {
+    "run": "20261112-084725-sim-4354",
+    "class": "trot",
+    "speed": 335.6,
+    "turn": 0.21
+   },
+   "full:trot|5|2": {
+    "run": "20261112-084725-sim-a1aa",
+    "class": "trot",
+    "speed": 405.8,
+    "turn": 0.05
+   },
+   "full:trot|6|2": {
+    "run": "20261112-084725-sim-181f",
+    "class": "trot",
+    "speed": 572.9,
+    "turn": -0.01
+   },
+   "full:walk|0|2": {
+    "run": "20261112-084725-sim-11c1",
+    "class": "walk",
+    "speed": -36.1,
+    "turn": 0.46
+   },
+   "full:walk|1|2": {
+    "run": "20261112-084725-sim-06af",
+    "class": "irregular",
+    "speed": 1.7,
+    "turn": 0.01
+   },
+   "full:walk|2|1": {
+    "run": "20261112-084725-sim-9c8f",
+    "class": "walk",
+    "speed": 40.1,
+    "turn": -3.46
+   },
+   "full:walk|2|2": {
+    "run": "20261112-084725-sim-598a",
+    "class": "walk",
+    "speed": 18.0,
+    "turn": -0.09
+   },
+   "full:walk|2|3": {
+    "run": "20261112-084725-sim-1c43",
+    "class": "walk",
+    "speed": 65.5,
+    "turn": 2.81
+   },
+   "full:walk|3|2": {
+    "run": "20261112-084725-sim-6224",
+    "class": "walk",
+    "speed": 109.1,
+    "turn": 0.03
+   },
+   "full:walk|3|3": {
+    "run": "20261112-084725-sim-7ef9",
+    "class": "walk",
+    "speed": 182.0,
+    "turn": 2.66
+   },
+   "full:walk|4|2": {
+    "run": "20261112-084726-sim-8491",
+    "class": "walk",
+    "speed": 257.1,
+    "turn": 0.35
+   },
+   "full:walk|5|2": {
+    "run": "20261112-084726-sim-6045",
+    "class": "walk",
+    "speed": 491.7,
+    "turn": 0.08
+   },
+   "full:walk|6|2": {
+    "run": "20261112-084726-sim-94c4",
+    "class": "walk",
+    "speed": 550.8,
+    "turn": 0.13
+   },
+   "probe_trot:trot|2|0": {
+    "run": "20261112-025633-sim-5d72",
+    "class": "trot",
+    "speed": 232.1,
+    "turn": -2.13
+   },
+   "probe_trot:trot|2|1": {
+    "run": "20261112-025634-sim-89f8",
+    "class": "trot",
+    "speed": 254.2,
+    "turn": 1.6
+   },
+   "probe_trot:trot|3|0": {
+    "run": "20261112-025634-sim-88a7",
+    "class": "trot",
+    "speed": 242.4,
+    "turn": -2.07
+   },
+   "probe_trot:trot|3|1": {
+    "run": "20261112-025634-sim-9ae4",
+    "class": "trot",
+    "speed": 309.8,
+    "turn": -0.03
+   },
+   "probe_trot:trot|3|2": {
+    "run": "20261112-025634-sim-5c04",
+    "class": "trot",
+    "speed": 281.3,
+    "turn": 1.59
+   },
+   "probe_trot:trot|4|1": {
+    "run": "20261112-025634-sim-6eb3",
+    "class": "trot",
+    "speed": 416.0,
+    "turn": -0.25
+   },
+   "probe_trot:trot|5|1": {
+    "run": "20261112-025634-sim-065c",
+    "class": "trot",
+    "speed": 460.5,
+    "turn": 1.44
+   },
+   "probe_trot:trot|6|1": {
+    "run": "20261112-025634-sim-cf31",
+    "class": "trot",
+    "speed": 515.2,
+    "turn": 0.03
+   },
+   "probe_trot:trot|7|1": {
+    "run": "20261112-025634-sim-e74c",
+    "class": "trot",
+    "speed": 580.7,
+    "turn": 0.03
+   },
+   "probe_trot:trot|8|1": {
+    "run": "20261112-025634-sim-dfdc",
+    "class": "trot",
+    "speed": 604.7,
+    "turn": -0.01
+   },
+   "probe_gaits:irregular|2|1": {
+    "run": "20261112-025634-sim-936d",
+    "class": "walk",
+    "speed": 70.1,
+    "turn": -2.52
+   },
+   "probe_gaits:irregular|2|2": {
+    "run": "20261112-025635-sim-ff99",
+    "class": "irregular",
+    "speed": 25.7,
+    "turn": 0.31
+   },
+   "probe_gaits:irregular|3|2": {
+    "run": "20261112-025635-sim-5922",
+    "class": "trot",
+    "speed": 107.7,
+    "turn": 0.01
+   },
+   "probe_gaits:irregular|5|2": {
+    "run": "20261112-025635-sim-5518",
+    "class": "trot",
+    "speed": 387.8,
+    "turn": 1.79
+   },
+   "probe_gaits:pace|3|2": {
+    "run": "20261112-025635-sim-9525",
+    "class": "walk",
+    "speed": 116.3,
+    "turn": -1.54
+   },
+   "probe_gaits:trot|2|1": {
+    "run": "20261112-025635-sim-17de",
+    "class": "trot",
+    "speed": 78.9,
+    "turn": -2.43
+   },
+   "probe_gaits:trot|3|1": {
+    "run": "20261112-025635-sim-1c24",
+    "class": "trot",
+    "speed": 77.2,
+    "turn": -3.47
+   },
+   "probe_gaits:walk|2|1": {
+    "run": "20261112-025635-sim-f014",
+    "class": "trot",
+    "speed": 70.0,
+    "turn": -3.25
+   },
+   "probe_gaits:walk|2|2": {
+    "run": "20261112-025635-sim-b67e",
+    "class": "walk",
+    "speed": 69.5,
+    "turn": 0.0
+   },
+   "probe_gaits:walk|3|1": {
+    "run": "20261112-025635-sim-283e",
+    "class": "walk",
+    "speed": 92.4,
+    "turn": -3.24
+   },
+   "probe_gaits:walk|3|2": {
+    "run": "20261112-025635-sim-bf12",
+    "class": "walk",
+    "speed": 116.9,
+    "turn": -1.59
+   },
+   "probe_gaits:walk|3|3": {
+    "run": "20261112-025636-sim-f41d",
+    "class": "walk",
+    "speed": 169.9,
+    "turn": 2.71
+   },
+   "probe_lie:best": {
+    "run": "20261112-025636-sim-46f8",
+    "class": "down",
+    "speed": -18.0,
+    "turn": -0.0
+   }
+  },
+  "g020-008-r01-mc": {
+   "pilot:irregular|2|1": {
+    "run": "20261112-214941-sim-2e34",
+    "class": "irregular",
+    "speed": 22.9,
+    "turn": -5.23
+   },
+   "pilot:irregular|2|2": {
+    "run": "20261112-214942-sim-5fbc",
+    "class": "irregular",
+    "speed": 65.3,
+    "turn": -0.47
+   },
+   "pilot:irregular|3|1": {
+    "run": "20261112-214942-sim-f8bf",
+    "class": "irregular",
+    "speed": 117.4,
+    "turn": -2.17
+   },
+   "pilot:irregular|3|2": {
+    "run": "20261112-214942-sim-8973",
+    "class": "trot",
+    "speed": 103.7,
+    "turn": -0.56
+   },
+   "pilot:irregular|3|3": {
+    "run": "20261112-214943-sim-f99f",
+    "class": "irregular",
+    "speed": 147.3,
+    "turn": 3.36
+   },
+   "pilot:irregular|4|1": {
+    "run": "20261112-214943-sim-9753",
+    "class": "irregular",
+    "speed": 157.7,
+    "turn": -4.09
+   },
+   "pilot:irregular|4|2": {
+    "run": "20261112-214943-sim-da26",
+    "class": "irregular",
+    "speed": 218.5,
+    "turn": 0.99
+   },
+   "pilot:irregular|4|3": {
+    "run": "20261112-214943-sim-0b4b",
+    "class": "irregular",
+    "speed": 264.2,
+    "turn": 3.01
+   },
+   "pilot:pace|2|2": {
+    "run": "20261112-214943-sim-15da",
+    "class": "irregular",
+    "speed": 89.3,
+    "turn": -0.7
+   },
+   "pilot:pace|3|1": {
+    "run": "20261112-214944-sim-0675",
+    "class": "pace",
+    "speed": 161.3,
+    "turn": -1.84
+   },
+   "pilot:pace|3|2": {
+    "run": "20261112-214944-sim-f4b3",
+    "class": "pace",
+    "speed": 172.4,
+    "turn": -0.89
+   },
+   "pilot:pace|4|2": {
+    "run": "20261112-214944-sim-7fa3",
+    "class": "walk",
+    "speed": 282.1,
+    "turn": -0.79
+   },
+   "pilot:stand|1|2": {
+    "run": "20261112-214944-sim-d5eb",
+    "class": "stand",
+    "speed": -0.0,
+    "turn": 0.0
+   },
+   "pilot:trot|2|0": {
+    "run": "20261112-214945-sim-767e",
+    "class": "trot",
+    "speed": -40.4,
+    "turn": -10.31
+   },
+   "pilot:trot|2|1": {
+    "run": "20261112-214945-sim-cc51",
+    "class": "trot",
+    "speed": -8.3,
+    "turn": -7.8
+   },
+   "pilot:trot|2|2": {
+    "run": "20261112-214945-sim-3cf1",
+    "class": "walk",
+    "speed": 47.9,
+    "turn": -0.31
+   },
+   "pilot:trot|3|1": {
+    "run": "20261112-214945-sim-ba30",
+    "class": "trot",
+    "speed": 43.7,
+    "turn": -3.65
+   },
+   "pilot:trot|3|2": {
+    "run": "20261112-214945-sim-334d",
+    "class": "trot",
+    "speed": 190.4,
+    "turn": -1.14
+   },
+   "pilot:trot|3|3": {
+    "run": "20261112-214946-sim-1cb9",
+    "class": "trot",
+    "speed": 73.3,
+    "turn": 3.0
+   },
+   "pilot:trot|4|1": {
+    "run": "20261112-214946-sim-c89a",
+    "class": "trot",
+    "speed": 215.0,
+    "turn": -2.03
+   },
+   "pilot:trot|4|2": {
+    "run": "20261112-214946-sim-cc3f",
+    "class": "trot",
+    "speed": 311.7,
+    "turn": -1.15
+   },
+   "pilot:trot|4|3": {
+    "run": "20261112-214946-sim-4d64",
+    "class": "walk",
+    "speed": 270.1,
+    "turn": 2.94
+   },
+   "pilot:trot|5|2": {
+    "run": "20261112-214947-sim-ee17",
+    "class": "trot",
+    "speed": 370.2,
+    "turn": 1.97
+   },
+   "pilot:trot|6|2": {
+    "run": "20261112-214947-sim-82af",
+    "class": "trot",
+    "speed": 552.0,
+    "turn": 0.04
+   },
+   "pilot:walk|2|1": {
+    "run": "20261112-214947-sim-47f0",
+    "class": "walk",
+    "speed": -64.3,
+    "turn": -8.19
+   },
+   "pilot:walk|2|2": {
+    "run": "20261112-214947-sim-1c72",
+    "class": "walk",
+    "speed": 81.1,
+    "turn": -0.57
+   },
+   "pilot:walk|3|1": {
+    "run": "20261112-214948-sim-7c74",
+    "class": "walk",
+    "speed": 12.7,
+    "turn": -3.99
+   },
+   "pilot:walk|3|2": {
+    "run": "20261112-214948-sim-7b82",
+    "class": "walk",
+    "speed": 118.7,
+    "turn": -0.78
+   },
+   "pilot:walk|3|3": {
+    "run": "20261112-214948-sim-7be9",
+    "class": "walk",
+    "speed": 135.3,
+    "turn": 2.96
+   },
+   "pilot:walk|4|1": {
+    "run": "20261112-214948-sim-588a",
+    "class": "walk",
+    "speed": 138.9,
+    "turn": -4.1
+   },
+   "pilot:walk|4|2": {
+    "run": "20261112-214948-sim-a38f",
+    "class": "walk",
+    "speed": 300.5,
+    "turn": 0.87
+   },
+   "pilot:walk|5|2": {
+    "run": "20261112-214949-sim-eae1",
+    "class": "walk",
+    "speed": 371.0,
+    "turn": -1.47
+   },
+   "full:bound|2|2": {
+    "run": "20261112-214949-sim-7971",
+    "class": "bound",
+    "speed": 30.7,
+    "turn": 0.52
+   },
+   "full:bound|3|2": {
+    "run": "20261112-214949-sim-791d",
+    "class": "bound",
+    "speed": 130.4,
+    "turn": 0.43
+   },
+   "full:irregular|0|2": {
+    "run": "20261112-214949-sim-d73b",
+    "class": "irregular",
+    "speed": -72.5,
+    "turn": 0.31
+   },
+   "full:irregular|1|2": {
+    "run": "20261112-214950-sim-471c",
+    "class": "irregular",
+    "speed": 1.4,
+    "turn": 0.01
+   },
+   "full:irregular|1|3": {
+    "run": "20261112-214950-sim-ba45",
+    "class": "irregular",
+    "speed": 4.7,
+    "turn": 3.29
+   },
+   "full:irregular|2|1": {
+    "run": "20261112-214950-sim-d90e",
+    "class": "irregular",
+    "speed": 58.4,
+    "turn": -3.28
+   },
+   "full:irregular|2|2": {
+    "run": "20261112-214950-sim-688a",
+    "class": "irregular",
+    "speed": 19.2,
+    "turn": -0.03
+   },
+   "full:irregular|2|3": {
+    "run": "20261112-214951-sim-69ef",
+    "class": "irregular",
+    "speed": 17.9,
+    "turn": 5.16
+   },
+   "full:irregular|3|2": {
+    "run": "20261112-214951-sim-7734",
+    "class": "bound",
+    "speed": 115.8,
+    "turn": 0.61
+   },
+   "full:irregular|4|2": {
+    "run": "20261112-214951-sim-43a9",
+    "class": "trot",
+    "speed": 335.6,
+    "turn": -0.26
+   },
+   "full:irregular|5|2": {
+    "run": "20261112-214951-sim-8e7b",
+    "class": "irregular",
+    "speed": 523.3,
+    "turn": 0.04
+   },
+   "full:pace|1|2": {
+    "run": "20261112-214951-sim-3e41",
+    "class": "walk",
+    "speed": 2.7,
+    "turn": 0.02
+   },
+   "full:pace|2|1": {
+    "run": "20261112-214952-sim-0531",
+    "class": "pace",
+    "speed": 18.0,
+    "turn": -3.11
+   },
+   "full:pace|2|2": {
+    "run": "20261112-214952-sim-1355",
+    "class": "trot",
+    "speed": 24.4,
+    "turn": 0.02
+   },
+   "full:pace|3|2": {
+    "run": "20261112-214952-sim-37fe",
+    "class": "pace",
+    "speed": 108.0,
+    "turn": -1.0
+   },
+   "full:pace|4|2": {
+    "run": "20261112-214952-sim-1041",
+    "class": "pace",
+    "speed": 319.6,
+    "turn": 0.16
+   },
+   "full:pace|5|2": {
+    "run": "20261112-214953-sim-9e1b",
+    "class": "pace",
+    "speed": 499.1,
+    "turn": 0.03
+   },
+   "full:stand|0|2": {
+    "run": "20261112-214953-sim-f712",
+    "class": "stand",
+    "speed": -0.1,
+    "turn": -0.0
+   },
+   "full:stand|1|2": {
+    "run": "20261112-214953-sim-5b11",
+    "class": "stand",
+    "speed": -0.1,
+    "turn": -0.0
+   },
+   "full:stand|1|3": {
+    "run": "20261112-214953-sim-b1da",
+    "class": "stand",
+    "speed": 0.0,
+    "turn": 0.0
+   },
+   "full:stand|2|3": {
+    "run": "20261112-214954-sim-705d",
+    "class": "stand",
+    "speed": -0.0,
+    "turn": -0.0
+   },
+   "full:stand|3|3": {
+    "run": "20261112-214954-sim-198d",
+    "class": "stand",
+    "speed": -0.0,
+    "turn": 0.0
+   },
+   "full:stand|4|2": {
+    "run": "20261112-214954-sim-355c",
+    "class": "stand",
+    "speed": 0.0,
+    "turn": 0.0
+   },
+   "full:stand|4|3": {
+    "run": "20261112-214954-sim-ae95",
+    "class": "stand",
+    "speed": -0.0,
+    "turn": -0.0
+   },
+   "full:stand|4|4": {
+    "run": "20261112-214954-sim-3396",
+    "class": "stand",
+    "speed": -0.0,
+    "turn": 0.0
+   },
+   "full:stand|5|2": {
+    "run": "20261112-214955-sim-77a2",
+    "class": "stand",
+    "speed": -0.0,
+    "turn": 0.0
+   },
+   "full:stand|5|3": {
+    "run": "20261112-214955-sim-7f37",
+    "class": "stand",
+    "speed": -0.0,
+    "turn": 0.0
+   },
+   "full:stand|5|4": {
+    "run": "20261112-214955-sim-bb0f",
+    "class": "stand",
+    "speed": -0.0,
+    "turn": -0.0
+   },
+   "full:stand|6|3": {
+    "run": "20261112-214955-sim-f225",
+    "class": "stand",
+    "speed": 0.0,
+    "turn": 0.0
+   },
+   "full:stand|6|4": {
+    "run": "20261112-214956-sim-2bbf",
+    "class": "stand",
+    "speed": -0.1,
+    "turn": 0.0
+   },
+   "full:trot|0|2": {
+    "run": "20261112-214956-sim-4606",
+    "class": "trot",
+    "speed": -17.7,
+    "turn": 0.04
+   },
+   "full:trot|0|3": {
+    "run": "20261112-214956-sim-4c94",
+    "class": "trot",
+    "speed": -25.9,
+    "turn": 3.41
+   },
+   "full:trot|1|1": {
+    "run": "20261112-214956-sim-2edc",
+    "class": "trot",
+    "speed": -9.0,
+    "turn": -2.49
+   },
+   "full:trot|1|2": {
+    "run": "20261112-214956-sim-d683",
+    "class": "trot",
+    "speed": 5.6,
+    "turn": 0.0
+   },
+   "full:trot|1|3": {
+    "run": "20261112-214957-sim-ddd0",
+    "class": "trot",
+    "speed": 3.6,
+    "turn": 2.93
+   },
+   "full:trot|2|1": {
+    "run": "20261112-214957-sim-1cad",
+    "class": "trot",
+    "speed": 46.6,
+    "turn": -2.84
+   },
+   "full:trot|2|2": {
+    "run": "20261112-214957-sim-9d87",
+    "class": "trot",
+    "speed": 15.0,
+    "turn": -0.12
+   },
+   "full:trot|2|3": {
+    "run": "20261112-214957-sim-563f",
+    "class": "trot",
+    "speed": 20.6,
+    "turn": 2.79
+   },
+   "full:trot|3|2": {
+    "run": "20261112-214958-sim-ab0d",
+    "class": "trot",
+    "speed": 175.0,
+    "turn": -0.0
+   },
+   "full:trot|4|2": {
+    "run": "20261112-214958-sim-555a",
+    "class": "trot",
+    "speed": 336.6,
+    "turn": 0.21
+   },
+   "full:trot|5|2": {
+    "run": "20261112-214958-sim-e271",
+    "class": "trot",
+    "speed": 406.3,
+    "turn": 0.07
+   },
+   "full:trot|6|2": {
+    "run": "20261112-214958-sim-0e59",
+    "class": "trot",
+    "speed": 573.8,
+    "turn": -0.01
+   },
+   "full:walk|0|2": {
+    "run": "20261112-214958-sim-f071",
+    "class": "walk",
+    "speed": -36.4,
+    "turn": 0.43
+   },
+   "full:walk|1|2": {
+    "run": "20261112-214959-sim-bb07",
+    "class": "irregular",
+    "speed": 1.8,
+    "turn": 0.01
+   },
+   "full:walk|2|1": {
+    "run": "20261112-214959-sim-9031",
+    "class": "trot",
+    "speed": 40.2,
+    "turn": -3.46
+   },
+   "full:walk|2|2": {
+    "run": "20261112-214959-sim-f8cb",
+    "class": "walk",
+    "speed": 18.0,
+    "turn": -0.09
+   },
+   "full:walk|2|3": {
+    "run": "20261112-214959-sim-60dd",
+    "class": "walk",
+    "speed": 65.3,
+    "turn": 2.85
+   },
+   "full:walk|3|2": {
+    "run": "20261112-215000-sim-2934",
+    "class": "walk",
+    "speed": 109.0,
+    "turn": 0.05
+   },
+   "full:walk|3|3": {
+    "run": "20261112-215000-sim-6016",
+    "class": "walk",
+    "speed": 180.7,
+    "turn": 2.67
+   },
+   "full:walk|4|2": {
+    "run": "20261112-215000-sim-4602",
+    "class": "walk",
+    "speed": 257.3,
+    "turn": 0.34
+   },
+   "full:walk|5|2": {
+    "run": "20261112-215000-sim-a8e2",
+    "class": "walk",
+    "speed": 492.5,
+    "turn": 0.05
+   },
+   "full:walk|6|2": {
+    "run": "20261112-215000-sim-07eb",
+    "class": "walk",
+    "speed": 551.1,
+    "turn": 0.13
+   },
+   "probe_trot:trot|2|0": {
+    "run": "20261112-215001-sim-1ab6",
+    "class": "trot",
+    "speed": 232.4,
+    "turn": -2.13
+   },
+   "probe_trot:trot|2|1": {
+    "run": "20261112-215001-sim-0a67",
+    "class": "trot",
+    "speed": 253.5,
+    "turn": 1.6
+   },
+   "probe_trot:trot|3|0": {
+    "run": "20261112-215001-sim-6a1b",
+    "class": "trot",
+    "speed": 242.2,
+    "turn": -2.06
+   },
+   "probe_trot:trot|3|1": {
+    "run": "20261112-215001-sim-d128",
+    "class": "trot",
+    "speed": 309.0,
+    "turn": -0.01
+   },
+   "probe_trot:trot|3|2": {
+    "run": "20261112-215002-sim-ad99",
+    "class": "trot",
+    "speed": 278.6,
+    "turn": 1.59
+   },
+   "probe_trot:trot|4|1": {
+    "run": "20261112-215002-sim-7075",
+    "class": "trot",
+    "speed": 416.2,
+    "turn": -0.24
+   },
+   "probe_trot:trot|5|1": {
+    "run": "20261112-215002-sim-28d7",
+    "class": "trot",
+    "speed": 468.7,
+    "turn": 1.33
+   },
+   "probe_trot:trot|6|1": {
+    "run": "20261112-215002-sim-e951",
+    "class": "trot",
+    "speed": 515.7,
+    "turn": 0.04
+   },
+   "probe_trot:trot|7|1": {
+    "run": "20261112-215003-sim-e4ca",
+    "class": "trot",
+    "speed": 581.6,
+    "turn": -0.0
+   },
+   "probe_trot:trot|8|1": {
+    "run": "20261112-215003-sim-637a",
+    "class": "trot",
+    "speed": 605.6,
+    "turn": 0.14
+   },
+   "probe_gaits:irregular|2|1": {
+    "run": "20261112-215003-sim-29af",
+    "class": "walk",
+    "speed": 70.3,
+    "turn": -2.52
+   },
+   "probe_gaits:irregular|2|2": {
+    "run": "20261112-215003-sim-98d4",
+    "class": "irregular",
+    "speed": 25.8,
+    "turn": 0.31
+   },
+   "probe_gaits:irregular|3|2": {
+    "run": "20261112-215004-sim-2489",
+    "class": "irregular",
+    "speed": 107.8,
+    "turn": 0.02
+   },
+   "probe_gaits:irregular|5|2": {
+    "run": "20261112-215004-sim-8290",
+    "class": "irregular",
+    "speed": 397.0,
+    "turn": 1.64
+   },
+   "probe_gaits:pace|3|2": {
+    "run": "20261112-215004-sim-7d6b",
+    "class": "walk",
+    "speed": 115.6,
+    "turn": -1.56
+   },
+   "probe_gaits:trot|2|1": {
+    "run": "20261112-215004-sim-1d4b",
+    "class": "trot",
+    "speed": 78.8,
+    "turn": -2.43
+   },
+   "probe_gaits:trot|3|1": {
+    "run": "20261112-215005-sim-2478",
+    "class": "trot",
+    "speed": 76.9,
+    "turn": -3.48
+   },
+   "probe_gaits:walk|2|1": {
+    "run": "20261112-215005-sim-d77f",
+    "class": "trot",
+    "speed": 70.9,
+    "turn": -3.24
+   },
+   "probe_gaits:walk|2|2": {
+    "run": "20261112-215005-sim-cb44",
+    "class": "walk",
+    "speed": 69.6,
+    "turn": 0.0
+   },
+   "probe_gaits:walk|3|1": {
+    "run": "20261112-215005-sim-ece6",
+    "class": "walk",
+    "speed": 93.3,
+    "turn": -3.23
+   },
+   "probe_gaits:walk|3|2": {
+    "run": "20261112-215006-sim-2c46",
+    "class": "pace",
+    "speed": 117.6,
+    "turn": -1.58
+   },
+   "probe_gaits:walk|3|3": {
+    "run": "20261112-215006-sim-2077",
+    "class": "walk",
+    "speed": 167.9,
+    "turn": 2.76
+   },
+   "probe_lie:best": {
+    "run": "20261112-215006-sim-05d2",
+    "class": "down",
+    "speed": -17.9,
+    "turn": -0.0
+   }
+  },
+  "r18-a": {
+   "pilot:irregular|2|1": {
+    "run": "20261113-000442-sim-1106",
+    "class": "trot",
+    "speed": 28.7,
+    "turn": -4.92
+   },
+   "pilot:irregular|2|2": {
+    "run": "20261113-000442-sim-8602",
+    "class": "irregular",
+    "speed": 43.5,
+    "turn": -0.69
+   },
+   "pilot:irregular|3|1": {
+    "run": "20261113-000443-sim-bd81",
+    "class": "pace",
+    "speed": 90.5,
+    "turn": -2.0
+   },
+   "pilot:irregular|3|2": {
+    "run": "20261113-000443-sim-b7f3",
+    "class": "irregular",
+    "speed": 92.9,
+    "turn": -0.55
+   },
+   "pilot:irregular|3|3": {
+    "run": "20261113-000443-sim-6e57",
+    "class": "walk",
+    "speed": 155.9,
+    "turn": 1.56
+   },
+   "pilot:irregular|4|1": {
+    "run": "20261113-000443-sim-0e52",
+    "class": "trot",
+    "speed": 176.8,
+    "turn": -3.56
+   },
+   "pilot:irregular|4|2": {
+    "run": "20261113-000443-sim-932b",
+    "class": "irregular",
+    "speed": 57.1,
+    "turn": 1.33
+   },
+   "pilot:irregular|4|3": {
+    "run": "20261113-000443-sim-a170",
+    "class": "walk",
+    "speed": 307.1,
+    "turn": 2.22
+   },
+   "pilot:pace|2|2": {
+    "run": "20261113-000443-sim-329c",
+    "class": "irregular",
+    "speed": 79.5,
+    "turn": -0.69
+   },
+   "pilot:pace|3|1": {
+    "run": "20261113-000443-sim-7511",
+    "class": "pace",
+    "speed": 144.2,
+    "turn": -1.47
+   },
+   "pilot:pace|3|2": {
+    "run": "20261113-000443-sim-d6c7",
+    "class": "pace",
+    "speed": 147.2,
+    "turn": -0.97
+   },
+   "pilot:pace|4|2": {
+    "run": "20261113-000443-sim-3672",
+    "class": "walk",
+    "speed": 272.6,
+    "turn": -0.51
+   },
+   "pilot:stand|1|2": {
+    "run": "20261113-000444-sim-e3a7",
+    "class": "stand",
+    "speed": -0.0,
+    "turn": -0.0
+   },
+   "pilot:trot|2|0": {
+    "run": "20261113-000444-sim-8fa4",
+    "class": "trot",
+    "speed": -38.7,
+    "turn": -9.81
+   },
+   "pilot:trot|2|1": {
+    "run": "20261113-000444-sim-b78a",
+    "class": "irregular",
+    "speed": -0.1,
+    "turn": -7.34
+   },
+   "pilot:trot|2|2": {
+    "run": "20261113-000444-sim-6e7f",
+    "class": "irregular",
+    "speed": 34.7,
+    "turn": -0.3
+   },
+   "pilot:trot|3|1": {
+    "run": "20261113-000444-sim-1997",
+    "class": "trot",
+    "speed": 128.6,
+    "turn": -3.34
+   },
+   "pilot:trot|3|2": {
+    "run": "20261113-000444-sim-cef5",
+    "class": "trot",
+    "speed": 174.8,
+    "turn": -1.21
+   },
+   "pilot:trot|3|3": {
+    "run": "20261113-000444-sim-5771",
+    "class": "trot",
+    "speed": 56.8,
+    "turn": 1.94
+   },
+   "pilot:trot|4|1": {
+    "run": "20261113-000444-sim-1556",
+    "class": "walk",
+    "speed": 170.2,
+    "turn": -2.06
+   },
+   "pilot:trot|4|2": {
+    "run": "20261113-000444-sim-6e48",
+    "class": "walk",
+    "speed": 275.1,
+    "turn": -1.29
+   },
+   "pilot:trot|4|3": {
+    "run": "20261113-000444-sim-a340",
+    "class": "walk",
+    "speed": 291.0,
+    "turn": 2.39
+   },
+   "pilot:trot|5|2": {
+    "run": "20261113-000444-sim-9e83",
+    "class": "irregular",
+    "speed": 388.6,
+    "turn": -0.05
+   },
+   "pilot:trot|6|2": {
+    "run": "20261113-000445-sim-daf8",
+    "class": "trot",
+    "speed": 523.1,
+    "turn": 0.06
+   },
+   "pilot:walk|2|1": {
+    "run": "20261113-000445-sim-c850",
+    "class": "walk",
+    "speed": -57.1,
+    "turn": -8.24
+   },
+   "pilot:walk|2|2": {
+    "run": "20261113-000445-sim-ef26",
+    "class": "irregular",
+    "speed": 66.6,
+    "turn": -0.69
+   },
+   "pilot:walk|3|1": {
+    "run": "20261113-000445-sim-7ec7",
+    "class": "walk",
+    "speed": 76.0,
+    "turn": -3.36
+   },
+   "pilot:walk|3|2": {
+    "run": "20261113-000445-sim-4d79",
+    "class": "walk",
+    "speed": 107.3,
+    "turn": -0.74
+   },
+   "pilot:walk|3|3": {
+    "run": "20261113-000445-sim-ccf1",
+    "class": "walk",
+    "speed": 191.0,
+    "turn": 1.55
+   },
+   "pilot:walk|4|1": {
+    "run": "20261113-000445-sim-6488",
+    "class": "walk",
+    "speed": 268.4,
+    "turn": -1.15
+   },
+   "pilot:walk|4|2": {
+    "run": "20261113-000445-sim-938a",
+    "class": "irregular",
+    "speed": -79.9,
+    "turn": 0.28
+   },
+   "pilot:walk|5|2": {
+    "run": "20261113-000445-sim-1b85",
+    "class": "walk",
+    "speed": 365.7,
+    "turn": -1.13
+   },
+   "full:bound|2|2": {
+    "run": "20261113-000445-sim-4a07",
+    "class": "irregular",
+    "speed": 18.6,
+    "turn": 0.53
+   },
+   "full:bound|3|2": {
+    "run": "20261113-000445-sim-f6d9",
+    "class": "walk",
+    "speed": 80.6,
+    "turn": 0.6
+   },
+   "full:irregular|0|2": {
+    "run": "20261113-000446-sim-2b53",
+    "class": "walk",
+    "speed": -102.4,
+    "turn": 0.27
+   },
+   "full:irregular|1|2": {
+    "run": "20261113-000446-sim-f193",
+    "class": "irregular",
+    "speed": 0.9,
+    "turn": -0.0
+   },
+   "full:irregular|1|3": {
+    "run": "20261113-000446-sim-787e",
+    "class": "irregular",
+    "speed": -1.6,
+    "turn": 3.42
+   },
+   "full:irregular|2|1": {
+    "run": "20261113-000446-sim-1f5c",
+    "class": "pace",
+    "speed": 41.1,
+    "turn": -3.17
+   },
+   "full:irregular|2|2": {
+    "run": "20261113-000446-sim-0b4f",
+    "class": "trot",
+    "speed": 16.2,
+    "turn": -0.03
+   },
+   "full:irregular|2|3": {
+    "run": "20261113-000446-sim-9164",
+    "class": "irregular",
+    "speed": 14.1,
+    "turn": 5.91
+   },
+   "full:irregular|3|2": {
+    "run": "20261113-000446-sim-5bd4",
+    "class": "pace",
+    "speed": 64.4,
+    "turn": 0.68
+   },
+   "full:irregular|4|2": {
+    "run": "20261113-000446-sim-695e",
+    "class": "irregular",
+    "speed": 286.0,
+    "turn": 0.08
+   },
+   "full:irregular|5|2": {
+    "run": "20261113-000446-sim-318e",
+    "class": "walk",
+    "speed": 496.6,
+    "turn": 0.12
+   },
+   "full:pace|1|2": {
+    "run": "20261113-000446-sim-28e1",
+    "class": "pace",
+    "speed": -0.5,
+    "turn": 0.0
+   },
+   "full:pace|2|1": {
+    "run": "20261113-000447-sim-72ac",
+    "class": "pace",
+    "speed": 9.2,
+    "turn": -3.18
+   },
+   "full:pace|2|2": {
+    "run": "20261113-000447-sim-b165",
+    "class": "pace",
+    "speed": 18.2,
+    "turn": 0.03
+   },
+   "full:pace|3|2": {
+    "run": "20261113-000447-sim-b745",
+    "class": "pace",
+    "speed": 92.1,
+    "turn": -0.92
+   },
+   "full:pace|4|2": {
+    "run": "20261113-000447-sim-fd06",
+    "class": "pace",
+    "speed": 281.6,
+    "turn": 0.19
+   },
+   "full:pace|5|2": {
+    "run": "20261113-000447-sim-bc3a",
+    "class": "walk",
+    "speed": 459.3,
+    "turn": 0.11
+   },
+   "full:stand|0|2": {
+    "run": "20261113-000447-sim-0bb6",
+    "class": "stand",
+    "speed": -0.1,
+    "turn": 0.0
+   },
+   "full:stand|1|2": {
+    "run": "20261113-000447-sim-07af",
+    "class": "stand",
+    "speed": -0.1,
+    "turn": 0.0
+   },
+   "full:stand|1|3": {
+    "run": "20261113-000447-sim-b7e0",
+    "class": "stand",
+    "speed": 0.0,
+    "turn": -0.0
+   },
+   "full:stand|2|3": {
+    "run": "20261113-000447-sim-056d",
+    "class": "stand",
+    "speed": -0.0,
+    "turn": -0.0
+   },
+   "full:stand|3|3": {
+    "run": "20261113-000447-sim-65c9",
+    "class": "stand",
+    "speed": 0.0,
+    "turn": -0.0
+   },
+   "full:stand|4|2": {
+    "run": "20261113-000447-sim-e1bb",
+    "class": "stand",
+    "speed": 0.0,
+    "turn": 0.0
+   },
+   "full:stand|4|3": {
+    "run": "20261113-000448-sim-e5f1",
+    "class": "stand",
+    "speed": -0.0,
+    "turn": -0.0
+   },
+   "full:stand|4|4": {
+    "run": "20261113-000448-sim-5ad3",
+    "class": "stand",
+    "speed": -0.0,
+    "turn": 0.0
+   },
+   "full:stand|5|2": {
+    "run": "20261113-000448-sim-d8bf",
+    "class": "stand",
+    "speed": -0.0,
+    "turn": 0.0
+   },
+   "full:stand|5|3": {
+    "run": "20261113-000448-sim-f843",
+    "class": "stand",
+    "speed": -0.0,
+    "turn": 0.0
+   },
+   "full:stand|5|4": {
+    "run": "20261113-000448-sim-ee21",
+    "class": "stand",
+    "speed": -0.0,
+    "turn": 0.0
+   },
+   "full:stand|6|3": {
+    "run": "20261113-000448-sim-02df",
+    "class": "stand",
+    "speed": 0.1,
+    "turn": 0.0
+   },
+   "full:stand|6|4": {
+    "run": "20261113-000448-sim-b945",
+    "class": "stand",
+    "speed": -0.1,
+    "turn": 0.0
+   },
+   "full:trot|0|2": {
+    "run": "20261113-000448-sim-d1b4",
+    "class": "trot",
+    "speed": -16.1,
+    "turn": 0.02
+   },
+   "full:trot|0|3": {
+    "run": "20261113-000448-sim-31f7",
+    "class": "trot",
+    "speed": 15.2,
+    "turn": 5.09
+   },
+   "full:trot|1|1": {
+    "run": "20261113-000448-sim-f53b",
+    "class": "walk",
+    "speed": -43.2,
+    "turn": -2.02
+   },
+   "full:trot|1|2": {
+    "run": "20261113-000448-sim-ed9d",
+    "class": "walk",
+    "speed": 2.7,
+    "turn": 0.0
+   },
+   "full:trot|1|3": {
+    "run": "20261113-000449-sim-d39e",
+    "class": "trot",
+    "speed": 14.5,
+    "turn": 4.61
+   },
+   "full:trot|2|1": {
+    "run": "20261113-000449-sim-9ec8",
+    "class": "walk",
+    "speed": 33.1,
+    "turn": -1.86
+   },
+   "full:trot|2|2": {
+    "run": "20261113-000449-sim-b078",
+    "class": "trot",
+    "speed": 11.0,
+    "turn": -0.11
+   },
+   "full:trot|2|3": {
+    "run": "20261113-000449-sim-b4c4",
+    "class": "irregular",
+    "speed": 11.3,
+    "turn": 2.31
+   },
+   "full:trot|3|2": {
+    "run": "20261113-000449-sim-d060",
+    "class": "trot",
+    "speed": 127.6,
+    "turn": 0.02
+   },
+   "full:trot|4|2": {
+    "run": "20261113-000449-sim-0fae",
+    "class": "walk",
+    "speed": 265.4,
+    "turn": 0.42
+   },
+   "full:trot|5|2": {
+    "run": "20261113-000449-sim-2c91",
+    "class": "irregular",
+    "speed": 348.5,
+    "turn": 0.09
+   },
+   "full:trot|6|2": {
+    "run": "20261113-000449-sim-436c",
+    "class": "irregular",
+    "speed": 498.3,
+    "turn": -0.05
+   },
+   "full:walk|0|2": {
+    "run": "20261113-000449-sim-0c3a",
+    "class": "walk",
+    "speed": -53.5,
+    "turn": 0.36
+   },
+   "full:walk|1|2": {
+    "run": "20261113-000449-sim-4c71",
+    "class": "irregular",
+    "speed": 1.2,
+    "turn": 0.0
+   },
+   "full:walk|2|1": {
+    "run": "20261113-000449-sim-5204",
+    "class": "walk",
+    "speed": 24.0,
+    "turn": -1.69
+   },
+   "full:walk|2|2": {
+    "run": "20261113-000450-sim-7ad8",
+    "class": "pace",
+    "speed": 9.0,
+    "turn": -0.12
+   },
+   "full:walk|2|3": {
+    "run": "20261113-000450-sim-e903",
+    "class": "walk",
+    "speed": 27.1,
+    "turn": 2.35
+   },
+   "full:walk|3|2": {
+    "run": "20261113-000450-sim-e6c3",
+    "class": "walk",
+    "speed": 76.2,
+    "turn": 0.05
+   },
+   "full:walk|3|3": {
+    "run": "20261113-000450-sim-22c9",
+    "class": "pace",
+    "speed": 165.3,
+    "turn": 2.53
+   },
+   "full:walk|4|2": {
+    "run": "20261113-000450-sim-9720",
+    "class": "pace",
+    "speed": 210.1,
+    "turn": 0.45
+   },
+   "full:walk|5|2": {
+    "run": "20261113-000450-sim-99cb",
+    "class": "irregular",
+    "speed": 418.5,
+    "turn": 0.4
+   },
+   "full:walk|6|2": {
+    "run": "20261113-000450-sim-f8d3",
+    "class": "walk",
+    "speed": 521.0,
+    "turn": 0.21
+   },
+   "probe_trot:trot|2|0": {
+    "run": "20261113-000450-sim-ab92",
+    "class": "walk",
+    "speed": 246.5,
+    "turn": -1.97
+   },
+   "probe_trot:trot|2|1": {
+    "run": "20261113-000450-sim-1519",
+    "class": "walk",
+    "speed": 245.3,
+    "turn": 1.21
+   },
+   "probe_trot:trot|3|0": {
+    "run": "20261113-000450-sim-d951",
+    "class": "trot",
+    "speed": 265.9,
+    "turn": -1.79
+   },
+   "probe_trot:trot|3|1": {
+    "run": "20261113-000450-sim-6efd",
+    "class": "pace",
+    "speed": 283.1,
+    "turn": 0.04
+   },
+   "probe_trot:trot|3|2": {
+    "run": "20261113-000451-sim-7b64",
+    "class": "walk",
+    "speed": 276.4,
+    "turn": 1.29
+   },
+   "probe_trot:trot|4|1": {
+    "run": "20261113-000451-sim-1e9a",
+    "class": "walk",
+    "speed": 374.7,
+    "turn": 0.07
+   },
+   "probe_trot:trot|5|1": {
+    "run": "20261113-000451-sim-d674",
+    "class": "walk",
+    "speed": 391.7,
+    "turn": 1.99
+   },
+   "probe_trot:trot|6|1": {
+    "run": "20261113-000451-sim-5d63",
+    "class": "trot",
+    "speed": 491.6,
+    "turn": 0.08
+   },
+   "probe_trot:trot|7|1": {
+    "run": "20261113-000451-sim-5cc7",
+    "class": "trot",
+    "speed": 550.9,
+    "turn": -0.05
+   },
+   "probe_trot:trot|8|1": {
+    "run": "20261113-000451-sim-6403",
+    "class": "trot",
+    "speed": 575.3,
+    "turn": 0.19
+   },
+   "probe_gaits:irregular|2|1": {
+    "run": "20261113-000451-sim-7fdb",
+    "class": "walk",
+    "speed": 74.3,
+    "turn": -1.68
+   },
+   "probe_gaits:irregular|2|2": {
+    "run": "20261113-000451-sim-e165",
+    "class": "irregular",
+    "speed": 19.3,
+    "turn": 0.3
+   },
+   "probe_gaits:irregular|3|2": {
+    "run": "20261113-000451-sim-289d",
+    "class": "irregular",
+    "speed": 94.3,
+    "turn": 0.02
+   },
+   "probe_gaits:irregular|5|2": {
+    "run": "20261113-000451-sim-2892",
+    "class": "trot",
+    "speed": 396.8,
+    "turn": 1.14
+   },
+   "probe_gaits:pace|3|2": {
+    "run": "20261113-000452-sim-0e99",
+    "class": "pace",
+    "speed": 118.9,
+    "turn": -1.18
+   },
+   "probe_gaits:trot|2|1": {
+    "run": "20261113-000452-sim-21f3",
+    "class": "trot",
+    "speed": 73.8,
+    "turn": -2.45
+   },
+   "probe_gaits:trot|3|1": {
+    "run": "20261113-000452-sim-9ff1",
+    "class": "trot",
+    "speed": 97.5,
+    "turn": -2.56
+   },
+   "probe_gaits:walk|2|1": {
+    "run": "20261113-000452-sim-5795",
+    "class": "walk",
+    "speed": 82.3,
+    "turn": -2.39
+   },
+   "probe_gaits:walk|2|2": {
+    "run": "20261113-000452-sim-df08",
+    "class": "irregular",
+    "speed": 61.7,
+    "turn": -0.17
+   },
+   "probe_gaits:walk|3|1": {
+    "run": "20261113-000452-sim-ce1f",
+    "class": "walk",
+    "speed": 103.6,
+    "turn": -2.72
+   },
+   "probe_gaits:walk|3|2": {
+    "run": "20261113-000452-sim-a68d",
+    "class": "pace",
+    "speed": 119.7,
+    "turn": -1.21
+   },
+   "probe_gaits:walk|3|3": {
+    "run": "20261113-000452-sim-ef8a",
+    "class": "walk",
+    "speed": 157.0,
+    "turn": 2.79
+   },
+   "probe_lie:best": {
+    "run": "20261113-000452-sim-8546",
+    "class": "down",
+    "speed": -20.1,
+    "turn": -0.0
+   }
+  },
+  "r18-b": {
+   "pilot:irregular|2|1": {
+    "run": "20261113-000747-sim-a58f",
+    "class": "walk",
+    "speed": 16.5,
+    "turn": -5.75
+   },
+   "pilot:irregular|2|2": {
+    "run": "20261113-000747-sim-4a53",
+    "class": "irregular",
+    "speed": 17.1,
+    "turn": -0.68
+   },
+   "pilot:irregular|3|1": {
+    "run": "20261113-000747-sim-36b7",
+    "class": "pace",
+    "speed": 84.0,
+    "turn": -1.95
+   },
+   "pilot:irregular|3|2": {
+    "run": "20261113-000747-sim-14dd",
+    "class": "walk",
+    "speed": 77.1,
+    "turn": -0.44
+   },
+   "pilot:irregular|3|3": {
+    "run": "20261113-000747-sim-ae7d",
+    "class": "irregular",
+    "speed": -3.2,
+    "turn": -0.14
+   },
+   "pilot:irregular|4|1": {
+    "run": "20261113-000748-sim-1466",
+    "class": "walk",
+    "speed": 204.8,
+    "turn": -2.94
+   },
+   "pilot:irregular|4|2": {
+    "run": "20261113-000748-sim-5f79",
+    "class": "trot",
+    "speed": 78.6,
+    "turn": -2.47
+   },
+   "pilot:irregular|4|3": {
+    "run": "20261113-000748-sim-1268",
+    "class": "irregular",
+    "speed": 248.4,
+    "turn": 2.29
+   },
+   "pilot:pace|2|2": {
+    "run": "20261113-000748-sim-8932",
+    "class": "irregular",
+    "speed": 74.7,
+    "turn": -0.49
+   },
+   "pilot:pace|3|1": {
+    "run": "20261113-000748-sim-7ae4",
+    "class": "pace",
+    "speed": 142.8,
+    "turn": -1.2
+   },
+   "pilot:pace|3|2": {
+    "run": "20261113-000748-sim-f62f",
+    "class": "pace",
+    "speed": 134.5,
+    "turn": -0.94
+   },
+   "pilot:pace|4|2": {
+    "run": "20261113-000748-sim-9e6f",
+    "class": "pace",
+    "speed": 251.2,
+    "turn": 0.58
+   },
+   "pilot:stand|1|2": {
+    "run": "20261113-000748-sim-d800",
+    "class": "stand",
+    "speed": -0.0,
+    "turn": 0.0
+   },
+   "pilot:trot|2|0": {
+    "run": "20261113-000749-sim-9bf9",
+    "class": "irregular",
+    "speed": -28.2,
+    "turn": -11.21
+   },
+   "pilot:trot|2|1": {
+    "run": "20261113-000749-sim-e0a7",
+    "class": "irregular",
+    "speed": -8.5,
+    "turn": -8.14
+   },
+   "pilot:trot|2|2": {
+    "run": "20261113-000749-sim-128b",
+    "class": "irregular",
+    "speed": 21.0,
+    "turn": -0.37
+   },
+   "pilot:trot|3|1": {
+    "run": "20261113-000749-sim-b05f",
+    "class": "pace",
+    "speed": 153.9,
+    "turn": -2.81
+   },
+   "pilot:trot|3|2": {
+    "run": "20261113-000749-sim-ef73",
+    "class": "trot",
+    "speed": 163.4,
+    "turn": -1.79
+   },
+   "pilot:trot|3|3": {
+    "run": "20261113-000749-sim-6dc9",
+    "class": "trot",
+    "speed": 69.0,
+    "turn": 2.06
+   },
+   "pilot:trot|4|1": {
+    "run": "20261113-000749-sim-d766",
+    "class": "irregular",
+    "speed": 27.0,
+    "turn": 1.27
+   },
+   "pilot:trot|4|2": {
+    "run": "20261113-000749-sim-67c5",
+    "class": "pace",
+    "speed": 242.8,
+    "turn": -1.34
+   },
+   "pilot:trot|4|3": {
+    "run": "20261113-000749-sim-912e",
+    "class": "irregular",
+    "speed": 236.1,
+    "turn": 2.35
+   },
+   "pilot:trot|5|2": {
+    "run": "20261113-000750-sim-bc8d",
+    "class": "pace",
+    "speed": 352.8,
+    "turn": 0.66
+   },
+   "pilot:trot|6|2": {
+    "run": "20261113-000750-sim-3414",
+    "class": "trot",
+    "speed": 537.1,
+    "turn": 0.03
+   },
+   "pilot:walk|2|1": {
+    "run": "20261113-000750-sim-5576",
+    "class": "walk",
+    "speed": -62.7,
+    "turn": -8.38
+   },
+   "pilot:walk|2|2": {
+    "run": "20261113-000750-sim-0b8f",
+    "class": "irregular",
+    "speed": 54.2,
+    "turn": -0.58
+   },
+   "pilot:walk|3|1": {
+    "run": "20261113-000750-sim-9ccf",
+    "class": "pace",
+    "speed": 66.4,
+    "turn": -3.24
+   },
+   "pilot:walk|3|2": {
+    "run": "20261113-000750-sim-a199",
+    "class": "irregular",
+    "speed": 96.2,
+    "turn": -0.51
+   },
+   "pilot:walk|3|3": {
+    "run": "20261113-000750-sim-b0d2",
+    "class": "pace",
+    "speed": 169.3,
+    "turn": 1.22
+   },
+   "pilot:walk|4|1": {
+    "run": "20261113-000750-sim-6ac3",
+    "class": "irregular",
+    "speed": 253.2,
+    "turn": -0.49
+   },
+   "pilot:walk|4|2": {
+    "run": "20261113-000750-sim-a1f8",
+    "class": "irregular",
+    "speed": -27.3,
+    "turn": 2.65
+   },
+   "pilot:walk|5|2": {
+    "run": "20261113-000750-sim-be17",
+    "class": "pace",
+    "speed": 350.6,
+    "turn": -1.18
+   },
+   "full:bound|2|2": {
+    "run": "20261113-000751-sim-89e4",
+    "class": "irregular",
+    "speed": 15.6,
+    "turn": 0.5
+   },
+   "full:bound|3|2": {
+    "run": "20261113-000751-sim-59df",
+    "class": "irregular",
+    "speed": 91.1,
+    "turn": 0.14
+   },
+   "full:irregular|0|2": {
+    "run": "20261113-000751-sim-02f7",
+    "class": "irregular",
+    "speed": -75.8,
+    "turn": 0.39
+   },
+   "full:irregular|1|2": {
+    "run": "20261113-000751-sim-a296",
+    "class": "irregular",
+    "speed": 0.8,
+    "turn": -0.01
+   },
+   "full:irregular|1|3": {
+    "run": "20261113-000751-sim-d9cb",
+    "class": "irregular",
+    "speed": -4.1,
+    "turn": 4.57
+   },
+   "full:irregular|2|1": {
+    "run": "20261113-000751-sim-374d",
+    "class": "pace",
+    "speed": -4.0,
+    "turn": -4.36
+   },
+   "full:irregular|2|2": {
+    "run": "20261113-000751-sim-b4e0",
+    "class": "trot",
+    "speed": 12.8,
+    "turn": -0.02
+   },
+   "full:irregular|2|3": {
+    "run": "20261113-000751-sim-7d27",
+    "class": "irregular",
+    "speed": 7.0,
+    "turn": 6.59
+   },
+   "full:irregular|3|2": {
+    "run": "20261113-000751-sim-2077",
+    "class": "irregular",
+    "speed": 73.8,
+    "turn": 0.1
+   },
+   "full:irregular|4|2": {
+    "run": "20261113-000752-sim-c3fd",
+    "class": "pace",
+    "speed": 257.2,
+    "turn": 0.32
+   },
+   "full:irregular|5|2": {
+    "run": "20261113-000752-sim-2c9f",
+    "class": "irregular",
+    "speed": 492.3,
+    "turn": 0.05
+   },
+   "full:pace|1|2": {
+    "run": "20261113-000752-sim-4087",
+    "class": "irregular",
+    "speed": -0.3,
+    "turn": -0.01
+   },
+   "full:pace|2|1": {
+    "run": "20261113-000752-sim-ac79",
+    "class": "pace",
+    "speed": -11.2,
+    "turn": -3.89
+   },
+   "full:pace|2|2": {
+    "run": "20261113-000752-sim-4f24",
+    "class": "bound",
+    "speed": 20.3,
+    "turn": 0.02
+   },
+   "full:pace|3|2": {
+    "run": "20261113-000752-sim-ac0c",
+    "class": "pace",
+    "speed": 73.3,
+    "turn": -1.11
+   },
+   "full:pace|4|2": {
+    "run": "20261113-000752-sim-7735",
+    "class": "pace",
+    "speed": 286.0,
+    "turn": 0.13
+   },
+   "full:pace|5|2": {
+    "run": "20261113-000752-sim-3ee5",
+    "class": "pace",
+    "speed": 455.1,
+    "turn": 0.14
+   },
+   "full:stand|0|2": {
+    "run": "20261113-000752-sim-6135",
+    "class": "stand",
+    "speed": -0.1,
+    "turn": 0.0
+   },
+   "full:stand|1|2": {
+    "run": "20261113-000753-sim-7c68",
+    "class": "stand",
+    "speed": -0.0,
+    "turn": -0.0
+   },
+   "full:stand|1|3": {
+    "run": "20261113-000753-sim-b5ac",
+    "class": "stand",
+    "speed": 0.0,
+    "turn": -0.0
+   },
+   "full:stand|2|3": {
+    "run": "20261113-000753-sim-ba2c",
+    "class": "stand",
+    "speed": -0.0,
+    "turn": -0.0
+   },
+   "full:stand|3|3": {
+    "run": "20261113-000753-sim-44b5",
+    "class": "stand",
+    "speed": 0.0,
+    "turn": -0.0
+   },
+   "full:stand|4|2": {
+    "run": "20261113-000753-sim-7c74",
+    "class": "stand",
+    "speed": 0.0,
+    "turn": -0.0
+   },
+   "full:stand|4|3": {
+    "run": "20261113-000753-sim-2ce6",
+    "class": "stand",
+    "speed": -0.0,
+    "turn": -0.0
+   },
+   "full:stand|4|4": {
+    "run": "20261113-000753-sim-04fa",
+    "class": "stand",
+    "speed": -0.0,
+    "turn": 0.0
+   },
+   "full:stand|5|2": {
+    "run": "20261113-000753-sim-fc73",
+    "class": "stand",
+    "speed": 0.0,
+    "turn": -0.0
+   },
+   "full:stand|5|3": {
+    "run": "20261113-000753-sim-991f",
+    "class": "stand",
+    "speed": -0.1,
+    "turn": 0.0
+   },
+   "full:stand|5|4": {
+    "run": "20261113-000754-sim-b0ac",
+    "class": "stand",
+    "speed": -0.0,
+    "turn": 0.0
+   },
+   "full:stand|6|3": {
+    "run": "20261113-000754-sim-3b80",
+    "class": "stand",
+    "speed": 0.1,
+    "turn": -0.0
+   },
+   "full:stand|6|4": {
+    "run": "20261113-000754-sim-1289",
+    "class": "stand",
+    "speed": -0.1,
+    "turn": -0.0
+   },
+   "full:trot|0|2": {
+    "run": "20261113-000754-sim-f7ca",
+    "class": "trot",
+    "speed": -24.4,
+    "turn": 0.05
+   },
+   "full:trot|0|3": {
+    "run": "20261113-000754-sim-0d8c",
+    "class": "irregular",
+    "speed": -58.5,
+    "turn": 2.44
+   },
+   "full:trot|1|1": {
+    "run": "20261113-000754-sim-5b10",
+    "class": "pace",
+    "speed": -60.7,
+    "turn": -1.97
+   },
+   "full:trot|1|2": {
+    "run": "20261113-000754-sim-c8a0",
+    "class": "irregular",
+    "speed": 1.3,
+    "turn": 0.01
+   },
+   "full:trot|1|3": {
+    "run": "20261113-000754-sim-0ca2",
+    "class": "walk",
+    "speed": 5.2,
+    "turn": 4.3
+   },
+   "full:trot|2|1": {
+    "run": "20261113-000754-sim-9c2f",
+    "class": "trot",
+    "speed": 28.7,
+    "turn": -1.63
+   },
+   "full:trot|2|2": {
+    "run": "20261113-000755-sim-c7f0",
+    "class": "irregular",
+    "speed": 7.0,
+    "turn": -0.08
+   },
+   "full:trot|2|3": {
+    "run": "20261113-000755-sim-f9d9",
+    "class": "irregular",
+    "speed": -3.1,
+    "turn": 2.39
+   },
+   "full:trot|3|2": {
+    "run": "20261113-000755-sim-3e61",
+    "class": "trot",
+    "speed": 136.7,
+    "turn": 0.01
+   },
+   "full:trot|4|2": {
+    "run": "20261113-000755-sim-e2b1",
+    "class": "pace",
+    "speed": 228.0,
+    "turn": 0.43
+   },
+   "full:trot|5|2": {
+    "run": "20261113-000755-sim-91af",
+    "class": "pace",
+    "speed": 315.8,
+    "turn": -0.01
+   },
+   "full:trot|6|2": {
+    "run": "20261113-000755-sim-d047",
+    "class": "irregular",
+    "speed": 516.6,
+    "turn": 0.02
+   },
+   "full:walk|0|2": {
+    "run": "20261113-000755-sim-5373",
+    "class": "pace",
+    "speed": -67.8,
+    "turn": 0.39
+   },
+   "full:walk|1|2": {
+    "run": "20261113-000755-sim-413f",
+    "class": "irregular",
+    "speed": 1.0,
+    "turn": -0.01
+   },
+   "full:walk|2|1": {
+    "run": "20261113-000755-sim-bd3e",
+    "class": "walk",
+    "speed": 17.8,
+    "turn": -1.28
+   },
+   "full:walk|2|2": {
+    "run": "20261113-000755-sim-33c4",
+    "class": "pace",
+    "speed": 1.9,
+    "turn": -0.06
+   },
+   "full:walk|2|3": {
+    "run": "20261113-000756-sim-82c8",
+    "class": "pace",
+    "speed": -69.3,
+    "turn": -1.01
+   },
+   "full:walk|3|2": {
+    "run": "20261113-000756-sim-fcfe",
+    "class": "pace",
+    "speed": 67.7,
+    "turn": 0.04
+   },
+   "full:walk|3|3": {
+    "run": "20261113-000756-sim-1ef5",
+    "class": "pace",
+    "speed": 129.0,
+    "turn": 3.29
+   },
+   "full:walk|4|2": {
+    "run": "20261113-000756-sim-d367",
+    "class": "pace",
+    "speed": 204.4,
+    "turn": 0.4
+   },
+   "full:walk|5|2": {
+    "run": "20261113-000756-sim-3ffb",
+    "class": "pace",
+    "speed": 428.6,
+    "turn": -0.2
+   },
+   "full:walk|6|2": {
+    "run": "20261113-000756-sim-5ac5",
+    "class": "walk",
+    "speed": 532.5,
+    "turn": 0.17
+   },
+   "probe_trot:trot|2|0": {
+    "run": "20261113-000756-sim-39f7",
+    "class": "pace",
+    "speed": 237.4,
+    "turn": -2.03
+   },
+   "probe_trot:trot|2|1": {
+    "run": "20261113-000756-sim-6060",
+    "class": "walk",
+    "speed": 233.8,
+    "turn": 0.93
+   },
+   "probe_trot:trot|3|0": {
+    "run": "20261113-000756-sim-7e05",
+    "class": "irregular",
+    "speed": 253.3,
+    "turn": -1.8
+   },
+   "probe_trot:trot|3|1": {
+    "run": "20261113-000757-sim-34db",
+    "class": "pace",
+    "speed": 259.9,
+    "turn": 0.39
+   },
+   "probe_trot:trot|3|2": {
+    "run": "20261113-000757-sim-2a21",
+    "class": "walk",
+    "speed": 273.2,
+    "turn": 0.92
+   },
+   "probe_trot:trot|4|1": {
+    "run": "20261113-000757-sim-e806",
+    "class": "walk",
+    "speed": 325.7,
+    "turn": 0.67
+   },
+   "probe_trot:trot|5|1": {
+    "run": "20261113-000757-sim-bd0d",
+    "class": "walk",
+    "speed": 196.6,
+    "turn": 3.55
+   },
+   "probe_trot:trot|6|1": {
+    "run": "20261113-000757-sim-b130",
+    "class": "pace",
+    "speed": 466.9,
+    "turn": 0.12
+   },
+   "probe_trot:trot|7|1": {
+    "run": "20261113-000757-sim-ce40",
+    "class": "trot",
+    "speed": 554.9,
+    "turn": 0.18
+   },
+   "probe_trot:trot|8|1": {
+    "run": "20261113-000757-sim-0559",
+    "class": "trot",
+    "speed": 581.4,
+    "turn": -0.29
+   },
+   "probe_gaits:irregular|2|1": {
+    "run": "20261113-000757-sim-77ab",
+    "class": "pace",
+    "speed": 68.2,
+    "turn": -2.11
+   },
+   "probe_gaits:irregular|2|2": {
+    "run": "20261113-000757-sim-b25d",
+    "class": "irregular",
+    "speed": 16.0,
+    "turn": 0.2
+   },
+   "probe_gaits:irregular|3|2": {
+    "run": "20261113-000758-sim-68dd",
+    "class": "irregular",
+    "speed": 86.2,
+    "turn": 0.11
+   },
+   "probe_gaits:irregular|5|2": {
+    "run": "20261113-000758-sim-6645",
+    "class": "trot",
+    "speed": 408.6,
+    "turn": 0.57
+   },
+   "probe_gaits:pace|3|2": {
+    "run": "20261113-000758-sim-47dc",
+    "class": "pace",
+    "speed": 114.2,
+    "turn": -1.23
+   },
+   "probe_gaits:trot|2|1": {
+    "run": "20261113-000758-sim-f5ac",
+    "class": "trot",
+    "speed": 69.4,
+    "turn": -2.42
+   },
+   "probe_gaits:trot|3|1": {
+    "run": "20261113-000758-sim-d8e9",
+    "class": "walk",
+    "speed": 76.6,
+    "turn": -3.05
+   },
+   "probe_gaits:walk|2|1": {
+    "run": "20261113-000758-sim-d12c",
+    "class": "walk",
+    "speed": 69.8,
+    "turn": -2.82
+   },
+   "probe_gaits:walk|2|2": {
+    "run": "20261113-000758-sim-01a2",
+    "class": "irregular",
+    "speed": 48.8,
+    "turn": -0.32
+   },
+   "probe_gaits:walk|3|1": {
+    "run": "20261113-000758-sim-fc09",
+    "class": "walk",
+    "speed": 107.5,
+    "turn": -2.58
+   },
+   "probe_gaits:walk|3|2": {
+    "run": "20261113-000758-sim-bef5",
+    "class": "pace",
+    "speed": 116.5,
+    "turn": -1.22
+   },
+   "probe_gaits:walk|3|3": {
+    "run": "20261113-000759-sim-1d5c",
+    "class": "walk",
+    "speed": 152.6,
+    "turn": 3.09
+   },
+   "probe_lie:best": {
+    "run": "20261113-000759-sim-e6ee",
+    "class": "down",
+    "speed": -15.0,
+    "turn": -0.0
+   }
+  },
+  "r18-c": {
+   "pilot:irregular|2|1": {
+    "run": "20261113-001053-sim-2ae1",
+    "class": "walk",
+    "speed": 14.5,
+    "turn": -5.68
+   },
+   "pilot:irregular|2|2": {
+    "run": "20261113-001054-sim-ec2d",
+    "class": "irregular",
+    "speed": 44.0,
+    "turn": -0.68
+   },
+   "pilot:irregular|3|1": {
+    "run": "20261113-001054-sim-64d3",
+    "class": "pace",
+    "speed": 109.2,
+    "turn": -2.08
+   },
+   "pilot:irregular|3|2": {
+    "run": "20261113-001054-sim-8e0f",
+    "class": "irregular",
+    "speed": 95.4,
+    "turn": -0.63
+   },
+   "pilot:irregular|3|3": {
+    "run": "20261113-001054-sim-bea0",
+    "class": "irregular",
+    "speed": 148.1,
+    "turn": 2.57
+   },
+   "pilot:irregular|4|1": {
+    "run": "20261113-001054-sim-e8fe",
+    "class": "trot",
+    "speed": 184.9,
+    "turn": -3.46
+   },
+   "pilot:irregular|4|2": {
+    "run": "20261113-001054-sim-7b71",
+    "class": "irregular",
+    "speed": 60.5,
+    "turn": 1.56
+   },
+   "pilot:irregular|4|3": {
+    "run": "20261113-001054-sim-62cb",
+    "class": "walk",
+    "speed": 297.7,
+    "turn": 2.32
+   },
+   "pilot:pace|2|2": {
+    "run": "20261113-001054-sim-0e6b",
+    "class": "irregular",
+    "speed": 87.7,
+    "turn": -0.44
+   },
+   "pilot:pace|3|1": {
+    "run": "20261113-001054-sim-0af5",
+    "class": "pace",
+    "speed": 168.3,
+    "turn": -1.24
+   },
+   "pilot:pace|3|2": {
+    "run": "20261113-001055-sim-3909",
+    "class": "pace",
+    "speed": 162.3,
+    "turn": -0.9
+   },
+   "pilot:pace|4|2": {
+    "run": "20261113-001055-sim-c312",
+    "class": "pace",
+    "speed": 287.9,
+    "turn": -0.79
+   },
+   "pilot:stand|1|2": {
+    "run": "20261113-001055-sim-aef9",
+    "class": "stand",
+    "speed": -0.0,
+    "turn": -0.0
+   },
+   "pilot:trot|2|0": {
+    "run": "20261113-001055-sim-3837",
+    "class": "trot",
+    "speed": -41.1,
+    "turn": -10.29
+   },
+   "pilot:trot|2|1": {
+    "run": "20261113-001055-sim-e47c",
+    "class": "trot",
+    "speed": -8.7,
+    "turn": -7.72
+   },
+   "pilot:trot|2|2": {
+    "run": "20261113-001055-sim-7b05",
+    "class": "irregular",
+    "speed": 37.2,
+    "turn": -0.23
+   },
+   "pilot:trot|3|1": {
+    "run": "20261113-001055-sim-dc69",
+    "class": "trot",
+    "speed": 94.5,
+    "turn": -3.58
+   },
+   "pilot:trot|3|2": {
+    "run": "20261113-001055-sim-aff1",
+    "class": "trot",
+    "speed": 180.6,
+    "turn": -1.51
+   },
+   "pilot:trot|3|3": {
+    "run": "20261113-001055-sim-822d",
+    "class": "trot",
+    "speed": 76.4,
+    "turn": 2.62
+   },
+   "pilot:trot|4|1": {
+    "run": "20261113-001055-sim-8304",
+    "class": "walk",
+    "speed": 174.9,
+    "turn": -2.25
+   },
+   "pilot:trot|4|2": {
+    "run": "20261113-001056-sim-e16e",
+    "class": "walk",
+    "speed": 285.7,
+    "turn": -1.33
+   },
+   "pilot:trot|4|3": {
+    "run": "20261113-001056-sim-17bf",
+    "class": "walk",
+    "speed": 280.6,
+    "turn": 2.38
+   },
+   "pilot:trot|5|2": {
+    "run": "20261113-001056-sim-08b0",
+    "class": "pace",
+    "speed": 333.6,
+    "turn": 1.97
+   },
+   "pilot:trot|6|2": {
+    "run": "20261113-001056-sim-2527",
+    "class": "irregular",
+    "speed": 563.2,
+    "turn": 0.08
+   },
+   "pilot:walk|2|1": {
+    "run": "20261113-001056-sim-db76",
+    "class": "walk",
+    "speed": -70.1,
+    "turn": -8.48
+   },
+   "pilot:walk|2|2": {
+    "run": "20261113-001056-sim-6ab9",
+    "class": "irregular",
+    "speed": 71.6,
+    "turn": -0.56
+   },
+   "pilot:walk|3|1": {
+    "run": "20261113-001056-sim-4cac",
+    "class": "pace",
+    "speed": 61.0,
+    "turn": -3.4
+   },
+   "pilot:walk|3|2": {
+    "run": "20261113-001056-sim-f707",
+    "class": "walk",
+    "speed": 112.8,
+    "turn": -0.75
+   },
+   "pilot:walk|3|3": {
+    "run": "20261113-001056-sim-e6dd",
+    "class": "pace",
+    "speed": 195.6,
+    "turn": 1.74
+   },
+   "pilot:walk|4|1": {
+    "run": "20261113-001057-sim-15a9",
+    "class": "walk",
+    "speed": 276.3,
+    "turn": -1.54
+   },
+   "pilot:walk|4|2": {
+    "run": "20261113-001057-sim-218a",
+    "class": "irregular",
+    "speed": -113.7,
+    "turn": 0.13
+   },
+   "pilot:walk|5|2": {
+    "run": "20261113-001057-sim-90e1",
+    "class": "walk",
+    "speed": 387.8,
+    "turn": -1.16
+   },
+   "full:bound|2|2": {
+    "run": "20261113-001057-sim-b1ca",
+    "class": "irregular",
+    "speed": 18.3,
+    "turn": 0.5
+   },
+   "full:bound|3|2": {
+    "run": "20261113-001057-sim-3658",
+    "class": "irregular",
+    "speed": 128.7,
+    "turn": 0.11
+   },
+   "full:irregular|0|2": {
+    "run": "20261113-001057-sim-2748",
+    "class": "irregular",
+    "speed": -69.3,
+    "turn": 0.28
+   },
+   "full:irregular|1|2": {
+    "run": "20261113-001057-sim-1c9a",
+    "class": "irregular",
+    "speed": 0.9,
+    "turn": -0.0
+   },
+   "full:irregular|1|3": {
+    "run": "20261113-001057-sim-765a",
+    "class": "irregular",
+    "speed": 2.3,
+    "turn": 4.73
+   },
+   "full:irregular|2|1": {
+    "run": "20261113-001057-sim-d8b8",
+    "class": "irregular",
+    "speed": 33.4,
+    "turn": -3.8
+   },
+   "full:irregular|2|2": {
+    "run": "20261113-001058-sim-0a7b",
+    "class": "trot",
+    "speed": 17.0,
+    "turn": -0.03
+   },
+   "full:irregular|2|3": {
+    "run": "20261113-001058-sim-e81f",
+    "class": "irregular",
+    "speed": 11.4,
+    "turn": 5.78
+   },
+   "full:irregular|3|2": {
+    "run": "20261113-001058-sim-1f3d",
+    "class": "irregular",
+    "speed": 113.3,
+    "turn": 0.07
+   },
+   "full:irregular|4|2": {
+    "run": "20261113-001058-sim-a2ee",
+    "class": "trot",
+    "speed": 327.6,
+    "turn": 0.02
+   },
+   "full:irregular|5|2": {
+    "run": "20261113-001058-sim-8b23",
+    "class": "irregular",
+    "speed": 526.7,
+    "turn": 0.05
+   },
+   "full:pace|1|2": {
+    "run": "20261113-001058-sim-aae7",
+    "class": "irregular",
+    "speed": -0.7,
+    "turn": 0.01
+   },
+   "full:pace|2|1": {
+    "run": "20261113-001058-sim-b523",
+    "class": "pace",
+    "speed": 1.3,
+    "turn": -3.72
+   },
+   "full:pace|2|2": {
+    "run": "20261113-001058-sim-1715",
+    "class": "pace",
+    "speed": 18.3,
+    "turn": 0.02
+   },
+   "full:pace|3|2": {
+    "run": "20261113-001058-sim-adc9",
+    "class": "pace",
+    "speed": 93.3,
+    "turn": -0.95
+   },
+   "full:pace|4|2": {
+    "run": "20261113-001058-sim-17bb",
+    "class": "pace",
+    "speed": 315.1,
+    "turn": 0.12
+   },
+   "full:pace|5|2": {
+    "run": "20261113-001059-sim-ab56",
+    "class": "pace",
+    "speed": 494.4,
+    "turn": -0.03
+   },
+   "full:stand|0|2": {
+    "run": "20261113-001059-sim-17e5",
+    "class": "stand",
+    "speed": -0.1,
+    "turn": -0.0
+   },
+   "full:stand|1|2": {
+    "run": "20261113-001059-sim-87f3",
+    "class": "stand",
+    "speed": -0.1,
+    "turn": -0.0
+   },
+   "full:stand|1|3": {
+    "run": "20261113-001059-sim-16ef",
+    "class": "stand",
+    "speed": 0.0,
+    "turn": 0.0
+   },
+   "full:stand|2|3": {
+    "run": "20261113-001059-sim-784d",
+    "class": "stand",
+    "speed": -0.0,
+    "turn": -0.0
+   },
+   "full:stand|3|3": {
+    "run": "20261113-001059-sim-5d47",
+    "class": "stand",
+    "speed": 0.0,
+    "turn": -0.0
+   },
+   "full:stand|4|2": {
+    "run": "20261113-001059-sim-b7e7",
+    "class": "stand",
+    "speed": 0.1,
+    "turn": 0.0
+   },
+   "full:stand|4|3": {
+    "run": "20261113-001059-sim-f8b5",
+    "class": "stand",
+    "speed": -0.0,
+    "turn": 0.0
+   },
+   "full:stand|4|4": {
+    "run": "20261113-001059-sim-c130",
+    "class": "stand",
+    "speed": -0.0,
+    "turn": -0.0
+   },
+   "full:stand|5|2": {
+    "run": "20261113-001100-sim-98d9",
+    "class": "stand",
+    "speed": 0.0,
+    "turn": -0.0
+   },
+   "full:stand|5|3": {
+    "run": "20261113-001100-sim-8013",
+    "class": "stand",
+    "speed": -0.1,
+    "turn": 0.0
+   },
+   "full:stand|5|4": {
+    "run": "20261113-001100-sim-0c81",
+    "class": "stand",
+    "speed": -0.0,
+    "turn": -0.0
+   },
+   "full:stand|6|3": {
+    "run": "20261113-001100-sim-b3dc",
+    "class": "stand",
+    "speed": 0.1,
+    "turn": -0.0
+   },
+   "full:stand|6|4": {
+    "run": "20261113-001100-sim-3ef7",
+    "class": "stand",
+    "speed": -0.1,
+    "turn": -0.0
+   },
+   "full:trot|0|2": {
+    "run": "20261113-001100-sim-e4ef",
+    "class": "trot",
+    "speed": -21.2,
+    "turn": 0.06
+   },
+   "full:trot|0|3": {
+    "run": "20261113-001100-sim-5316",
+    "class": "irregular",
+    "speed": -58.5,
+    "turn": 2.4
+   },
+   "full:trot|1|1": {
+    "run": "20261113-001100-sim-1cc1",
+    "class": "walk",
+    "speed": -37.4,
+    "turn": -2.22
+   },
+   "full:trot|1|2": {
+    "run": "20261113-001100-sim-7701",
+    "class": "irregular",
+    "speed": 2.4,
+    "turn": 0.0
+   },
+   "full:trot|1|3": {
+    "run": "20261113-001101-sim-d69e",
+    "class": "trot",
+    "speed": 1.8,
+    "turn": 3.62
+   },
+   "full:trot|2|1": {
+    "run": "20261113-001101-sim-fb68",
+    "class": "walk",
+    "speed": 32.8,
+    "turn": -1.74
+   },
+   "full:trot|2|2": {
+    "run": "20261113-001101-sim-19d9",
+    "class": "irregular",
+    "speed": 10.1,
+    "turn": -0.1
+   },
+   "full:trot|2|3": {
+    "run": "20261113-001101-sim-be7e",
+    "class": "trot",
+    "speed": 9.4,
+    "turn": 2.27
+   },
+   "full:trot|3|2": {
+    "run": "20261113-001101-sim-0613",
+    "class": "trot",
+    "speed": 174.8,
+    "turn": -0.0
+   },
+   "full:trot|4|2": {
+    "run": "20261113-001101-sim-3f1d",
+    "class": "pace",
+    "speed": 287.7,
+    "turn": 0.52
+   },
+   "full:trot|5|2": {
+    "run": "20261113-001101-sim-e3cd",
+    "class": "pace",
+    "speed": 372.1,
+    "turn": 0.1
+   },
+   "full:trot|6|2": {
+    "run": "20261113-001101-sim-0a50",
+    "class": "irregular",
+    "speed": 568.9,
+    "turn": 0.0
+   },
+   "full:walk|0|2": {
+    "run": "20261113-001101-sim-4016",
+    "class": "pace",
+    "speed": -50.3,
+    "turn": 0.55
+   },
+   "full:walk|1|2": {
+    "run": "20261113-001102-sim-4bd6",
+    "class": "irregular",
+    "speed": 1.1,
+    "turn": -0.0
+   },
+   "full:walk|2|1": {
+    "run": "20261113-001102-sim-937e",
+    "class": "walk",
+    "speed": 24.4,
+    "turn": -1.6
+   },
+   "full:walk|2|2": {
+    "run": "20261113-001102-sim-293c",
+    "class": "pace",
+    "speed": 4.5,
+    "turn": -0.05
+   },
+   "full:walk|2|3": {
+    "run": "20261113-001102-sim-ae93",
+    "class": "irregular",
+    "speed": 32.7,
+    "turn": 2.29
+   },
+   "full:walk|3|2": {
+    "run": "20261113-001102-sim-60b5",
+    "class": "pace",
+    "speed": 92.3,
+    "turn": 0.05
+   },
+   "full:walk|3|3": {
+    "run": "20261113-001102-sim-cb26",
+    "class": "pace",
+    "speed": 173.8,
+    "turn": 2.7
+   },
+   "full:walk|4|2": {
+    "run": "20261113-001102-sim-ec80",
+    "class": "irregular",
+    "speed": 238.3,
+    "turn": 0.37
+   },
+   "full:walk|5|2": {
+    "run": "20261113-001102-sim-7c7c",
+    "class": "pace",
+    "speed": 478.2,
+    "turn": 0.11
+   },
+   "full:walk|6|2": {
+    "run": "20261113-001102-sim-624f",
+    "class": "trot",
+    "speed": 558.3,
+    "turn": 0.18
+   },
+   "probe_trot:trot|2|0": {
+    "run": "20261113-001103-sim-9a00",
+    "class": "irregular",
+    "speed": 238.4,
+    "turn": -2.04
+   },
+   "probe_trot:trot|2|1": {
+    "run": "20261113-001103-sim-d8ee",
+    "class": "walk",
+    "speed": 263.3,
+    "turn": 1.35
+   },
+   "probe_trot:trot|3|0": {
+    "run": "20261113-001103-sim-1800",
+    "class": "walk",
+    "speed": 258.7,
+    "turn": -1.9
+   },
+   "probe_trot:trot|3|1": {
+    "run": "20261113-001103-sim-5968",
+    "class": "pace",
+    "speed": 298.8,
+    "turn": 0.25
+   },
+   "probe_trot:trot|3|2": {
+    "run": "20261113-001103-sim-7907",
+    "class": "walk",
+    "speed": 295.5,
+    "turn": 1.38
+   },
+   "probe_trot:trot|4|1": {
+    "run": "20261113-001103-sim-272b",
+    "class": "walk",
+    "speed": 400.6,
+    "turn": 0.39
+   },
+   "probe_trot:trot|5|1": {
+    "run": "20261113-001103-sim-fa8b",
+    "class": "irregular",
+    "speed": 353.7,
+    "turn": 2.62
+   },
+   "probe_trot:trot|6|1": {
+    "run": "20261113-001103-sim-f61b",
+    "class": "trot",
+    "speed": 525.9,
+    "turn": 0.06
+   },
+   "probe_trot:trot|7|1": {
+    "run": "20261113-001103-sim-784e",
+    "class": "trot",
+    "speed": 584.6,
+    "turn": 0.11
+   },
+   "probe_trot:trot|8|1": {
+    "run": "20261113-001104-sim-d3dc",
+    "class": "trot",
+    "speed": 613.3,
+    "turn": 0.07
+   },
+   "probe_gaits:irregular|2|1": {
+    "run": "20261113-001104-sim-2a45",
+    "class": "pace",
+    "speed": 77.2,
+    "turn": -2.08
+   },
+   "probe_gaits:irregular|2|2": {
+    "run": "20261113-001104-sim-d81c",
+    "class": "irregular",
+    "speed": 21.2,
+    "turn": 0.18
+   },
+   "probe_gaits:irregular|3|2": {
+    "run": "20261113-001104-sim-5ffa",
+    "class": "irregular",
+    "speed": 102.4,
+    "turn": 0.02
+   },
+   "probe_gaits:irregular|5|2": {
+    "run": "20261113-001104-sim-64e4",
+    "class": "trot",
+    "speed": 413.1,
+    "turn": 1.13
+   },
+   "probe_gaits:pace|3|2": {
+    "run": "20261113-001104-sim-d7a9",
+    "class": "pace",
+    "speed": 128.7,
+    "turn": -1.07
+   },
+   "probe_gaits:trot|2|1": {
+    "run": "20261113-001104-sim-60cc",
+    "class": "trot",
+    "speed": 78.0,
+    "turn": -2.34
+   },
+   "probe_gaits:trot|3|1": {
+    "run": "20261113-001104-sim-c2a4",
+    "class": "trot",
+    "speed": 85.1,
+    "turn": -3.11
+   },
+   "probe_gaits:walk|2|1": {
+    "run": "20261113-001104-sim-1bb6",
+    "class": "walk",
+    "speed": 76.2,
+    "turn": -2.89
+   },
+   "probe_gaits:walk|2|2": {
+    "run": "20261113-001104-sim-b9cb",
+    "class": "walk",
+    "speed": 66.0,
+    "turn": -0.18
+   },
+   "probe_gaits:walk|3|1": {
+    "run": "20261113-001105-sim-83f6",
+    "class": "walk",
+    "speed": 109.9,
+    "turn": -2.73
+   },
+   "probe_gaits:walk|3|2": {
+    "run": "20261113-001105-sim-1b50",
+    "class": "pace",
+    "speed": 129.6,
+    "turn": -1.05
+   },
+   "probe_gaits:walk|3|3": {
+    "run": "20261113-001105-sim-82af",
+    "class": "walk",
+    "speed": 178.0,
+    "turn": 2.73
+   },
+   "probe_lie:best": {
+    "run": "20261113-001105-sim-668c",
+    "class": "down",
+    "speed": -19.9,
+    "turn": -0.0
+   }
+  },
+  "g020-008-r01-mc-direct": {
+   "pilot:irregular|2|1": {
+    "run": "20261113-020640-sim-dfa9",
+    "class": "walk",
+    "speed": 27.1,
+    "turn": -5.12
+   },
+   "pilot:irregular|2|2": {
+    "run": "20261113-020641-sim-2fd0",
+    "class": "irregular",
+    "speed": 65.7,
+    "turn": -0.48
+   },
+   "pilot:irregular|3|1": {
+    "run": "20261113-020641-sim-083f",
+    "class": "irregular",
+    "speed": 116.0,
+    "turn": -2.34
+   },
+   "pilot:irregular|3|2": {
+    "run": "20261113-020641-sim-4010",
+    "class": "walk",
+    "speed": 104.4,
+    "turn": -0.62
+   },
+   "pilot:irregular|3|3": {
+    "run": "20261113-020641-sim-a496",
+    "class": "irregular",
+    "speed": 154.0,
+    "turn": 3.18
+   },
+   "pilot:irregular|4|1": {
+    "run": "20261113-020641-sim-102f",
+    "class": "trot",
+    "speed": 152.6,
+    "turn": -4.16
+   },
+   "pilot:irregular|4|2": {
+    "run": "20261113-020641-sim-6327",
+    "class": "irregular",
+    "speed": 202.3,
+    "turn": -2.72
+   },
+   "pilot:irregular|4|3": {
+    "run": "20261113-020641-sim-42e3",
+    "class": "irregular",
+    "speed": 246.9,
+    "turn": 3.29
+   },
+   "pilot:pace|2|2": {
+    "run": "20261113-020641-sim-763a",
+    "class": "irregular",
+    "speed": 94.0,
+    "turn": -0.68
+   },
+   "pilot:pace|3|1": {
+    "run": "20261113-020641-sim-5ad9",
+    "class": "irregular",
+    "speed": 163.5,
+    "turn": -1.92
+   },
+   "pilot:pace|3|2": {
+    "run": "20261113-020641-sim-817b",
+    "class": "pace",
+    "speed": 185.3,
+    "turn": -0.85
+   },
+   "pilot:pace|4|2": {
+    "run": "20261113-020642-sim-4872",
+    "class": "pace",
+    "speed": 289.5,
+    "turn": -0.89
+   },
+   "pilot:stand|1|2": {
+    "run": "20261113-020642-sim-4214",
+    "class": "stand",
+    "speed": -0.0,
+    "turn": 0.0
+   },
+   "pilot:trot|2|0": {
+    "run": "20261113-020642-sim-16dd",
+    "class": "trot",
+    "speed": -42.0,
+    "turn": -10.39
+   },
+   "pilot:trot|2|1": {
+    "run": "20261113-020642-sim-fec0",
+    "class": "trot",
+    "speed": -8.5,
+    "turn": -7.72
+   },
+   "pilot:trot|2|2": {
+    "run": "20261113-020642-sim-eb91",
+    "class": "irregular",
+    "speed": 46.8,
+    "turn": -0.27
+   },
+   "pilot:trot|3|1": {
+    "run": "20261113-020642-sim-dc4d",
+    "class": "trot",
+    "speed": 26.1,
+    "turn": -3.77
+   },
+   "pilot:trot|3|2": {
+    "run": "20261113-020642-sim-0f2a",
+    "class": "trot",
+    "speed": 198.4,
+    "turn": -1.14
+   },
+   "pilot:trot|3|3": {
+    "run": "20261113-020642-sim-6e5d",
+    "class": "trot",
+    "speed": 73.7,
+    "turn": 3.35
+   },
+   "pilot:trot|4|1": {
+    "run": "20261113-020642-sim-f4b4",
+    "class": "trot",
+    "speed": 221.3,
+    "turn": -1.99
+   },
+   "pilot:trot|4|2": {
+    "run": "20261113-020643-sim-a02f",
+    "class": "trot",
+    "speed": 321.6,
+    "turn": -1.21
+   },
+   "pilot:trot|4|3": {
+    "run": "20261113-020643-sim-d540",
+    "class": "trot",
+    "speed": 245.6,
+    "turn": 3.31
+   },
+   "pilot:trot|5|2": {
+    "run": "20261113-020643-sim-442b",
+    "class": "trot",
+    "speed": 364.6,
+    "turn": 2.12
+   },
+   "pilot:trot|6|2": {
+    "run": "20261113-020643-sim-ab6c",
+    "class": "irregular",
+    "speed": 570.8,
+    "turn": 0.0
+   },
+   "pilot:walk|2|1": {
+    "run": "20261113-020643-sim-152a",
+    "class": "walk",
+    "speed": -64.5,
+    "turn": -8.04
+   },
+   "pilot:walk|2|2": {
+    "run": "20261113-020643-sim-23fb",
+    "class": "irregular",
+    "speed": 82.4,
+    "turn": -0.53
+   },
+   "pilot:walk|3|1": {
+    "run": "20261113-020643-sim-fc31",
+    "class": "walk",
+    "speed": 3.6,
+    "turn": -4.04
+   },
+   "pilot:walk|3|2": {
+    "run": "20261113-020643-sim-88b5",
+    "class": "irregular",
+    "speed": 122.2,
+    "turn": -0.75
+   },
+   "pilot:walk|3|3": {
+    "run": "20261113-020644-sim-d2d6",
+    "class": "walk",
+    "speed": 131.0,
+    "turn": 3.05
+   },
+   "pilot:walk|4|1": {
+    "run": "20261113-020644-sim-b389",
+    "class": "walk",
+    "speed": 125.6,
+    "turn": -4.33
+   },
+   "pilot:walk|4|2": {
+    "run": "20261113-020644-sim-a9fb",
+    "class": "walk",
+    "speed": 297.8,
+    "turn": 0.98
+   },
+   "pilot:walk|5|2": {
+    "run": "20261113-020644-sim-fcc3",
+    "class": "irregular",
+    "speed": 398.8,
+    "turn": -1.44
+   },
+   "full:bound|2|2": {
+    "run": "20261113-020644-sim-782d",
+    "class": "bound",
+    "speed": 29.7,
+    "turn": 0.52
+   },
+   "full:bound|3|2": {
+    "run": "20261113-020644-sim-65c6",
+    "class": "bound",
+    "speed": 139.0,
+    "turn": 0.5
+   },
+   "full:irregular|0|2": {
+    "run": "20261113-020644-sim-eb75",
+    "class": "irregular",
+    "speed": -68.4,
+    "turn": 0.18
+   },
+   "full:irregular|1|2": {
+    "run": "20261113-020644-sim-2bfa",
+    "class": "irregular",
+    "speed": 1.5,
+    "turn": 0.01
+   },
+   "full:irregular|1|3": {
+    "run": "20261113-020644-sim-4628",
+    "class": "irregular",
+    "speed": 3.5,
+    "turn": 3.18
+   },
+   "full:irregular|2|1": {
+    "run": "20261113-020645-sim-5e5a",
+    "class": "irregular",
+    "speed": 56.7,
+    "turn": -3.32
+   },
+   "full:irregular|2|2": {
+    "run": "20261113-020645-sim-5b72",
+    "class": "irregular",
+    "speed": 19.0,
+    "turn": -0.04
+   },
+   "full:irregular|2|3": {
+    "run": "20261113-020645-sim-1cdd",
+    "class": "irregular",
+    "speed": 19.0,
+    "turn": 4.71
+   },
+   "full:irregular|3|2": {
+    "run": "20261113-020645-sim-b5a9",
+    "class": "irregular",
+    "speed": 124.6,
+    "turn": 0.66
+   },
+   "full:irregular|4|2": {
+    "run": "20261113-020645-sim-6c08",
+    "class": "trot",
+    "speed": 353.8,
+    "turn": -0.28
+   },
+   "full:irregular|5|2": {
+    "run": "20261113-020645-sim-05a3",
+    "class": "irregular",
+    "speed": 540.2,
+    "turn": 0.07
+   },
+   "full:pace|1|2": {
+    "run": "20261113-020645-sim-6572",
+    "class": "pace",
+    "speed": 3.5,
+    "turn": 0.02
+   },
+   "full:pace|2|1": {
+    "run": "20261113-020645-sim-2368",
+    "class": "pace",
+    "speed": 14.4,
+    "turn": -3.18
+   },
+   "full:pace|2|2": {
+    "run": "20261113-020645-sim-6278",
+    "class": "pace",
+    "speed": 24.1,
+    "turn": 0.03
+   },
+   "full:pace|3|2": {
+    "run": "20261113-020645-sim-595f",
+    "class": "pace",
+    "speed": 106.2,
+    "turn": -1.06
+   },
+   "full:pace|4|2": {
+    "run": "20261113-020646-sim-0d58",
+    "class": "pace",
+    "speed": 334.4,
+    "turn": 0.2
+   },
+   "full:pace|5|2": {
+    "run": "20261113-020646-sim-a287",
+    "class": "walk",
+    "speed": 508.0,
+    "turn": 0.03
+   },
+   "full:stand|0|2": {
+    "run": "20261113-020646-sim-e2bb",
+    "class": "stand",
+    "speed": -0.1,
+    "turn": -0.0
+   },
+   "full:stand|1|2": {
+    "run": "20261113-020646-sim-2aee",
+    "class": "stand",
+    "speed": -0.1,
+    "turn": -0.0
+   },
+   "full:stand|1|3": {
+    "run": "20261113-020646-sim-8626",
+    "class": "stand",
+    "speed": 0.0,
+    "turn": -0.0
+   },
+   "full:stand|2|3": {
+    "run": "20261113-020646-sim-1932",
+    "class": "stand",
+    "speed": -0.0,
+    "turn": -0.0
+   },
+   "full:stand|3|3": {
+    "run": "20261113-020646-sim-958b",
+    "class": "stand",
+    "speed": -0.0,
+    "turn": 0.0
+   },
+   "full:stand|4|2": {
+    "run": "20261113-020646-sim-c4e5",
+    "class": "stand",
+    "speed": 0.0,
+    "turn": 0.0
+   },
+   "full:stand|4|3": {
+    "run": "20261113-020647-sim-95ea",
+    "class": "stand",
+    "speed": -0.0,
+    "turn": -0.0
+   },
+   "full:stand|4|4": {
+    "run": "20261113-020647-sim-5deb",
+    "class": "stand",
+    "speed": -0.0,
+    "turn": 0.0
+   },
+   "full:stand|5|2": {
+    "run": "20261113-020647-sim-ccc3",
+    "class": "stand",
+    "speed": -0.0,
+    "turn": -0.0
+   },
+   "full:stand|5|3": {
+    "run": "20261113-020647-sim-be0e",
+    "class": "stand",
+    "speed": -0.0,
+    "turn": -0.0
+   },
+   "full:stand|5|4": {
+    "run": "20261113-020647-sim-cb74",
+    "class": "stand",
+    "speed": -0.0,
+    "turn": 0.0
+   },
+   "full:stand|6|3": {
+    "run": "20261113-020647-sim-352a",
+    "class": "stand",
+    "speed": 0.0,
+    "turn": -0.0
+   },
+   "full:stand|6|4": {
+    "run": "20261113-020647-sim-57e6",
+    "class": "stand",
+    "speed": -0.1,
+    "turn": 0.0
+   },
+   "full:trot|0|2": {
+    "run": "20261113-020647-sim-6d56",
+    "class": "trot",
+    "speed": -16.3,
+    "turn": 0.05
+   },
+   "full:trot|0|3": {
+    "run": "20261113-020647-sim-af09",
+    "class": "irregular",
+    "speed": -42.0,
+    "turn": 2.89
+   },
+   "full:trot|1|1": {
+    "run": "20261113-020648-sim-ac6d",
+    "class": "walk",
+    "speed": -12.4,
+    "turn": -2.43
+   },
+   "full:trot|1|2": {
+    "run": "20261113-020648-sim-abae",
+    "class": "trot",
+    "speed": 5.5,
+    "turn": 0.0
+   },
+   "full:trot|1|3": {
+    "run": "20261113-020648-sim-9c32",
+    "class": "trot",
+    "speed": -1.1,
+    "turn": 2.57
+   },
+   "full:trot|2|1": {
+    "run": "20261113-020648-sim-adc7",
+    "class": "trot",
+    "speed": 45.3,
+    "turn": -2.68
+   },
+   "full:trot|2|2": {
+    "run": "20261113-020648-sim-b5bb",
+    "class": "trot",
+    "speed": 14.9,
+    "turn": -0.12
+   },
+   "full:trot|2|3": {
+    "run": "20261113-020648-sim-5c61",
+    "class": "trot",
+    "speed": 18.9,
+    "turn": 2.52
+   },
+   "full:trot|3|2": {
+    "run": "20261113-020648-sim-11b8",
+    "class": "trot",
+    "speed": 186.9,
+    "turn": -0.01
+   },
+   "full:trot|4|2": {
+    "run": "20261113-020648-sim-42de",
+    "class": "trot",
+    "speed": 358.3,
+    "turn": 0.13
+   },
+   "full:trot|5|2": {
+    "run": "20261113-020648-sim-4947",
+    "class": "trot",
+    "speed": 418.4,
+    "turn": 0.07
+   },
+   "full:trot|6|2": {
+    "run": "20261113-020649-sim-61b7",
+    "class": "trot",
+    "speed": 600.9,
+    "turn": -0.05
+   },
+   "full:walk|0|2": {
+    "run": "20261113-020649-sim-1723",
+    "class": "walk",
+    "speed": -40.1,
+    "turn": 0.45
+   },
+   "full:walk|1|2": {
+    "run": "20261113-020649-sim-df7d",
+    "class": "walk",
+    "speed": 1.9,
+    "turn": 0.01
+   },
+   "full:walk|2|1": {
+    "run": "20261113-020649-sim-5ad8",
+    "class": "walk",
+    "speed": 39.8,
+    "turn": -3.31
+   },
+   "full:walk|2|2": {
+    "run": "20261113-020649-sim-e656",
+    "class": "walk",
+    "speed": 17.1,
+    "turn": -0.09
+   },
+   "full:walk|2|3": {
+    "run": "20261113-020649-sim-71c3",
+    "class": "walk",
+    "speed": 65.9,
+    "turn": 2.65
+   },
+   "full:walk|3|2": {
+    "run": "20261113-020649-sim-3b40",
+    "class": "walk",
+    "speed": 114.7,
+    "turn": 0.01
+   },
+   "full:walk|3|3": {
+    "run": "20261113-020649-sim-08eb",
+    "class": "walk",
+    "speed": 188.0,
+    "turn": 2.65
+   },
+   "full:walk|4|2": {
+    "run": "20261113-020649-sim-4cdb",
+    "class": "walk",
+    "speed": 273.8,
+    "turn": 0.33
+   },
+   "full:walk|5|2": {
+    "run": "20261113-020650-sim-dd34",
+    "class": "walk",
+    "speed": 513.6,
+    "turn": 0.03
+   },
+   "full:walk|6|2": {
+    "run": "20261113-020650-sim-173f",
+    "class": "trot",
+    "speed": 591.8,
+    "turn": 0.05
+   },
+   "probe_trot:trot|2|0": {
+    "run": "20261113-020650-sim-5ce3",
+    "class": "trot",
+    "speed": 237.9,
+    "turn": -2.09
+   },
+   "probe_trot:trot|2|1": {
+    "run": "20261113-020650-sim-a1eb",
+    "class": "trot",
+    "speed": 259.5,
+    "turn": 1.6
+   },
+   "probe_trot:trot|3|0": {
+    "run": "20261113-020650-sim-d089",
+    "class": "trot",
+    "speed": 249.1,
+    "turn": -2.01
+   },
+   "probe_trot:trot|3|1": {
+    "run": "20261113-020650-sim-d29a",
+    "class": "walk",
+    "speed": 316.9,
+    "turn": -0.01
+   },
+   "probe_trot:trot|3|2": {
+    "run": "20261113-020650-sim-7c3b",
+    "class": "trot",
+    "speed": 278.5,
+    "turn": 1.63
+   },
+   "probe_trot:trot|4|1": {
+    "run": "20261113-020650-sim-5374",
+    "class": "walk",
+    "speed": 434.4,
+    "turn": -0.07
+   },
+   "probe_trot:trot|5|1": {
+    "run": "20261113-020650-sim-dd2f",
+    "class": "trot",
+    "speed": 498.2,
+    "turn": 1.14
+   },
+   "probe_trot:trot|6|1": {
+    "run": "20261113-020651-sim-c7f9",
+    "class": "trot",
+    "speed": 535.0,
+    "turn": 0.08
+   },
+   "probe_trot:trot|7|1": {
+    "run": "20261113-020651-sim-2f8f",
+    "class": "trot",
+    "speed": 606.0,
+    "turn": 0.03
+   },
+   "probe_trot:trot|8|1": {
+    "run": "20261113-020651-sim-6e09",
+    "class": "trot",
+    "speed": 629.1,
+    "turn": 0.05
+   },
+   "probe_gaits:irregular|2|1": {
+    "run": "20261113-020651-sim-2b83",
+    "class": "irregular",
+    "speed": 76.8,
+    "turn": -2.32
+   },
+   "probe_gaits:irregular|2|2": {
+    "run": "20261113-020651-sim-0ad4",
+    "class": "irregular",
+    "speed": 28.4,
+    "turn": 0.27
+   },
+   "probe_gaits:irregular|3|2": {
+    "run": "20261113-020651-sim-a100",
+    "class": "trot",
+    "speed": 110.3,
+    "turn": 0.01
+   },
+   "probe_gaits:irregular|5|2": {
+    "run": "20261113-020651-sim-34cc",
+    "class": "irregular",
+    "speed": 444.5,
+    "turn": -0.87
+   },
+   "probe_gaits:pace|3|2": {
+    "run": "20261113-020651-sim-bbd9",
+    "class": "pace",
+    "speed": 120.7,
+    "turn": -1.4
+   },
+   "probe_gaits:trot|2|1": {
+    "run": "20261113-020652-sim-59b9",
+    "class": "trot",
+    "speed": 82.7,
+    "turn": -2.53
+   },
+   "probe_gaits:trot|3|1": {
+    "run": "20261113-020652-sim-9eef",
+    "class": "trot",
+    "speed": 89.3,
+    "turn": -3.18
+   },
+   "probe_gaits:walk|2|1": {
+    "run": "20261113-020652-sim-da5d",
+    "class": "walk",
+    "speed": 71.7,
+    "turn": -3.24
+   },
+   "probe_gaits:walk|2|2": {
+    "run": "20261113-020652-sim-d64f",
+    "class": "irregular",
+    "speed": 72.4,
+    "turn": 0.02
+   },
+   "probe_gaits:walk|3|1": {
+    "run": "20261113-020652-sim-219d",
+    "class": "walk",
+    "speed": 110.8,
+    "turn": -2.81
+   },
+   "probe_gaits:walk|3|2": {
+    "run": "20261113-020652-sim-aa8a",
+    "class": "pace",
+    "speed": 121.8,
+    "turn": -1.49
+   },
+   "probe_gaits:walk|3|3": {
+    "run": "20261113-020652-sim-cac3",
+    "class": "walk",
+    "speed": 200.0,
+    "turn": 2.18
+   },
+   "probe_lie:best": {
+    "run": "20261113-020652-sim-6f30",
+    "class": "down",
+    "speed": -17.8,
+    "turn": -0.0
+   }
+  }
+ }
 }

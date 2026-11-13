@@ -669,6 +669,46 @@ def store(lab: Any, opts: dict[str, str]) -> None:
         print(n, len(todo), "stored", flush=True)
         _save(data)
     _save(data)
+    if names:
+        measure(lab, {"bodies": ",".join(names)})
+
+
+def _measure_body(job: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    """Every stored run of one body measured as R16 labels a behaviour (``body_compare.measure_run``)."""
+    from calflab.app.body_compare import measure_run
+    from calflab.evolve.hardware import _build
+    from calflab.plugins import load_plugins
+    from calflab.sim.rollout import Rollout
+
+    load_plugins()
+    spec = _build(job["payload"])[0].spec
+    out = {}
+    for key, run in job["runs"].items():
+        ro = Rollout.load(Path(job["project"]) / "runs" / run / "rollout.npz")
+        out[key] = {"run": run, **measure_run(ro, spec, job["tasks"].get(key))}
+    return out
+
+
+def measure(lab: Any, opts: dict[str, str]) -> None:
+    """What each stored seed-0 run plays (class, speed, turn), measured as R16 labels a behaviour, for the compare
+    page to set beside the label (ADR-125). ``--bodies=`` (default every stored body)."""
+    from diversity_r16 import OUT as R16
+    from diversity_r16 import _load as r16load
+
+    tasks = {s["key"]: s["space"].get("task") for s in r16load(R16)["shown"]}
+    data = _load()
+    bs = bodies(lab)
+    names = [n for n in (opts.get("bodies") or ",".join(data.get("store") or {})).split(",") if n]
+    jobs = [{"payload": bs[n], "runs": data["store"][n], "tasks": tasks, "project": str(lab.project.path)}
+            for n in names]
+    with ProcessPoolExecutor(max_workers=max(1, min(len(jobs), int(opts.get("workers", 8))))) as pool:
+        res = list(pool.map(_measure_body, jobs))
+    data = _load()
+    ms = data.setdefault("measured", {})
+    for n, r in zip(names, res, strict=True):
+        ms[n] = r
+        print(n, len(r), "measured", flush=True)
+    _save(data)
 
 
 # --------------------------------------------------------------------- tables

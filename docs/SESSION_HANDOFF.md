@@ -1622,6 +1622,21 @@ direct body `g020-008-r01-mc-direct` is the swap with only `carpus_belt` off (C0
   - tests `tests/test_carpus_r18.py` (6).
 - **Runs:** `R18 g020-008-r01-mc-direct <behaviour>: seed 0` (107, tag `mcmaster_r18`).
 
+**After the carpus study (2026-11-13; ADR-125): what each compare cell plays.** Emily saw a trot in the "lies
+down" cell. Findings:
+- the stored lying runs lie down on all six bodies, and every stored run is on its cell's body;
+- the trot could not be reproduced;
+- the behaviour names are R16's (g020-008-r01, the majority of three seeds). Seed-0 runs that play their named
+  gait: baseline 94/107, swap 92, direct 90, r18-a/b/c 61/47/59.
+
+What changed:
+- each cell on `compare.html?set=r18` / `carpus` now says what its own run plays, orange when it differs from the
+  name (`body_compare.measure_run` / `plays_as`, `mcmaster_r18.py measure`);
+- `usePlayback.loadRun` drops a superseded response, so a slow earlier load can no longer overwrite a later one;
+- a switching cell is covered by "loading..." until its run arrives.
+
+The R16 page (`compare.html?set=r16`) does not have the line yet.
+
 **The researcher must verify (new after R18, ADR-123/124):**
 
 * **The C002's real output-axis offset and how the case would be turned on the carpus.** The model centres the case
@@ -2052,7 +2067,7 @@ Journal, Rhino bridge):**
 |---|---|
 | `CLAUDE.md` | Conventions for every session (loaded automatically) |
 | `PLAN.md` | Architecture, module boundaries, data flow, phases, risks, status |
-| `DECISIONS.md` | ADR log: every assumption (124 so far; 121/122 named by uncommitted work) |
+| `DECISIONS.md` | ADR log: every assumption (125 so far; 121/122 named by uncommitted work) |
 | `docs/proposals/anatomical-leg.md` | Proposal for a three-segment leg (set aside 2026-10-04; not built) |
 | `docs/USER_GUIDE.md` | How to use the lab |
 | `docs/CHAT_GUIDE_PROMPT.md` | Prompt that makes a chat assistant a guide to the whole lab |

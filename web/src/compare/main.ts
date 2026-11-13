@@ -31,6 +31,8 @@ interface SeedPlay {
   limit: string | null;
   text: string;
   href?: string;
+  /** what this cell's own run plays, measured as its label was (body sets, ADR-125) */
+  plays?: { text: string; agrees: boolean } | null;
 }
 interface Cell {
   body: string;
@@ -232,13 +234,15 @@ export function mountSet(m: Manifest) {
     const limit = el("span", "limit");
     const sub = el("div", "sub");
     sub.append(badge, limit);
+    const plays = el("div", "plays");
+    plays.dataset.testid = "plays";
     const frameBox = el("div", "frame");
     const f = el("iframe");
     const note = el("div", "note");
     frameBox.append(f, note);
-    cell.append(head, ...(m.per_cell ? [menu] : []), playing, sub, frameBox);
+    cell.append(head, ...(m.per_cell ? [menu] : []), playing, sub, plays, frameBox);
     grid.appendChild(cell);
-    return { body: b, index: i, cell, head, menu, playing, badge, limit, f, note, run: null as string | null, loaded: false, ready: false };
+    return { body: b, index: i, cell, head, menu, playing, badge, limit, plays, f, note, run: null as string | null, loaded: false, ready: false };
   });
   root.append(top, hint, grid);
 
@@ -257,6 +261,7 @@ export function mountSet(m: Manifest) {
     } else if (d.event === "ready" || d.event === "failed") {
       if (d.run !== c.run) return;
       c.ready = d.event === "ready";
+      showLoaded(c, c.ready);
       pending.delete(c.index);
       if (!pending.size) startTogether();
     }
@@ -269,8 +274,21 @@ export function mountSet(m: Manifest) {
     dispatch(a);
   });
 
+  // a cell that is loading another run is covered, so it never plays the old behaviour under the new title
+  function showLoading(c: (typeof cells)[number]) {
+    c.f.style.visibility = "hidden";
+    c.note.textContent = "loading...";
+    c.note.style.display = "flex";
+  }
+  function showLoaded(c: (typeof cells)[number], ok: boolean) {
+    c.f.style.visibility = ok ? "visible" : "hidden";
+    c.note.textContent = ok ? "" : "cannot load this run";
+    c.note.style.display = ok ? "none" : "flex";
+  }
+
   function startTogether() {
     window.clearTimeout(waitTimer);
+    for (const c of cells) if (c.run && !c.ready) c.note.textContent = "still loading (not in step with the others)";
     pending = new Set();
     clock = restartClock(performance.now(), state.playing);
     for (const c of cells) if (c.run) post(c.f, { calflab: "playback", action: "restart" });
@@ -307,6 +325,9 @@ export function mountSet(m: Manifest) {
       c.badge.className = "badge" + (sp?.badge ? ` ${sp.badge}` : "");
       c.badge.textContent = sp ? sp.text : "";
       c.limit.textContent = sp?.limit ? `stopped by ${sp.limit}` : "";
+      c.plays.textContent = sp?.plays?.text ?? "";
+      c.plays.className = "plays" + (sp?.plays && !sp.plays.agrees ? " differs" : "");
+      c.plays.title = sp?.plays && !sp.plays.agrees ? "this body's own seed-0 run does not play the gait the behaviour is named after" : "";
       c.head.href = sp?.href ?? "#";
       c.cell.classList.toggle("is-empty", !!cc?.empty);
       const run = sp?.run ?? null;
@@ -320,12 +341,11 @@ export function mountSet(m: Manifest) {
         c.run = null;
         continue;
       }
-      c.note.style.display = "none";
-      c.f.style.visibility = "visible";
       if (run !== c.run) {
         c.run = run;
         c.ready = false;
         pending.add(c.index);
+        showLoading(c);
         if (!c.loaded) {
           c.loaded = true;
           c.f.src = "/?replay=" + encodeURIComponent(run) + embedFlag;

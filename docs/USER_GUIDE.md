@@ -1471,6 +1471,19 @@ Green means the behaviour holds within every limit on all three seeds,
 sustained belt tension included (Gates' allowable; breaking strength
 assumed). The text gives the belt's peak and mean tension.
 
+**Is a cell playing what its name says? (ADR-125)** The behaviour names
+come from R16, where they described g020-008-r01 over three seeds. The page
+plays seed 0 on each body, and the same controller can make another gait on
+another body. So under each cell's badge a line says what that cell's own
+run plays, measured the same way, for example "seed 0 plays a walk,
+492 mm/s". The line is orange when it differs from the name ("not a trot as
+labelled"). On the swap and the direct-carpus body about 15 of 107 differ,
+mostly trot or pace against walk; on r18-a, r18-b and r18-c about half do.
+A cell that is switching behaviours is covered by "loading..." until its new
+run has arrived. After storing runs for a new body, run
+`python docs/studies/mcmaster_r18.py projects/robot-calf-final measure`
+(`store` does it for you).
+
 **Production sheets:** `docs/studies/sheets_r18/<body>_geometry.csv` is for
 Rhino and Grasshopper. `<body>_parts.json` gives the parts with McMaster
 part numbers, a `bom` with the total cost, and the open items (shaft
