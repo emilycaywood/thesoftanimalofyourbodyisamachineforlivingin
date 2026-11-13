@@ -30,7 +30,8 @@ interface PlaybackStore {
   setFrame: (f: number) => void;
   toggle: () => void;
   set: (patch: Partial<PlaybackStore>) => void;
-  loadRun: (runId: string, autoplay?: boolean) => Promise<void>;
+  /** Load a recorded run; resolves false (and changes nothing) if another load or a live run started meanwhile. */
+  loadRun: (runId: string, autoplay?: boolean) => Promise<boolean>;
   clear: () => void;
 }
 
@@ -54,6 +55,10 @@ const EMPTY = {
   playing: false,
 };
 
+// Each load (and each live run) takes a ticket; a response whose ticket is no longer the latest is dropped, so a slow
+// earlier load can never overwrite a later one (compare.html switches cells quickly).
+let loadTicket = 0;
+
 export const usePlayback = create<PlaybackStore>((set, get) => ({
   ...EMPTY,
   speed: 1,
@@ -66,9 +71,14 @@ export const usePlayback = create<PlaybackStore>((set, get) => ({
     set({ playing: !get().playing });
   },
   set: (patch) => set(patch),
-  clear: () => set({ ...EMPTY }),
+  clear: () => {
+    loadTicket += 1;
+    set({ ...EMPTY });
+  },
   loadRun: async (runId, autoplay = true) => {
+    const ticket = ++loadTicket;
     const r = await api.get<RolloutPayload>(`/api/runs/${runId}/rollout`);
+    if (ticket !== loadTicket) return false;
     set({
       source: "run",
       runId,
@@ -88,6 +98,7 @@ export const usePlayback = create<PlaybackStore>((set, get) => ({
       frame: autoplay ? 0 : Math.min(get().frame, r.t.length - 1),
       playing: autoplay,
     });
+    return true;
   },
 }));
 
@@ -96,6 +107,7 @@ export function connectPlayback(): () => void {
   return onLabEvent((e) => {
     const s = usePlayback.getState();
     if (e.type === "sim.started") {
+      loadTicket += 1; // a live run replaces whatever was loading
       usePlayback.setState({
         ...EMPTY,
         source: "live",
@@ -112,7 +124,9 @@ export function connectPlayback(): () => void {
       void usePlayback
         .getState()
         .loadRun(e.run_id, true)
-        .then(() => usePlayback.setState({ frame: keep }))
+        .then((applied) => {
+          if (applied) usePlayback.setState({ frame: keep });
+        })
         .catch((err) => useLab.getState().log("error", String(err.message ?? err), "playback"));
     }
   });

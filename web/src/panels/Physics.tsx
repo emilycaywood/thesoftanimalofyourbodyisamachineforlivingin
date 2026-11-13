@@ -232,7 +232,7 @@ function seek(runId: string, frame: number) {
   const pb = usePlayback.getState();
   const go = () => usePlayback.getState().setFrame(frame);
   if (pb.runId === runId && pb.t.length) { pb.set({ playing: false }); go(); return; }
-  void pb.loadRun(runId, false).then(() => { usePlayback.getState().set({ playing: false }); go(); });
+  void pb.loadRun(runId, false).then((ok) => { if (!ok) return; usePlayback.getState().set({ playing: false }); go(); });
 }
 
 function ReportBlock({ rep, runId, basis, onSeekVideo }: { rep: PhysicsReport; runId: string; basis: Basis; onSeekVideo?: (f: number) => void }) {
