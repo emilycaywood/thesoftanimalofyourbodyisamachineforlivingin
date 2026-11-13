@@ -541,7 +541,7 @@ def adopt(lab: Any, opts: dict[str, str]) -> None:
         s = r["summary"]
         bs[name] = dict(r["genome"])
         drives = {d["drive"]: d for d in s.get("drives") or []} if isinstance(s.get("drives"), list) else {}
-        labels[name] = (f"{cid.rsplit('-', 2)[-2]}-{cid.rsplit('-', 1)[-1]}: {s.get('minutes_held')}/"
+        labels[name] = (f"{cid.split('-evolve-', 1)[-1][5:]}: {s.get('minutes_held')}/"
                         f"{s.get('minutes_of')} min, trot {s.get('trot_speed_mm_s', 0):.0f} mm/s")
         adopted[name] = {"candidate": cid, "fitness_3_seeds": s.get("fitness"), "drives": drives}
         print(name, cid, s.get("fitness"), flush=True)
@@ -878,7 +878,7 @@ def summary(lab: Any, opts: dict[str, str]) -> None:
     cf = data.get("confirm") or {}
     if cf:
         L += ["## 6. Reformulation search: front-runners confirmed on seeds 0-2", "",
-              "| candidate | seed-0 fitness | fitness (3 seeds) | minutes held* | trot mm/s | screen held | cost | "
+              "| candidate | seed-0 fitness | fitness (3 seeds) | minutes held | trot mm/s | screen held | cost | "
               "stoppers |", "|---|---|---|---|---|---|---|---|"]
         for cid, r in cf["bodies"].items():
             s = r.get("summary") or {}
