@@ -1,6 +1,8 @@
 // Belts and springs on the final feral calf (ADR-063..069): three dropdowns per
 // belt drive, everything else read-only; a failing choice is rejected with its
 // reason and the document is unchanged; a valid one moves C; undo restores it.
+// Since R18 (ADR-115) a new project's belts are McMaster-Carr 3MGT 30T/45T and
+// the earlier (not sourceable) systems are greyed.
 // Runs against the second lab of playwright.config.ts (a fresh feral project).
 import { expect, test } from "@playwright/test";
 import { feralPort } from "../playwright.config";
@@ -19,25 +21,25 @@ test("choose belts from the catalog: C is derived, a failing belt is rejected, s
   await page.locator('[data-workspace="mechanism"]').click();
   await page.locator(".dv-default-tab", { hasText: /^Belts and springs$/ }).first().click();
   const panel = page.getByTestId("belts-panel");
-  await expect(panel.getByTestId("belt-stifle-derived")).toContainText("176.7 mm");
-  await expect(panel.getByTestId("belt-hock-length")).toHaveValue("GT2-2mm-400-C");
+  await expect(panel.getByTestId("belt-stifle-derived")).toContainText("180.6 mm");
+  await expect(panel.getByTestId("belt-hock-length")).toHaveValue("MM-3MGT-420");
   // no control sets the centre distance: only the three selects per drive
   await expect(panel.getByTestId("belt-hock").locator("input")).toHaveCount(0);
   await expect(panel.getByTestId("belt-hock").locator("select")).toHaveCount(3);
-  // a length outside the belt's confirmed width is greyed
-  await expect(panel.getByTestId("belt-hock-length").locator('option[value="GT2-2mm-450-A"]')).toBeDisabled();
+  // a belt system that is not sourceable is greyed (ADR-115)
+  await expect(panel.getByTestId("belt-hock-system").locator('option[value="GT2-2mm-10mm-generic"]')).toBeDisabled();
 
-  // the 450 mm belt hits the stifle belt late in the stifle's range: rejected, nothing changes
-  await panel.getByTestId("belt-hock-length").selectOption("GT2-2mm-450-C");
+  // the 450 mm belt hits the stifle belt in the stifle's range: rejected, nothing changes
+  await panel.getByTestId("belt-hock-length").selectOption("MM-3MGT-450");
   await expect(panel.getByTestId("belt-message")).toContainText("rejected");
   await expect(panel.getByTestId("belt-message")).toContainText("stifle belt");
-  await expect(panel.getByTestId("belt-hock-length")).toHaveValue("GT2-2mm-400-C");
+  await expect(panel.getByTestId("belt-hock-length")).toHaveValue("MM-3MGT-420");
 
   // a valid one: C follows the catalog entry
-  await panel.getByTestId("belt-hock-length").selectOption("GT2-2mm-394-C");
-  await expect(panel.getByTestId("belt-hock-derived")).toContainText("151.7 mm");
+  await panel.getByTestId("belt-hock-length").selectOption("MM-3MGT-414");
+  await expect(panel.getByTestId("belt-hock-derived")).toContainText("150.6 mm");
   await page.request.post("/api/commands/undo");
-  await expect(panel.getByTestId("belt-hock-length")).toHaveValue("GT2-2mm-400-C");
+  await expect(panel.getByTestId("belt-hock-length")).toHaveValue("MM-3MGT-420");
 
   // springs in the standing pose, with their side
   await expect(panel.getByTestId("spring-table")).toContainText("hl.stifle");

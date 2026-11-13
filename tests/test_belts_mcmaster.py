@@ -160,7 +160,10 @@ def test_a_new_body_gets_mcmaster_belts_and_a_priced_bill_of_materials() -> None
     priced = [r for r in b["rows"] if r["line_usd"] is not None]
     assert b["total_usd"] == pytest.approx(sum(r["line_usd"] for r in priced))
     assert sum(r["qty"] for r in b["rows"] if r["kind"] == "pulley") == 4 * len(drives)
-    assert all(r["kind"] == "pulley" for r in priced) or b["complete"]  # belt prices only where a page was read
+    # every pulley page was read; a belt is priced only where its page was read, and the rest are named
+    assert all(r["line_usd"] is not None for r in b["rows"] if r["kind"] == "pulley")
+    assert b["complete"] == (not b["unpriced"])
+    assert len(b["unpriced"]) == sum(1 for r in b["rows"] if r["line_usd"] is None)
     assert {o["item"] for o in b["open_items"]} == {"servo_shaft_adapter", "joint_axle"}
     assert all(not o["priced"] for o in b["open_items"])
 
