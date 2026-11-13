@@ -3,7 +3,8 @@
 Everything a new Claude Code session (or a new collaborator) needs to pick up
 CALFLAB. Last updated 2026-11-12 on branch `robot-calf-final` (cut from
 `chassis-mass`), after session R18 (the body on McMaster-Carr belt parts only: catalog, closest swap, a reformulation
-search; ADR-115 to ADR-120), section 4 "Session R18"; before it session R16 (what g020-008-r01 can do: a diversity search on one body, ADR-112), section 4
+search; ADR-115 to ADR-120), section 4 "Session R18" (with, after it, belted or direct carpus on the swap,
+ADR-123/124); before it session R16 (what g020-008-r01 can do: a diversity search on one body, ADR-112), section 4
 "Session R16"; before it session R15 (behaviours defined by their outcome, ADR-110/111), section 4 "Session R15";
 before it session R14 (the bodies at their real weight: an explicit mass model, +0.7 kg, almost no
 behaviour holds; the seeded search waits for Emily's budget; ADR-108), section 4 "Session R14"; before it session R13
@@ -1595,6 +1596,41 @@ tension (ADR-120, entered during the session): 179.6 N for 9 mm 3MGT, 26.2 N for
   pulleys' overall widths are 17.6-21.2 mm; the lateral stack is not modelled.
 * **Watch `compare.html?set=r18`** (restart the lab on 8020 first).
 
+**After R18 (2026-11-12; ADR-123, ADR-124): belted or direct carpus on g020-008-r01-mc.** Study
+`docs/studies/carpus_r18.md`, script `carpus_r18.py`, tables `carpus_r18_tables.md`, data `carpus_r18.json`. The
+direct body `g020-008-r01-mc-direct` is the swap with only `carpus_belt` off (C002 on the carpus joint); it is in
+`mcmaster_r18.json` `bodies`. Nothing in `config/`, the library or any `verified` flag changed.
+- **Recommendation: keep the belted carpus.**
+  - **R16 repertoire:** the direct body keeps 87 of 107 behaviours on seeds 0-2, against 103 for the swap; 47 of 52
+    full-search cells. It gains none.
+  - **Why it loses them:** every loss is sustained servo torque, 9 at the front shoulder and 7 at the hind hip ab/ad.
+    The front leg's inertia about the shoulder rises 49 % (0.0132 → 0.0197 kg·m²), and its centre of mass moves from
+    214 to 314 mm below the axis.
+- **What the direct carpus gives:**
+  - USD 99.78 off the bill of materials (301.36 → 201.58);
+  - two fewer adapters and two fewer axles (open items 4 + 4);
+  - 48 g less;
+  - carpus peaks −12 %.
+  The carpus belt never binds on the swap.
+- **The R11c suite:** both hold 1 of 33 minutes; screen 10 against 12 of 23.
+- **Clearance:** both put hardware about 20 mm below the carpus axis (pulley or servo case). Either becomes the leg's
+  lowest point past about 75° of carpus flexion; only the lying probe gets there.
+- **Code:**
+  - `mcmaster_r18._play_full` (the play with its rollout);
+  - `body_compare.body_order` (the study's `order`: the direct cell beside the swap);
+  - sheets now state Gates' allowable;
+  - tests `tests/test_carpus_r18.py` (6).
+- **Runs:** `R18 g020-008-r01-mc-direct <behaviour>: seed 0` (107, tag `mcmaster_r18`).
+
+**The researcher must verify (new after R18, ADR-123/124):**
+
+* **The C002's real output-axis offset and how the case would be turned on the carpus.** The model centres the case
+  on the axis. With its long end up the leg, the case could clear the ground better than the pulley does.
+* **A horn-to-cannon fitting for a direct carpus**, if you still want one: not listed, not modelled.
+* **The 2 mm lateral gap** between the direct case and the front cannon is the generator's constant, not a design.
+* **Watch `compare.html?set=r18`:** the direct cell beside the swap, for example `full:walk|5|2` or
+  `probe_gaits:walk|3|3` (the front shoulder) and `full:pace|5|2` (hip ab/ad).
+
 **The researcher must verify (new in session R16, ADR-112):**
 
 * **Watch `compare.html?set=r16`** (restart the lab on 8020 first: the running server has the old code). Do the walk,
@@ -2016,7 +2052,7 @@ Journal, Rhino bridge):**
 |---|---|
 | `CLAUDE.md` | Conventions for every session (loaded automatically) |
 | `PLAN.md` | Architecture, module boundaries, data flow, phases, risks, status |
-| `DECISIONS.md` | ADR log: every assumption (112 so far) |
+| `DECISIONS.md` | ADR log: every assumption (124 so far; 121/122 named by uncommitted work) |
 | `docs/proposals/anatomical-leg.md` | Proposal for a three-segment leg (set aside 2026-10-04; not built) |
 | `docs/USER_GUIDE.md` | How to use the lab |
 | `docs/CHAT_GUIDE_PROMPT.md` | Prompt that makes a chat assistant a guide to the whole lab |
@@ -2034,7 +2070,38 @@ Journal, Rhino bridge):**
 
 Prefix each with the opening message from section 1.
 
-**R18-full. A larger reformulation budget on McMaster parts** (recommended next; written after R18, ADR-117.)
+**R18-hip. The hip ab/ad and front shoulder that bind the swap** (recommended next; written after the carpus study,
+ADR-123.)
+> In projects/robot-calf-final, the carpus study (`docs/studies/carpus_r18.md`) kept the belted carpus on
+> g020-008-r01-mc. What binds that body's R16 repertoire beyond hind joint speed is sustained servo torque:
+> - at the C018 hind hip ab/ad (since R14);
+> - at the front shoulder in the lowest stands and the fastest trots.
+>
+> In memory only, without changing the body, catalogs or `verified` flags, replay the R16 repertoire on seeds 0-2 at
+> margin 0.2 (as `carpus_r18.py replay` does) for:
+> (a) a C002 on the hip ab/ad (within the servo budget);
+> (b) the hardware_r18 hip ab/ad spring steps;
+> (c) both together.
+>
+> Report per behaviour what each gains or loses, the new binding limits, the mass and the cost, next to the swap on
+> `compare.html?set=r18`.
+
+**R18-direct. Behaviours searched for a direct-carpus body** (after the carpus study, ADR-123; only if the cheaper
+direct carpus matters to you.)
+> In projects/robot-calf-final, `g020-008-r01-mc-direct` (the McMaster swap with the C002 on the carpus joint) keeps
+> 87 of R16's 107 behaviours, against the belted swap's 103. Every loss is sustained servo torque at the front
+> shoulder or hip ab/ad. It saves USD 99.78.
+>
+> Run R16's outcome search (`diversity_r16.py`, the same descriptors, budget and margin) on the direct body, store
+> its behaviours as a compare set, and report:
+> - how many of the 52 cells it fills;
+> - what binds;
+> - whether a direct carpus with its own behaviours matches the belted swap's coverage.
+>
+> Do not change catalogs, library entries or `verified` flags. Report the servo case's ground clearance in any
+> kneeling or lying behaviour; it is a visual part and the simulator does not collide it.
+
+**R18-full. A larger reformulation budget on McMaster parts** (written after R18, ADR-117.)
 > In projects/robot-calf-final, R18 (`docs/studies/mcmaster_r18.md` section 6) searched g020-008-r01 again with every
 > belt part from McMaster-Carr (preset `hardware_r18`, judged on seed 0 with the front-runners confirmed on seeds 0-2).
 > Run budget M (10 generations, about 1.8 h at seed 0) or L (20 generations, about 3.7 h). Your choice:

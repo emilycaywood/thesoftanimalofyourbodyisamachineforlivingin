@@ -4608,3 +4608,86 @@ R18. It is the table the catalog's earlier 2 mm GT2 figure (111 N per inch) came
    tension" no longer applies to R18 results judged after this ADR. The R18 search (run `20261112-214157-evolve-3baa`)
    had already started with the null allowable and finished on it. Its front-runners were confirmed on seeds 0-2 with
    the allowable in place.
+
+## ADR-123 — Belted or direct carpus on g020-008-r01-mc: the direct body and how it is judged (**VERIFY**)
+
+*Requested 2026-11-12 (after R18): is a direct-drive carpus as good as or better than the belted 1:1 carpus (3MGT
+45T/45T, 600 mm, C 232.5 mm) on the McMaster swap?* Study `docs/studies/carpus_r18.md`, script `carpus_r18.py`.
+Numbered 123: ADR-121 and ADR-122 are already named by uncommitted behaviour-library work in this checkout
+(`core/calflab/repertoire/`, `project/registry.py`).
+
+*Decisions / ASSUMPTIONS.*
+1. **The direct body `g020-008-r01-mc-direct` is the swap's genes with only `carpus_belt: false`.** The carpus belt
+   genes stay in the genome and are unused. The generator's own direct layout places the C002:
+   - outboard of the upper-leg tube, 2 mm clear of it;
+   - centred on the carpus axis, its long side along the upper leg;
+   - the horn on the joint.
+   No other placement was tried: the servo's output-axis offset is not entered.
+2. **Judged exactly as R18 judged the swap:**
+   - `mcmaster_r18.py`'s payload (explicit_v2, the project's catalog: Gates allowable, breaking strength assumed);
+   - the R16 repertoire on seeds 0-2 at margin 0.2, sustained belt tension included;
+   - the R11c suite as `confirm` scores it (preset `hardware_r18`, its controllers, cache, baseline and the search
+     run's compile settings).
+   The swap was replayed too, and every judged field equals R18's records.
+3. **The front leg's mass, centre of mass and inertia** are read from the simulator's compiled model (MuJoCo body
+   inertias, standing pose). The reflected rotor inertia (`armature`, a defaulted 0.005 kg·m² for the C002) is
+   reported separately.
+4. **Current is per C002 from torque and the library's stall current** (4.2 A at 12 V; idle current defaulted). The
+   C018s have no stall current and are left out, as `current_of` does.
+5. **The compare page:**
+   - `compare.html?set=r18` lists bodies in the study JSON's `order` (`calflab.app.body_compare.body_order`), so the
+     direct body sits beside the swap;
+   - its seed-0 runs are `R18 g020-008-r01-mc-direct <behaviour>: seed 0`, tag `mcmaster_r18`.
+6. **Hardware:**
+   - the direct body's sheet drops the two carpus belts and four 45T pulleys from the bill of materials, and two
+     shaft adapters and two axles from the open items;
+   - the horn-to-cannon fitting it needs at the joint is not listed (not chosen, not invented).
+   Sheets written from now on state Gates' allowable; the four R18 sheets still say "unknown" and were not rewritten.
+
+*Facts found.*
+1. **The repertoire:** 87 of 107 behaviours within every limit on all seeds (swap 103); 47 of 52 full-search cells
+   (52). None is gained. All 16 losses are sustained servo torque: 9 at the front shoulder, 7 at the hind hip ab/ad.
+2. **The front leg about the shoulder:**
+   - moment of inertia 0.0132 → 0.0197 kg·m² (+49 %);
+   - centre of mass 214 → 314 mm below the axis;
+   - mass 197.7 → 173.7 g;
+   - the body is 48 g lighter (the two 24 g carpus axles).
+3. **Loads over the repertoire:**
+   - shoulder mean servo torque ×1.13 (median; ×0.79-1.39);
+   - carpus peak ×0.88;
+   - joint speeds unchanged;
+   - holding torque standing: 0.004 / 0.293 N·m (direct) against 0.038 / 0.303 N·m (belted), shoulder / carpus.
+4. **The R11c suite:** 1 of 33 minutes on both; screen 10 against 12 of 23; fastest trot within 435 against 546 mm/s.
+5. **The bill of materials:** USD 201.58 against 301.36; open items 4 + 4 against 6 + 6.
+6. **Recommendation:** keep the belted carpus for this body. The belt keeps the servo near the shoulder, and the
+   shoulder's sustained torque is what binds the direct body. The belt itself binds nothing (highest carpus peak
+   132 N, lying probe only).
+
+## ADR-124 — The carpus hardware against the ground and the cannon: a swept check, visual geoms only (**VERIFY**)
+
+*Same study.* The servo case and the pulleys are visual geoms (no collision in the simulator), so a play never feels
+them touch the ground.
+
+*Decisions / ASSUMPTIONS.*
+1. **The check:**
+   - the carpus is swept through its range in 1° steps, with every other joint and the upper leg at their standing
+     angles;
+   - each part's lowest point is compared with the leg's lowest collision point (hoof, or the carpus tube once the
+     cannon folds);
+   - in every play, each part's lowest point above the floor is recorded.
+2. **Belted and direct are checked alike:** the belted driven pulley (modelled at its pitch diameter, 43.0 mm) and
+   the direct servo case (24.7 × 35 × 45.2 mm, centred on the axis).
+3. **Reported as not checked, never guessed:**
+   - the servo's output-axis offset;
+   - the lateral stack (horn, bearing, the cannon's fitting; the 2 mm is the generator's constant);
+   - the pulley's flange diameter;
+   - the case against the chest block or the other leg.
+
+*Facts found.*
+1. **Both put hardware about 20 mm below the carpus axis.** Each becomes the leg's lowest point once the carpus folds
+   past 75-76°:
+   - the direct case, least −19.5 mm at 130°;
+   - the belted pulley, −16.1 mm.
+   Only R16's lying probe reaches it in play (−17.7 / −14.0 mm); no other play comes within 50 mm.
+2. **The direct case clears the front cannon by 2.0 mm, laterally, through the whole range.** In the side view they
+   always overlap near the joint.

@@ -1476,6 +1476,35 @@ Rhino and Grasshopper. `<body>_parts.json` gives the parts with McMaster
 part numbers, a `bom` with the total cost, and the open items (shaft
 adapters and axles).
 
+**Belted or direct carpus (ADR-123, ADR-124).** `docs/studies/carpus_r18.py`
+compares the swap g020-008-r01-mc with `g020-008-r01-mc-direct`: the same
+body with only `carpus_belt` off, so the C002 sits on the carpus joint. Each
+stage writes into `carpus_r18.json`; `summary` writes
+`carpus_r18_tables.md`. Read `docs/studies/carpus_r18.md` for the results.
+
+```powershell
+python docs/studies/carpus_r18.py projects/robot-calf-final body       # add the direct body to the R18 study
+python docs/studies/carpus_r18.py projects/robot-calf-final mass       # mass; front leg inertia about the shoulder
+python docs/studies/carpus_r18.py projects/robot-calf-final clearance  # carpus hardware vs cannon and ground
+python docs/studies/carpus_r18.py projects/robot-calf-final statics    # holding torque standing
+python docs/studies/carpus_r18.py projects/robot-calf-final loads      # the three R18 load plays
+python docs/studies/carpus_r18.py projects/robot-calf-final replay     # R16 repertoire, both bodies, seeds 0-2
+python docs/studies/carpus_r18.py projects/robot-calf-final suite      # the R11c suite, scored as confirm
+python docs/studies/carpus_r18.py projects/robot-calf-final sheets     # direct body's sheet and BOM
+python docs/studies/carpus_r18.py projects/robot-calf-final store      # its runs for compare.html?set=r18
+python docs/studies/carpus_r18.py projects/robot-calf-final summary
+```
+
+On `compare.html?set=r18` the direct body is the cell beside the swap. It
+keeps 87 of the 107 R16 behaviours, against 103 for the belted swap. Every
+loss is sustained servo torque at the front shoulder or the hind hip ab/ad:
+moving the C002 down to the carpus makes the front leg 49 % harder to
+swing. It saves USD 99.78 in belts and pulleys.
+
+The servo case and the pulleys are visual parts, so the simulator never
+lets them touch the ground. The `clearance` stage is the check: it sweeps
+the carpus and reports where either part would be the leg's lowest point.
+
 #### Proportions: comparing bodies instead of finding one
 
 The lab has three ways to look for a better body or gait:
