@@ -33,6 +33,8 @@ class BodyCompareSet(BaseModel):
     #: the behaviours' names, groups and numbers
     behaviours: str
     note: str = ""
+    #: only these bodies of the study, in this order; empty = every replayed body (in the study's order)
+    bodies: list[str] = []
 
 
 BODY_SETS: dict[str, BodyCompareSet] = {
@@ -40,6 +42,11 @@ BODY_SETS: dict[str, BodyCompareSet] = {
                           study="docs/studies/mcmaster_r18.json", behaviours="docs/studies/diversity_r16.json",
                           note="within every limit incl. sustained belt tension (Gates 17611-T allowable); breaking "
                                "strength assumed"),
+    "carpus": BodyCompareSet(key="carpus", title="g020-008-r01-mc: belted carpus vs direct carpus (ADR-123)",
+                             study="docs/studies/mcmaster_r18.json", behaviours="docs/studies/diversity_r16.json",
+                             bodies=["g020-008-r01-mc", "g020-008-r01-mc-direct"],
+                             note="within every limit incl. sustained belt tension (Gates 17611-T allowable); "
+                                  "breaking strength assumed"),
 }
 
 
@@ -90,6 +97,8 @@ def body_manifest(lab: Any, set_key: str) -> dict[str, Any]:
     store: dict[str, dict[str, str]] = data.get("store") or {}
     labels: dict[str, str] = data.get("labels") or {}
     names = body_order(data)
+    if spec.bodies:
+        names = [n for n in spec.bodies if n in names]
     bodies = [{"key": n, "label": n, "line": labels.get(n, ""), "stage_c_run": None} for n in names]
     by_group: dict[str, list[dict[str, Any]]] = {}
     for rec in shown:

@@ -104,3 +104,16 @@ def test_the_direct_case_is_lowest_once_the_carpus_folds(direct) -> None:  # typ
     hi = spec.joint("joint.fl.carpus").range_deg[1]
     assert clearance(0.0) > 100.0
     assert clearance(hi) < 0.0
+
+
+def test_the_carpus_set_shows_only_the_belted_and_the_direct_body() -> None:
+    from calflab.app.body_compare import BODY_SETS, body_manifest
+
+    s = BODY_SETS["carpus"]
+    assert s.bodies == ["g020-008-r01-mc", "g020-008-r01-mc-direct"] and s.study == BODY_SETS["r18"].study
+    from calflab.paths import repo_root
+
+    if (repo_root() / s.study).is_file():  # the study's JSON is in git; both bodies are replayed there
+        m = body_manifest(None, "carpus")
+        assert [b["key"] for b in m["bodies"]] == s.bodies
+        assert all(len(it["cells"]) == 2 for g in m["groups"] for it in g["items"])

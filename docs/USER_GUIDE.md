@@ -1499,7 +1499,8 @@ On `compare.html?set=r18` the direct body is the cell beside the swap. It
 keeps 87 of the 107 R16 behaviours, against 103 for the belted swap. Every
 loss is sustained servo torque at the front shoulder or the hind hip ab/ad:
 moving the C002 down to the carpus makes the front leg 49 % harder to
-swing. It saves USD 99.78 in belts and pulleys.
+swing. It saves USD 99.78 in belts and pulleys. `compare.html?set=carpus`
+shows only these two bodies, side by side.
 
 The servo case and the pulleys are visual parts, so the simulator never
 lets them touch the ground. The `clearance` stage is the check: it sweeps
