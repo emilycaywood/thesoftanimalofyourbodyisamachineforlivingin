@@ -143839,5 +143839,11 @@
  "determinism": {
   "compared": 321,
   "differ": []
+ },
+ "final": {
+  "name": "calf-final",
+  "same_as": "g020-008-r01-mc-direct",
+  "design": "calf-final-v001",
+  "mass_g": 2025.9
  }
 }

@@ -47,7 +47,7 @@ BODY_SETS: dict[str, BodyCompareSet] = {
                           study="docs/studies/mcmaster_r18.json", behaviours="docs/studies/diversity_r16.json",
                           note="within every limit incl. sustained belt tension (Gates 17611-T allowable); breaking "
                                "strength assumed"),
-    "carpus": BodyCompareSet(key="carpus", title="g020-008-r01-mc: belted carpus vs direct carpus (ADR-123)",
+    "carpus": BodyCompareSet(key="carpus", title="g020-008-r01-mc (belted carpus) vs calf-final (direct carpus; ADR-123, ADR-126)",
                              study="docs/studies/mcmaster_r18.json", behaviours="docs/studies/diversity_r16.json",
                              bodies=["g020-008-r01-mc", "g020-008-r01-mc-direct"],
                              note="within every limit incl. sustained belt tension (Gates 17611-T allowable); "

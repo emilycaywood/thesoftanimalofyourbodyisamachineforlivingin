@@ -1,7 +1,7 @@
 # CALFLAB session handoff
 
 Everything a new Claude Code session (or a new collaborator) needs to pick up
-CALFLAB. Last updated 2026-11-12 on branch `robot-calf-final` (cut from
+CALFLAB. Last updated 2026-11-13 (final body `calf-final`, ADR-126) on branch `robot-calf-final` (cut from
 `chassis-mass`), after session R18 (the body on McMaster-Carr belt parts only: catalog, closest swap, a reformulation
 search; ADR-115 to ADR-120), section 4 "Session R18" (with, after it, belted or direct carpus on the swap,
 ADR-123/124); before it session R16 (what g020-008-r01 can do: a diversity search on one body, ADR-112), section 4
@@ -27,6 +27,26 @@ over the window, repeated frames; session X: the hind Knee at the hock, clip
 smoothing; the 3D lift and the review player; and session T: video inbox,
 pose tracking, composition, repertoire evolution). Run `git log --oneline -12`
 for the current state. `robot-calf-final` is pushed to GitHub as a backup (2026-11-05); `projects/*/runs` is not in git and exists only on this machine.
+
+
+**THE FINAL BODY: `calf-final` (the researcher, 2026-11-13; ADR-126).** From here on every session uses this geometry.
+- **What it is:** g020-008-r01-mc with a direct-drive carpus (the C002 on the carpus joint). Earlier name:
+  `g020-008-r01-mc-direct`.
+- **Drives:**
+  - stifle and hock belted, McMaster 3MGT 30T/45T, 1.5:1, 450 / 414 mm;
+  - hip ab/ad, shoulder and carpus direct.
+- **Servos:** C018 hip ab/ad and stifle; C002 hock, shoulder and carpus.
+- **Mass:** 2025.9 g (explicit_v2).
+- **Where it lives:**
+  - in the project: design `calf-final-v001` (`projects/robot-calf-final/designs/`);
+  - in the study: `docs/studies/mcmaster_r18.json` `bodies["calf-final"]`, with the alias to its earlier name;
+  - sheets: `docs/studies/sheets_r18/g020_008_r01_mc_direct_*` (BOM USD 201.58).
+- **Its runs, replays and compare cells keep the earlier name** (stable IDs). `compare.html?set=carpus` sets it beside
+  the belted swap.
+- **Known weak points:** on R16's repertoire it holds 87 of 107. The losses are sustained servo torque at the front
+  shoulder and hip ab/ad; those behaviours were tuned for g020-008-r01.
+- **Open hardware:** the carpus case's output-axis offset and lateral stack, the horn-to-cannon fitting, 4 shaft
+  adapters and 4 axles.
 
 ---
 
@@ -2067,7 +2087,7 @@ Journal, Rhino bridge):**
 |---|---|
 | `CLAUDE.md` | Conventions for every session (loaded automatically) |
 | `PLAN.md` | Architecture, module boundaries, data flow, phases, risks, status |
-| `DECISIONS.md` | ADR log: every assumption (125 so far; 121/122 named by uncommitted work) |
+| `DECISIONS.md` | ADR log: every assumption (126 so far; 121/122 named by uncommitted work) |
 | `docs/proposals/anatomical-leg.md` | Proposal for a three-segment leg (set aside 2026-10-04; not built) |
 | `docs/USER_GUIDE.md` | How to use the lab |
 | `docs/CHAT_GUIDE_PROMPT.md` | Prompt that makes a chat assistant a guide to the whole lab |
@@ -2083,7 +2103,8 @@ Journal, Rhino bridge):**
 
 ## 7. Recommended next sessions
 
-Prefix each with the opening message from section 1.
+Prefix each with the opening message from section 1. **From 2026-11-13 every session works on the final body `calf-final`**
+(design `calf-final-v001`, ADR-126). Where an older prompt below says g020-008-r01 or the swap, use calf-final.
 
 **R18-hip. The hip ab/ad and front shoulder that bind the swap** (recommended next; written after the carpus study,
 ADR-123.)

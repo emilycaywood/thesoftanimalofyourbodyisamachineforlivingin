@@ -1515,6 +1515,11 @@ moving the C002 down to the carpus makes the front leg 49 % harder to
 swing. It saves USD 99.78 in belts and pulleys. `compare.html?set=carpus`
 shows only these two bodies, side by side.
 
+**The final body is `calf-final` (ADR-126).** The direct-carpus body is the
+geometry used from now on. Open it in the lab from the Designs list
+(`calf-final-v001`). On the compare pages it still appears under its earlier
+name, `g020-008-r01-mc-direct`, marked "= calf-final".
+
 The servo case and the pulleys are visual parts, so the simulator never
 lets them touch the ground. The `clearance` stage is the check: it sweeps
 the carpus and reports where either part would be the leg's lowest point.

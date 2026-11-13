@@ -4724,3 +4724,24 @@ behaviours are what their names say.*
 3. **Loads:** `usePlayback.loadRun` takes a ticket and drops any response that is no longer the latest (a live run
    also takes one). It resolves `false` for a dropped load, and only the latest load reports ready to compare.html.
    While a cell loads another run, the page covers it with "loading..." instead of playing the old run.
+
+## ADR-126 — The final body is `calf-final` (g020-008-r01-mc with a direct-drive carpus)
+
+*Decided by the researcher 2026-11-13: "this direct drive at the carpus is our new final body ... locking it in here",
+and "from here on out, this is the geometry we're using", named `calf-final`.*
+
+*Decisions.*
+1. **`calf-final` is the body every later session works on.** Its genes are exactly those of `g020-008-r01-mc-direct`
+   (ADR-123): the McMaster swap g020-008-r01-mc with `carpus_belt: false`.
+   This overrides ADR-123's recommendation of the belted carpus. That recommendation stays recorded: on R16's
+   repertoire the direct body holds 87 of 107 behaviours against 103.
+2. **Where it is stored:**
+   - in the project, as the design `calf-final-v001`. It is built from the study payload exactly as every study stage
+     builds it: explicit_v2, the project's belt catalog (Gates allowable, breaking strength assumed);
+   - in `mcmaster_r18.json`, as `bodies["calf-final"]` with `aliases["calf-final"] = "g020-008-r01-mc-direct"`;
+   - by `carpus_r18.py final`, which refuses to save it unless it builds identically to the direct body.
+   The working document (the project's current design) was not changed.
+3. **The earlier name is kept, not renamed** (stable IDs, CLAUDE.md rule 8):
+   - the 107 stored runs, the replays and the compare cells stay under `g020-008-r01-mc-direct`;
+   - its title line on the compare pages now reads "= calf-final, the final body".
+4. Nothing in `config/`, the library or any `verified` flag changed; no hardware was added.

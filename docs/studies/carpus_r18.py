@@ -600,6 +600,52 @@ def store(lab: Any, opts: dict[str, str]) -> None:
     m.store(lab, {"bodies": DIRECT, "workers": opts.get("workers", "15")})
 
 
+# --------------------------------------------------------------------- the final body (ADR-126)
+FINAL = "calf-final"
+
+
+def final(lab: Any, opts: dict[str, str]) -> None:
+    """The researcher's final body (2026-11-13): ``calf-final`` = ``g020-008-r01-mc-direct``. Adds it to the study's
+    ``bodies`` with the same genes (and ``aliases``: its earlier name), and saves it in the project as the design
+    ``calf-final`` (v001), built from the study payload exactly as every stage builds it (explicit_v2, the project's
+    catalog). The working document is not changed; the earlier name keeps its runs, replays and compare cells."""
+    from calflab.evolve.hardware import _build
+    from calflab.project.registry import DesignRecord, RunRecord
+
+    data = m._load()
+    bs = data.setdefault("bodies", {})
+    bs[FINAL] = dict(bs[DIRECT])
+    data.setdefault("aliases", {})[FINAL] = DIRECT
+    data.setdefault("labels", {})[FINAL] = "calf-final: the final body (= g020-008-r01-mc-direct)"
+    data["labels"][DIRECT] = "= calf-final, the final body: direct carpus, C002 on the joint"
+    m._save(data)
+    pl = m.bodies(lab)[FINAL]
+    d, _lib = _build(pl)
+    d0, _l = _build(m.bodies(lab)[DIRECT])
+    if d.spec.model_dump(mode="json") != d0.spec.model_dump(mode="json"):
+        raise SystemExit("calf-final does not build identically to g020-008-r01-mc-direct")
+    existing = [x for x in lab.registry.list_designs() if x.get("name") == FINAL]
+    if existing and not opts.get("again"):
+        print("already saved:", [x["id"] for x in existing])
+        return
+    version = lab.registry.next_design_version(FINAL)
+    rec = DesignRecord(
+        id=f"{FINAL}-v{version:03d}", name=FINAL, version=version,
+        note=("The final body (researcher, 2026-11-13; ADR-126): g020-008-r01-mc with a direct-drive carpus, every belt "
+              "drive on McMaster-Carr parts. Built from docs/studies/mcmaster_r18.json body g020-008-r01-mc-direct, "
+              "mass model explicit_v2, the project's belt catalog (Gates allowable, breaking strength assumed)."),
+        genome=d.genome.model_dump(mode="json"), overrides=list(pl.get("overrides") or []), graph={},
+        spec=d.spec.model_dump(mode="json"), mass_g=d.spec.total_mass_g())
+    lab.registry.save_design(rec)
+    lab.registry.save_run(RunRecord(id=lab.registry.new_run_id("bake"), kind="bake", title=f"Bake {rec.id}",
+                                    genome=rec.genome, overrides=rec.overrides,
+                                    artifacts={"design": f"designs/{rec.id}/design.json"}, parent=rec.id))
+    out = _load()
+    out["final"] = {"name": FINAL, "same_as": DIRECT, "design": rec.id, "mass_g": round(rec.mass_g, 1)}
+    _save(out)
+    print("saved design", rec.id, round(rec.mass_g, 1), "g")
+
+
 # --------------------------------------------------------------------- tables
 def _f(v: Any, nd: int = 2) -> str:
     return m._f(v, nd)

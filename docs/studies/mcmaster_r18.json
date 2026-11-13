@@ -8986,6 +8986,18 @@
    "belt_carpus_pulleys": "MM-3MGT-45T+MM-3MGT-45T",
    "belt_carpus_length": "MM-3MGT-600",
    "carpus_belt": false
+  },
+  "calf-final": {
+   "belt_stifle_system": "MM-3MGT-9",
+   "belt_stifle_pulleys": "MM-3MGT-30T+MM-3MGT-45T",
+   "belt_stifle_length": "MM-3MGT-450",
+   "belt_hock_system": "MM-3MGT-9",
+   "belt_hock_pulleys": "MM-3MGT-30T+MM-3MGT-45T",
+   "belt_hock_length": "MM-3MGT-414",
+   "belt_carpus_system": "MM-3MGT-9",
+   "belt_carpus_pulleys": "MM-3MGT-45T+MM-3MGT-45T",
+   "belt_carpus_length": "MM-3MGT-600",
+   "carpus_belt": false
   }
  },
  "swap": {
@@ -218380,7 +218392,8 @@
   "r18-a": "g007-007: 29/33 min, trot 287 mm/s",
   "r18-b": "g004-001: 25/33 min, trot 399 mm/s",
   "r18-c": "g006-010-r02: 27/33 min, trot 556 mm/s",
-  "g020-008-r01-mc-direct": "direct carpus: C002 on the joint"
+  "g020-008-r01-mc-direct": "= calf-final, the final body: direct carpus, C002 on the joint",
+  "calf-final": "calf-final: the final body (= g020-008-r01-mc-direct)"
  },
  "adopted": {
   "r18-a": {
@@ -222355,5 +222368,8 @@
     "turn": -0.0
    }
   }
+ },
+ "aliases": {
+  "calf-final": "g020-008-r01-mc-direct"
  }
 }
