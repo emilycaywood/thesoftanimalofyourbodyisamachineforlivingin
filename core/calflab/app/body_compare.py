@@ -72,6 +72,14 @@ def judged(records: list[dict[str, Any]]) -> dict[str, Any]:
             "margin": min(ms) if ms else None, "limit": None if ok else limit}
 
 
+def body_order(data: dict[str, Any]) -> list[str]:
+    """The cells' order: the study's ``order`` first (bodies that have been replayed), then any other replayed body in
+    the order it was added (``carpus_r18.py`` puts the direct-carpus body beside the belted swap, ADR-123)."""
+    replay = data.get("replay") or {}
+    first = [n for n in (data.get("order") or []) if n in replay]
+    return first + [n for n in replay if n not in first]
+
+
 def body_manifest(lab: Any, set_key: str) -> dict[str, Any]:
     from calflab.app.diversity_compare import GROUP_TITLES, _n, name
 
@@ -81,7 +89,7 @@ def body_manifest(lab: Any, set_key: str) -> dict[str, Any]:
     replay: dict[str, list[dict[str, Any]]] = data.get("replay") or {}
     store: dict[str, dict[str, str]] = data.get("store") or {}
     labels: dict[str, str] = data.get("labels") or {}
-    names = list(replay)
+    names = body_order(data)
     bodies = [{"key": n, "label": n, "line": labels.get(n, ""), "stage_c_run": None} for n in names]
     by_group: dict[str, list[dict[str, Any]]] = {}
     for rec in shown:

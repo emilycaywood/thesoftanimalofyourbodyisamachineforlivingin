@@ -253,6 +253,12 @@ def _belt_stats(ro: Any, spec: Any, lib: Any) -> dict[str, Any]:
 
 def _play(job: dict[str, Any]) -> dict[str, Any]:
     """One R16 behaviour on one seed on one body, judged at the margin; belt statistics per drive."""
+    return _play_full(job)[0]
+
+
+def _play_full(job: dict[str, Any]) -> tuple[dict[str, Any], Any, Any, Any]:
+    """``_play``'s record, plus the rollout, spec and library it was judged on (so a later study can add its own
+    statistics to the same play: ``carpus_r18.py``)."""
     import dataclasses
 
     from calflab.behave.interpret import judge
@@ -280,7 +286,7 @@ def _play(job: dict[str, Any]) -> dict[str, Any]:
     pj = per_joint(ro, spec, lib, job["margin"])
     worst = max(((jn, r) for jn, r in pj.items() if r.get("binds")),
                 key=lambda kv: kv[1][kv[1]["binds"]] or 0.0, default=(None, {}))
-    return {"body": job["body"], "key": job["key"], "seed": job["seed"], "holds": bool(rec.get("holds")),
+    return ({"body": job["body"], "key": job["key"], "seed": job["seed"], "holds": bool(rec.get("holds")),
             "fell": bool(j["fell"]), "violations": viol,
             "within": bool(j["within_limits"]),
             "within_excl": (not j["fell"]) and not [v for v in viol if v != "belt_sustained"],
@@ -290,7 +296,7 @@ def _play(job: dict[str, Any]) -> dict[str, Any]:
             "belt_sustained": cons.get("belt_sustained", {}).get("margin"),
             "binding": {"joint": worst[0], "limit": worst[1].get("binds"),
                         "use": worst[1].get(worst[1].get("binds") or "", None)} if worst[0] else None,
-            "belts": _belt_stats(ro, spec, lib), "seconds": round(time.perf_counter() - t0, 1)}
+            "belts": _belt_stats(ro, spec, lib), "seconds": round(time.perf_counter() - t0, 1)}, ro, spec, lib)
 
 
 def _jobs(lab: Any, names: list[str], keys: list[str] | None, seeds: list[int], margin: float) -> list[dict[str, Any]]:
@@ -578,7 +584,9 @@ def sheets(lab: Any, opts: dict[str, str]) -> None:
         parts["bom"] = bom(parts)
         parts["body"] = n
         parts["breaking_strength"] = "assumed (researcher's assumption 2026-11-12, 51 lbf per 1/8 in of width)"
-        parts["sustained_belt_tension"] = "unknown: no allowable working tension (not published, not supplied)"
+        # sheets written before ADR-120 (the swap's and r18-a/b/c) still say "unknown" here; carpus_r18 and later: Gates
+        parts["sustained_belt_tension"] = ("allowable working tension from Gates 17611-T (ADR-120): 179.6 N for 9 mm "
+                                           "3MGT, 26.2 N for 6 mm 2MGT")
         slug = "".join(ch if ch.isalnum() else "_" for ch in n).strip("_")
         (SHEETS / f"{slug}_geometry.csv").write_bytes(geometry_csv(geometry_rows(d.spec, vals)).encode("utf-8"))
         (SHEETS / f"{slug}_parts.json").write_bytes(json.dumps(parts, indent=1).encode("utf-8"))
