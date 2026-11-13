@@ -713,6 +713,29 @@ and joint ranges.
   after a change to the body (say, a shorter tibia) is listed in red, and
   F5 and the load analysis refuse to run until you choose again. From the
   command line: `set_belt_drive drive=hock length=GT2-2mm-394-C`.
+
+  **Since R18 (ADR-115) only McMaster-Carr parts are offered.** The two
+  systems are `MM-2MGT-6` (2 mm pitch, 6 mm wide) and `MM-3MGT-9` (3 mm,
+  9 mm). Their pulleys all have a finished 1/4 in bore, and their belts are
+  closed loops. *Pulley pair* lists every driver x driven pair of the
+  system's own pulleys, for example `MM-3MGT-30T+MM-3MGT-45T`, and each
+  length shows its McMaster part number.
+
+  Every earlier entry is greyed with its reason ("not sourceable: ..."), and
+  choosing one is rejected. A body that already uses one still builds and
+  simulates.
+
+  McMaster does not publish a breaking strength, so your assumption is
+  entered and marked *guessed*. The allowable working tension is Gates'
+  recommended working tension from data sheet 17611-T, proportioned to the
+  belt's width (ADR-120): 179.6 N for 9 mm 3MGT and 26.2 N for 6 mm 2MGT.
+  "Within limits" therefore includes sustained belt tension. The 6 mm belts
+  are weak at that figure.
+
+  From the command line:
+  `set_belt_drive drive=hock system=MM-3MGT-9 pulleys=MM-3MGT-30T+MM-3MGT-45T length=MM-3MGT-414`.
+  Every pulley needs a 1/4 in shaft. The servo-to-shaft adapter and the
+  joint axle are not in the lab yet.
 * **Springs (tension only).** Sliders for the rate, the free length and the
   four anchor coordinates of the stifle, hock and shoulder springs. Anchors
   are measured from the joint axis: along the segment, and across it
@@ -1421,6 +1444,37 @@ kind of behaviour for 30 s. Orange means it holds but drifts into another cell,
 or the seeds disagree. Red means it goes over a limit, with the limit named.
 Bodies that travel leave the camera's view after a few seconds; open the cell
 in the full lab (click its title) to follow them.
+
+#### The body on McMaster-Carr belt parts (R18, ADR-115 to ADR-120)
+
+`docs/studies/mcmaster_r18.py` reformulates g020-008-r01 on the McMaster
+parts only. Read `docs/studies/mcmaster_r18.md` for the results. Its stages,
+in order:
+
+```powershell
+python docs/studies/mcmaster_r18.py projects/robot-calf-final fits      # what fits each drive (CSV per drive)
+python docs/studies/mcmaster_r18.py projects/robot-calf-final swap      # the closest swap g020-008-r01-mc
+python docs/studies/mcmaster_r18.py projects/robot-calf-final replay    # the R16 repertoire on seeds 0-2
+python docs/studies/mcmaster_r18.py projects/robot-calf-final search --generations=8 --seed=1
+python docs/studies/mcmaster_r18.py projects/robot-calf-final confirm   # front-runners on seeds 0-2
+python docs/studies/mcmaster_r18.py projects/robot-calf-final sheets    # Rhino sheet + bill of materials
+python docs/studies/mcmaster_r18.py projects/robot-calf-final summary   # mcmaster_r18_tables.md
+```
+
+The search uses preset `hardware_r18` (Evolve > preset). It judges on seed
+0 only and confirms its best bodies on three seeds afterwards, so a seed-0
+result is a shortlist, not a verdict.
+
+**Side by side:** `compare.html?set=r18` shows the baseline, the swap and
+the reformulated bodies, one cell each, all doing the same R16 behaviour.
+Green means the behaviour holds within every limit on all three seeds,
+sustained belt tension included (Gates' allowable; breaking strength
+assumed). The text gives the belt's peak and mean tension.
+
+**Production sheets:** `docs/studies/sheets_r18/<body>_geometry.csv` is for
+Rhino and Grasshopper. `<body>_parts.json` gives the parts with McMaster
+part numbers, a `bom` with the total cost, and the open items (shaft
+adapters and axles).
 
 #### Proportions: comparing bodies instead of finding one
 

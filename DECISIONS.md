@@ -4460,3 +4460,151 @@ library and `verified` flags were not changed. Study: `docs/studies/diversity_r1
    twice a level stand's effort.
 4. **The coverage curve flattened:** 45 cells at batch 375, 52 at 450, and none new in the last 50 batches.
 5. 52 new runs; compare set r16 now lists 107 behaviours (the pilot's and the probes' are kept beside them).
+
+## ADR-115 — McMaster-Carr belt parts only; every earlier belt entry kept but not sourceable (**VERIFY**)
+
+*Requested 2026-11-12 (session R18): the working body g020-008-r01 uses belt hardware that cannot be sourced
+(GT2-80T-10: one listing, sold out; GT2-40T-10: its only read listing sold out; the 640 and 444 mm belts: one
+unconfirmed listing each). From now on every pulley and belt comes from McMaster-Carr only: GT pulleys with a finished
+1/4 in bore (set screw), closed-loop neoprene GT belts; no other vendor, profile, bore, or cut-to-length belt.*
+
+*Decisions / ASSUMPTIONS.*
+1. **Catalog** (`config/belts` and the project's `catalog`, written by `docs/studies/catalog_r18.py`):
+   - belt systems `MM-2MGT-6` (2 mm pitch, 6 mm) and `MM-3MGT-9` (3 mm, 9 mm);
+   - length sources `MM-2MGT` / `MM-3MGT` with all 46 + 42 closed lengths (part numbers 7947Kxxx);
+   - 18 single pulleys (2MGT 60T 3764N118, 72T 3764N119; 3MGT 16-45T 3764N125..N141), bore 6.35 mm only.
+   Every entry has `source` / listings (URL + part number + 2026-11-12), `verified: false`, `purchase_confirmed: false`.
+   Pairs are any driver x driven of one pitch (`<driver>+<driven>`, ADR-103); no pair entry is written.
+2. **Breaking strength is the researcher's assumption**: 51 lbf per 1/8 in of width = 71.4 N/mm → 429 N (6 mm) and
+   643 N (9 mm), named in `guessed: [breaking_strength_n]` (ADR-051). McMaster does not publish it. Every result
+   that uses it says "breaking strength assumed".
+3. **Allowable working tension: null** (not published, not supplied, never derived). *Superseded the same day by
+   ADR-120 (Gates 17611-T).* The sustained belt-tension check
+   is therefore "unknown" on every McMaster drive; every "within limits" in R18 means **"within limits excluding
+   sustained belt tension"**. Each play reports peak and mean belt tension and the largest fraction of any 2 s window
+   above 20 / 30 / 40 / 50 N so the researcher can set an allowable later.
+4. **Masses, hub OD, widths, set screw**: not entered unless the part's own page lists them (`listed`). No page read
+   lists a weight, so every McMaster pulley and belt counts 0 g (as every pulley has, ADR-068).
+5. **Earlier entries are not deleted.** Every system, pair, pulley, length source and length without the McMaster
+   vendor gets `not_sourceable` with its evidence (the four above; the rest: "the researcher's rule 2026-11-12").
+   Stored bodies, runs and designs that name them still build bit-identically.
+6. **Enforcement:**
+   - `set_belt_drive` rejects any choice naming a not-sourceable entry (never clamps);
+   - the Belts panel offers only McMaster systems, their 16 x 16 + 2 x 2 pulley pairs and their lengths;
+   - `ProductionSettings.sourceable_only` restricts a search;
+   - a system with a `vendor` runs a `vendor` check: both pulleys and the length from that vendor. A system without
+     one runs no such check, so earlier bodies are unchanged.
+7. **The default rule** (new projects, the belt comparison) uses `MM-3MGT-9` with 3MGT 30T/45T (1.5:1), the swap's
+   stifle and hock choice. The gene defaults in `feral_calf.yaml` were NOT changed (they still name the 10 mm GT2
+   entries, now not sourceable): changing them would change the default genome and every fingerprint test.
+8. **Mounting is open** (not modelled, not invented): every pulley needs a 1/4 in round shaft; the STS3215 / C001 /
+   C002 output is a spline horn. A servo-to-1/4 in shaft adapter per belted servo and a 1/4 in axle per belted joint
+   are listed as open items for the researcher; no mass or size is added for them.
+
+## ADR-116 — Which McMaster choices fit g020-008-r01, and the closest swap g020-008-r01-mc (**VERIFY**)
+
+*Session R18, steps 1-2.* Study `docs/studies/mcmaster_r18.md`; every fitting choice in
+`mcmaster_r18_fits_<drive>.csv`.
+
+*Decisions / ASSUMPTIONS.*
+1. **A fit is a choice with no failed belt check** (`calflab.mech.belts.fitting_choices`): pitch, pulley width, vendor,
+   length offered, belt goes round, pulley gap (C > (D1 + D2) / 2 + 3 mm), at least 6 teeth in mesh, servo case on its
+   segment and, at the hock, the hock servo clear of the stifle belt through the stifle's range. An "unknown" check
+   (servo output-axis offset not entered) does not fail, as everywhere since ADR-063. The hock is checked against
+   the baseline's stifle belt; the swap re-checks it against the swapped stifle.
+2. **The swap rule:** per drive, the fitting choice with
+   1. the ratio nearest the current one;
+   2. then the most belt margin per unit of servo torque: driver pitch radius x the assumed breaking strength (the one
+      belt limit that is checked);
+   3. then C nearest the current C (the servo stays where it was).
+   Stifle, then hock (against the new stifle), then carpus. The shoulder is direct on this body.
+3. The swap is built in memory as `g020-008-r01-mc` (genes in `mcmaster_r18.json`); the document is not changed.
+
+## ADR-117 — The reformulation search on McMaster parts (preset hardware_r18), with a lighter judge (**VERIFY**)
+
+*Session R18, step 3.* Preset `config/fitness/hardware_r18.yaml` (written by `mcmaster_r18.py preset`), optimizer
+`map_elites_hardware`, started from Stage B's candidate g020-008-r01 (`run_evolve(candidate=...)`).
+
+*Decisions / ASSUMPTIONS.*
+1. **The R11c/Stage B machinery, unchanged except:**
+   - belts: `belt_systems` = the two McMaster systems, `production.sourceable_only: true`;
+   - `production.carpus_drive: true`: the carpus is belted or direct (the genome allows both);
+   - the shoulder drive stays evolvable as in R11c.
+   Kept as in hardware_r14 v2:
+   - the servo per joint pair from the library (at most six C002);
+   - geometry bounded as in R11c: each segment length within +-10 % of the start on 2 mm steps, ratios within +-5 %,
+     all inside the gene ranges; `scale` fixed;
+   - springs, cost index, mass model explicit_v2, the R11c suite at margin 0.2.
+2. **A lighter judge (the researcher's choice, 2026-11-12, to finish within the session):** the search plays the
+   screen and the 11 suite behaviours on seed 0 only. Then the front-runners (`confirm`, the six best distinct bodies
+   by seed-0 fitness) are played on seeds 0-2 with the same suite and cache, and summarised as Stage B summarises a
+   body. A seed-0 elite is not a 3-seed elite until confirmed.
+3. **What is scored:** within the R11c suite's limits at margin 0.2, breaking checked against the assumption,
+   sustained belt tension unknown (it can never fail on a McMaster drive).
+4. **Seed bodies:**
+   - the closest swap;
+   - the swap with a 2MGT 72T/72T carpus;
+   - the swap with the carpus direct;
+   - the swap with a belted 3MGT 30T/45T shoulder.
+   The search also adds its own "working body" seed: the start's genes decoded onto McMaster choices.
+5. **Budgets** (measured on the pilot, 11 min per generation of 15 at seed 0, 14 workers):
+   - S, 5 generations: about 0.9 h at seed 0, 2.6 h at three seeds;
+   - M, 10 generations: about 1.8 h at seed 0, 5.2 h at three seeds;
+   - L, 20 generations: about 3.7 h at seed 0, 10.3 h at three seeds.
+   R18 ran the pilot (1 generation) and 8 generations (seed 1), the budget under 2 h.
+
+## ADR-118 — Production sheets and bills of materials from McMaster part numbers; mounting is open
+
+*Session R18, step 4.* `calflab.bridge.production_sheet.bom(parts)`; sheets in `docs/studies/sheets_r18/`.
+
+*Decisions / ASSUMPTIONS.*
+1. **Parts lists carry vendor, part number, price and what the part page lists.** `bom()` sums one row per part
+   number (both sides, every drive). The total counts only priced rows and names the rest (`unpriced`). Prices are
+   as read on 2026-11-12, without shipping or tax.
+2. **The shaft adapters and axles are open items, never priced:** a spline-horn-to-1/4 in shaft adapter per belted
+   servo, and a 1/4 in axle per belted joint. Their mass and size are not added to the body: nothing invented.
+3. A sheet is refused if any belt drive of the body is not from McMaster.
+
+## ADR-119 — compare.html?set=r18: the same behaviours on several bodies
+
+*Session R18, step 5.* `calflab.app.body_compare` (`BODY_SETS`), dispatched by `calflab.app.compare.manifest`.
+
+*Decisions / ASSUMPTIONS.*
+1. **One cell per body:** the baseline, the closest swap and the reformulated bodies. One picker sets every cell to the
+   same R16 behaviour. The page renders the manifest only.
+2. **Badges come from the study JSON only** (`replay`): green = holds and is within* on all three seeds; red =
+   otherwise, with the worst seed's binding limit. *within\** excludes sustained belt tension; the text gives the
+   largest belt peak and mean.
+3. **Replays are seed 0.** The baseline uses R16's stored runs; every other body gets `R18 <body> <behaviour>: seed 0`
+   runs (`mcmaster_r18.py store`, tag `mcmaster_r18`).
+
+## ADR-120 — The McMaster belts' allowable working tension from Gates 17611-T (**VERIFY**)
+
+*Requested 2026-11-12 (during R18): the researcher replaced "leave it null; never derive it" with a published source.*
+Gates, "Synchronous Belt Data Summary – Belt Tensile Properties", doc 17611-T (3/07),
+https://fab.cba.mit.edu/classes/865.21/topics/mechanical_design/reference/BeltTensileProperties.pdf, read in full in
+R18. It is the table the catalog's earlier 2 mm GT2 figure (111 N per inch) came from.
+
+*Decisions / ASSUMPTIONS.*
+1. **Allowable working tension = Gates' recommended working tension per 1 in, proportioned with width** (note 6):
+   - `MM-3MGT-9`: 507 N (3M PowerGrip GT2) x 9 / 25.4 = **179.6 N**;
+   - `MM-2MGT-6`: 111 N (2M PowerGrip GT2) x 6 / 25.4 = **26.2 N**.
+   Published, so not in `guessed`; `verified` stays false.
+2. **Why it applies:**
+   - McMaster's belt pages name the belts as Gates PowerGrip GT (e.g. 450-3P-09), neoprene with fiberglass cord;
+   - note 1: the table is for neoprene / fiberglass belts;
+   - note 5: near-minimum pulley diameters and speeds below 300 rpm, both true here.
+3. **Caveats** (in the entries' notes):
+   - this is GT2-generation data applied to belts McMaster lists as GT2 / GT3 / GT4 compatible (likely conservative for
+     GT3);
+   - it is Gates' recommended working tension, not a full drive-design rating by pulley teeth and teeth in mesh.
+4. **Breaking strength stays the researcher's assumption** (429 / 643 N, `guessed`). Gates' minimum total ultimate
+   strength is reported for comparison only (note 3: not for drive design). Per span (note 2: the table is for two
+   spans), reduced per note 4:
+   - 9 786 / 2 x 9 / 25.4 x 0.90 = 1 560 N for 9 mm;
+   - 5 338 / 2 x 6 / 25.4 x 0.82 = 517 N for 6 mm.
+5. **The sustained check is now decided** on every McMaster drive. At margin 0.2 it trips when a belt spends more
+   than 25 % of a 2 s window above 0.8 x allowable: 143.7 N on 9 mm, 21.0 N on 6 mm. "Excluding sustained belt
+   tension" no longer applies to R18 results judged after this ADR. The R18 search (run `20261112-214157-evolve-3baa`)
+   had already started with the null allowable and finished on it. Its front-runners were confirmed on seeds 0-2 with
+   the allowable in place.

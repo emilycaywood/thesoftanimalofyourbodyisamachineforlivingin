@@ -1,8 +1,9 @@
 # CALFLAB session handoff
 
 Everything a new Claude Code session (or a new collaborator) needs to pick up
-CALFLAB. Last updated 2026-11-11 on branch `robot-calf-final` (cut from
-`chassis-mass`), after session R16 (what g020-008-r01 can do: a diversity search on one body, ADR-112), section 4
+CALFLAB. Last updated 2026-11-12 on branch `robot-calf-final` (cut from
+`chassis-mass`), after session R18 (the body on McMaster-Carr belt parts only: catalog, closest swap, a reformulation
+search; ADR-115 to ADR-120), section 4 "Session R18"; before it session R16 (what g020-008-r01 can do: a diversity search on one body, ADR-112), section 4
 "Session R16"; before it session R15 (behaviours defined by their outcome, ADR-110/111), section 4 "Session R15";
 before it session R14 (the bodies at their real weight: an explicit mass model, +0.7 kg, almost no
 behaviour holds; the seeded search waits for Emily's budget; ADR-108), section 4 "Session R14"; before it session R13
@@ -1513,6 +1514,87 @@ tables `diversity_r16_tables.md`, data `diversity_r16.json`.
 * **Tests:** `tests/test_diversity_r16.py` (13). `calflab test` after the full search: ruff, mypy, 19 Vitest and
   14 Playwright pass; pytest 624 passed, 1 failed (the known `project_document` bit-identity failure from R13/R14).
 
+**Session R18 (2026-11-12; ADR-115 to ADR-120): the body on McMaster-Carr belt parts only.** The working body
+(document), library servos, component values and `verified` flags were not changed. Study `docs/studies/mcmaster_r18.md`,
+script `mcmaster_r18.py`, tables `mcmaster_r18_tables.md`, fits `mcmaster_r18_fits_<drive>.csv`, sheets `sheets_r18/`.
+Every result is "breaking strength assumed". The allowable working tension is Gates 17611-T's recommended working
+tension (ADR-120, entered during the session): 179.6 N for 9 mm 3MGT, 26.2 N for 6 mm 2MGT.
+
+* **Catalog** (`config/belts` and the project catalog, by `catalog_r18.py`):
+  - systems `MM-2MGT-6` and `MM-3MGT-9`:
+    - breaking strength 429 / 643 N = your assumption (51 lbf per 1/8 in), `guessed`;
+    - allowable working tension 26.2 / 179.6 N (Gates 17611-T, ADR-120);
+  - 18 pulleys with a 1/4 in bore (2MGT 60/72T; 3MGT 16-45T), all pages read: hub, OD, widths, flanges, set screw;
+    no weight, no set-screw size;
+  - 88 closed lengths (three belt pages read: price, no weight).
+  Every earlier entry is kept, marked `not_sourceable` with its evidence, and still builds stored bodies.
+* **Code:** McMaster parts are the only ones offered:
+  - `set_belt_drive` rejects a not-sourceable choice;
+  - the Belts panel greys them out;
+  - `ProductionSettings.sourceable_only` and `carpus_drive` serve the searches;
+  - a `vendor` check runs only for vendor systems, so earlier bodies are bit-identical;
+  - new projects default to 3MGT 30T/45T.
+  Also new: `fitting_choices()`, `production_sheet.bom()`, compare set `r18` (`calflab.app.body_compare`) and preset
+  `hardware_r18`.
+* **Fits:** 7 371 / 5 125 / 8 408 McMaster choices fit the stifle / hock / carpus (260 pairs each).
+* **Closest swap `g020-008-r01-mc`:**
+  - stifle 3MGT 30T/45T on 450 mm (C 168.6);
+  - hock 30T/45T on 414 mm (C 150.6);
+  - carpus 45T/45T on 600 mm (C 232.5).
+  Every check passes. Mass is unchanged (2073.9 g). BOM USD 301.36; 6 shaft adapters and 6 axles are open.
+* **Swap vs baseline on the R16 repertoire** (seeds 0-2, 30 s, margin 0.2), judged with Gates' allowable:
+  - the swap holds **103 of 107 within every limit**, sustained belt tension included, and 52 of 52 full-search
+    cells;
+  - the baseline holds 102, on its own 44 N belt limit.
+  Belt tension:
+  - stifle and hock tension fall about 11 %; the carpus rises 18 %;
+  - the highest peaks are 114 / 99 / 132 N, far below the 9 mm sustained limit (143.7 N at the margin);
+  - only the lying probe exceeds the assumed breaking limit (carpus 132 N > 129 N);
+  - the swap binds on stifle and hock joint speed, not belts.
+* **Search** (preset `hardware_r18`): judged on seed 0 (your choice of a lighter judge), the top six confirmed on
+  seeds 0-2 with the allowable in place.
+  - The pilot took 11 min per generation of 15.
+  - The budget run took 8 generations in 91 min, seed 1. It started before ADR-120, so it searched with a null
+    allowable.
+  - **r18-a** (g007-007): **29/33** suite minutes, trot 287 mm/s, BOM USD 288.26.
+  - **r18-c** (g006-010-r02): 27/33, trot 556 mm/s, USD 304.24.
+  - **r18-b** (g004-001): 25/33, direct carpus, USD 184.44.
+  - The swap holds 0/33.
+  The gain is servos and springs more than belts:
+  - a C002 on the hip ab/ad;
+  - hip ab/ad, stifle and hock springs;
+  - stifle 20T/45T (2.25:1) on two of the three bodies;
+  - all 3MGT;
+  - 8-10 C002 in all.
+  On R16's repertoire the reformulated bodies hold only 49 / 62 / 89 of 107. They are bound by stifle or carpus
+  joint speed (higher ratios) and by the assumed breaking strength at the 20T stifle driver. They need their own
+  behaviours. Budgets: S 5 gens ~0.9 h, M 10 ~1.8 h, L 20 ~3.7 h at seed 0 (x2.8 at three seeds).
+* **Runs:**
+  - `R18 <body> <behaviour>: seed 0`, 107 per body for the swap, r18-a, r18-b and r18-c (`compare.html?set=r18`);
+  - evolve runs `20261112-213030-evolve-b674` (pilot) and `20261112-214157-evolve-3baa` (budget).
+* **Tests:**
+  - new: `tests/test_belts_mcmaster.py` (10, including the Gates allowable = per-inch figure x width / 25.4); updated
+    `test_belts.py`, the `set_belt_drive` test in `test_feral_calf.py` and `web/e2e/belts.spec.ts`;
+  - `calflab test`: ruff, mypy, web typecheck and eslint, 19 Vitest pass; 14 Playwright pass after the Belts spec was
+    updated for the McMaster defaults;
+  - pytest 633 passed, 2 failed in the full run. The BOM test is fixed and its file passes on re-run. The other is
+    the known `project_document` bit-identity failure from R13/R14;
+  - `test_lift` and `test_physics` adapt failed only while a search shared the CPU.
+* **Fixed in passing:** `evaluate_drive` no longer raises when |D2 - D1| > 2C (3MGT 16T-45T pairs on short belts): it
+  is a failed teeth-in-mesh check.
+
+**The researcher must verify (new in session R18, ADR-115 to ADR-120):**
+
+* **The breaking-strength assumption** (51 lbf per 1/8 in; Gates' per-span ultimate is about 1 560 N for 9 mm). It
+  binds the 20T stifle drivers of r18-b and r18-c.
+* **Gates' allowable** (ADR-120): GT2 data applied to belts McMaster lists as GT2 / GT3 / GT4; a recommended working
+  tension, not a drive-design rating.
+* **Mounting:** a servo spline-horn-to-1/4 in shaft adapter per belted servo and a 1/4 in axle per belted joint. Choose
+  them; their mass and size are not in the model.
+* **The parts:** part numbers, prices and that each can be ordered (`purchase_confirmed` false everywhere). The
+  pulleys' overall widths are 17.6-21.2 mm; the lateral stack is not modelled.
+* **Watch `compare.html?set=r18`** (restart the lab on 8020 first).
+
 **The researcher must verify (new in session R16, ADR-112):**
 
 * **Watch `compare.html?set=r16`** (restart the lab on 8020 first: the running server has the old code). Do the walk,
@@ -1952,7 +2034,26 @@ Journal, Rhino bridge):**
 
 Prefix each with the opening message from section 1.
 
-**R17. A repertoire that plays itself: chaining g020-008-r01's behaviours** (recommended next; written after R16,
+**R18-full. A larger reformulation budget on McMaster parts** (recommended next; written after R18, ADR-117.)
+> In projects/robot-calf-final, R18 (`docs/studies/mcmaster_r18.md` section 6) searched g020-008-r01 again with every
+> belt part from McMaster-Carr (preset `hardware_r18`, judged on seed 0 with the front-runners confirmed on seeds 0-2).
+> Run budget M (10 generations, about 1.8 h at seed 0) or L (20 generations, about 3.7 h). Your choice:
+> `python docs/studies/mcmaster_r18.py projects/robot-calf-final search --generations=10 --seed=2`, then `confirm`,
+> `adopt`, `replay --bodies=...`, `sheets`, `store` and `summary`. Report whether the confirmed front changed, which
+> drives and servos the best bodies use, their bills of materials, and their R16 repertoire on seeds 0-2 next to the
+> closest swap on `compare.html?set=r18`. Do not add hardware or flip `verified` flags; sustained belt tension stays
+> unknown until I supply an allowable.
+
+**R18-mount. Mounting the 1/4 in pulleys and choosing an allowable belt tension** (after R18, ADR-115/118.)
+> In projects/robot-calf-final, every McMaster pulley needs a 1/4 in round shaft, and the STS3215 / C002 output is a
+> spline horn. I will supply (with sources) a servo-to-1/4 in shaft adapter, a 1/4 in joint axle and, if I find one,
+> an allowable working tension for the 3MGT 9 mm and 2MGT 6 mm belts. Add the parts I give you to the library
+> (`config/components/parts.yaml`, `verified: false`), place them in the explicit mass model at each belted servo and
+> joint, and re-judge the closest swap and R18's reformulated bodies on the R16 repertoire (seeds 0-2, margin 0.2)
+> with the allowable in place. Report what the added mass and the sustained-tension check cost, per behaviour. Never
+> invent a value I have not given.
+
+**R17. A repertoire that plays itself: chaining g020-008-r01's behaviours** (after R18: run it on the McMaster swap g020-008-r01-mc; written after R16,
 ADR-112/113.)
 > In projects/robot-calf-final, R16's full search (`docs/studies/diversity_r16.md` section 6, `full` in
 > `diversity_r16.json`) found 52 behaviours of g020-008-r01 that each hold for 30 s: still poses, stepping in place,
